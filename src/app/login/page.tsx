@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -12,7 +12,8 @@ const QUOTES = [
   'كل طفل عبقري، والتعليم هو مفتاح اكتشاف عبقريته',
 ]
 
-export default function LoginPage() {
+/* ══ المكوّن الداخلي الذي يستخدم useSearchParams ══ */
+function LoginForm() {
   const [username,     setUsername]     = useState('')
   const [password,     setPassword]     = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -28,7 +29,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)])
-    /* عرض رسالة إذا جاء من حساب معطَّل */
     if (searchParams.get('reason') === 'deactivated') {
       setError(isAr ? 'تم تعطيل حسابك، تواصل مع مشرف النظام' : 'Your account has been deactivated, contact your administrator')
     }
@@ -42,17 +42,14 @@ export default function LoginPage() {
 
     const input = username.trim()
 
-    /* ══ محاولة تسجيل الدخول ══ */
     const trySignIn = async (email: string): Promise<boolean> => {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       return !error
     }
 
-    /* ── المسار 1: المدخَل بريد إلكتروني → جرّبه مباشرة ── */
     if (input.includes('@')) {
       const ok = await trySignIn(input)
       if (ok) {
-        /* فحص إضافي: هل الحساب نشط؟ */
         const { data: profile } = await supabase
           .from('profiles').select('is_active').eq('email', input).maybeSingle()
         if (profile?.is_active === false) {
@@ -68,16 +65,14 @@ export default function LoginPage() {
       return
     }
 
-    /* ── المسار 2: اسم مستخدم → ابحث عن البريد عبر API ── */
     try {
       const res = await fetch('/api/auth/resolve-username', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ username: input }),
-        redirect: 'error',   // ← لا نتبع أي redirect (يمنع استقبال HTML بدل JSON)
+        redirect: 'error',
       })
 
-      /* مساعد آمن لقراءة JSON بدون SyntaxError */
       const safeJson = async (): Promise<any> => {
         const ct = res.headers.get('content-type') || ''
         if (!ct.includes('application/json')) return {}
@@ -118,7 +113,6 @@ export default function LoginPage() {
 
       {/* ── اللوحة الجانبية ── */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-violet-700 via-purple-700 to-indigo-800 flex-col items-center justify-center p-12 text-white relative overflow-hidden">
-        {/* دوائر زخرفية */}
         <div className="absolute inset-0 opacity-10">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="absolute rounded-full border border-white"
@@ -144,7 +138,6 @@ export default function LoginPage() {
       {/* ── نموذج الدخول ── */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 bg-white relative">
 
-        {/* زر اللغة */}
         <div className="absolute top-4 left-4">
           <button onClick={() => setLang(isAr ? 'en' : 'ar')}
             className="px-4 py-2 text-sm rounded-full border border-violet-300 text-violet-700 hover:bg-violet-50 transition-colors font-medium">
@@ -154,7 +147,6 @@ export default function LoginPage() {
 
         <div className="w-full max-w-md">
 
-          {/* شعار الموبايل */}
           <div className="lg:hidden text-center mb-8">
             <div className="text-5xl mb-2">🏫</div>
             <h1 className="text-xl font-bold text-violet-700">
@@ -172,7 +164,6 @@ export default function LoginPage() {
 
             <form onSubmit={handleLogin} className="space-y-5">
 
-              {/* اسم المستخدم */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   {isAr ? 'اسم المستخدم' : 'Username'}
@@ -193,7 +184,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* كلمة المرور */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   {isAr ? 'كلمة المرور' : 'Password'}
@@ -217,14 +207,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* رسالة الخطأ */}
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
                   <span>⚠️</span> {error}
                 </div>
               )}
 
-              {/* زر الدخول */}
               <button type="submit" disabled={loading || !username.trim() || !password}
                 className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-violet-200 hover:shadow-violet-300">
                 {loading
@@ -242,5 +230,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/* ══ الصفحة الرئيسية مع Suspense ══ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
