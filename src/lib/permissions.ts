@@ -1,0 +1,39 @@
+/* ════════════════════════════════════════════
+   صلاحيات النظام — مرجع مركزي
+   ════════════════════════════════════════════ */
+
+export const ALL_PERMISSIONS = [
+  { code: 'manage_users',          label: 'إدارة المستخدمين',      icon: '👥' },
+  { code: 'manage_teams',          label: 'إدارة الفرق',           icon: '🤝' },
+  { code: 'manage_plans',          label: 'إدارة الخطط والمحاور',  icon: '📋' },
+  { code: 'manage_tasks',          label: 'إدارة المهام',          icon: '✅' },
+  { code: 'view_tasks',            label: 'عرض المهام',            icon: '👁️' },
+  { code: 'view_reports',          label: 'عرض التقارير',          icon: '📊' },
+  { code: 'manage_settings',       label: 'إدارة الإعدادات',       icon: '⚙️' },
+  { code: 'manage_roles',          label: 'إدارة الأدوار',         icon: '👑' },
+  { code: 'receive_notifications', label: 'استقبال الإشعارات',     icon: '🔔' },
+] as const
+
+export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']
+
+/** هل يملك الدور صلاحية معينة؟ */
+export function hasPermission(
+  permissions: string[],
+  permission: PermissionCode
+): boolean {
+  return permissions.includes('all') || permissions.includes(permission)
+}
+
+/** ألوان الشارات الافتراضية (يمكن استبدالها بألوان الدور) */
+export const ROLE_BADGE_COLORS: Record<string, string> = {
+  super_admin:  'bg-violet-100 text-violet-700',
+  school_admin: 'bg-indigo-100 text-indigo-700',
+  supervisor:   'bg-blue-100   text-blue-700',
+  teacher:      'bg-green-100  text-green-700',
+  staff:        'bg-slate-100  text-slate-600',
+}
+
+export const ROLE_COLORS_PALETTE = [
+  '#7c3aed', '#2563eb', '#0891b2', '#059669',
+  '#d97706', '#dc2626', '#db2777', '#4f46e5', '#6b7280',
+]

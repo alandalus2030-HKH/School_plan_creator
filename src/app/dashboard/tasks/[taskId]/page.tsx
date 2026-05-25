@@ -1,0 +1,1059 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import { type RatingValue } from '@/lib/rating'
+import { createNotification } from '@/lib/notifications'
+
+/* ══ تعريف كلاسات التقييم كنصوص كاملة حتى يتعرف عليها Tailwind ══
+   (يجب أن تكون هنا وليس في ملف خارجي لضمان إدراجها في CSS) */
+const RATING_INFO: Record<number, {
+  label: string; icon: string; stars: string
+  card: string; text: string; badge: string; ring: string; btn: string
+}> = {
+  5: {
+    label: 'ممتاز',    icon: '🌟', stars: '★★★★★',
+    card:  'bg-emerald-50 border-emerald-200',
+    text:  'text-emerald-700',
+    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    ring:  'ring-emerald-400',
+    btn:   'bg-emerald-50 text-emerald-700 border-2 border-emerald-400 ring-2 ring-emerald-300 ring-offset-1 scale-105 shadow-md',
+  },
+  4: {
+    label: 'جيد جداً', icon: '⭐', stars: '★★★★☆',
+    card:  'bg-blue-50 border-blue-200',
+    text:  'text-blue-700',
+    badge: 'bg-blue-50 text-blue-700 border-blue-200',
+    ring:  'ring-blue-400',
+    btn:   'bg-blue-50 text-blue-700 border-2 border-blue-400 ring-2 ring-blue-300 ring-offset-1 scale-105 shadow-md',
+  },
+  3: {
+    label: 'جيد',      icon: '✅', stars: '★★★☆☆',
+    card:  'bg-violet-50 border-violet-200',
+    text:  'text-violet-700',
+    badge: 'bg-violet-50 text-violet-700 border-violet-200',
+    ring:  'ring-violet-400',
+    btn:   'bg-violet-50 text-violet-700 border-2 border-violet-400 ring-2 ring-violet-300 ring-offset-1 scale-105 shadow-md',
+  },
+  2: {
+    label: 'مقبول',    icon: '⚠️', stars: '★★☆☆☆',
+    card:  'bg-amber-50 border-amber-200',
+    text:  'text-amber-700',
+    badge: 'bg-amber-50 text-amber-700 border-amber-200',
+    ring:  'ring-amber-400',
+    btn:   'bg-amber-50 text-amber-700 border-2 border-amber-400 ring-2 ring-amber-300 ring-offset-1 scale-105 shadow-md',
+  },
+  1: {
+    label: 'ضعيف',     icon: '❌', stars: '★☆☆☆☆',
+    card:  'bg-red-50 border-red-200',
+    text:  'text-red-700',
+    badge: 'bg-red-50 text-red-700 border-red-200',
+    ring:  'ring-red-400',
+    btn:   'bg-red-50 text-red-700 border-2 border-red-400 ring-2 ring-red-300 ring-offset-1 scale-105 shadow-md',
+  },
+}
+
+const typeIcon: Record<string, string> = { academic: '📚', administrative: '🗃️', general: '📌' }
+const typeAr:   Record<string, string> = { academic: 'أكاديمية', administrative: 'إدارية', general: 'عامة' }
+const statusList = [
+  { value: 'not_started', label: 'لم تبدأ',  ring: 'ring-slate-400',  bg: 'bg-slate-100  text-slate-700  border-slate-200  hover:bg-slate-200'  },
+  { value: 'in_progress', label: 'جارية',    ring: 'ring-blue-400',   bg: 'bg-blue-50   text-blue-700   border-blue-200   hover:bg-blue-100'   },
+  { value: 'completed',   label: 'منجزة ✓',  ring: 'ring-green-400',  bg: 'bg-green-50  text-green-700  border-green-200  hover:bg-green-100'  },
+  { value: 'delayed',     label: 'متأخرة',   ring: 'ring-red-400',    bg: 'bg-red-50    text-red-700    border-red-200    hover:bg-red-100'    },
+]
+const priorityInfo: Record<string, { label: string; icon: string; cls: string }> = {
+  high:   { label: 'عالية',   icon: '🔴', cls: 'text-red-600   bg-red-50   border-red-200'   },
+  medium: { label: 'متوسطة', icon: '🟡', cls: 'text-amber-600 bg-amber-50 border-amber-200' },
+  low:    { label: 'منخفضة', icon: '🟢', cls: 'text-slate-500 bg-slate-50 border-slate-200' },
+}
+
+export default function TaskPage() {
+  const params   = useParams()
+  const taskId   = params.taskId as string
+  const router   = useRouter()
+  const supabase = createClient()
+
+  const [task,         setTask]         = useState<any>(null)
+  const [loading,      setLoading]      = useState(true)
+  const [taskNum,      setTaskNum]      = useState<string|null>(null)
+  const [status,       setStatus]       = useState('')
+  const [savingStatus, setSavingStatus] = useState(false)
+  const [comments,     setComments]     = useState<any[]>([])
+  const [comment,      setComment]      = useState('')
+  const [sendingCmt,   setSendingCmt]   = useState(false)
+  const [userId,       setUserId]       = useState('')
+  const [userName,     setUserName]     = useState('')
+  const [confirmDel,   setConfirmDel]   = useState(false)
+  const [deleting,     setDeleting]     = useState(false)
+  const [canManageTasks, setCanManageTasks] = useState(false)
+
+  /* ── التكليف والمقيّم ── */
+  const [profiles,       setProfiles]       = useState<any[]>([])
+  const [teams,          setTeams]          = useState<any[]>([])
+  const [assignUserId,   setAssignUserId]   = useState('')
+  const [assignTeamId,   setAssignTeamId]   = useState('')
+  const [assignReviewer, setAssignReviewer] = useState('')
+  const [savingAssign,   setSavingAssign]   = useState(false)
+  const [showAssign,     setShowAssign]     = useState(false)
+
+  /* ── وضع التعديل للمهمة ── */
+  const [editing,      setEditing]      = useState(false)
+  const [editName,     setEditName]     = useState('')
+  const [editDesc,     setEditDesc]     = useState('')
+  const [editType,     setEditType]     = useState('')
+  const [editPriority, setEditPriority] = useState('')
+  const [editStart,    setEditStart]    = useState('')
+  const [editEnd,      setEditEnd]      = useState('')
+  const [savingEdit,   setSavingEdit]   = useState(false)
+
+  /* ── تعديل/حذف التعليقات ── */
+  const [editingCmtId, setEditingCmtId] = useState<string | null>(null)
+  const [editCmtText,  setEditCmtText]  = useState('')
+  const [savingCmt,    setSavingCmt]    = useState(false)
+
+  /* ── التبعية ── */
+  const [dependsOnTask,     setDependsOnTask]     = useState<any>(null)
+  const [siblingTasks,      setSiblingTasks]      = useState<any[]>([])
+  const [editingDepends,    setEditingDepends]    = useState(false)
+  const [newDependsId,      setNewDependsId]      = useState('')
+  const [savingDepends,     setSavingDepends]     = useState(false)
+
+  /* ── التقييم ── */
+  const [ratingValue,       setRatingValue]       = useState<RatingValue | null>(null)
+  const [ratingNote,        setRatingNote]        = useState('')
+  const [savingRating,      setSavingRating]      = useState(false)
+  const [editingRating,     setEditingRating]     = useState(false)
+  const [ratingError,       setRatingError]       = useState('')
+  const [confirmResetRating, setConfirmResetRating] = useState(false)
+  const [resettingRating,   setResettingRating]   = useState(false)
+
+  /* ════════════════════════════════════════ */
+
+  const loadTask = useCallback(async () => {
+    const { data } = await supabase
+      .from('tasks')
+      .select(`
+        id, name_ar, description, task_type, status, priority,
+        start_date, end_date, order_num, node_id,
+        assigned_to_user_id, assigned_to_team_id,
+        reviewer_id, rating, rating_note, rated_at,
+        budget_qar, other_resources, evidence_required,
+        depends_on_task_id,
+        evidence ( id, name, description, evidence_number, file_url, file_type, created_at ),
+        task_comments (
+          id, content, created_at,
+          profiles:author_id ( id, full_name_ar )
+        )
+      `)
+      .eq('id', taskId)
+      .single()
+
+    if (!data) { router.push('/dashboard/tasks'); return }
+    setTask(data)
+    setStatus(data.status)
+    setAssignUserId(data.assigned_to_user_id || '')
+    setAssignTeamId(data.assigned_to_team_id  || '')
+    setAssignReviewer(data.reviewer_id || '')
+    setRatingValue(data.rating || null)
+    setRatingNote(data.rating_note || '')
+    setNewDependsId(data.depends_on_task_id || '')
+
+    /* جلب المهمة التابع لها */
+    if (data.depends_on_task_id) {
+      const { data: depTask } = await supabase
+        .from('tasks').select('id, name_ar, status').eq('id', data.depends_on_task_id).single()
+      setDependsOnTask(depTask || null)
+    } else {
+      setDependsOnTask(null)
+    }
+
+    /* جلب المهام الشقيقة (نفس العقدة + نفس الخطة) للقائمة المنسدلة */
+    if (data.node_id) {
+      const { data: nodeData } = await supabase
+        .from('plan_nodes').select('plan_id').eq('id', data.node_id).single()
+      if (nodeData?.plan_id) {
+        const { data: planNodes } = await supabase
+          .from('plan_nodes').select('id').eq('plan_id', nodeData.plan_id)
+        if (planNodes?.length) {
+          const nodeIds = planNodes.map((n: any) => n.id)
+          const { data: sibs } = await supabase
+            .from('tasks').select('id, name_ar, status')
+            .in('node_id', nodeIds)
+            .neq('id', taskId)
+            .order('name_ar')
+          setSiblingTasks(sibs || [])
+        }
+      }
+    }
+    if (data.node_id) {
+      const num = await getTaskNumber(data.node_id, data.order_num)
+      setTaskNum(num)
+    }
+    setComments(
+      (data.task_comments || []).sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+    )
+    setLoading(false)
+  }, [taskId])
+
+  useEffect(() => {
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+      setUserId(user.id)
+
+      const [{ data: profile }, { data: profs }, { data: tms }] = await Promise.all([
+        supabase.from('profiles').select('full_name_ar, role').eq('id', user.id).single(),
+        supabase.from('profiles').select('id, name_ar, job_title').eq('is_active', true).order('name_ar'),
+        supabase.from('teams').select('id, name_ar, color, leader_id'),
+      ])
+      setUserName(profile?.full_name_ar || 'أنت')
+      setProfiles(profs || [])
+      setTeams(tms || [])
+
+      // التحقق من صلاحية manage_tasks
+      if (profile?.role) {
+        const { data: roleData } = await supabase
+          .from('roles').select('permissions').eq('code', profile.role).single()
+        const perms: string[] = roleData?.permissions || []
+        setCanManageTasks(perms.includes('all') || perms.includes('manage_tasks'))
+      }
+
+      await loadTask()
+    })()
+  }, [loadTask])
+
+  const getTaskNumber = useCallback(async (nodeId: string, taskOrderNum: number): Promise<string|null> => {
+    if (!nodeId) return null
+    const { data: node } = await supabase.from('plan_nodes').select('plan_id').eq('id', nodeId).single()
+    if (!node) return null
+    const { data: allNodes } = await supabase.from('plan_nodes').select('id, parent_id, order_num').eq('plan_id', node.plan_id)
+    if (!allNodes) return null
+    const path: number[] = []
+    let current = allNodes.find(n => n.id === nodeId)
+    while (current) {
+      path.unshift(current.order_num)
+      current = allNodes.find(n => n.id === current!.parent_id)
+    }
+    path.push(taskOrderNum)
+    return path.join('.')
+  }, [supabase])
+
+  const saveDepends = async () => {
+    setSavingDepends(true)
+    await supabase.from('tasks')
+      .update({ depends_on_task_id: newDependsId || null })
+      .eq('id', taskId)
+    setEditingDepends(false)
+    setSavingDepends(false)
+    await loadTask()
+  }
+
+  const updateStatus = async (newStatus: string) => {
+    if (newStatus === status || savingStatus) return
+    setSavingStatus(true)
+    await supabase.from('tasks').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', taskId)
+    setStatus(newStatus)
+    setSavingStatus(false)
+  }
+
+  const openEdit = () => {
+    setEditName(task.name_ar || '')
+    setEditDesc(task.description || '')
+    setEditType(task.task_type || 'general')
+    setEditPriority(task.priority || 'medium')
+    setEditStart(task.start_date || '')
+    setEditEnd(task.end_date || '')
+    setEditing(true)
+  }
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editName.trim()) return
+    setSavingEdit(true)
+    await supabase.from('tasks').update({
+      name_ar: editName.trim(),
+      description: editDesc.trim() || null,
+      task_type: editType,
+      priority: editPriority,
+      start_date: editStart || null,
+      end_date: editEnd || null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', taskId)
+    setEditing(false); setSavingEdit(false)
+    await loadTask()
+  }
+
+  const sendComment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!comment.trim() || sendingCmt) return
+    setSendingCmt(true)
+    const { data } = await supabase
+      .from('task_comments')
+      .insert({ task_id: taskId, author_id: userId, content: comment.trim() })
+      .select('id, content, created_at')
+      .single()
+    if (data) setComments(prev => [{ ...data, profiles: { id: userId, full_name_ar: userName } }, ...prev])
+    setComment('')
+    setSendingCmt(false)
+  }
+
+  const saveCommentEdit = async (cmtId: string) => {
+    if (!editCmtText.trim()) return
+    setSavingCmt(true)
+    await supabase.from('task_comments').update({ content: editCmtText.trim() }).eq('id', cmtId)
+    setComments(prev => prev.map(c => c.id === cmtId ? { ...c, content: editCmtText.trim() } : c))
+    setEditingCmtId(null); setSavingCmt(false)
+  }
+
+  const deleteComment = async (cmtId: string) => {
+    await supabase.from('task_comments').delete().eq('id', cmtId)
+    setComments(prev => prev.filter(c => c.id !== cmtId))
+  }
+
+  const deleteEvidence = async (evId: string) => {
+    await supabase.from('evidence').delete().eq('id', evId)
+    await loadTask()
+  }
+
+  const saveAssignment = async () => {
+    setSavingAssign(true)
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    /* القيم القديمة قبل الحفظ */
+    const prevAssignee = (task as any)?.assigned_to_user_id || ''
+    const prevReviewer = (task as any)?.reviewer_id         || ''
+
+    await supabase.from('tasks').update({
+      assigned_to_user_id: assignUserId   || null,
+      assigned_to_team_id: assignTeamId   || null,
+      reviewer_id:         assignReviewer || null,
+    }).eq('id', taskId)
+
+    const taskName = (task as any)?.name_ar || 'مهمة'
+    const link     = `/dashboard/tasks/${taskId}`
+
+    /* إشعار المكلّف الجديد إذا تغيّر — ولا يُشعَر نفسه */
+    if (assignUserId && assignUserId !== prevAssignee && assignUserId !== user?.id) {
+      await createNotification({
+        recipientId: assignUserId,
+        senderId:    user?.id,
+        type:        'task_assigned',
+        title:       `📋 تم تعيينك على مهمة: ${taskName}`,
+        link,
+      })
+    }
+
+    /* إشعار المقيّم الجديد إذا تغيّر — ولا يُشعَر نفسه */
+    if (assignReviewer && assignReviewer !== prevReviewer && assignReviewer !== user?.id) {
+      await createNotification({
+        recipientId: assignReviewer,
+        senderId:    user?.id,
+        type:        'task_assigned',
+        title:       `🔍 تم تعيينك مقيّماً لمهمة: ${taskName}`,
+        link,
+      })
+    }
+
+    setSavingAssign(false); setShowAssign(false)
+    await loadTask()
+  }
+
+  /* ── حفظ التقييم ── */
+  const saveRating = async () => {
+    if (!ratingValue) return
+    setSavingRating(true)
+    setRatingError('')
+
+    const now = new Date().toISOString()
+    const { error } = await supabase.from('tasks').update({
+      rating:      ratingValue,
+      rating_note: ratingNote.trim() || null,
+      rated_at:    now,
+    }).eq('id', taskId)
+
+    if (error) {
+      setRatingError(`فشل الحفظ: ${error.message}`)
+      setSavingRating(false)
+      return
+    }
+
+    /* تحديث فوري للـ state المحلي قبل إعادة التحميل */
+    setTask((prev: any) => ({
+      ...prev,
+      rating:      ratingValue,
+      rating_note: ratingNote.trim() || null,
+      rated_at:    now,
+    }))
+    setSavingRating(false)
+    setEditingRating(false)
+    /* ثم إعادة تحميل من قاعدة البيانات للتأكد */
+    await loadTask()
+  }
+
+  /* ── إعادة تعيين التقييم (حذف التقييم الحالي) ── */
+  const resetRating = async () => {
+    setResettingRating(true)
+    setRatingError('')
+    const { error } = await supabase.from('tasks').update({
+      rating:      null,
+      rating_note: null,
+      rated_at:    null,
+    }).eq('id', taskId)
+
+    if (error) {
+      setRatingError(`فشل إعادة التعيين: ${error.message}`)
+      setResettingRating(false)
+      setConfirmResetRating(false)
+      return
+    }
+
+    /* تحديث فوري للـ state */
+    setTask((prev: any) => ({ ...prev, rating: null, rating_note: null, rated_at: null }))
+    setRatingValue(null)
+    setRatingNote('')
+    setResettingRating(false)
+    setConfirmResetRating(false)
+    setEditingRating(false)
+    await loadTask()
+  }
+
+  const deleteTask = async () => {
+    setDeleting(true)
+    await supabase.from('tasks').delete().eq('id', taskId)
+    router.push('/dashboard/tasks')
+  }
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+    </div>
+  )
+  if (!task) return null
+
+  const pInfo     = priorityInfo[task.priority] || priorityInfo.medium
+  const isOverdue = task.end_date && status !== 'completed' && new Date(task.end_date) < new Date()
+  const evidence  = task.evidence || []
+
+  // صلاحية التقييم: المقيّم المعيّن أو أصحاب manage_tasks
+  const canRate = canManageTasks || (task.reviewer_id && task.reviewer_id === userId)
+
+  // بيانات المقيّم
+  const reviewerProfile = profiles.find((p: any) => p.id === task.reviewer_id)
+
+  // بيانات التقدير الحالي — من المصفوفة المحلية الثابتة
+  const currentRating = task.rating ? RATING_INFO[task.rating as RatingValue] : null
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-5">
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1.5 text-xs text-slate-400 flex-wrap">
+        <Link href="/dashboard/plans" className="hover:text-violet-600">الخطط</Link>
+        <span>›</span>
+        <Link href="/dashboard/tasks" className="hover:text-violet-600">المهام</Link>
+        <span>›</span>
+        <span className="text-violet-700 font-medium">{task.name_ar}</span>
+      </div>
+
+      {/* ══ Header Card ══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white p-5">
+          {!editing ? (
+            <div className="flex items-start gap-3">
+              <span className="text-3xl flex-shrink-0">{typeIcon[task.task_type] || '📌'}</span>
+              <div className="flex-1 min-w-0">
+                {taskNum && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-mono text-lg font-bold bg-white/20 px-3 py-1 rounded-lg tracking-wider">{taskNum}</span>
+                    <span className="text-violet-200 text-xs">رقم المهمة</span>
+                  </div>
+                )}
+                <h1 className="text-xl font-bold leading-snug">{task.name_ar}</h1>
+                {task.description && (
+                  <p className="text-violet-200 text-sm mt-1.5 leading-relaxed">{task.description}</p>
+                )}
+                {/* التقدير في الهيدر إن وُجد */}
+                {currentRating && (
+                  <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/15 text-white text-xs font-semibold">
+                    <span>{currentRating.icon}</span>
+                    <span>{currentRating.label}</span>
+                    <span className="opacity-60 text-xs">(تقييم الجودة)</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold
+                  ${status === 'completed'   ? 'bg-green-400/20 text-green-100' :
+                    status === 'in_progress' ? 'bg-blue-400/20  text-blue-100'  :
+                    status === 'delayed'     ? 'bg-red-400/20   text-red-100'   :
+                    'bg-white/20 text-white/80'}`}>
+                  {statusList.find(s => s.value === status)?.label}
+                </span>
+                <button onClick={openEdit}
+                  className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors">
+                  ✏️ تعديل
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={saveEdit} className="space-y-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-semibold text-white">تعديل المهمة</span>
+                <button type="button" onClick={() => setEditing(false)} className="text-white/60 hover:text-white text-sm">✕ إلغاء</button>
+              </div>
+              <input value={editName} onChange={e => setEditName(e.target.value)} required
+                className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/40 text-sm"
+                placeholder="اسم المهمة *" />
+              <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={2}
+                className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/40 text-sm resize-none"
+                placeholder="الوصف (اختياري)" />
+              <div className="grid grid-cols-2 gap-2">
+                <select value={editType} onChange={e => setEditType(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm">
+                  <option value="general">📌 عامة</option>
+                  <option value="academic">📚 أكاديمية</option>
+                  <option value="administrative">🗃️ إدارية</option>
+                </select>
+                <select value={editPriority} onChange={e => setEditPriority(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm">
+                  <option value="low">🟢 منخفضة</option>
+                  <option value="medium">🟡 متوسطة</option>
+                  <option value="high">🔴 عالية</option>
+                </select>
+                <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} dir="ltr"
+                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm" />
+                <input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} dir="ltr"
+                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm" />
+              </div>
+              <button type="submit" disabled={savingEdit}
+                className="w-full py-2 bg-white text-violet-700 font-semibold rounded-xl text-sm disabled:opacity-50">
+                {savingEdit ? 'جارٍ الحفظ...' : '💾 حفظ التعديلات'}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* Meta Row */}
+        <div className="flex flex-wrap items-center gap-3 px-5 py-3 bg-slate-50 border-b border-slate-100">
+          <span className={`flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium ${pInfo.cls}`}>
+            {pInfo.icon} أولوية {pInfo.label}
+          </span>
+          <span className="text-xs text-slate-500">🏷️ {typeAr[task.task_type]}</span>
+          {task.start_date && (
+            <span className="text-xs text-slate-500">📅 البدء: {new Date(task.start_date).toLocaleDateString('ar-QA')}</span>
+          )}
+          {task.end_date && (
+            <span className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-500'}`}>
+              {isOverdue ? '⚠️' : '🎯'} الانتهاء: {new Date(task.end_date).toLocaleDateString('ar-QA')}
+              {isOverdue && ' (متأخرة)'}
+            </span>
+          )}
+          {task.budget_qar != null && (
+            <span className="text-xs text-slate-500">💰 {Number(task.budget_qar).toLocaleString('ar-QA')} ر.ق</span>
+          )}
+        </div>
+
+        {/* Status Buttons */}
+        <div className="p-5">
+          <p className="text-sm font-semibold text-slate-700 mb-3">تحديث الحالة</p>
+          <div className="flex flex-wrap gap-2">
+            {statusList.map(s => (
+              <button key={s.value} onClick={() => updateStatus(s.value)} disabled={savingStatus}
+                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${s.bg}
+                  ${status === s.value ? `ring-2 ring-offset-1 ${s.ring} shadow-sm scale-105` : 'opacity-70 hover:opacity-100'}
+                  disabled:opacity-40`}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ══ التبعية بين المهام ══ */}
+      {(task.depends_on_task_id || canManageTasks) && (
+        <div className={`bg-white rounded-2xl border shadow-sm p-5 ${
+          dependsOnTask && dependsOnTask.status !== 'completed'
+            ? 'border-orange-200 bg-orange-50/30'
+            : 'border-slate-200'
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-slate-800">🔗 التبعية</h2>
+            {canManageTasks && (
+              <button
+                onClick={() => { setNewDependsId(task.depends_on_task_id || ''); setEditingDepends(!editingDepends) }}
+                className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+                {editingDepends ? '✕ إلغاء' : '✏️ تعديل'}
+              </button>
+            )}
+          </div>
+
+          {!editingDepends ? (
+            dependsOnTask ? (
+              <div className={`flex items-center gap-3 rounded-xl px-4 py-3 border ${
+                dependsOnTask.status === 'completed'
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-orange-50 border-orange-200'
+              }`}>
+                <span className="text-2xl flex-shrink-0">
+                  {dependsOnTask.status === 'completed' ? '✅' :
+                   dependsOnTask.status === 'in_progress' ? '🔄' :
+                   dependsOnTask.status === 'delayed' ? '⚠️' : '🔒'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{dependsOnTask.name_ar}</p>
+                  <p className={`text-xs mt-0.5 font-medium ${
+                    dependsOnTask.status === 'completed' ? 'text-green-600' : 'text-orange-600'
+                  }`}>
+                    {dependsOnTask.status === 'completed'
+                      ? '✓ اكتملت — هذه المهمة متاحة للبدء'
+                      : 'هذه المهمة محجوبة حتى تكتمل المهمة أعلاه'}
+                  </p>
+                </div>
+                <a href={`/dashboard/tasks/${dependsOnTask.id}`}
+                  className="text-xs text-violet-600 hover:underline flex-shrink-0 bg-violet-50 px-2 py-1 rounded-lg border border-violet-200">
+                  عرض ←
+                </a>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">لا تبعية — يمكن بدء هذه المهمة في أي وقت</p>
+            )
+          ) : (
+            <div className="space-y-3">
+              <select
+                value={newDependsId}
+                onChange={e => setNewDependsId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800 text-sm">
+                <option value="">— لا تبعية —</option>
+                {siblingTasks.map((t: any) => {
+                  const icon =
+                    t.status === 'completed'   ? '✅' :
+                    t.status === 'in_progress' ? '🔄' :
+                    t.status === 'delayed'     ? '⚠️' : '⏳'
+                  return <option key={t.id} value={t.id}>{icon} {t.name_ar}</option>
+                })}
+              </select>
+              {newDependsId && newDependsId !== task.depends_on_task_id && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-700">
+                  <span>⚠️</span>
+                  <span>ستظهر هذه المهمة بحالة محجوبة حتى تكتمل المهمة المختارة</span>
+                </div>
+              )}
+              <button
+                onClick={saveDepends}
+                disabled={savingDepends}
+                className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60">
+                {savingDepends ? 'جارٍ الحفظ...' : '💾 حفظ التبعية'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ التكليف والمقيّم ══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-slate-800">👥 التكليف والمقيّم</h2>
+          <button onClick={() => setShowAssign(!showAssign)}
+            className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+            {showAssign ? '✕ إلغاء' : '✏️ تعديل'}
+          </button>
+        </div>
+
+        {!showAssign ? (
+          <div className="flex flex-wrap gap-3">
+            {/* المكلف */}
+            {task.assigned_to_user_id ? (() => {
+              const p = profiles.find((x: any) => x.id === task.assigned_to_user_id)
+              return p ? (
+                <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {p.name_ar?.[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-violet-800">{p.name_ar}</p>
+                    <p className="text-xs text-violet-500">{p.job_title || 'المكلَّف'}</p>
+                  </div>
+                </div>
+              ) : null
+            })() : (
+              <p className="text-sm text-slate-400">لم يُكلَّف أحد بعد</p>
+            )}
+
+            {/* الفريق */}
+            {task.assigned_to_team_id && (() => {
+              const t = teams.find((x: any) => x.id === task.assigned_to_team_id)
+              return t ? (
+                <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-white"
+                  style={{ backgroundColor: t.color || '#7c3aed' }}>
+                  <span className="text-lg">👥</span>
+                  <div>
+                    <p className="text-sm font-semibold">{t.name_ar}</p>
+                    <p className="text-xs opacity-75">فريق مكلَّف</p>
+                  </div>
+                </div>
+              ) : null
+            })()}
+
+            {/* المقيّم */}
+            {reviewerProfile ? (
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  {reviewerProfile.name_ar?.[0]}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">{reviewerProfile.name_ar}</p>
+                  <p className="text-xs text-amber-600">🔍 مقيّم الجودة</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 flex items-center gap-1">🔍 <span>لم يُعيَّن مقيّم بعد</span></p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">المسؤول (شخص)</label>
+              <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-sm">
+                <option value="">— بدون تكليف شخصي —</option>
+                {profiles.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name_ar}{p.job_title ? ` — ${p.job_title}` : ''}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">الفريق المكلَّف</label>
+              <select value={assignTeamId} onChange={e => setAssignTeamId(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-sm">
+                <option value="">— بدون تكليف فريق —</option>
+                {teams.map((t: any) => {
+                  const leader = profiles.find((p: any) => p.id === t.leader_id)
+                  return (
+                    <option key={t.id} value={t.id}>
+                      {t.name_ar}{leader ? ` (القائد: ${leader.name_ar})` : ''}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">🔍 مقيّم جودة التنفيذ</label>
+              <select value={assignReviewer} onChange={e => setAssignReviewer(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50 text-sm">
+                <option value="">— بدون مقيّم محدد —</option>
+                {profiles.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name_ar}{p.job_title ? ` — ${p.job_title}` : ''}</option>
+                ))}
+              </select>
+            </div>
+            <button onClick={saveAssignment} disabled={savingAssign}
+              className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl text-sm disabled:opacity-50 transition-colors">
+              {savingAssign ? 'جارٍ الحفظ...' : '💾 حفظ'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ══ Evidence ══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-slate-800">
+            📎 الأدلة والإثباتات
+            <span className="text-xs font-normal text-slate-400 mr-2">({evidence.length})</span>
+          </h2>
+          <Link href={`/dashboard/tasks/${taskId}/evidence/new`}
+            className="text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+            ➕ إضافة دليل
+          </Link>
+        </div>
+
+        {evidence.length > 0 ? (
+          <div className="space-y-2">
+            {evidence.map((ev: any) => (
+              <div key={ev.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-violet-100 transition-all">
+                <span className="text-2xl flex-shrink-0">
+                  {ev.file_type?.startsWith('image') ? '🖼️' : ev.file_type === 'application/pdf' ? '📄' : '📎'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700 truncate">{ev.name}</p>
+                  {ev.description && <p className="text-xs text-slate-400 truncate">{ev.description}</p>}
+                  {ev.evidence_number && (
+                    <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full mt-1 inline-block">
+                      {taskNum ? `${taskNum}-${ev.evidence_number.split('-').pop()}` : ev.evidence_number}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <a href={ev.file_url} target="_blank" rel="noopener noreferrer"
+                    className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
+                    📥 فتح
+                  </a>
+                  <button onClick={() => deleteEvidence(ev.id)}
+                    className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-3xl mb-2">📂</p>
+            <p className="text-sm text-slate-400">لا توجد أدلة مرفقة بعد</p>
+          </div>
+        )}
+
+        {/* أدلة الإنجاز المطلوبة */}
+        {task.evidence_required && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+            <p className="text-xs font-semibold text-blue-700 mb-1">📋 أدلة الإنجاز المطلوبة:</p>
+            <p className="text-xs text-blue-600 leading-relaxed">{task.evidence_required}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ══ تقييم جودة التنفيذ ══ */}
+      <div className={`bg-white rounded-2xl border shadow-sm p-5 ${currentRating ? currentRating.card : 'border-slate-200'}`}>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="font-bold text-slate-800 flex items-center gap-2">
+            ⭐ تقييم جودة التنفيذ
+            {currentRating && (
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${currentRating.badge}`}>
+                {currentRating.icon} {currentRating.label}
+              </span>
+            )}
+          </h2>
+
+          {/* أزرار التحكم — تظهر فقط عند وجود تقييم وعدم التعديل */}
+          {canRate && task.rating && !editingRating && (
+            <div className="flex items-center gap-2">
+              {/* زر التعديل */}
+              <button onClick={() => { setEditingRating(true); setRatingValue(task.rating); setRatingNote(task.rating_note || ''); setConfirmResetRating(false) }}
+                className="text-sm text-amber-600 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-colors border border-amber-200">
+                ✏️ تعديل
+              </button>
+
+              {/* زر إعادة التعيين مع تأكيد */}
+              {!confirmResetRating ? (
+                <button onClick={() => setConfirmResetRating(true)}
+                  className="text-sm text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors border border-red-200">
+                  🔄 إعادة تعيين
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-xl px-3 py-1.5">
+                  <span className="text-xs text-red-700 font-medium">تأكيد الحذف؟</span>
+                  <button onClick={resetRating} disabled={resettingRating}
+                    className="text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded-lg font-semibold disabled:opacity-50 transition-colors">
+                    {resettingRating ? '...' : 'نعم'}
+                  </button>
+                  <button onClick={() => setConfirmResetRating(false)}
+                    className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg transition-colors">
+                    لا
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* معلومات المقيّم */}
+        <div className="flex items-center gap-2 mb-4 text-xs text-slate-500">
+          <span>المقيّم:</span>
+          {reviewerProfile ? (
+            <span className="font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+              🔍 {reviewerProfile.name_ar}
+            </span>
+          ) : (
+            <span className="text-slate-400 italic">لم يُعيَّن مقيّم</span>
+          )}
+          {task.rated_at && (
+            <span className="mr-auto text-slate-400">
+              آخر تقييم: {new Date(task.rated_at).toLocaleDateString('ar-QA')}
+            </span>
+          )}
+        </div>
+
+        {/* عرض التقييم المحفوظ */}
+        {task.rating && !editingRating && currentRating && (
+          <div className={`rounded-xl border p-4 ${currentRating.card}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">{currentRating.icon}</span>
+              <div>
+                <p className={`text-lg font-bold ${currentRating.text}`}>{currentRating.label}</p>
+                <p className="text-xs text-slate-500 font-mono">{currentRating.stars} ({task.rating}/5)</p>
+              </div>
+            </div>
+            {task.rating_note && (
+              <p className="text-sm text-slate-600 mt-2 border-t border-white/50 pt-2 leading-relaxed">
+                💬 {task.rating_note}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* نموذج التقييم — للمقيّم أو أصحاب الصلاحية */}
+        {canRate && (!task.rating || editingRating) && (
+          <div className="space-y-4">
+            {!task.rating && (
+              <p className="text-sm text-slate-500 bg-slate-50 rounded-xl p-3">
+                لم يتم تقييم هذه المهمة بعد. راجع الأدلة المرفوعة والتعليقات ثم أضف تقييمك.
+              </p>
+            )}
+
+            {/* أزرار التقدير الخماسي */}
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-2">اختر التقدير:</p>
+              <div className="grid grid-cols-5 gap-2">
+                {([5,4,3,2,1] as RatingValue[]).map(val => {
+                  const info = RATING_INFO[val]
+                  const isSelected = ratingValue === val
+                  return (
+                    <button key={val} type="button"
+                      onClick={() => setRatingValue(val)}
+                      className={`flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-bold transition-all
+                        ${isSelected ? info.btn : 'border border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}>
+                      <span className="text-xl">{info.icon}</span>
+                      <span>{info.label}</span>
+                      <span className="opacity-60 font-mono">{val}/5</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* ملاحظة المقيّم */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                💬 ملاحظة المقيّم <span className="text-slate-400 font-normal">(اختياري)</span>
+              </label>
+              <textarea
+                value={ratingNote}
+                onChange={e => setRatingNote(e.target.value.slice(0, 500))}
+                rows={3} maxLength={500}
+                placeholder="أضف ملاحظاتك حول جودة التنفيذ..."
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 text-slate-800 resize-none text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-1 text-left">{ratingNote.length} / 500</p>
+            </div>
+
+            {/* رسالة خطأ */}
+            {ratingError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
+                ⚠️ {ratingError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button onClick={saveRating} disabled={savingRating || !ratingValue}
+                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-sm disabled:opacity-50 transition-colors">
+                {savingRating ? 'جارٍ الحفظ...' : '💾 حفظ التقييم'}
+              </button>
+              {editingRating && (
+                <button onClick={() => { setEditingRating(false); setRatingError(''); setConfirmResetRating(false) }}
+                  className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50">
+                  إلغاء
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* رسالة لغير المخوّلين */}
+        {!canRate && !task.rating && (
+          <div className="text-center py-4 text-slate-400">
+            <p className="text-2xl mb-1">🔒</p>
+            <p className="text-sm">لم يتم التقييم بعد — بانتظار المقيّم المعيّن</p>
+          </div>
+        )}
+      </div>
+
+      {/* ══ Comments ══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <h2 className="font-bold text-slate-800 mb-4">
+          💬 التعليقات
+          <span className="text-xs font-normal text-slate-400 mr-2">({comments.length})</span>
+        </h2>
+
+        {comments.map((c: any) => (
+          <div key={c.id} className="flex gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+              {(c.profiles?.full_name_ar || '؟')[0]}
+            </div>
+            <div className="flex-1 bg-slate-50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">{c.profiles?.full_name_ar || 'مستخدم'}</span>
+                  <span className="text-xs text-slate-400">{new Date(c.created_at).toLocaleDateString('ar-QA')}</span>
+                </div>
+                {c.profiles?.id === userId && editingCmtId !== c.id && (
+                  <div className="flex gap-1">
+                    <button onClick={() => { setEditingCmtId(c.id); setEditCmtText(c.content) }}
+                      className="text-xs text-slate-400 hover:text-violet-600 px-2 py-0.5 rounded transition-colors">✏️</button>
+                    <button onClick={() => deleteComment(c.id)}
+                      className="text-xs text-slate-400 hover:text-red-600 px-2 py-0.5 rounded transition-colors">🗑️</button>
+                  </div>
+                )}
+              </div>
+              {editingCmtId === c.id ? (
+                <div className="space-y-2 mt-1">
+                  <textarea value={editCmtText} onChange={e => setEditCmtText(e.target.value)} rows={2}
+                    className="w-full px-3 py-2 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm resize-none bg-white" />
+                  <div className="flex gap-2">
+                    <button onClick={() => saveCommentEdit(c.id)} disabled={savingCmt}
+                      className="px-3 py-1.5 bg-violet-600 text-white text-xs rounded-lg font-medium disabled:opacity-50">
+                      {savingCmt ? '...' : 'حفظ'}
+                    </button>
+                    <button onClick={() => setEditingCmtId(null)}
+                      className="px-3 py-1.5 border border-slate-200 text-slate-500 text-xs rounded-lg">إلغاء</button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-700 leading-relaxed">{c.content}</p>
+              )}
+            </div>
+          </div>
+        ))}
+
+        <form onSubmit={sendComment} className="space-y-2 mt-2">
+          <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3}
+            placeholder="اكتب تعليقاً أو ملاحظة..."
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800 resize-none text-sm" />
+          <button type="submit" disabled={sendingCmt || !comment.trim()}
+            className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+            {sendingCmt ? 'جارٍ الإرسال...' : '💬 إرسال التعليق'}
+          </button>
+        </form>
+      </div>
+
+      {/* ══ Danger Zone ══ */}
+      <div className="bg-white rounded-2xl border border-red-100 p-5">
+        <p className="text-sm font-semibold text-slate-700 mb-2">منطقة الخطر</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-slate-400">حذف هذه المهمة وجميع بياناتها نهائياً</p>
+          {confirmDel ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-500">هل أنت متأكد؟</span>
+              <button onClick={deleteTask} disabled={deleting}
+                className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg font-medium disabled:opacity-50">
+                {deleting ? 'جارٍ الحذف...' : 'نعم، احذف'}
+              </button>
+              <button onClick={() => setConfirmDel(false)}
+                className="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs rounded-lg">إلغاء</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDel(true)}
+              className="px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
+              🗑️ حذف المهمة
+            </button>
+          )}
+        </div>
+      </div>
+
+    </div>
+  )
+}

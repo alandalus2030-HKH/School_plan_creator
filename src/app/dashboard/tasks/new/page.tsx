@@ -1,0 +1,506 @@
+'use client'
+
+import { useState, useEffect, Suspense } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { createNotification } from '@/lib/notifications'
+
+function NewTaskForm() {
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const preNodeId    = searchParams.get('node')
+  const prePlanId    = searchParams.get('plan')
+  const supabase     = createClient()
+
+  /* ── بيانات الخطط والعقد ── */
+  const [plans,     setPlans]     = useState<any[]>([])
+  const [planNodes, setPlanNodes] = useState<any[]>([])
+  const [fetching,  setFetching]  = useState(true)
+
+  /* ── اختيار الموضع (متتابع) ── */
+  const [selPlanId,    setSelPlanId]    = useState(prePlanId || '')
+  const [selLevels,    setSelLevels]    = useState<string[]>([])   // nodeId لكل مستوى
+  const [selectedNode, setSelectedNode] = useState(preNodeId || '') // العقدة النهائية
+
+  /* ── بيانات المهمة ── */
+  const [nameAr,      setNameAr]      = useState('')
+  const [description, setDescription] = useState('')
+  const [taskType,    setTaskType]    = useState('general')
+  const [priority,    setPriority]    = useState('medium')
+  const [startDate,        setStartDate]        = useState('')
+  const [endDate,          setEndDate]          = useState('')
+  const [budgetQar,        setBudgetQar]        = useState('')
+  const [otherResources,   setOtherResources]   = useState('')
+  const [evidenceRequired, setEvidenceRequired] = useState('')
+  const [assignedUserId,   setAssignedUserId]   = useState('')
+  const [reviewerId,       setReviewerId]       = useState('')
+  const [dependsOnTaskId,  setDependsOnTaskId]  = useState('')
+  const [profiles,         setProfiles]         = useState<any[]>([])
+  const [planTasksList,    setPlanTasksList]     = useState<any[]>([])
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState('')
+
+  /* ════ تحميل الخطط + المستخدمين ════ */
+  useEffect(() => {
+    Promise.all([
+      supabase.from('plans').select('id,name_ar,academic_year,level_count,level_names').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id,name_ar,job_title').eq('is_active', true).order('name_ar'),
+    ]).then(([{ data: plansData }, { data: profsData }]) => {
+      setPlans(plansData || [])
+      setProfiles(profsData || [])
+      setFetching(false)
+    })
+  }, [])
+
+  /* ════ تحميل مهام الخطة (للتبعية) عند اختيار الخطة ════ */
+  useEffect(() => {
+    if (!selPlanId) { setPlanTasksList([]); return }
+    ;(async () => {
+      const { data: nodesForPlan } = await supabase
+        .from('plan_nodes').select('id').eq('plan_id', selPlanId)
+      if (!nodesForPlan?.length) { setPlanTasksList([]); return }
+      const nodeIds = nodesForPlan.map((n: any) => n.id)
+      const { data: tasksData } = await supabase
+        .from('tasks').select('id, name_ar, status').in('node_id', nodeIds).order('name_ar')
+      setPlanTasksList(tasksData || [])
+    })()
+  }, [selPlanId])
+
+  /* ════ تحميل عقد الخطة عند اختيارها ════ */
+  useEffect(() => {
+    if (!selPlanId) { setPlanNodes([]); return }
+    supabase.from('plan_nodes').select('*').eq('plan_id', selPlanId).order('order_num')
+      .then(({ data }) => {
+        const nodes = data || []
+        setPlanNodes(nodes)
+
+        // إذا كان هناك عقدة محددة مسبقاً، أعد بناء المسار
+        if (preNodeId) {
+          const chain: string[] = []
+          let cur: any = nodes.find(n => n.id === preNodeId)
+          while (cur) {
+            chain.unshift(cur.id)
+            cur = cur.parent_id ? nodes.find((n:any) => n.id === cur.parent_id) : null
+          }
+          setSelLevels(chain)
+          setSelectedNode(preNodeId)
+        }
+      })
+  }, [selPlanId])
+
+  /* ════ بيانات الخطة الحالية ════ */
+  const currentPlan  = plans.find(p => p.id === selPlanId)
+  const levelCount   = currentPlan?.level_count || 3
+  const levelNames   = (currentPlan?.level_names || []) as string[]
+
+  /* ════ عقد مستوى معين (مصفّاة بالأب) ════ */
+  const getNodesAtLevel = (levelNum: number) => {
+    const parentId = levelNum === 1 ? null : (selLevels[levelNum - 2] || null)
+    if (levelNum > 1 && !parentId) return []
+    return planNodes
+      .filter((n:any) => n.level_num === levelNum && n.parent_id === parentId)
+      .sort((a:any, b:any) => a.order_num - b.order_num)
+  }
+
+  /* ════ اختيار مستوى ════ */
+  const handlePlanChange = (planId: string) => {
+    setSelPlanId(planId); setSelLevels([]); setSelectedNode('')
+  }
+
+  const handleLevelSelect = (levelIdx: number, nodeId: string) => {
+    const newLevels = [...selLevels.slice(0, levelIdx), nodeId]
+    setSelLevels(newLevels)
+    // إذا هذا آخر مستوى → هو العقدة المستهدفة
+    setSelectedNode(levelIdx + 1 === levelCount ? nodeId : '')
+  }
+
+  /* ════ حفظ المهمة ════ */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selPlanId)    { setError('يرجى اختيار الخطة'); return }
+    if (!selectedNode) { setError(`يرجى إكمال الاختيار حتى مستوى "${levelNames[levelCount - 1] || 'الأخير'}"`); return }
+    if (!nameAr.trim()) { setError('اسم المهمة مطلوب'); return }
+    setLoading(true); setError('')
+
+    try {
+      const { data: ex } = await supabase.from('tasks').select('order_num')
+        .eq('node_id', selectedNode).order('order_num', { ascending: false }).limit(1)
+      const orderNum = ex?.length ? ex[0].order_num + 1 : 1
+
+      const { data: task, error: err } = await supabase.from('tasks').insert({
+        node_id:          selectedNode,
+        name_ar:          nameAr.trim(),
+        description:      description.trim() || null,
+        task_type:        taskType,
+        priority,
+        start_date:       startDate || null,
+        end_date:         endDate   || null,
+        status:           'not_started',
+        order_num:        orderNum,
+        budget_qar:            budgetQar ? Number(budgetQar) : null,
+        other_resources:       otherResources.trim()   || null,
+        evidence_required:     evidenceRequired.trim() || null,
+        assigned_to_user_id:   assignedUserId  || null,
+        reviewer_id:           reviewerId      || null,
+        depends_on_task_id:    dependsOnTaskId || null,
+      }).select('id').single()
+
+      if (err) throw err
+
+      const { data: { user } } = await supabase.auth.getUser()
+
+      /* إشعار المكلَّف إذا تم تعيينه */
+      if (assignedUserId && assignedUserId !== user?.id) {
+        await createNotification({
+          recipientId: assignedUserId,
+          senderId:    user?.id,
+          type:        'task_assigned',
+          title:       `📋 تم تكليفك بمهمة جديدة: ${nameAr.trim()}`,
+          body:        description.trim() || undefined,
+          link:        `/dashboard/tasks/${task.id}`,
+        })
+      }
+
+      /* إشعار المقيّم إذا تم تعيينه */
+      if (reviewerId && reviewerId !== user?.id && reviewerId !== assignedUserId) {
+        await createNotification({
+          recipientId: reviewerId,
+          senderId:    user?.id,
+          type:        'task_assigned',
+          title:       `🔍 تم تعيينك مقيّماً لمهمة جديدة: ${nameAr.trim()}`,
+          body:        description.trim() || undefined,
+          link:        `/dashboard/tasks/${task.id}`,
+        })
+      }
+
+      router.push(`/dashboard/tasks/${task.id}`)
+    } catch (e: any) {
+      setError(e.message || 'حدث خطأ'); setLoading(false)
+    }
+  }
+
+  /* ════ Loading ════ */
+  if (fetching) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+    </div>
+  )
+
+  /* ════ مسار الاختيار (نص توضيحي) ════ */
+  const selectionPath = selLevels
+    .map(id => planNodes.find((n:any) => n.id === id)?.name_ar)
+    .filter(Boolean).join(' › ')
+
+  return (
+    <div className="max-w-2xl mx-auto">
+
+      {/* رأس الصفحة */}
+      <div className="flex items-center gap-3 mb-6">
+        <Link href="/dashboard/tasks"
+          className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-violet-600 hover:border-violet-300 transition-colors">←</Link>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">مهمة جديدة</h2>
+          <p className="text-slate-500 text-sm mt-0.5">إضافة مهمة للخطة التشغيلية</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+
+        {/* ══ بطاقة الموضع (متتابع) ══ */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+            📍 الموضع في الهيكل <span className="text-red-500">*</span>
+          </h3>
+
+          {/* اختيار الخطة */}
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-28">
+              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">📋 الخطة</span>
+            </div>
+            <select value={selPlanId} onChange={e => handlePlanChange(e.target.value)}
+              className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm">
+              <option value="">— اختر الخطة —</option>
+              {plans.map(p => (
+                <option key={p.id} value={p.id}>{p.name_ar}{p.academic_year ? ` (${p.academic_year})` : ''}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* اختيار المستويات تتابعياً */}
+          {selPlanId && Array.from({ length: levelCount }, (_, i) => {
+            const levelNum  = i + 1
+            const levelName = levelNames[i] || `المستوى ${levelNum}`
+            const options   = getNodesAtLevel(levelNum)
+            const isDisabled = levelNum > 1 && !selLevels[i - 1]
+            const isSelected = !!selLevels[i]
+            const isLast     = levelNum === levelCount
+
+            return (
+              <div key={levelNum}>
+                {/* خط رابط */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-28 flex flex-col items-start gap-0.5">
+                    <div className="w-px h-3 bg-slate-200 mr-3" />
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${
+                      isLast
+                        ? 'bg-violet-100 text-violet-700'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {isLast ? '🎯' : `${levelNum}.`} {levelName}
+                    </span>
+                  </div>
+
+                  <select
+                    value={selLevels[i] || ''}
+                    onChange={e => handleLevelSelect(i, e.target.value)}
+                    disabled={isDisabled}
+                    className={`flex-1 px-3 py-2.5 rounded-xl border focus:outline-none focus:ring-2 text-sm transition-all
+                      ${isDisabled
+                        ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
+                        : isSelected && isLast
+                          ? 'border-violet-300 bg-violet-50 text-violet-800 font-semibold focus:ring-violet-400'
+                          : isSelected
+                            ? 'border-green-200 bg-green-50 text-green-800 focus:ring-green-300'
+                            : 'border-slate-200 bg-white text-slate-800 focus:ring-violet-400'
+                      }`}>
+                    <option value="">— اختر {levelName} —</option>
+                    {options.map((n:any) => (
+                      <option key={n.id} value={n.id}>{n.name_ar}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* ملخص المسار */}
+          {selectedNode && (
+            <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-4 py-2.5">
+              <span className="text-violet-400 text-sm">📍</span>
+              <span className="text-xs text-violet-700 font-medium">
+                {currentPlan?.name_ar} › {selectionPath}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ══ بطاقة بيانات المهمة ══ */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <h3 className="font-bold text-slate-700 text-sm">📝 بيانات المهمة</h3>
+
+          {/* اسم المهمة */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              اسم المهمة <span className="text-red-500">*</span>
+            </label>
+            <input type="text" value={nameAr} onChange={e => setNameAr(e.target.value)} required
+              placeholder="مثال: إعداد تقرير النتائج الشهري"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
+          </div>
+
+          {/* الوصف */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">الوصف (اختياري)</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
+              placeholder="وصف تفصيلي للمهمة..."
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800 resize-none" />
+          </div>
+
+          {/* النوع والأولوية */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">نوع المهمة</label>
+              <select value={taskType} onChange={e => setTaskType(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
+                <option value="general">📌 عامة</option>
+                <option value="academic">📚 أكاديمية</option>
+                <option value="administrative">🗃️ إدارية</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">الأولوية</label>
+              <select value={priority} onChange={e => setPriority(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
+                <option value="low">🟢 منخفضة</option>
+                <option value="medium">🟡 متوسطة</option>
+                <option value="high">🔴 عالية</option>
+              </select>
+            </div>
+          </div>
+
+          {/* التواريخ */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">تاريخ البدء</label>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} dir="ltr"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">تاريخ الانتهاء</label>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} dir="ltr"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
+            </div>
+          </div>
+
+          {/* الموارد المادية */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              💰 الموارد المادية المطلوبة
+              <span className="text-slate-400 font-normal text-xs mr-1">(بالريال القطري)</span>
+            </label>
+            <div className="relative">
+              <input
+                type="number" value={budgetQar} onChange={e => setBudgetQar(e.target.value)}
+                min="0" max="9999999" step="0.01"
+                placeholder="0.00"
+                dir="ltr"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800 pl-16"
+              />
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium pointer-events-none">
+                ر.ق
+              </span>
+            </div>
+          </div>
+
+          {/* الموارد الأخرى */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              📦 الموارد الأخرى
+              <span className="text-slate-400 font-normal text-xs mr-1">(اختياري)</span>
+            </label>
+            <textarea
+              value={otherResources} onChange={e => setOtherResources(e.target.value.slice(0, 300))}
+              rows={2} maxLength={300}
+              placeholder="مثال: أجهزة عرض، مواد مطبوعة، متطوعون..."
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800 resize-none"
+            />
+            <p className="text-xs text-slate-400 mt-1 text-left">{otherResources.length} / 300</p>
+          </div>
+
+          {/* أدلة الإنجاز */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              📋 أدلة الإنجاز المطلوبة
+              <span className="text-slate-400 font-normal text-xs mr-1">(اختياري)</span>
+            </label>
+            <textarea
+              value={evidenceRequired} onChange={e => setEvidenceRequired(e.target.value.slice(0, 500))}
+              rows={3} maxLength={500}
+              placeholder="مثال: تقرير مكتوب، صور، محضر اجتماع، شهادات..."
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800 resize-none"
+            />
+            <p className="text-xs text-slate-400 mt-1 text-left">{evidenceRequired.length} / 500</p>
+          </div>
+
+          {/* المكلَّف بالمهمة */}
+          <div className="pt-1 border-t border-slate-100">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              👤 المكلَّف بالتنفيذ
+              <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — يمكن تعيينه لاحقاً)</span>
+            </label>
+            <select value={assignedUserId} onChange={e => setAssignedUserId(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
+              <option value="">— بدون تكليف محدد —</option>
+              {profiles.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name_ar}{p.job_title ? ` — ${p.job_title}` : ''}
+                </option>
+              ))}
+            </select>
+            {assignedUserId && (
+              <p className="text-xs text-violet-600 mt-1.5 flex items-center gap-1">
+                <span>📬</span>
+                <span>سيصل للمكلَّف إشعار فور إنشاء المهمة</span>
+              </p>
+            )}
+          </div>
+
+          {/* المقيّم */}
+          <div className="pt-1 border-t border-slate-100">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              🔍 مقيّم جودة التنفيذ
+              <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — يمكن تعيينه لاحقاً)</span>
+            </label>
+            <select value={reviewerId} onChange={e => setReviewerId(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
+              <option value="">— بدون مقيّم محدد —</option>
+              {profiles.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name_ar}{p.job_title ? ` — ${p.job_title}` : ''}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400 mt-1.5">
+              سيتمكن المقيّم المعيّن من إضافة تقييم جودة التنفيذ بعد مراجعة الأدلة المرفوعة
+            </p>
+          </div>
+
+          {/* التبعية */}
+          {planTasksList.length > 0 && (
+            <div className="pt-1 border-t border-slate-100">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                🔗 تتطلب إنهاء مهمة أخرى أولاً
+                <span className="text-slate-400 font-normal text-xs mr-1">(اختياري)</span>
+              </label>
+              <select
+                value={dependsOnTaskId}
+                onChange={e => setDependsOnTaskId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
+                <option value="">— لا تبعية —</option>
+                {planTasksList.map((t: any) => {
+                  const icon =
+                    t.status === 'completed'   ? '✅' :
+                    t.status === 'in_progress' ? '🔄' :
+                    t.status === 'delayed'     ? '⚠️' : '⏳'
+                  return (
+                    <option key={t.id} value={t.id}>{icon} {t.name_ar}</option>
+                  )
+                })}
+              </select>
+              {dependsOnTaskId && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-2">
+                  <span className="text-amber-500 flex-shrink-0">⚠️</span>
+                  <p className="text-xs text-amber-700">
+                    ستظهر هذه المهمة بحالة <strong>محجوبة</strong> في Kanban وGantt حتى تكتمل المهمة المحددة
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* خطأ */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* أزرار */}
+        <div className="flex gap-3 pb-6">
+          <button type="submit" disabled={loading}
+            className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3.5 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
+            {loading ? 'جارٍ الإضافة...' : '✅ إضافة المهمة'}
+          </button>
+          <button type="button" onClick={() => router.back()}
+            className="px-6 py-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            إلغاء
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+export default function NewTaskPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+      </div>
+    }>
+      <NewTaskForm />
+    </Suspense>
+  )
+}
