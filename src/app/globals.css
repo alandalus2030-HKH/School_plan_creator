@@ -1,15 +1,105 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #1e293b;
-  --primary: #7c3aed;
-  --primary-dark: #6d28d9;
-  --primary-light: #ede9fe;
+/* ══════════════════════════════════════════════
+   الخطوط — Cairo (عربي) + IBM Plex Sans (أرقام/لاتيني)
+══════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+/* ══════════════════════════════════════════════
+   منظومة الألوان — العنابي / البوردو (QNSA)
+   تُعيد تعريف violet + purple + indigo تلقائياً
+══════════════════════════════════════════════ */
+@theme {
+  /* ── العنابي (يستبدل violet) ── */
+  --color-violet-50:  #fbf2f4;
+  --color-violet-100: #f4dde2;
+  --color-violet-200: #e9bcc6;
+  --color-violet-300: #d98ea0;
+  --color-violet-400: #c25c74;
+  --color-violet-500: #a83356;
+  --color-violet-600: #8a1538;
+  --color-violet-700: #6f1029;
+  --color-violet-800: #5a0d22;
+  --color-violet-900: #46091a;
+  --color-violet-950: #2d0714;
+
+  /* ── العنابي (يستبدل purple) ── */
+  --color-purple-50:  #fbf2f4;
+  --color-purple-100: #f4dde2;
+  --color-purple-200: #e9bcc6;
+  --color-purple-300: #d98ea0;
+  --color-purple-400: #c25c74;
+  --color-purple-500: #a83356;
+  --color-purple-600: #8a1538;
+  --color-purple-700: #6f1029;
+  --color-purple-800: #5a0d22;
+  --color-purple-900: #46091a;
+  --color-purple-950: #2d0714;
+
+  /* ── العنابي (يستبدل indigo) ── */
+  --color-indigo-50:  #fbf2f4;
+  --color-indigo-100: #f4dde2;
+  --color-indigo-200: #e9bcc6;
+  --color-indigo-300: #d98ea0;
+  --color-indigo-400: #c25c74;
+  --color-indigo-500: #a83356;
+  --color-indigo-600: #8a1538;
+  --color-indigo-700: #6f1029;
+  --color-indigo-800: #5a0d22;
+  --color-indigo-900: #46091a;
+  --color-indigo-950: #2d0714;
+
+  /* ── الخطوط ── */
+  --font-sans: 'Cairo', 'IBM Plex Sans Arabic', 'Segoe UI', Arial, sans-serif;
+
+  /* ── الظلال ── */
+  --shadow-sm:  0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md:  0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg:  0 10px 15px -3px rgba(15, 23, 42, 0.10), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+  --shadow-xl:  0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+  --shadow-2xl: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Segoe UI', Arial, sans-serif;
+/* ══════════════════════════════════════════════
+   متغيرات النظام
+══════════════════════════════════════════════ */
+:root {
+  --background:    #f8fafc;
+  --foreground:    #1e293b;
+  --primary:       #8a1538;
+  --primary-dark:  #6f1029;
+  --primary-light: #fbf2f4;
+
+  /* ظل العلامة التجارية العنابي */
+  --shadow-brand:    0 10px 20px -6px rgba(138, 21, 56, 0.35);
+  --shadow-brand-sm: 0 6px 14px -6px rgba(138, 21, 56, 0.30);
+
+  /* الحركة */
+  --duration-fast:   150ms;
+  --duration-normal: 200ms;
+  --duration-slow:   300ms;
+  --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* التخطيط */
+  --sidebar-w: 16rem;
+  --topbar-h:  3.5rem;
 }
+
+/* ══════════════════════════════════════════════
+   الأساس
+══════════════════════════════════════════════ */
+body {
+  background:  var(--background);
+  color:       var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* تحسين الـ scrollbar */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* تحسين الأزرار العنابية */
+.shadow-violet-200 { box-shadow: var(--shadow-brand-sm) !important; }
+.shadow-violet-300 { box-shadow: var(--shadow-brand)    !important; }
