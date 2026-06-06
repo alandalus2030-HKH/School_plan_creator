@@ -6,8 +6,9 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
-import { BookOpen, Archive, Pin, Folder, Lock, Star } from 'lucide-react'
+import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2 } from 'lucide-react'
 import Breadcrumb from '@/components/Breadcrumb'
+import MentionInput, { extractMentions } from '@/components/MentionInput'
 
 /* ══ تعريف كلاسات التقييم كنصوص كاملة حتى يتعرف عليها Tailwind ══
    (يجب أن تكون هنا وليس في ملف خارجي لضمان إدراجها في CSS) */
@@ -47,6 +48,16 @@ function TaskTypeIcon({ type }: { type: string }) {
   if (type === 'academic')       return <BookOpen {...s} />
   if (type === 'administrative') return <Archive  {...s} />
   return <Pin {...s} />
+}
+
+/* تلوين الإشارات @الاسم بالعنابي في نص التعليق */
+function renderWithMentions(text: string) {
+  const parts = text.split(/(@[^\s@]+(?:\s[^\s@]+)?)/g)
+  return parts.map((part, i) =>
+    part.startsWith('@')
+      ? <span key={i} className="text-violet-700 font-semibold bg-violet-50 rounded px-1">{part}</span>
+      : <span key={i}>{part}</span>
+  )
 }
 const typeAr:   Record<string, string> = { academic: 'أكاديمية', administrative: 'إدارية', general: 'عامة' }
 const statusList = [
@@ -283,12 +294,28 @@ export default function TaskPage() {
     e.preventDefault()
     if (!comment.trim() || sendingCmt) return
     setSendingCmt(true)
+    const content = comment.trim()
     const { data } = await supabase
       .from('task_comments')
-      .insert({ task_id: taskId, author_id: userId, content: comment.trim() })
+      .insert({ task_id: taskId, author_id: userId, content })
       .select('id, content, created_at')
       .single()
     if (data) setComments(prev => [{ ...data, profiles: { id: userId, full_name_ar: userName } }, ...prev])
+
+    /* ── إشعار المستخدمين المذكورين بـ @ ── */
+    const mentioned = extractMentions(content, profiles)
+    for (const u of mentioned) {
+      if (u.id === userId) continue   // لا تُشعر نفسك
+      createNotification({
+        recipientId: u.id,
+        senderId:    userId,
+        type:        'task_comment',
+        title:       `ذكرك ${userName} في تعليق`,
+        body:        content.length > 80 ? content.slice(0, 80) + '…' : content,
+        link:        `/dashboard/tasks/${taskId}`,
+      })
+    }
+
     setComment('')
     setSendingCmt(false)
   }
@@ -974,9 +1001,9 @@ export default function TaskPage() {
 
       {/* ══ Comments ══ */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <h2 className="font-bold text-slate-800 mb-4">
-          💬 التعليقات
-          <span className="text-xs font-normal text-slate-400 mr-2">({comments.length})</span>
+        <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <MessageCircle size={18} style={{ color: 'var(--maroon-600)' }} /> التعليقات
+          <span className="text-xs font-normal text-slate-400">({comments.length})</span>
         </h2>
 
         {comments.map((c: any) => (
@@ -993,9 +1020,11 @@ export default function TaskPage() {
                 {c.profiles?.id === userId && editingCmtId !== c.id && (
                   <div className="flex gap-1">
                     <button onClick={() => { setEditingCmtId(c.id); setEditCmtText(c.content) }}
-                      className="text-xs text-slate-400 hover:text-violet-600 px-2 py-0.5 rounded transition-colors">✏️</button>
+                      aria-label="تعديل التعليق"
+                      className="text-slate-400 hover:text-violet-600 p-1 rounded transition-colors"><Pencil size={13} /></button>
                     <button onClick={() => deleteComment(c.id)}
-                      className="text-xs text-slate-400 hover:text-red-600 px-2 py-0.5 rounded transition-colors">🗑️</button>
+                      aria-label="حذف التعليق"
+                      className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"><Trash2 size={13} /></button>
                   </div>
                 )}
               </div>
@@ -1013,19 +1042,24 @@ export default function TaskPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-700 leading-relaxed">{c.content}</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{renderWithMentions(c.content)}</p>
               )}
             </div>
           </div>
         ))}
 
         <form onSubmit={sendComment} className="space-y-2 mt-2">
-          <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3}
-            placeholder="اكتب تعليقاً أو ملاحظة..."
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800 resize-none text-sm" />
+          <MentionInput
+            value={comment}
+            onChange={setComment}
+            users={profiles}
+            rows={3}
+            placeholder="اكتب تعليقاً... استخدم @ لذكر مستخدم"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800 resize-none text-sm"
+          />
           <button type="submit" disabled={sendingCmt || !comment.trim()}
-            className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
-            {sendingCmt ? 'جارٍ الإرسال...' : '💬 إرسال التعليق'}
+            className="inline-flex items-center gap-1.5 px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+            <MessageCircle size={14} /> {sendingCmt ? 'جارٍ الإرسال...' : 'إرسال التعليق'}
           </button>
         </form>
       </div>
