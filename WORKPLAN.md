@@ -96,7 +96,7 @@ if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 
 
 ---
 
-### اليوم 3 — الثلاثاء | إصلاح RLS — الجزء الأول ⏳ جزئي — ينتظر التشغيل في Supabase
+### اليوم 3 — الثلاثاء | إصلاح RLS — الجزء الأول ✅ 2026-06-06
 **الوقت المقدر:** 3-4 ساعات
 **الأثر:** 🔴 حرج — عزل بيانات المدارس عن بعضها
 
@@ -105,12 +105,10 @@ if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 
 - [x] إنشاء `database/migrations/002_rls_school_isolation.sql` — سياسات RLS للـ 3 جداول
 - [x] إنشاء `database/migrations/002_rollback.sql` — للطوارئ
 - [x] تحديث `create-user` ليُعيّن school_id تلقائياً لكل مستخدم جديد
-- [ ] **⚠️ خطوة يدوية مطلوبة — شغّل في Supabase SQL Editor:**
-  1. `database/migrations/001_set_school_ids.sql` أولاً
-  2. تحقق أن النتيجة = 0 profiles بدون school_id
-  3. `database/migrations/002_rls_school_isolation.sql`
-  4. تحقق من السياسات في: Authentication → Policies
-- [ ] اختبار: تسجيل دخول والتأكد أن البيانات تظهر بشكل طبيعي
+- [x] تشغيل `001_set_school_ids.sql` → 5 مستخدمين مرتبطون بـ "مدرستي" ✓
+- [x] تشغيل `002_rls_school_isolation.sql` → السياسات الجديدة مُطبَّقة ✓
+- [x] تشغيل `002b_drop_old_policies.sql` → حذف 3 سياسات قديمة متعارضة ✓
+- [x] النتيجة النهائية: 3 سياسات نظيفة فقط (plans/plan_nodes/tasks) ✓
 
 **الملفات المُنشأة:**
 ```
@@ -1068,5 +1066,5 @@ teams, kpis, notifications, evidence
 | 2026-06-06 | — | إصلاح شريط التقدم من بنفسجي لعنابي | `reports/page.tsx` |
 | 2026-06-06 | أسبوع 1 / يوم 1 | حذف debug endpoint + whitelist في create-user | `api/debug/` محذوف، `api/users/create/route.ts` |
 | 2026-06-06 | أسبوع 1 / يوم 2 | requireAuth() + حماية 4 API routes + تنظيف .gitignore | `server.ts`، `invite`، `export-excel`، `kpis/generate` |
-| 2026-06-06 | أسبوع 1 / يوم 3 | ملفات ترحيل RLS + school_id تلقائي في create-user | `migrations/001,002`، `users/create/route.ts` |
+| 2026-06-06 | أسبوع 1 / يوم 3 | RLS كامل على plans+plan_nodes+tasks + school_id تلقائي | `migrations/001,002,002b`، `users/create/route.ts` |
 | | | | |
