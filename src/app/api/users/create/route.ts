@@ -13,7 +13,27 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { email, first_name_ar, last_name_ar, password, username, ...rest } = body
+
+    /* ── whitelist صريحة — لا يدخل أي حقل خارج هذه القائمة للـ profile ── */
+    const {
+      email,
+      first_name_ar,
+      last_name_ar,
+      password,
+      username,
+      /* الحقول المسموح بها فقط */
+      nationality   = null,
+      school        = null,
+      department    = null,
+      job_title     = null,
+      phone         = null,
+      role          = null,
+      is_active     = true,
+      education_level = null,
+      marital_status  = null,
+      notif_enabled   = true,
+      notif_email     = true,
+    } = body
 
     if (!email) return NextResponse.json({ error: 'البريد الإلكتروني مطلوب' }, { status: 400 })
     if (!username) return NextResponse.json({ error: 'اسم الدخول مطلوب' }, { status: 400 })
@@ -63,21 +83,31 @@ export async function POST(req: NextRequest) {
 
     if (!userId) return NextResponse.json({ error: 'فشل إنشاء المستخدم' }, { status: 500 })
 
-    /* ── upsert الملف الشخصي ── */
-    const profileData = {
-      id:            userId,
+    /* ── upsert الملف الشخصي (حقول مُعتمدة فقط) ── */
+    const allowedProfileData = {
+      id:              userId,
       email,
-      name_ar:       fullNameAr,
-      full_name_ar:  fullNameAr,   // للتوافق مع trigger القديم
-      first_name_ar: first_name_ar || null,
-      last_name_ar:  last_name_ar  || null,
-      username:      uname,
-      ...rest,
+      name_ar:         fullNameAr,
+      full_name_ar:    fullNameAr,
+      first_name_ar:   first_name_ar   || null,
+      last_name_ar:    last_name_ar    || null,
+      username:        uname,
+      nationality,
+      school,
+      department,
+      job_title,
+      phone,
+      role,
+      is_active,
+      education_level,
+      marital_status,
+      notif_enabled,
+      notif_email,
     }
 
     const { error: upsertErr } = await admin
       .from('profiles')
-      .upsert(profileData, { onConflict: 'id' })
+      .upsert(allowedProfileData, { onConflict: 'id' })
 
     if (upsertErr) {
       console.error('[create-user] upsert error:', upsertErr)
@@ -87,13 +117,23 @@ export async function POST(req: NextRequest) {
     const { error: updateErr } = await admin
       .from('profiles')
       .update({
-        username:      uname,
-        name_ar:       fullNameAr,
-        full_name_ar:  fullNameAr,
-        first_name_ar: first_name_ar || null,
-        last_name_ar:  last_name_ar  || null,
+        username:        uname,
+        name_ar:         fullNameAr,
+        full_name_ar:    fullNameAr,
+        first_name_ar:   first_name_ar   || null,
+        last_name_ar:    last_name_ar    || null,
         email,
-        ...rest,
+        nationality,
+        school,
+        department,
+        job_title,
+        phone,
+        role,
+        is_active,
+        education_level,
+        marital_status,
+        notif_enabled,
+        notif_email,
       })
       .eq('id', userId)
 
