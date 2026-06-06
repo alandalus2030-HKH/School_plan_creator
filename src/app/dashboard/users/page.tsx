@@ -1050,7 +1050,7 @@ export default function UsersPage() {
                         <h4 className="text-sm font-bold text-amber-800">🔑 إعادة تعيين كلمة المرور</h4>
                         <p className="text-xs text-amber-700">
                           سيصل رابط تعيين كلمة مرور جديدة إلى:
-                          <span className="font-semibold mr-1" dir="ltr">{editProfile.email}</span>
+                          <span className="font-semibold mr-1 font-latin" dir="ltr">{editProfile.email}</span>
                         </p>
                         <button type="button" onClick={resetPasswordForm}
                           disabled={sendingReset || !editProfile.email}
@@ -1125,7 +1125,7 @@ export default function UsersPage() {
                             <div key={plan.id} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-500">
                               <span>🗺️</span>
                               <span className="flex-1">{plan.name_ar}</span>
-                              {plan.academic_year && <span className="text-slate-400">{plan.academic_year}</span>}
+                              {plan.academic_year && <span className="text-slate-400 font-latin">{plan.academic_year}</span>}
                             </div>
                           ))}
                         </div>

@@ -458,7 +458,7 @@ export default function PlanOverviewPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h2 className="text-2xl font-bold">{plan.name_ar}</h2>
-              <p className="text-violet-200 text-sm mt-1">العام الدراسي: {plan.academic_year}</p>
+              <p className="text-violet-200 text-sm mt-1">العام الدراسي: <span className="font-latin">{plan.academic_year}</span></p>
               <div className="flex items-center gap-4 mt-3 text-sm text-violet-200">
                 <span>{topNodes.length} {level1Name}</span>
                 <span>·</span><span>{nodes.length} عقدة</span>

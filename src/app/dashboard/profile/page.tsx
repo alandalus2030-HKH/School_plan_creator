@@ -120,9 +120,9 @@ export default function ProfilePage() {
           </div>
           <div>
             <h1 className="text-xl font-bold">
-              {[firstNameAr, lastNameAr].filter(Boolean).join(' ') || userEmail}
+              {[firstNameAr, lastNameAr].filter(Boolean).join(' ') || <span className="font-latin">{userEmail}</span>}
             </h1>
-            <p className="text-violet-200 text-sm mt-0.5">{userEmail}</p>
+            <p className="text-violet-200 text-sm mt-0.5 font-latin">{userEmail}</p>
             <div className="flex items-center gap-2 mt-2">
               {roleName && (
                 <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/20">
@@ -195,7 +195,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-3 pt-1">
             <div className="bg-slate-50 rounded-xl p-3">
               <p className="text-xs text-slate-400 mb-0.5">البريد الإلكتروني</p>
-              <p className="text-sm font-medium text-slate-700 truncate">{userEmail}</p>
+              <p className="text-sm font-medium text-slate-700 truncate font-latin">{userEmail}</p>
             </div>
             <div className="bg-slate-50 rounded-xl p-3">
               <p className="text-xs text-slate-400 mb-0.5">الدور في النظام</p>
@@ -241,7 +241,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex-1 bg-slate-50 rounded-xl px-4 py-3">
               <p className="text-xs text-slate-400">البريد الإلكتروني</p>
-              <p className="text-sm font-medium text-slate-700">{userEmail}</p>
+              <p className="text-sm font-medium text-slate-700 font-latin">{userEmail}</p>
             </div>
             <button onClick={sendPasswordReset} disabled={sendingReset}
               className="flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">

@@ -494,7 +494,7 @@ export default function KpiDashboardPage() {
         </Link>
         <div className="flex-1">
           <h2 className="text-xl font-bold text-slate-800">📊 لوحة مؤشرات الأداء</h2>
-          <p className="text-slate-500 text-sm">{plan?.name_ar} · {plan?.academic_year}</p>
+          <p className="text-slate-500 text-sm">{plan?.name_ar} · <span className="font-latin">{plan?.academic_year}</span></p>
         </div>
         {avgProgress !== null && (
           <div className="text-center bg-white border border-slate-200 rounded-2xl px-5 py-2.5 shadow-sm">

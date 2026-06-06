@@ -112,8 +112,8 @@ export default function NewEvidencePage() {
               ) : file ? (
                 <div className="flex flex-col items-center gap-2">
                   <FileText size={40} style={{ color: 'var(--maroon-400)', margin: '0 auto' }} />
-                  <p className="text-sm text-slate-600 font-medium">{file.name}</p>
-                  <p className="text-xs text-slate-400">{(file.size / 1024).toFixed(0)} KB</p>
+                  <p className="text-sm text-slate-600 font-medium font-latin">{file.name}</p>
+                  <p className="text-xs text-slate-400 font-latin">{(file.size / 1024).toFixed(0)} KB</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2">

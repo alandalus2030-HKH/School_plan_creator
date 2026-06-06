@@ -771,7 +771,7 @@ export default function TaskPage() {
                   {ev.file_type?.startsWith('image') ? '🖼️' : ev.file_type === 'application/pdf' ? '📄' : '📎'}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700 truncate">{ev.name}</p>
+                  <p className="text-sm font-medium text-slate-700 truncate font-latin">{ev.name}</p>
                   {ev.description && <p className="text-xs text-slate-400 truncate">{ev.description}</p>}
                   {ev.evidence_number && (
                     <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full mt-1 inline-block">

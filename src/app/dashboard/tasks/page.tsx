@@ -9,7 +9,7 @@ import GanttChart   from '@/components/GanttChart'
 import {
   BookOpen, Archive, Pin, AlertTriangle, Lock, Unlock, Users,
   CheckCircle2, List, LayoutGrid, GanttChartSquare, Star,
-  CheckCheck, Circle,
+  CheckCheck, Circle, UserRound,
 } from 'lucide-react'
 
 const STATUS_LIST = [

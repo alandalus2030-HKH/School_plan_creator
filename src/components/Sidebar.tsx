@@ -123,8 +123,8 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
           </div>
           {!collapsed && (
             <div className="overflow-hidden flex-1">
-              <p className="text-xs font-semibold truncate">{userName || userEmail}</p>
-              <p className="text-xs text-white/50 truncate">{userEmail}</p>
+              <p className="text-xs font-semibold truncate font-latin">{userName || userEmail}</p>
+              <p className="text-xs text-white/50 truncate font-latin">{userEmail}</p>
             </div>
           )}
         </Link>
