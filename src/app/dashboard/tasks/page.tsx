@@ -6,7 +6,11 @@ import Link from 'next/link'
 import { usePermissions } from '@/lib/PermissionsContext'
 import KanbanBoard  from '@/components/KanbanBoard'
 import GanttChart   from '@/components/GanttChart'
-import { BookOpen, Archive, Pin, AlertTriangle, Lock, Unlock, Users } from 'lucide-react'
+import {
+  BookOpen, Archive, Pin, AlertTriangle, Lock, Unlock, Users,
+  CheckCircle2, List, LayoutGrid, GanttChartSquare, Star,
+  CheckCheck, Circle,
+} from 'lucide-react'
 
 const STATUS_LIST = [
   { value: 'not_started', label: 'لم تبدأ',  bg: 'bg-slate-100  text-slate-600'  },
@@ -27,12 +31,12 @@ const PRIORITY_DOT: Record<string, string> = {
 }
 
 /* ── بيانات التقييم (كلاسات Tailwind كاملة لتجنب حذف JIT) ── */
-const RATING_INFO: Record<number, { label: string; icon: string; badge: string }> = {
-  5: { label: 'ممتاز',    icon: '🌟', badge: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
-  4: { label: 'جيد جداً', icon: '⭐', badge: 'bg-blue-50    text-blue-700    border border-blue-200'    },
-  3: { label: 'جيد',      icon: '✅', badge: 'bg-violet-50  text-violet-700  border border-violet-200'  },
-  2: { label: 'مقبول',    icon: '⚠️', badge: 'bg-amber-50   text-amber-700   border border-amber-200'   },
-  1: { label: 'ضعيف',     icon: '❌', badge: 'bg-red-50     text-red-700     border border-red-200'     },
+const RATING_INFO: Record<number, { label: string; bg: string; fg: string }> = {
+  5: { label: 'ممتاز',    bg: '#46091a', fg: '#ffffff' },
+  4: { label: 'جيد جداً', bg: '#8a1538', fg: '#ffffff' },
+  3: { label: 'جيد',      bg: '#a83356', fg: '#ffffff' },
+  2: { label: 'مقبول',    bg: '#d98ea0', fg: '#46091a' },
+  1: { label: 'ضعيف',     bg: '#f4dde2', fg: '#8a1538' },
 }
 
 export default function TasksPage() {
@@ -192,7 +196,7 @@ export default function TasksPage() {
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}>
-              ☰ قائمة
+              <List size={14} /> قائمة
             </button>
             <button
               onClick={() => setViewMode('kanban')}
@@ -202,7 +206,7 @@ export default function TasksPage() {
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}>
-              🗂️ كانبان
+              <LayoutGrid size={14} /> كانبان
             </button>
             <button
               onClick={() => setViewMode('gantt')}
@@ -212,7 +216,7 @@ export default function TasksPage() {
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}>
-              📅 جانت
+              <GanttChartSquare size={14} /> جانت
             </button>
           </div>
           {canManage && (
@@ -266,33 +270,37 @@ export default function TasksPage() {
         <button onClick={() => setOnlyMine(!onlyMine)}
           className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors
             ${onlyMine ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-          👤 المكلّفة لي
+          <UserRound size={14} /> المكلّفة لي
         </button>
 
         <select value={ratingF} onChange={e => setRatingF(e.target.value)}
           className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
           <option value="">كل التقييمات</option>
-          <option value="rated">✅ تم تقييمها</option>
-          <option value="unrated">⬜ لم تُقيَّم بعد</option>
-          <option value="5">🌟 ممتاز</option>
-          <option value="4">⭐ جيد جداً</option>
-          <option value="3">✅ جيد</option>
-          <option value="2">⚠️ مقبول</option>
-          <option value="1">❌ ضعيف</option>
+          <option value="rated">تم تقييمها</option>
+          <option value="unrated">لم تُقيَّم بعد</option>
+          <option value="5">★★★★★ ممتاز</option>
+          <option value="4">★★★★☆ جيد جداً</option>
+          <option value="3">★★★☆☆ جيد</option>
+          <option value="2">★★☆☆☆ مقبول</option>
+          <option value="1">★☆☆☆☆ ضعيف</option>
         </select>
       </div>
 
       {/* ── شريط ملخص التقييم ── */}
       <div className="flex items-center gap-3 flex-wrap">
         <button onClick={() => setRatingF(ratingF === 'rated' ? '' : 'rated')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all
-            ${ratingF === 'rated' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400'}`}>
-          ✅ مُقيَّمة <span className="font-bold">{ratedCount}</span>
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all"
+          style={ratingF === 'rated'
+            ? { background: 'var(--maroon-700)', color: '#fff', borderColor: 'var(--maroon-700)' }
+            : { background: 'var(--maroon-50)', color: 'var(--maroon-700)', borderColor: 'var(--maroon-200)' }}>
+          <CheckCheck size={12} /> مُقيَّمة <span className="font-bold">{ratedCount}</span>
         </button>
         <button onClick={() => setRatingF(ratingF === 'unrated' ? '' : 'unrated')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all
-            ${ratingF === 'unrated' ? 'bg-slate-600 text-white border-slate-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-400'}`}>
-          ⬜ لم تُقيَّم <span className="font-bold">{unratedCount}</span>
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all"
+          style={ratingF === 'unrated'
+            ? { background: '#475569', color: '#fff', borderColor: '#475569' }
+            : { background: '#f8fafc', color: '#64748b', borderColor: '#e2e8f0' }}>
+          <Circle size={12} /> لم تُقيَّم <span className="font-bold">{unratedCount}</span>
         </button>
         {ratedCount > 0 && [5,4,3,2,1].map(r => {
           const cnt = tasks.filter(t => t.rating === r).length
@@ -300,10 +308,14 @@ export default function TasksPage() {
           const info = RATING_INFO[r]
           return (
             <button key={r} onClick={() => setRatingF(ratingF === String(r) ? '' : String(r))}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all
-                ${ratingF === String(r) ? 'ring-2 ring-offset-1 ring-current scale-105' : 'hover:scale-105'}
-                ${info.badge}`}>
-              {info.icon} {info.label} <span className="font-bold">{cnt}</span>
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all hover:scale-105"
+              style={{
+                background: info.bg, color: info.fg,
+                borderColor: info.bg,
+                outline: ratingF === String(r) ? `2px solid ${info.bg}` : 'none',
+                outlineOffset: '2px',
+              }}>
+              <Star size={10} /> {info.label} <span className="font-bold">{cnt}</span>
             </button>
           )
         })}
@@ -335,7 +347,7 @@ export default function TasksPage() {
       {viewMode === 'list' && (
         filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-          <div className="text-5xl mb-3">✅</div>
+          <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><CheckCircle2 size={48} /></div>
           <p className="text-slate-500 font-medium">لا توجد مهام</p>
           {(search || statusF || priorityF || planF || teamF || onlyMine || ratingF) && (
             <button onClick={() => { setSearch(''); setStatusF(''); setPriorityF(''); setPlanF(''); setTeamF(''); setOnlyMine(false); setRatingF('') }}
@@ -422,8 +434,9 @@ export default function TasksPage() {
 
                   {/* التقييم */}
                   {task.rating != null ? (
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 flex items-center gap-1 ${RATING_INFO[task.rating]?.badge}`}>
-                      {RATING_INFO[task.rating]?.icon} {RATING_INFO[task.rating]?.label}
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 flex items-center gap-1"
+                      style={{ background: RATING_INFO[task.rating]?.bg, color: RATING_INFO[task.rating]?.fg }}>
+                      <Star size={9} /> {RATING_INFO[task.rating]?.label}
                     </span>
                   ) : (
                     <span className="text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 bg-slate-100 text-slate-400 border border-slate-200">

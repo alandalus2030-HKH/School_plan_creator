@@ -6,53 +6,38 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
-import { BookOpen, Archive, Pin, Folder, Lock } from 'lucide-react'
+import { BookOpen, Archive, Pin, Folder, Lock, Star } from 'lucide-react'
 
 /* ══ تعريف كلاسات التقييم كنصوص كاملة حتى يتعرف عليها Tailwind ══
    (يجب أن تكون هنا وليس في ملف خارجي لضمان إدراجها في CSS) */
 const RATING_INFO: Record<number, {
-  label: string; icon: string; stars: string
-  card: string; text: string; badge: string; ring: string; btn: string
+  label: string; stars: string
+  bg: string; fg: string; border: string; btn: string
 }> = {
   5: {
-    label: 'ممتاز',    icon: '🌟', stars: '★★★★★',
-    card:  'bg-emerald-50 border-emerald-200',
-    text:  'text-emerald-700',
-    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    ring:  'ring-emerald-400',
-    btn:   'bg-emerald-50 text-emerald-700 border-2 border-emerald-400 ring-2 ring-emerald-300 ring-offset-1 scale-105 shadow-md',
+    label: 'ممتاز',    stars: '★★★★★',
+    bg: '#fbf2f4', fg: '#46091a', border: '#d98ea0',
+    btn: 'border-2 scale-105 shadow-md',
   },
   4: {
-    label: 'جيد جداً', icon: '⭐', stars: '★★★★☆',
-    card:  'bg-blue-50 border-blue-200',
-    text:  'text-blue-700',
-    badge: 'bg-blue-50 text-blue-700 border-blue-200',
-    ring:  'ring-blue-400',
-    btn:   'bg-blue-50 text-blue-700 border-2 border-blue-400 ring-2 ring-blue-300 ring-offset-1 scale-105 shadow-md',
+    label: 'جيد جداً', stars: '★★★★☆',
+    bg: '#f4dde2', fg: '#5a0d22', border: '#c25c74',
+    btn: 'border-2 scale-105 shadow-md',
   },
   3: {
-    label: 'جيد',      icon: '✅', stars: '★★★☆☆',
-    card:  'bg-violet-50 border-violet-200',
-    text:  'text-violet-700',
-    badge: 'bg-violet-50 text-violet-700 border-violet-200',
-    ring:  'ring-violet-400',
-    btn:   'bg-violet-50 text-violet-700 border-2 border-violet-400 ring-2 ring-violet-300 ring-offset-1 scale-105 shadow-md',
+    label: 'جيد',      stars: '★★★☆☆',
+    bg: '#e9bcc6', fg: '#46091a', border: '#a83356',
+    btn: 'border-2 scale-105 shadow-md',
   },
   2: {
-    label: 'مقبول',    icon: '⚠️', stars: '★★☆☆☆',
-    card:  'bg-amber-50 border-amber-200',
-    text:  'text-amber-700',
-    badge: 'bg-amber-50 text-amber-700 border-amber-200',
-    ring:  'ring-amber-400',
-    btn:   'bg-amber-50 text-amber-700 border-2 border-amber-400 ring-2 ring-amber-300 ring-offset-1 scale-105 shadow-md',
+    label: 'مقبول',    stars: '★★☆☆☆',
+    bg: '#d98ea0', fg: '#46091a', border: '#8a1538',
+    btn: 'border-2 scale-105 shadow-md',
   },
   1: {
-    label: 'ضعيف',     icon: '❌', stars: '★☆☆☆☆',
-    card:  'bg-red-50 border-red-200',
-    text:  'text-red-700',
-    badge: 'bg-red-50 text-red-700 border-red-200',
-    ring:  'ring-red-400',
-    btn:   'bg-red-50 text-red-700 border-2 border-red-400 ring-2 ring-red-300 ring-offset-1 scale-105 shadow-md',
+    label: 'ضعيف',     stars: '★☆☆☆☆',
+    bg: '#8a1538', fg: '#ffffff', border: '#6f1029',
+    btn: 'border-2 scale-105 shadow-md',
   },
 }
 
@@ -486,7 +471,7 @@ export default function TaskPage() {
                 {/* التقدير في الهيدر إن وُجد */}
                 {currentRating && (
                   <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/15 text-white text-xs font-semibold">
-                    <span>{currentRating.icon}</span>
+                    <span>{currentRating.stars}</span>
                     <span>{currentRating.label}</span>
                     <span className="opacity-60 text-xs">(تقييم الجودة)</span>
                   </div>
@@ -824,13 +809,15 @@ export default function TaskPage() {
       </div>
 
       {/* ══ تقييم جودة التنفيذ ══ */}
-      <div className={`bg-white rounded-2xl border shadow-sm p-5 ${currentRating ? currentRating.card : 'border-slate-200'}`}>
+      <div className="bg-white rounded-2xl border shadow-sm p-5"
+        style={{ borderColor: currentRating ? currentRating.border : '#e2e8f0' }}>
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="font-bold text-slate-800 flex items-center gap-2">
-            ⭐ تقييم جودة التنفيذ
+            <Star size={16} style={{ color: 'var(--maroon-600)' }} /> تقييم جودة التنفيذ
             {currentRating && (
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${currentRating.badge}`}>
-                {currentRating.icon} {currentRating.label}
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full border"
+                style={{ background: currentRating.bg, color: currentRating.fg, borderColor: currentRating.border }}>
+                {currentRating.stars} {currentRating.label}
               </span>
             )}
           </h2>
@@ -886,17 +873,18 @@ export default function TaskPage() {
 
         {/* عرض التقييم المحفوظ */}
         {task.rating && !editingRating && currentRating && (
-          <div className={`rounded-xl border p-4 ${currentRating.card}`}>
+          <div className="rounded-xl border p-4"
+            style={{ background: currentRating.bg, borderColor: currentRating.border }}>
             <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">{currentRating.icon}</span>
+              <span className="text-2xl font-bold" style={{ color: currentRating.fg }}>{currentRating.stars}</span>
               <div>
-                <p className={`text-lg font-bold ${currentRating.text}`}>{currentRating.label}</p>
-                <p className="text-xs text-slate-500 font-mono">{currentRating.stars} ({task.rating}/5)</p>
+                <p className="text-lg font-bold" style={{ color: currentRating.fg }}>{currentRating.label}</p>
+                <p className="text-xs text-slate-500 font-mono">{task.rating}/5</p>
               </div>
             </div>
             {task.rating_note && (
-              <p className="text-sm text-slate-600 mt-2 border-t border-white/50 pt-2 leading-relaxed">
-                💬 {task.rating_note}
+              <p className="text-sm text-slate-600 mt-2 border-t border-slate-200 pt-2 leading-relaxed">
+                {task.rating_note}
               </p>
             )}
           </div>
@@ -921,9 +909,11 @@ export default function TaskPage() {
                   return (
                     <button key={val} type="button"
                       onClick={() => setRatingValue(val)}
-                      className={`flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-bold transition-all
-                        ${isSelected ? info.btn : 'border border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}>
-                      <span className="text-xl">{info.icon}</span>
+                      className={`flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-bold transition-all border-2 ${isSelected ? info.btn : ''}`}
+                      style={isSelected
+                        ? { background: info.bg, color: info.fg, borderColor: info.border }
+                        : { background: '#fff', color: '#64748b', borderColor: '#e2e8f0' }}>
+                      <span className="font-mono text-base">{info.stars.slice(0,val)}</span>
                       <span>{info.label}</span>
                       <span className="opacity-60 font-mono">{val}/5</span>
                     </button>
