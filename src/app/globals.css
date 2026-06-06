@@ -2,17 +2,20 @@
 
 /* ══════════════════════════════════════════════
    QNSA School Plans — Design System
-   الخطوط — Cairo (عربي) + IBM Plex Sans (لاتيني)
+   Cairo (عربي) + IBM Plex Sans (لاتيني/أرقام)
 ══════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 /* ══════════════════════════════════════════════
    Tailwind @theme — إعادة تعريف الألوان
-   violet + purple + indigo + amber → العنابي
+   كل درجات violet + purple + indigo + amber + blue + green
+   → منظومة العنابي الكاملة
 ══════════════════════════════════════════════ */
 @theme {
-  /* ── العنابي (violet) ── */
+  --font-sans: 'Cairo', 'Segoe UI', Arial, sans-serif;
+
+  /* ── violet → عنابي ── */
   --color-violet-50:  #fbf2f4;
   --color-violet-100: #f4dde2;
   --color-violet-200: #e9bcc6;
@@ -25,7 +28,7 @@
   --color-violet-900: #46091a;
   --color-violet-950: #2d0714;
 
-  /* ── العنابي (purple) ── */
+  /* ── purple → عنابي ── */
   --color-purple-50:  #fbf2f4;
   --color-purple-100: #f4dde2;
   --color-purple-200: #e9bcc6;
@@ -38,7 +41,7 @@
   --color-purple-900: #46091a;
   --color-purple-950: #2d0714;
 
-  /* ── العنابي (indigo) ── */
+  /* ── indigo → عنابي ── */
   --color-indigo-50:  #fbf2f4;
   --color-indigo-100: #f4dde2;
   --color-indigo-200: #e9bcc6;
@@ -51,7 +54,7 @@
   --color-indigo-900: #46091a;
   --color-indigo-950: #2d0714;
 
-  /* ── درجات عنابية فاتحة (amber → maroon-light) ── */
+  /* ── amber → عنابي فاتح (بطاقات الإحصاء) ── */
   --color-amber-50:  #fbf2f4;
   --color-amber-100: #f4dde2;
   --color-amber-200: #e9bcc6;
@@ -63,8 +66,29 @@
   --color-amber-800: #5a0d22;
   --color-amber-900: #46091a;
 
-  /* ── الخطوط ── */
-  --font-sans: 'Cairo', 'Segoe UI', Arial, sans-serif;
+  /* ── blue → عنابي فاتح جداً (حالة "جارية") ── */
+  --color-blue-50:  #fbf2f4;
+  --color-blue-100: #f4dde2;
+  --color-blue-200: #e9bcc6;
+  --color-blue-300: #d98ea0;
+  --color-blue-400: #c25c74;
+  --color-blue-500: #a83356;
+  --color-blue-600: #8a1538;
+  --color-blue-700: #6f1029;
+  --color-blue-800: #5a0d22;
+  --color-blue-900: #46091a;
+
+  /* ── green → عنابي متوسط (حالة "منجزة") ── */
+  --color-green-50:  #fbf2f4;
+  --color-green-100: #f4dde2;
+  --color-green-200: #e9bcc6;
+  --color-green-300: #d98ea0;
+  --color-green-400: #c25c74;
+  --color-green-500: #a83356;
+  --color-green-600: #8a1538;
+  --color-green-700: #6f1029;
+  --color-green-800: #5a0d22;
+  --color-green-900: #46091a;
 
   /* ── الظلال ── */
   --shadow-sm:  0 1px 2px 0 rgba(15, 23, 42, 0.05);
@@ -90,23 +114,28 @@
   --maroon-800: #5a0d22;
   --maroon-900: #46091a;
 
-  /* ── الألوان الدلالية ── */
-  --primary:         #8a1538;
-  --primary-hover:   #6f1029;
-  --primary-active:  #5a0d22;
-  --primary-soft:    #fbf2f4;
-  --primary-soft-2:  #f4dde2;
-  --primary-border:  #e9bcc6;
-  --on-primary:      #ffffff;
-  --background:      #f8fafc;
-  --foreground:      #1e293b;
+  /* ── الدلالية ── */
+  --primary:        #8a1538;
+  --primary-hover:  #6f1029;
+  --primary-active: #5a0d22;
+  --primary-soft:   #fbf2f4;
+  --primary-border: #e9bcc6;
+  --on-primary:     #ffffff;
+  --background:     #f8fafc;
+  --foreground:     #1e293b;
 
   /* ── التدرجات ── */
-  --gradient-brand:    linear-gradient(135deg, #6f1029, #8a1538 55%, #a83356);
-  --gradient-button:   linear-gradient(135deg, #5a0d22, #a83356);
-  --gradient-button-2: linear-gradient(135deg, #6f1029, #c25c74);
-  --gradient-sidebar:  linear-gradient(180deg, #46091a, #6f1029);
-  --gradient-header:   linear-gradient(270deg, #8a1538, #5a0d22);
+  --gradient-brand:   linear-gradient(135deg, #6f1029, #8a1538 55%, #a83356);
+  --gradient-button:  linear-gradient(135deg, #5a0d22, #a83356);
+  --gradient-button-2:linear-gradient(135deg, #6f1029, #c25c74);
+  --gradient-sidebar: linear-gradient(180deg, #46091a, #6f1029);
+  --gradient-header:  linear-gradient(270deg, #8a1538, #5a0d22);
+
+  /* ── حالات المهام (Status) ── */
+  --status-todo-bg:   #f1f5f9;   --status-todo-fg:   #64748b;
+  --status-doing-bg:  #f4dde2;   --status-doing-fg:  #8a1538;
+  --status-done-bg:   #d98ea0;   --status-done-fg:   #46091a;
+  --status-late-bg:   #8a1538;   --status-late-fg:   #ffffff;
 
   /* ── الظلال ── */
   --shadow-brand:    0 10px 20px -6px rgba(138, 21, 56, 0.35);
@@ -114,7 +143,6 @@
 
   /* ── الخطوط ── */
   --font-sans:   'Cairo', 'Segoe UI', Arial, sans-serif;
-  --font-arabic: 'Cairo', 'Segoe UI', Arial, sans-serif;
   --font-latin:  'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
 
   /* ── الحركة ── */
@@ -138,30 +166,27 @@ body {
   font-family: var(--font-sans);
 }
 
-/* ── تحسين الـ Scrollbar ── */
+/* الأرقام والنصوص اللاتينية بخط IBM Plex */
+[dir="ltr"], input[dir="ltr"], .font-latin {
+  font-family: var(--font-latin);
+}
+
+/* ── Scrollbar ── */
 ::-webkit-scrollbar       { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
 ::-webkit-scrollbar-thumb { background: #d98ea0; border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: #8a1538; }
 
 /* ══════════════════════════════════════════════
-   تحسينات الأزرار الرئيسية
+   الأزرار الرئيسية — تدرج عنابي
 ══════════════════════════════════════════════ */
-/* أزرار bg-gradient التي تستخدم من-violet إلى purple */
-.bg-gradient-to-r.from-violet-600.to-purple-600,
-.bg-gradient-to-r.from-violet-700.to-purple-700 {
-  background: var(--gradient-button) !important;
-  box-shadow: var(--shadow-brand-sm) !important;
-}
-
-/* ظلال الأزرار */
 .shadow-violet-200 { box-shadow: var(--shadow-brand-sm) !important; }
 .shadow-violet-300 { box-shadow: var(--shadow-brand)    !important; }
+.shadow-blue-200   { box-shadow: var(--shadow-brand-sm) !important; }
 
 /* ══════════════════════════════════════════════
-   الشريط الجانبي — تدرج عنابي
+   حالات المهام — تجاوز ring-color للأزرار
 ══════════════════════════════════════════════ */
-.from-violet-700.via-purple-700.to-indigo-800,
-.bg-gradient-to-br.from-violet-700 {
-  background: var(--gradient-sidebar) !important;
-}
+.ring-blue-400  { --tw-ring-color: #c25c74 !important; }
+.ring-green-400 { --tw-ring-color: #d98ea0 !important; }
+.ring-red-400   { --tw-ring-color: #8a1538 !important; }
