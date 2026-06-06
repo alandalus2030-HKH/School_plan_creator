@@ -874,7 +874,7 @@ export default function ReportsPage() {
           <span style="font-size:18px;font-weight:700;color:${statColor(stats.rate)}">${stats.rate}%</span>
         </div>
         <div style="height:10px;background:#f1f5f9;border-radius:999px;overflow:hidden">
-          <div style="height:100%;width:${stats.rate}%;background:linear-gradient(to left,#7c3aed,#6366f1);border-radius:999px"></div>
+          <div style="height:100%;width:${stats.rate}%;background:linear-gradient(to left,#6f1029,#8a1538 55%,#a83356);border-radius:999px"></div>
         </div>
       </div>`
 
@@ -1116,7 +1116,7 @@ export default function ReportsPage() {
         </div>
         <div className="relative h-5 bg-slate-100 rounded-full overflow-hidden">
           <div className="absolute top-0 right-0 h-full rounded-full transition-all duration-700"
-            style={{ width:`${stats.rate}%`, background:'linear-gradient(to left,#7c3aed,#6366f1)' }} />
+            style={{ width:`${stats.rate}%`, background:'linear-gradient(to left, #6f1029, #8a1538 55%, #a83356)' }} />
         </div>
         <div className="flex justify-between mt-2 text-xs text-slate-500 flex-wrap gap-y-1">
           {Object.entries(STATUS_META).map(([k,v]) => (
