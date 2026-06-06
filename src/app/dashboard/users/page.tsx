@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import * as XLSX from 'xlsx'
-import { Users, CheckCircle2, BookOpen, Crown } from 'lucide-react'
+import { Users, CheckCircle2, BookOpen, Crown, UserRound } from 'lucide-react'
 
 /* ══════════════════════ أنواع البيانات ══════════════════════ */
 type RoleItem = { code: string; name_ar: string; color: string; permissions?: string[] }
@@ -754,7 +754,7 @@ export default function UsersPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {filtered.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-4xl mb-3">👤</p>
+            <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><UserRound size={40} /></div>
             <p className="text-slate-500 font-medium">لا يوجد مستخدمون</p>
           </div>
         ) : (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { UserRound, Phone } from 'lucide-react'
 
 export default function ProfilePage() {
   const supabase = createClient()
@@ -143,7 +144,9 @@ export default function ProfilePage() {
       <form onSubmit={saveProfile}
         className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="font-bold text-slate-800">👤 البيانات الشخصية</h2>
+          <h2 className="font-bold text-slate-800 flex items-center gap-2">
+            <UserRound size={16} style={{ color: 'var(--maroon-600)' }} /> البيانات الشخصية
+          </h2>
           <p className="text-xs text-slate-500 mt-0.5">يمكنك تعديل اسمك ورقم هاتفك</p>
         </div>
 
@@ -180,7 +183,9 @@ export default function ProfilePage() {
 
           {/* رقم الهاتف */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">📞 رقم الهاتف</label>
+            <label className="block text-xs font-medium text-slate-600 mb-2 flex items-center gap-1">
+              <Phone size={12} /> رقم الهاتف
+            </label>
             <input value={phone} onChange={e => setPhone(e.target.value)}
               placeholder="+974 XXXX XXXX" dir="ltr"
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm bg-slate-50" />

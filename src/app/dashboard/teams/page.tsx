@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Users, UserRound, ClipboardList } from 'lucide-react'
 
 const TEAM_COLORS = [
   '#7c3aed', '#2563eb', '#0891b2', '#059669',
@@ -166,22 +167,31 @@ export default function TeamsPage() {
       {/* ── إحصائية ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
-          { label: 'إجمالي الفرق',  value: teams.length,                                    icon: '👥' },
-          { label: 'إجمالي الأعضاء',value: teams.reduce((s, t) => s + (t.members?.length || 0), 0), icon: '👤' },
-          { label: 'المستخدمون',    value: profiles.length,                                 icon: '📋' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm text-center">
-            <div className="text-3xl mb-1">{s.icon}</div>
-            <div className="text-2xl font-bold text-slate-800">{s.value}</div>
-            <div className="text-xs text-slate-500 mt-0.5">{s.label}</div>
-          </div>
-        ))}
+          { label: 'إجمالي الفرق',   value: teams.length,                                              Icon: Users,        tone: 'dark'   },
+          { label: 'إجمالي الأعضاء', value: teams.reduce((s, t) => s + (t.members?.length || 0), 0), Icon: UserRound,    tone: 'medium' },
+          { label: 'المستخدمون',     value: profiles.length,                                          Icon: ClipboardList, tone: 'light'  },
+        ].map(s => {
+          const tMap: Record<string,{bg:string;fg:string;iconFg:string}> = {
+            dark:   { bg:'linear-gradient(135deg,#5a0d22,#8a1538)', fg:'#fff',    iconFg:'rgba(255,255,255,0.8)' },
+            medium: { bg:'#f4dde2', fg:'#8a1538', iconFg:'#c25c74' },
+            light:  { bg:'#fbf2f4', fg:'#6f1029', iconFg:'#d98ea0' },
+          }
+          const t = tMap[s.tone]
+          return (
+            <div key={s.label} className="rounded-2xl p-4 shadow-sm text-center"
+              style={{ background: t.bg, color: t.fg }}>
+              <s.Icon size={24} style={{ color: t.iconFg, margin: '0 auto 6px' }} />
+              <div className="text-2xl font-bold">{s.value}</div>
+              <div className="text-xs mt-0.5 opacity-80">{s.label}</div>
+            </div>
+          )
+        })}
       </div>
 
       {/* ── قائمة الفرق ── */}
       {teams.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center">
-          <p className="text-4xl mb-3">👥</p>
+          <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><Users size={40} /></div>
           <p className="text-slate-500 font-medium mb-4">لا توجد فرق بعد</p>
           <button onClick={openCreate}
             className="bg-violet-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
