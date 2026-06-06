@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
@@ -8,6 +8,11 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
+import {
+  BookOpen, Archive, Pin, BarChart3, TrendingUp, PartyPopper, Inbox,
+  ClipboardList, CheckCircle2, Clock, Circle, AlertTriangle, Star,
+  LayoutDashboard, Network, Users, Printer,
+} from 'lucide-react'
 
 /* ══════════════════ ثوابت ══════════════════ */
 const STATUS_META: Record<string, { ar: string; hex: string; light: string; text: string }> = {
@@ -202,12 +207,16 @@ function TasksModal({
                       ) : <span className="text-xs text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className="text-sm" title={TYPE_META[t.task_type]?.ar}>
-                        {TYPE_META[t.task_type]?.icon || '📌'}
+                      <span title={TYPE_META[t.task_type]?.ar} style={{ color: 'var(--maroon-400)' }}>
+                        {t.task_type === 'academic' ? <BookOpen size={15} className="inline" />
+                          : t.task_type === 'administrative' ? <Archive size={15} className="inline" />
+                          : <Pin size={15} className="inline" />}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className="text-sm">{PRIORITY_META[t.priority]?.icon || '—'}</span>
+                      <span className="w-3 h-3 rounded-full inline-block" style={{
+                        background: t.priority === 'high' ? '#8a1538' : t.priority === 'medium' ? '#d98ea0' : '#f4dde2'
+                      }} />
                     </td>
                     <td className="px-4 py-3 text-center hidden sm:table-cell">
                       {t.end_date ? (
@@ -237,7 +246,7 @@ function TasksModal({
         <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
           <button onClick={handlePrint}
             className="flex items-center gap-1.5 px-4 py-2 text-sm bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors font-semibold shadow-sm">
-            🖨️ طباعة التقرير
+            <Printer size={14} className="inline ml-1" /> طباعة التقرير
           </button>
           <button onClick={onClose}
             className="px-4 py-2 text-sm bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors">
@@ -355,7 +364,7 @@ function KpiDetailModal({
         <div className="p-5">
           {kpis.length === 0 ? (
             <div className="py-12 text-center text-slate-400">
-              <div className="text-4xl mb-3">📭</div>
+              <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><Inbox size={40} /></div>
               <p>لا توجد مؤشرات في هذه الفئة</p>
             </div>
           ) : (
@@ -455,7 +464,7 @@ function KpiDetailModal({
         <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
           <button onClick={handlePrint}
             className="flex items-center gap-1.5 px-4 py-2 text-sm bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors font-semibold shadow-sm">
-            🖨️ طباعة التقرير
+            <Printer size={14} className="inline ml-1" /> طباعة التقرير
           </button>
           <button onClick={onClose}
             className="px-4 py-2 text-sm bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors">
@@ -971,16 +980,16 @@ export default function ReportsPage() {
     .filter(n => planFilter==='all' || n.plan_id===planFilter)
 
   const TABS = [
-    { key:'overview',   icon:'📊', label:'نظرة عامة'     },
-    { key:'hierarchy',  icon:'🏗️', label:'هيكل الخطة'    },
-    { key:'kpis',       icon:'📈', label:`مؤشرات الأداء${filteredKpis.length>0?` (${filteredKpis.length})`:''}`},
-    { key:'users',      icon:'👥', label:'الأقسام والأفراد'},
-    { key:'delayed',    icon:'⚠️', label:`المتأخرات (${delayedTasks.length})`},
+    { key:'overview',   Icon: LayoutDashboard, label:'نظرة عامة'     },
+    { key:'hierarchy',  Icon: Network,         label:'هيكل الخطة'    },
+    { key:'kpis',       Icon: TrendingUp,      label:`مؤشرات الأداء${filteredKpis.length>0?` (${filteredKpis.length})`:''}`},
+    { key:'users',      Icon: Users,           label:'الأقسام والأفراد'},
+    { key:'delayed',    Icon: AlertTriangle,   label:`المتأخرات (${delayedTasks.length})`},
   ] as const
 
   /* ── بطاقة قابلة للنقر ── */
   const ClickCard = ({ icon, label, value, sub, color, filterKey }: {
-    icon:string; label:string; value:string|number; sub?:string; color:string; filterKey?:string
+    icon:React.ReactNode; label:string; value:string|number; sub?:string; color:string; filterKey?:string
   }) => {
     const colorMap: Record<string,string> = {
       violet:'bg-violet-50 border-violet-200 text-violet-700 hover:border-violet-400',
@@ -1014,7 +1023,9 @@ export default function ReportsPage() {
       {/* ══ رأس الصفحة ══ */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">📊 التقارير والإحصائيات</h2>
+          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <BarChart3 size={22} style={{ color: 'var(--maroon-600)' }} /> التقارير والإحصائيات
+          </h2>
           <p className="text-slate-500 text-sm mt-1">نظرة تفصيلية شاملة على أداء الخطط والمهام والمؤشرات</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -1025,7 +1036,7 @@ export default function ReportsPage() {
           </select>
           <button onClick={handlePagePrint}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-            🖨️ طباعة
+            <Printer size={14} className="inline ml-1" /> طباعة
           </button>
         </div>
       </div>
@@ -1082,13 +1093,13 @@ export default function ReportsPage() {
 
       {/* ══ بطاقات قابلة للنقر ══ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <ClickCard icon="📋" label="إجمالي المهام"  value={stats.total}       color="slate"  />
-        <ClickCard icon="✅" label="المنجزة"         value={stats.completed}   color="green"  filterKey="completed"
+        <ClickCard icon={<ClipboardList size={24} />} label="إجمالي المهام"  value={stats.total}       color="slate"  />
+        <ClickCard icon={<CheckCircle2  size={24} />} label="المنجزة"        value={stats.completed}   color="green"  filterKey="completed"
           sub={`${stats.rate}% من الإجمالي`} />
-        <ClickCard icon="🔄" label="جارية"           value={stats.inProgress}  color="blue"   filterKey="in_progress" />
-        <ClickCard icon="⏳" label="لم تبدأ"         value={stats.notStarted}  color="amber"  filterKey="not_started" />
-        <ClickCard icon="⚠️" label="متأخرة"          value={stats.delayed}     color="red"    filterKey="delayed" />
-        <ClickCard icon="⭐" label="متوسط التقييم"
+        <ClickCard icon={<Clock         size={24} />} label="جارية"          value={stats.inProgress}  color="blue"   filterKey="in_progress" />
+        <ClickCard icon={<Circle        size={24} />} label="لم تبدأ"        value={stats.notStarted}  color="amber"  filterKey="not_started" />
+        <ClickCard icon={<AlertTriangle size={24} />} label="متأخرة"         value={stats.delayed}     color="red"    filterKey="delayed" />
+        <ClickCard icon={<Star          size={24} />} label="متوسط التقييم"
           value={stats.avgRating}
           color="violet"
           sub={stats.ratedCount>0 ? `من ${stats.ratedCount} مهمة مقيّمة` : 'لا يوجد تقييم'}
@@ -1098,7 +1109,9 @@ export default function ReportsPage() {
       {/* ══ شريط الإنجاز ══ */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-slate-700">📈 نسبة الإنجاز الكلية</h3>
+          <h3 className="font-bold text-slate-700 flex items-center gap-2">
+            <TrendingUp size={16} style={{ color: 'var(--maroon-600)' }} /> نسبة الإنجاز الكلية
+          </h3>
           <span className="text-2xl font-bold text-violet-700">{stats.rate}%</span>
         </div>
         <div className="relative h-5 bg-slate-100 rounded-full overflow-hidden">
@@ -1120,7 +1133,7 @@ export default function ReportsPage() {
           <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap
               ${activeTab===tab.key ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-            {tab.icon} {tab.label}
+            <tab.Icon size={14} className="inline ml-1" /> {tab.label}
           </button>
         ))}
       </div>
@@ -1216,7 +1229,7 @@ export default function ReportsPage() {
           </div>
           {topNodes.length===0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
-              <div className="text-4xl mb-2">📂</div>
+              <div className="flex justify-center mb-2" style={{ color: 'var(--maroon-300)' }}><Network size={40} /></div>
               <p>لا توجد بيانات للخطة المحددة</p>
             </div>
           ) : topNodes
@@ -1241,7 +1254,7 @@ export default function ReportsPage() {
         <div className="space-y-4">
           {filteredKpis.length===0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
-              <div className="text-4xl mb-2">📈</div>
+              <div className="flex justify-center mb-2" style={{ color: 'var(--maroon-300)' }}><TrendingUp size={40} /></div>
               <p>لا توجد مؤشرات أداء مضافة للخطة المحددة</p>
               <p className="text-xs mt-1">يمكن إضافتها من صفحة مؤشرات الأداء لكل خطة</p>
             </div>
@@ -1502,7 +1515,7 @@ export default function ReportsPage() {
         <div className="space-y-4">
           {delayedTasks.length===0 ? (
             <div className="bg-green-50 border border-green-200 rounded-2xl p-12 text-center">
-              <div className="text-5xl mb-3">🎉</div>
+              <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-400)' }}><PartyPopper size={48} /></div>
               <p className="text-green-700 font-bold text-lg">لا توجد مهام متأخرة!</p>
               <p className="text-green-600 text-sm mt-1">جميع المهام ضمن الجدول الزمني</p>
             </div>
@@ -1614,14 +1627,14 @@ function getKpiStatus(p: number|null) {
 function EmptyChart() {
   return (
     <div className="flex items-center justify-center h-[220px] text-slate-400">
-      <div className="text-center"><div className="text-3xl mb-2">📊</div><p className="text-xs">لا توجد بيانات</p></div>
+      <div className="text-center"><div className="flex justify-center mb-2" style={{ color: 'var(--maroon-300)' }}><BarChart3 size={32} /></div><p className="text-xs">لا توجد بيانات</p></div>
     </div>
   )
 }
 function EmptyState({ text }: { text: string }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-      <div className="text-4xl mb-3">📭</div>
+      <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><Inbox size={40} /></div>
       <p className="text-slate-500 font-medium">{text}</p>
     </div>
   )

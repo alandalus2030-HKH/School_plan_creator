@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE } from '@/lib/permissions'
+import { Bell, Crown } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -292,7 +293,7 @@ export default function SettingsPage() {
             /* ════ قسم إرسال الإشعارات ════ */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="flex items-center gap-3 p-5 border-b border-slate-100 bg-gradient-to-l from-violet-50 to-white">
-                <span className="text-3xl">📢</span>
+                <Bell size={28} style={{ color: 'var(--maroon-600)', flexShrink: 0 }} />
                 <div>
                   <h3 className="font-bold text-slate-800">إرسال إشعار</h3>
                   <p className="text-xs text-slate-400">أرسل إشعاراً لمستخدم محدد أو لجميع المستخدمين</p>
@@ -446,7 +447,7 @@ export default function SettingsPage() {
                 {/* رأس */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-l from-amber-50 to-white">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">👑</span>
+                    <Crown size={28} style={{ color: 'var(--maroon-600)', flexShrink: 0 }} />
                     <div>
                       <h3 className="font-bold text-slate-800">الأدوار والصلاحيات</h3>
                       <p className="text-xs text-slate-400">تحديد ما يستطيع كل دور فعله في النظام · {roles.length} دور</p>

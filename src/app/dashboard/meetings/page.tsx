@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createNotification } from '@/lib/notifications'
+import { CalendarDays, CalendarClock, CalendarCheck, UserRound, AlertTriangle, Inbox } from 'lucide-react'
 
 /* ══════════════════ ثوابت ══════════════════ */
 const PLATFORM_META: Record<string, { name: string; icon: string; color: string; bg: string; border: string }> = {
@@ -312,7 +313,7 @@ export default function MeetingsPage() {
 
   if (loadError) return (
     <div className="flex flex-col items-center justify-center h-64 gap-3" dir="rtl">
-      <div className="text-4xl">⚠️</div>
+      <AlertTriangle size={40} style={{ color: 'var(--maroon-600)' }} />
       <p className="text-red-600 font-semibold">{loadError}</p>
       <button onClick={load} className="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm">
         إعادة المحاولة
@@ -326,7 +327,9 @@ export default function MeetingsPage() {
       {/* ══ رأس الصفحة ══ */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">📅 الاجتماعات</h2>
+          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <CalendarDays size={22} style={{ color: 'var(--maroon-600)' }} /> الاجتماعات
+          </h2>
           <p className="text-slate-500 text-sm mt-1">إدارة روابط الاجتماعات وربطها بالخطط والمهام</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -346,17 +349,27 @@ export default function MeetingsPage() {
       {/* ══ بطاقات الإحصاء ══ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'إجمالي الاجتماعات', value: meetings.length, icon: '📅', color: 'bg-violet-50 border-violet-200 text-violet-700' },
-          { label: 'القادمة',            value: upcomingCount,   icon: '🔜', color: 'bg-blue-50   border-blue-200   text-blue-700'   },
-          { label: 'اليوم',              value: todayCount,      icon: '📌', color: 'bg-amber-50  border-amber-200  text-amber-700'  },
-          { label: 'اجتماعاتي',          value: myCount,         icon: '👤', color: 'bg-green-50  border-green-200  text-green-700'  },
-        ].map(s => (
-          <div key={s.label} className={`rounded-2xl border p-4 shadow-sm text-center ${s.color}`}>
-            <div className="text-2xl mb-1">{s.icon}</div>
-            <div className="text-2xl font-bold">{s.value}</div>
-            <div className="text-xs font-medium mt-0.5 opacity-75">{s.label}</div>
-          </div>
-        ))}
+          { label: 'إجمالي الاجتماعات', value: meetings.length, Icon: CalendarDays,  tone: 'dark'   },
+          { label: 'القادمة',            value: upcomingCount,   Icon: CalendarClock, tone: 'medium' },
+          { label: 'اليوم',              value: todayCount,      Icon: CalendarCheck, tone: 'light2' },
+          { label: 'اجتماعاتي',          value: myCount,         Icon: UserRound,     tone: 'light'  },
+        ].map(s => {
+          const tMap: Record<string,{bg:string;fg:string;iconFg:string}> = {
+            dark:   { bg:'linear-gradient(135deg,#5a0d22,#8a1538)', fg:'#fff',    iconFg:'rgba(255,255,255,0.8)' },
+            medium: { bg:'#f4dde2', fg:'#8a1538', iconFg:'#c25c74' },
+            light2: { bg:'#fbf2f4', fg:'#8a1538', iconFg:'#d98ea0' },
+            light:  { bg:'#f4dde2', fg:'#6f1029', iconFg:'#c25c74' },
+          }
+          const t = tMap[s.tone]
+          return (
+            <div key={s.label} className="rounded-2xl p-4 shadow-sm text-center"
+              style={{ background: t.bg, color: t.fg }}>
+              <s.Icon size={24} style={{ color: t.iconFg, margin: '0 auto 6px' }} />
+              <div className="text-2xl font-bold">{s.value}</div>
+              <div className="text-xs font-medium mt-0.5 opacity-80">{s.label}</div>
+            </div>
+          )
+        })}
       </div>
 
       {/* ══ فلاتر ══ */}
@@ -393,7 +406,9 @@ export default function MeetingsPage() {
       {/* ══ قائمة الاجتماعات ══ */}
       {filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-          <div className="text-5xl mb-3">📅</div>
+          <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}>
+            <CalendarDays size={48} />
+          </div>
           <p className="text-slate-500 font-medium">
             {filterTime === 'mine' ? 'لا توجد اجتماعات مدعو إليها' : 'لا توجد اجتماعات'}
           </p>
