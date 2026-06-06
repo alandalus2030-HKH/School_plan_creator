@@ -410,10 +410,33 @@ task_comments · team_members · meetings · dropdown_options
 
 ---
 
-### اليوم 14 — الأربعاء | توحيد ألوان الحالة
-**الوقت المقدر:** 2-3 ساعات
+### اليوم 14 — الأربعاء | توحيد ألوان الحالة ✅ 2026-06-06
 
 **المهام:**
+- [x] `tasks/[taskId]/TaskActions.tsx` — in_progress/completed → violet
+- [x] `tasks/[taskId]/page.tsx` — statusList + status display → violet
+- [x] `my-tasks/page.tsx` — status selector → violet
+- [x] `plans/[planId]/nodes/[nodeId]/page.tsx` — STATUS_CLASSES → violet
+- [x] Build نظيف ✓
+
+---
+
+### اليوم 15 — الخميس | Loading Skeletons ✅ 2026-06-06
+
+**المهام:**
+- [x] إنشاء `src/components/Skeleton.tsx`:
+  SkeletonLine, SkeletonRow, SkeletonTable, SkeletonCard,
+  SkeletonCards, SkeletonProgress, SkeletonDashboard, SkeletonTaskList
+- [x] تطبيقه في 3 صفحات:
+  - `my-tasks/page.tsx` → SkeletonTaskList
+  - `reports/page.tsx` → SkeletonDashboard
+  - `plans/page.tsx` → SkeletonCards + SkeletonTable
+- [x] Build نظيف ✓
+
+---
+
+### اليوم 14 (أرشيف) | توحيد ألوان الحالة
+**المهام المؤرشفة:**
 - [ ] استبدال الألوان الزرقاء لـ `in_progress` بالعنابي الفاتح في كل الملفات:
   ```typescript
   // قبل

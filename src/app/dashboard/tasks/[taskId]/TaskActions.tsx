@@ -8,10 +8,10 @@ import { createNotification } from '@/lib/notifications'
 type Status = 'not_started' | 'in_progress' | 'completed' | 'delayed'
 
 const STATUSES: { value: Status; label: string; color: string; bg: string }[] = [
-  { value: 'not_started', label: 'لم تبدأ',  color: 'text-slate-600', bg: 'bg-slate-100 hover:bg-slate-200 border-slate-200' },
-  { value: 'in_progress', label: 'جارية',    color: 'text-blue-700',  bg: 'bg-blue-50  hover:bg-blue-100  border-blue-200'  },
-  { value: 'completed',   label: 'منجزة',    color: 'text-green-700', bg: 'bg-green-50 hover:bg-green-100 border-green-200' },
-  { value: 'delayed',     label: 'متأخرة',   color: 'text-red-700',   bg: 'bg-red-50   hover:bg-red-100   border-red-200'   },
+  { value: 'not_started', label: 'لم تبدأ',  color: 'text-slate-600',  bg: 'bg-slate-100  hover:bg-slate-200  border-slate-200'  },
+  { value: 'in_progress', label: 'جارية',    color: 'text-violet-700', bg: 'bg-violet-50  hover:bg-violet-100 border-violet-200' },
+  { value: 'completed',   label: 'منجزة',    color: 'text-violet-900', bg: 'bg-violet-100 hover:bg-violet-200 border-violet-300' },
+  { value: 'delayed',     label: 'متأخرة',   color: 'text-red-700',    bg: 'bg-red-50     hover:bg-red-100    border-red-200'    },
 ]
 
 export function StatusButtons({ taskId, currentStatus }: { taskId: string; currentStatus: string }) {

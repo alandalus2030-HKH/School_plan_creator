@@ -18,8 +18,10 @@ function ratingBadgeClass(avg: number): { label: string; icon: string; cls: stri
 }
 
 const statusColor: Record<string,string> = {
-  not_started:'bg-slate-100 text-slate-600', in_progress:'bg-blue-100 text-blue-700',
-  completed:'bg-green-100 text-green-700', delayed:'bg-red-100 text-red-700',
+  not_started: 'bg-slate-100  text-slate-600',
+  in_progress: 'bg-violet-100 text-violet-700',
+  completed:   'bg-violet-200 text-violet-900',
+  delayed:     'bg-red-100    text-red-700',
 }
 const statusAr: Record<string,string> = {
   not_started:'لم تبدأ', in_progress:'جارية', completed:'منجزة', delayed:'متأخرة',

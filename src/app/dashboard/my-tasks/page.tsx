@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 import { STATUS_META, RATING_META, PRIORITY_META } from '@/lib/constants/tasks'
+import { SkeletonTaskList } from '@/components/Skeleton'
 import type { PlanNode, Plan, Team } from '@/lib/types'
 
 /* ── aliases للتوافق مع الكود الموجود ── */
@@ -195,8 +196,8 @@ export default function MyTasksPage() {
     reviewTasks
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+    <div>
+      <SkeletonTaskList />
     </div>
   )
 
@@ -344,9 +345,9 @@ export default function MyTasksPage() {
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
                       <span className="text-xs text-slate-400 ml-auto">تحديث الحالة:</span>
                       {[
-                        { v: 'not_started', label: 'لم تبدأ',  cls: 'border-slate-200 text-slate-600 hover:bg-slate-50'  },
-                        { v: 'in_progress', label: 'جارية',    cls: 'border-blue-200   text-blue-700   hover:bg-blue-50'   },
-                        { v: 'completed',   label: 'منجزة ✓',  cls: 'border-green-200  text-green-700  hover:bg-green-50'  },
+                        { v: 'not_started', label: 'لم تبدأ',  cls: 'border-slate-200  text-slate-600  hover:bg-slate-50'   },
+                        { v: 'in_progress', label: 'جارية',    cls: 'border-violet-200 text-violet-700 hover:bg-violet-50' },
+                        { v: 'completed',   label: 'منجزة ✓',  cls: 'border-violet-400 text-violet-900 hover:bg-violet-100'},
                         { v: 'delayed',     label: 'متأخرة',   cls: 'border-red-200    text-red-700    hover:bg-red-50'    },
                       ].map(s => (
                         <button key={s.v}

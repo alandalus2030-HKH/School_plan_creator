@@ -16,6 +16,7 @@ import {
 import {
   STATUS_META, RATING_META, PRIORITY_META, TYPE_META,
 } from '@/lib/constants/tasks'
+import { SkeletonDashboard } from '@/components/Skeleton'
 import type { Task, Plan, PlanNode, Profile, Kpi } from '@/lib/types'
 
 /* ══════════════════ دالة الطباعة المشتركة ══════════════════ */
@@ -949,8 +950,8 @@ export default function ReportsPage() {
   /* ══ حماية ══ */
   if (!permsLoading && !can('view_reports') && !can('manage_plans')) return <NoAccess />
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+    <div>
+      <SkeletonDashboard />
     </div>
   )
 

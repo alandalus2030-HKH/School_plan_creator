@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle } from 'lucide-react'
+import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -76,8 +77,9 @@ export default function PlansPage() {
   const countByYear = (y: string) => plans.filter(p => p.academic_year === y && !p.is_archived).length
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+    <div className="space-y-4">
+      <SkeletonCards count={3} />
+      <SkeletonTable rows={4} cols={3} />
     </div>
   )
 

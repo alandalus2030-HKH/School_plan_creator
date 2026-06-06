@@ -50,8 +50,8 @@ function TaskTypeIcon({ type }: { type: string }) {
 const typeAr:   Record<string, string> = { academic: 'أكاديمية', administrative: 'إدارية', general: 'عامة' }
 const statusList = [
   { value: 'not_started', label: 'لم تبدأ',  ring: 'ring-slate-400',  bg: 'bg-slate-100  text-slate-700  border-slate-200  hover:bg-slate-200'  },
-  { value: 'in_progress', label: 'جارية',    ring: 'ring-blue-400',   bg: 'bg-blue-50   text-blue-700   border-blue-200   hover:bg-blue-100'   },
-  { value: 'completed',   label: 'منجزة ✓',  ring: 'ring-green-400',  bg: 'bg-green-50  text-green-700  border-green-200  hover:bg-green-100'  },
+  { value: 'in_progress', label: 'جارية',    ring: 'ring-violet-400', bg: 'bg-violet-50  text-violet-700 border-violet-200 hover:bg-violet-100' },
+  { value: 'completed',   label: 'منجزة ✓',  ring: 'ring-violet-600', bg: 'bg-violet-100 text-violet-900 border-violet-300 hover:bg-violet-200' },
   { value: 'delayed',     label: 'متأخرة',   ring: 'ring-red-400',    bg: 'bg-red-50    text-red-700    border-red-200    hover:bg-red-100'    },
 ]
 const priorityInfo: Record<string, { label: string; icon: string; cls: string }> = {
@@ -484,8 +484,8 @@ export default function TaskPage() {
               </div>
               <div className="flex flex-col items-end gap-2">
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold
-                  ${status === 'completed'   ? 'bg-green-400/20 text-green-100' :
-                    status === 'in_progress' ? 'bg-blue-400/20  text-blue-100'  :
+                  ${status === 'completed'   ? 'bg-violet-400/20 text-violet-100' :
+                    status === 'in_progress' ? 'bg-violet-300/20 text-violet-100' :
                     status === 'delayed'     ? 'bg-red-400/20   text-red-100'   :
                     'bg-white/20 text-white/80'}`}>
                   {statusList.find(s => s.value === status)?.label}
@@ -603,7 +603,7 @@ export default function TaskPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{dependsOnTask.name_ar}</p>
                   <p className={`text-xs mt-0.5 font-medium ${
-                    dependsOnTask.status === 'completed' ? 'text-green-600' : 'text-orange-600'
+                    dependsOnTask.status === 'completed' ? 'text-violet-700' : 'text-orange-600'
                   }`}>
                     {dependsOnTask.status === 'completed'
                       ? '✓ اكتملت — هذه المهمة متاحة للبدء'
