@@ -6,8 +6,9 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import {
   LayoutDashboard, ClipboardList, Map, CheckSquare,
   Users, BarChart3, CalendarDays, UserRound, Settings,
-  Contact, School, ChevronRight, ChevronLeft,
+  Contact, ChevronRight, ChevronLeft,
 } from 'lucide-react'
+import Logo from './Logo'
 
 const NAV_ITEMS = [
   { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: null               },
@@ -70,9 +71,7 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
       {/* ── Header ── */}
       <div className={`flex items-center border-b border-white/10 transition-all duration-300
         ${collapsed ? 'p-3 justify-center' : 'gap-3 p-4'}`}>
-        <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
-          <School size={20} style={{ color: 'var(--maroon-700)' }} />
-        </div>
+        <Logo size={collapsed ? 32 : 40} />
         {!collapsed && (
           <span className="text-sm font-bold truncate">
             {schoolName || (lang === 'ar' ? 'مدرستي' : 'My School')}

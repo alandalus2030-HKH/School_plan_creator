@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Logo from '@/components/Logo'
 
 const QUOTES = [
   'التعليم هو أقوى سلاح يمكنك استخدامه لتغيير العالم',
@@ -125,7 +126,9 @@ function LoginForm() {
           ))}
         </div>
         <div className="relative z-10 text-center max-w-md">
-          <div className="text-6xl mb-6">🏫</div>
+          <div className="flex justify-center mb-6">
+            <Logo size={80} />
+          </div>
           <h1 className="text-3xl font-bold mb-4">
             {isAr ? 'نظام متابعة الخطط المدرسية' : 'School Plan Tracking System'}
           </h1>
@@ -148,8 +151,10 @@ function LoginForm() {
         <div className="w-full max-w-md">
 
           <div className="lg:hidden text-center mb-8">
-            <div className="text-5xl mb-2">🏫</div>
-            <h1 className="text-xl font-bold text-violet-700">
+            <div className="flex justify-center mb-3">
+              <Logo size={56} tileBg="var(--maroon-50)" />
+            </div>
+            <h1 className="text-xl font-bold" style={{ color: 'var(--maroon-700)' }}>
               {isAr ? 'نظام متابعة الخطط المدرسية' : 'School Plan Tracking System'}
             </h1>
           </div>

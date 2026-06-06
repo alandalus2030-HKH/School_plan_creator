@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { Pencil, Trash2 } from 'lucide-react'
 
 type Task       = { id: string; name_ar: string; status: string; end_date: string|null; task_type: string; priority: string }
 type SubObj     = { id: string; name_ar: string; order_num: number; tasks: Task[] }
@@ -98,9 +99,9 @@ function EditableRow({ name, onSave, onDelete, children }: {
           <div className="flex-1">{children}</div>
           <div className="flex gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
             <button onClick={()=>setEditing(true)} title="تعديل"
-              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded transition-colors text-xs">✏️</button>
+              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded transition-colors"><Pencil size={12} /></button>
             <button onClick={()=>setConfirming(true)} title="حذف"
-              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors text-xs">🗑️</button>
+              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={12} /></button>
           </div>
         </div>
       )}
