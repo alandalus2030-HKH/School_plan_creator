@@ -358,6 +358,56 @@ CREATE TABLE audit_logs (
 -- قاعدة البيانات الآن نظيفة بالكامل — لا أعمدة زائدة.
 
 -- ════════════════════════════════════════════════════════════
--- القسم 4: الـ Indexes المطبَّقة (من الترحيل 003)
+-- القسم 4: الـ Indexes المطبَّقة (الترحيل 005 — 2026-06-06)
 -- ════════════════════════════════════════════════════════════
--- سيُضاف محتواها بعد تشغيل الترحيل 004_add_indexes.sql
+-- إجمالي: 31 index (23 جديدة + 8 مسبقة في Supabase)
+
+-- plan_nodes
+CREATE INDEX idx_plan_nodes_plan_id    ON plan_nodes(plan_id);
+CREATE INDEX idx_plan_nodes_parent_id  ON plan_nodes(parent_id);
+CREATE INDEX idx_plan_nodes_order      ON plan_nodes(plan_id, order_num);
+
+-- tasks
+CREATE INDEX idx_tasks_node_id          ON tasks(node_id);
+CREATE INDEX idx_tasks_status           ON tasks(status);
+CREATE INDEX idx_tasks_end_date         ON tasks(end_date);
+CREATE INDEX idx_tasks_assigned_user    ON tasks(assigned_to_user_id);
+CREATE INDEX idx_tasks_assigned_team    ON tasks(assigned_to_team_id);
+CREATE INDEX idx_tasks_reviewer         ON tasks(reviewer_id);
+CREATE INDEX idx_tasks_created_at       ON tasks(created_at DESC);
+CREATE INDEX idx_tasks_status_end_date  ON tasks(status, end_date);
+-- ملاحظة: idx_tasks_status_end_date سيُحوَّل لـ partial index بعد إضافة deleted_at
+
+-- notifications
+CREATE INDEX idx_notifications_recipient ON notifications(recipient_id, is_read);
+CREATE INDEX idx_notifications_created   ON notifications(recipient_id, created_at DESC);
+
+-- kpis + kpi_readings
+CREATE INDEX idx_kpis_node_id           ON kpis(node_id);
+CREATE INDEX idx_kpi_readings_kpi_id    ON kpi_readings(kpi_id);
+CREATE INDEX idx_kpi_readings_date      ON kpi_readings(kpi_id, reading_date DESC);
+
+-- profiles
+CREATE INDEX idx_profiles_school_id     ON profiles(school_id);
+CREATE INDEX idx_profiles_role          ON profiles(role);
+CREATE INDEX idx_profiles_username      ON profiles(username);
+CREATE INDEX idx_profiles_is_active     ON profiles(is_active) WHERE is_active = true;
+
+-- roles
+CREATE INDEX idx_roles_code             ON roles(code);
+
+-- evidence + comments
+CREATE INDEX idx_evidence_task_id       ON evidence(task_id);
+CREATE INDEX idx_task_comments_task_id  ON task_comments(task_id);
+
+-- teams
+CREATE INDEX idx_team_members_team_id    ON team_members(team_id);
+CREATE INDEX idx_team_members_profile_id ON team_members(profile_id);
+
+-- meetings
+CREATE INDEX idx_meetings_school_id     ON meetings(school_id);
+CREATE INDEX idx_meetings_scheduled_at  ON meetings(scheduled_at);
+
+-- dropdown
+CREATE INDEX idx_dropdown_category
+  ON dropdown_options(category, sort_order) WHERE is_active = true;

@@ -185,23 +185,19 @@ teams          → teams_school           ✅
 
 ---
 
-### اليوم 7 — الاثنين | إضافة Indexes
-**الوقت المقدر:** 2 ساعات
+### اليوم 7 — الاثنين | إضافة Indexes ✅ 2026-06-06
 
 **المهام:**
-- [ ] فتح Supabase Dashboard → Database → Indexes → New Index
-- [ ] إضافة الـ indexes التالية واحداً واحداً:
-  ```sql
-  CREATE INDEX idx_tasks_node_id        ON tasks(node_id);
-  CREATE INDEX idx_tasks_status         ON tasks(status);
-  CREATE INDEX idx_tasks_assigned       ON tasks(assigned_to_user_id);
-  CREATE INDEX idx_tasks_end_date       ON tasks(end_date);
-  CREATE INDEX idx_notifications_recip  ON notifications(recipient_id, is_read);
-  CREATE INDEX idx_profiles_school      ON profiles(school_id);
-  CREATE INDEX idx_plan_nodes_plan      ON plan_nodes(plan_id);
-  CREATE INDEX idx_kpis_node            ON kpis(node_id);
-  ```
-- [ ] التحقق من عملها: Supabase → Database → Indexes
+- [x] تحليل الاستعلامات الفعلية في الكود (42+ استعلام)
+- [x] كتابة `005_add_indexes.sql` — 23 index جديدة
+- [x] تشغيل في Supabase SQL Editor
+- [x] النتيجة: 31 index نشط (23 جديدة + 8 مسبقة في Supabase)
+- [x] تحديث `actual_schema.sql` بقسم الـ Indexes
+- [x] commit: `dd410c4`
+
+**الجداول المُعالَجة:** plan_nodes · tasks · notifications ·
+kpis · kpi_readings · profiles · roles · evidence ·
+task_comments · team_members · meetings · dropdown_options
 
 ---
 
@@ -1059,4 +1055,5 @@ teams          → teams_school           ✅
 | 2026-06-06 | أسبوع 1 / يوم 4 | RLS على teams+kpis+notifications+evidence — 10 سياسات نظيفة | `migrations/003,003b` |
 | 2026-06-06 | أسبوع 2 / يوم 6 | توثيق الـ Schema الفعلي — 22 جدول | `database/actual_schema.sql` |
 | 2026-06-06 | أسبوع 2 / يوم 6+ | حذف 5 جداول قديمة + عمود مكرر + إصلاح ألوان | `migrations/004` + Supabase |
+| 2026-06-06 | أسبوع 2 / يوم 7  | 23 index جديد — 31 index نشط إجمالاً | `migrations/005` + Supabase |
 | | | | |

@@ -50,9 +50,9 @@ CREATE INDEX IF NOT EXISTS idx_tasks_created_at
   ON tasks(created_at DESC);                 -- أحدث المهام
 
 -- index مركّب للاستعلامات الشائعة (حالة + تاريخ)
+-- ملاحظة: بدون WHERE deleted_at — العمود يُضاف في الترحيل 006
 CREATE INDEX IF NOT EXISTS idx_tasks_status_end_date
-  ON tasks(status, end_date)
-  WHERE deleted_at IS NULL;                  -- للـ Cron: تحديث المتأخرات
+  ON tasks(status, end_date);
 
 -- ════════════════════════════════════════════════════════════
 -- جدول NOTIFICATIONS — عالي التكرار (يُقرأ عند كل تحميل)
