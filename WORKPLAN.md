@@ -167,16 +167,21 @@ teams          → teams_school           ✅
 
 ---
 
-### اليوم 6 — الأحد | توثيق الـ Schema الفعلي
-**الوقت المقدر:** 2-3 ساعات
+### اليوم 6 — الأحد | توثيق الـ Schema الفعلي ✅ 2026-06-06
 
 **المهام:**
-- [ ] فتح Supabase Dashboard → Database → Tables
-- [ ] توثيق البنية الفعلية في ملف جديد `database/actual_schema.sql`
-  - تصدير: Table Editor → كل جدول → Copy Schema
-- [ ] المقارنة مع `schema.sql` وتوثيق الفروق
-- [ ] حذف `database/schema_fixed.sql` (مُربك)
-- [ ] Push
+- [x] تصدير البنية الكاملة من Supabase (22 جدول، 257 عمود)
+- [x] إنشاء `database/actual_schema.sql` — الوثيقة الرسمية الجديدة
+- [x] توثيق الفروق عن schema.sql الأصلي
+- [x] توثيق المشاكل المكتشفة (أعمدة مكررة، جداول قديمة، ألوان قديمة)
+- [x] حذف `database/schema_fixed.sql` المُربك
+- [x] Push ✓
+
+**أبرز الاكتشافات:**
+- `plan_nodes` هو الجدول الفعّال — axes/initiatives/sub_objectives موروثة وغير مستخدمة
+- `profiles.role` (TEXT) يستخدمه التطبيق — `profiles.role_id` (UUID) غير مستخدم
+- `tasks` فيه عمودان مكرران: `depends_on` + `depends_on_task_id`
+- ألوان افتراضية قديمة `#7c3aed` في badges/teams/roles → يُصحَّح لاحقاً
 
 ---
 
@@ -1052,4 +1057,5 @@ teams          → teams_school           ✅
 | 2026-06-06 | أسبوع 1 / يوم 2 | requireAuth() + حماية 4 API routes + تنظيف .gitignore | `server.ts`، `invite`، `export-excel`، `kpis/generate` |
 | 2026-06-06 | أسبوع 1 / يوم 3 | RLS كامل على plans+plan_nodes+tasks + school_id تلقائي | `migrations/001,002,002b`، `users/create/route.ts` |
 | 2026-06-06 | أسبوع 1 / يوم 4 | RLS على teams+kpis+notifications+evidence — 10 سياسات نظيفة | `migrations/003,003b` |
+| 2026-06-06 | أسبوع 2 / يوم 6 | توثيق الـ Schema الفعلي — 22 جدول | `database/actual_schema.sql` |
 | | | | |
