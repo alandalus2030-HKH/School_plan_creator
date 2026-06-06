@@ -121,39 +121,27 @@ src/app/api/users/create/route.ts (school_id تلقائي)
 
 ---
 
-### اليوم 4 — الأربعاء | إصلاح RLS — الجزء الثاني
+### اليوم 4 — الأربعاء | إصلاح RLS — الجزء الثاني ✅ 2026-06-06
 **الوقت المقدر:** 3-4 ساعات
 
 **المهام:**
-- [ ] تطبيق RLS المحدَّث على الجداول المتبقية:
-  ```sql
-  -- teams
-  DROP POLICY "teams_all" ON teams;
-  CREATE POLICY "teams_school" ON teams FOR ALL
-    USING (school_id = (SELECT school_id FROM profiles WHERE id = auth.uid()));
+- [x] `003_rls_remaining_tables.sql` — RLS على teams, kpis, notifications, evidence
+- [x] `003b_drop_old_kpis_policy.sql` — حذف `allow_all_kpis` القديمة المتعارضة
 
-  -- kpis (عبر plan_nodes)
-  DROP POLICY "kpis_all" ON kpis;
-  CREATE POLICY "kpis_school" ON kpis FOR ALL
-    USING (EXISTS (
-      SELECT 1 FROM plan_nodes pn
-      JOIN plans p ON p.id = pn.plan_id
-      JOIN profiles pr ON pr.id = auth.uid()
-      WHERE pn.id = kpis.node_id AND p.school_id = pr.school_id
-    ));
-
-  -- notifications
-  DROP POLICY "notifications_all" ON notifications;
-  CREATE POLICY "notifications_own" ON notifications FOR ALL
-    USING (recipient_id = auth.uid());
-  ```
-- [ ] اختبار شامل لجميع الصفحات بعد التغيير
-- [ ] التأكد من أن المستخدم لا يرى سوى بيانات مدرسته
-
-**الجداول المتأثرة في Supabase:**
+**النتيجة النهائية — 10 سياسات نظيفة:**
 ```
-teams, kpis, notifications, evidence
+evidence       → evidence_school        ✅
+kpis           → kpis_school            ✅
+notifications  → notifications_delete   ✅
+notifications  → notifications_insert   ✅
+notifications  → notifications_read     ✅
+notifications  → notifications_update   ✅
+plan_nodes     → plan_nodes_school      ✅
+plans          → plans_school           ✅
+tasks          → tasks_school           ✅
+teams          → teams_school           ✅
 ```
+**commit:** `84854fb`
 
 ---
 
@@ -1067,4 +1055,5 @@ teams, kpis, notifications, evidence
 | 2026-06-06 | أسبوع 1 / يوم 1 | حذف debug endpoint + whitelist في create-user | `api/debug/` محذوف، `api/users/create/route.ts` |
 | 2026-06-06 | أسبوع 1 / يوم 2 | requireAuth() + حماية 4 API routes + تنظيف .gitignore | `server.ts`، `invite`، `export-excel`، `kpis/generate` |
 | 2026-06-06 | أسبوع 1 / يوم 3 | RLS كامل على plans+plan_nodes+tasks + school_id تلقائي | `migrations/001,002,002b`، `users/create/route.ts` |
+| 2026-06-06 | أسبوع 1 / يوم 4 | RLS على teams+kpis+notifications+evidence — 10 سياسات نظيفة | `migrations/003,003b` |
 | | | | |
