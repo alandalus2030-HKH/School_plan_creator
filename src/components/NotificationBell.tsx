@@ -4,7 +4,15 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { NOTIF_ICONS, NOTIF_LABELS, timeAgo } from '@/lib/notifications'
-import { Bell, Trash2 } from 'lucide-react'
+import { Bell, Trash2, ClipboardList, Clock, AlertTriangle,
+  RefreshCw, MessageCircle, TrendingUp, Trophy, Map,
+  CalendarDays } from 'lucide-react'
+
+/* خريطة أسماء Lucide → مكوّنات */
+const LUCIDE_MAP: Record<string, React.ElementType> = {
+  ClipboardList, Clock, AlertTriangle, RefreshCw,
+  MessageCircle, TrendingUp, Trophy, Map, CalendarDays, Bell,
+}
 
 type Notif = {
   id:         string
@@ -194,7 +202,8 @@ export default function NotificationBell() {
 
 /* ── عنصر إشعار واحد ── */
 function NotifItem({ notif, onClick }: { notif: Notif; onClick: (n: Notif) => void }) {
-  const icon  = NOTIF_ICONS[notif.type]  || '🔔'
+  const iconName  = NOTIF_ICONS[notif.type] || 'Bell'
+  const IconComp  = LUCIDE_MAP[iconName] || Bell
 
   return (
     <button
@@ -204,9 +213,9 @@ function NotifItem({ notif, onClick }: { notif: Notif; onClick: (n: Notif) => vo
                   ${!notif.is_read ? 'bg-violet-50/60' : 'bg-white'}`}
     >
       {/* أيقونة النوع */}
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
                         ${!notif.is_read ? 'bg-violet-100' : 'bg-slate-100'}`}>
-        {icon}
+        <IconComp size={16} style={{ color: notif.is_read ? '#94a3b8' : 'var(--maroon-600)' }} />
       </div>
 
       {/* المحتوى */}

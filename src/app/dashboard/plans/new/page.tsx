@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Target, TrendingUp, Package, BarChart3 } from 'lucide-react'
 
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => `${2024 + i}-${2025 + i}`)
 
@@ -18,7 +19,7 @@ const KPI_TYPES = [
   {
     value: 'impact',
     label: 'أثر بعيد',
-    icon:  '🎯',
+    Icon:  Target,
     tooltip: {
       def:      'التحسّن في المؤشر النهائي الناتج عن تراكم النتائج على مدى سنوات',
       example:  'ارتفاع معدل التحصيل في امتحانات الدولة — انخفاض نسبة التسرب المدرسي',
@@ -29,7 +30,7 @@ const KPI_TYPES = [
   {
     value: 'outcome',
     label: 'نتيجة مباشرة',
-    icon:  '📊',
+    Icon:  TrendingUp,
     tooltip: {
       def:      'التغيير في سلوك المستفيد الناتج عن الأنشطة والمبادرات',
       example:  'نسبة المعلمين الذين غيّروا طريقة تدريسهم — تحسّن مشاركة الطلاب داخل الفصل',
@@ -40,7 +41,7 @@ const KPI_TYPES = [
   {
     value: 'output',
     label: 'مخرج',
-    icon:  '📦',
+    Icon:  Package,
     tooltip: {
       def:      'ما قام به الفريق من إنجازات دون النظر إلى تأثيرها أو أثرها',
       example:  'عدد الدورات المنفّذة — عدد الوثائق المُعدَّة — عدد الطلاب الملتحقين ببرنامج',
@@ -324,7 +325,7 @@ export default function NewPlanPage() {
           <div className="space-y-5">
 
             <div className="bg-violet-50 rounded-xl p-4 border border-violet-100">
-              <p className="text-sm font-semibold text-violet-800 mb-1">📊 مؤشرات الأداء الرئيسية (KPIs)</p>
+              <p className="text-sm font-semibold text-violet-800 mb-1 flex items-center gap-1"><BarChart3 size={14} /> مؤشرات الأداء الرئيسية (KPIs)</p>
               <p className="text-xs text-violet-600">
                 حدد المستويات التي ستحتوي على مؤشرات قياس الأداء.
                 المستوى الأول محجوز (حاوٍ عام). المهام كيان منفصل أسفل الهيكل.
@@ -390,7 +391,7 @@ export default function NewPlanPage() {
                                     checked={kl.kpiType === t.value}
                                     onChange={() => updateKpiLevel(idx, { kpiType: t.value })}
                                     className="accent-violet-600" />
-                                  <span>{t.icon} {t.label}</span>
+                                  <span className="flex items-center gap-1"><t.Icon size={14} /> {t.label}</span>
                                   <span className="mr-auto flex-shrink-0 w-4 h-4 rounded-full border border-slate-300 text-slate-400 group-hover/tip:border-violet-400 group-hover/tip:text-violet-500 flex items-center justify-center text-[9px] font-bold transition-colors">
                                     ?
                                   </span>
@@ -402,7 +403,7 @@ export default function NewPlanPage() {
                                                 transition-all duration-150 shadow-xl pointer-events-none">
                                   {/* سهم أسفل التلميح */}
                                   <div className="absolute -bottom-1.5 right-4 w-3 h-3 bg-white border-b border-r border-violet-200 rotate-45 rounded-sm" />
-                                  <p className="text-slate-800 font-semibold mb-2">{t.icon} {t.label}</p>
+                                  <p className="text-slate-800 font-semibold mb-2 flex items-center gap-1"><t.Icon size={14} /> {t.label}</p>
                                   <p className="text-slate-600 mb-2 leading-relaxed">{t.tooltip.def}</p>
                                   <p className="text-slate-500 mb-1.5">
                                     <span className="text-amber-600 font-semibold">مثال: </span>

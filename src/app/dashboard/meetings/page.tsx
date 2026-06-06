@@ -4,15 +4,16 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createNotification } from '@/lib/notifications'
-import { CalendarDays, CalendarClock, CalendarCheck, UserRound, AlertTriangle, Inbox } from 'lucide-react'
+import { CalendarDays, CalendarClock, CalendarCheck, UserRound,
+  AlertTriangle, Inbox, Video, Briefcase, Link2, Monitor } from 'lucide-react'
 import type { Plan, Team, TeamMember, Meeting } from '@/lib/types'
 
 /* ══════════════════ ثوابت ══════════════════ */
-const PLATFORM_META: Record<string, { name: string; icon: string; color: string; bg: string; border: string }> = {
-  google_meet: { name: 'Google Meet',     icon: '🎥', color: '#1a73e8', bg: '#e8f0fe', border: '#c5d8fd' },
-  teams:       { name: 'Microsoft Teams', icon: '💼', color: '#6264a7', bg: '#edecf6', border: '#c8c8e8' },
-  zoom:        { name: 'Zoom',            icon: '📹', color: '#2d8cff', bg: '#e3f0ff', border: '#b3d4ff' },
-  other:       { name: 'رابط اجتماع',    icon: '🔗', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
+const PLATFORM_META: Record<string, { name: string; Icon: React.ElementType; color: string; bg: string; border: string }> = {
+  google_meet: { name: 'Google Meet',     Icon: Video,    color: '#1a73e8', bg: '#e8f0fe', border: '#c5d8fd' },
+  teams:       { name: 'Microsoft Teams', Icon: Briefcase,color: '#6264a7', bg: '#edecf6', border: '#c8c8e8' },
+  zoom:        { name: 'Zoom',            Icon: Monitor,  color: '#2d8cff', bg: '#e3f0ff', border: '#b3d4ff' },
+  other:       { name: 'رابط اجتماع',    Icon: Link2,    color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
 }
 
 function detectPlatform(url: string): string {
@@ -446,7 +447,7 @@ export default function MeetingsPage() {
                 <div className="px-4 py-2.5 flex items-center justify-between"
                   style={{ backgroundColor: pm.bg, borderBottom: `1px solid ${pm.border}` }}>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{pm.icon}</span>
+                    <pm.Icon size={16} style={{ color: pm.color, flexShrink: 0 }} />
                     <span className="text-xs font-semibold" style={{ color: pm.color }}>{pm.name}</span>
                   </div>
                   <div className="flex gap-1.5">
@@ -516,7 +517,7 @@ export default function MeetingsPage() {
                       <a href={m.meeting_url} target="_blank" rel="noopener noreferrer"
                         className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold text-white transition-all hover:brightness-110 hover:shadow-md"
                         style={{ backgroundColor: isPast ? '#94a3b8' : pm.color }}>
-                        {pm.icon} {isPast ? 'عرض الرابط' : 'انضمام للاجتماع'}
+                        <pm.Icon size={14} /> {isPast ? 'عرض الرابط' : 'انضمام للاجتماع'}
                       </a>
                     ) : (
                       <span className="flex-1 text-center text-xs text-slate-400 py-2 bg-slate-50 rounded-xl border border-dashed border-slate-200">
@@ -592,25 +593,31 @@ export default function MeetingsPage() {
                   <input value={form.meeting_url} onChange={e => handleUrlChange(e.target.value)}
                     placeholder="https://meet.google.com/xxx-xxxx-xxx"
                     dir="ltr" className={iCls + ' pl-10'} />
-                  {form.platform !== 'other' && (
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base">
-                      {PLATFORM_META[form.platform]?.icon}
-                    </span>
-                  )}
+                  {form.platform !== 'other' && (() => {
+                    const pm = PLATFORM_META[form.platform]
+                    return pm ? (
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                        <pm.Icon size={16} style={{ color: pm.color }} />
+                      </span>
+                    ) : null
+                  })()}
                 </div>
-                {form.meeting_url && (
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-500">تم اكتشاف المنصة:</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                      style={{ backgroundColor: PLATFORM_META[form.platform]?.bg, color: PLATFORM_META[form.platform]?.color }}>
-                      {PLATFORM_META[form.platform]?.icon} {PLATFORM_META[form.platform]?.name}
-                    </span>
-                  </div>
-                )}
+                {form.meeting_url && (() => {
+                  const pm = PLATFORM_META[form.platform]
+                  return pm ? (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-500">تم اكتشاف المنصة:</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1"
+                        style={{ backgroundColor: pm.bg, color: pm.color }}>
+                        <pm.Icon size={10} /> {pm.name}
+                      </span>
+                    </div>
+                  ) : null
+                })()}
                 <div className="mt-2 flex items-center gap-2">
                   <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
                     className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                    🎥 إنشاء اجتماع Google Meet جديد ↗
+                    <Video size={12} className="inline ml-1" /> إنشاء اجتماع Google Meet جديد ↗
                   </a>
                   <span className="text-slate-300">·</span>
                   <span className="text-[10px] text-slate-400">الصق الرابط هنا بعد الإنشاء</span>

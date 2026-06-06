@@ -2,17 +2,18 @@
    صلاحيات النظام — مرجع مركزي
    ════════════════════════════════════════════ */
 
+// icon = اسم مكوّن Lucide المقابل (يُستورد حسب الحاجة)
 export const ALL_PERMISSIONS = [
-  { code: 'manage_users',          label: 'إدارة المستخدمين',      icon: '👥' },
-  { code: 'manage_teams',          label: 'إدارة الفرق',           icon: '🤝' },
-  { code: 'manage_plans',          label: 'إدارة الخطط والمحاور',  icon: '📋' },
-  { code: 'manage_tasks',          label: 'إدارة المهام',          icon: '✅' },
-  { code: 'view_tasks',            label: 'عرض المهام',            icon: '👁️' },
-  { code: 'view_reports',          label: 'عرض التقارير',          icon: '📊' },
-  { code: 'manage_settings',       label: 'إدارة الإعدادات',       icon: '⚙️' },
-  { code: 'manage_roles',          label: 'إدارة الأدوار',         icon: '👑' },
-  { code: 'receive_notifications', label: 'استقبال الإشعارات',     icon: '🔔' },
-  { code: 'rate_tasks',            label: 'تقييم المهام',          icon: '⭐' },
+  { code: 'manage_users',          label: 'إدارة المستخدمين',      icon: 'Users'          },
+  { code: 'manage_teams',          label: 'إدارة الفرق',           icon: 'UsersRound'     },
+  { code: 'manage_plans',          label: 'إدارة الخطط والمحاور',  icon: 'ClipboardList'  },
+  { code: 'manage_tasks',          label: 'إدارة المهام',          icon: 'CircleCheckBig' },
+  { code: 'view_tasks',            label: 'عرض المهام',            icon: 'Eye'            },
+  { code: 'view_reports',          label: 'عرض التقارير',          icon: 'ChartNoAxesColumn' },
+  { code: 'manage_settings',       label: 'إدارة الإعدادات',       icon: 'Settings'       },
+  { code: 'manage_roles',          label: 'إدارة الأدوار',         icon: 'Crown'          },
+  { code: 'receive_notifications', label: 'استقبال الإشعارات',     icon: 'Bell'           },
+  { code: 'rate_tasks',            label: 'تقييم المهام',          icon: 'Star'           },
 ] as const
 
 export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']

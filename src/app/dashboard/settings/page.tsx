@@ -6,6 +6,7 @@ import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE } from '@/lib/permissions'
 import {
   Bell, Crown, Briefcase, BookOpen, GraduationCap,
   Globe, Heart, ClipboardList, MessageCircle, Users,
+  Unlock, AlertTriangle, Save, CircleCheckBig,
 } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
@@ -683,7 +684,7 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-3">الصلاحيات</label>
                 {editRole?.is_system ? (
                   <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-xl">
-                    🔓 هذا الدور النظامي يملك كل الصلاحيات تلقائياً ولا يمكن تقييدها
+                    <Unlock size={14} className="inline ml-1" /> هذا الدور النظامي يملك كل الصلاحيات تلقائياً ولا يمكن تقييدها
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -708,14 +709,17 @@ export default function SettingsPage() {
 
               {roleFormError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-                  ⚠️ {roleFormError}
+                  <AlertTriangle size={14} className="inline ml-1" /> {roleFormError}
                 </div>
               )}
 
               <div className="flex gap-3 pt-1">
                 <button type="submit" disabled={roleSaving}
                   className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-xl disabled:opacity-60 transition-colors">
-                  {roleSaving ? 'جارٍ الحفظ...' : (editRole ? '💾 حفظ التعديلات' : '✅ إنشاء الدور')}
+                  {roleSaving ? 'جارٍ الحفظ...' : (editRole
+                    ? <><Save size={14} className="inline ml-1" /> حفظ التعديلات</>
+                    : <><CircleCheckBig size={14} className="inline ml-1" /> إنشاء الدور</>
+                  )}
                 </button>
                 <button type="button" onClick={() => setShowRoleForm(false)}
                   className="px-5 py-3 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors">

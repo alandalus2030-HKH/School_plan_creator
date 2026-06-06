@@ -18,18 +18,19 @@ export type NotifType =
   | 'meeting_updated'
   | 'system'
 
+// أسماء مكوّنات Lucide المقابلة لكل نوع إشعار
 export const NOTIF_ICONS: Record<string, string> = {
-  task_assigned:       '📋',
-  task_due_soon:       '⏰',
-  task_overdue:        '🚨',
-  task_status_changed: '🔄',
-  task_comment:        '💬',
-  kpi_reading_added:   '📊',
-  badge_earned:        '🏅',
-  plan_updated:        '📝',
-  meeting_invite:      '📅',
-  meeting_updated:     '📅',
-  system:              '🔔',
+  task_assigned:       'ClipboardList',
+  task_due_soon:       'Clock',
+  task_overdue:        'AlertTriangle',
+  task_status_changed: 'RefreshCw',
+  task_comment:        'MessageCircle',
+  kpi_reading_added:   'TrendingUp',
+  badge_earned:        'Trophy',
+  plan_updated:        'Map',
+  meeting_invite:      'CalendarDays',
+  meeting_updated:     'CalendarDays',
+  system:              'Bell',
 }
 
 export const NOTIF_LABELS: Record<string, string> = {

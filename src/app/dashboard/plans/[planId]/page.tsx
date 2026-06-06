@@ -6,15 +6,20 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
-import { ClipboardList, AlertTriangle } from 'lucide-react'
+import { ClipboardList, AlertTriangle, Target, TrendingUp, Package, BarChart3, Star } from 'lucide-react'
 
-/* كلاسات التقييم كنصوص ثابتة */
-function ratingBadgeClass(avg: number): { label: string; icon: string; cls: string } {
-  if (avg >= 4.5) return { label: 'ممتاز',    icon: '🌟', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-  if (avg >= 3.5) return { label: 'جيد جداً', icon: '⭐', cls: 'bg-blue-50 text-blue-700 border-blue-200'          }
-  if (avg >= 2.5) return { label: 'جيد',      icon: '✅', cls: 'bg-violet-50 text-violet-700 border-violet-200'    }
-  if (avg >= 1.5) return { label: 'مقبول',    icon: '⚠️', cls: 'bg-amber-50 text-amber-700 border-amber-200'       }
-  return                  { label: 'ضعيف',     icon: '❌', cls: 'bg-red-50 text-red-700 border-red-200'             }
+/* خريطة أيقونات KPI */
+const KPI_ICON_MAP: Record<string, React.ElementType> = {
+  impact: Target, outcome: TrendingUp, output: Package,
+}
+
+/* كلاسات التقييم — بدون emoji */
+function ratingBadgeClass(avg: number): { label: string; cls: string } {
+  if (avg >= 4.5) return { label: 'ممتاز',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+  if (avg >= 3.5) return { label: 'جيد جداً', cls: 'bg-blue-50 text-blue-700 border-blue-200'          }
+  if (avg >= 2.5) return { label: 'جيد',      cls: 'bg-violet-50 text-violet-700 border-violet-200'    }
+  if (avg >= 1.5) return { label: 'مقبول',    cls: 'bg-amber-50 text-amber-700 border-amber-200'       }
+  return                  { label: 'ضعيف',     cls: 'bg-red-50 text-red-700 border-red-200'             }
 }
 
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => `${2024 + i}-${2025 + i}`)
@@ -152,23 +157,23 @@ export default function PlanOverviewPage() {
     outcome: 'نتيجة مباشرة',
     output:  'مخرج',
   }
-  const KPI_TYPE_META: Record<string, { icon: string; def: string; example: string; timing: string; suitable: string }> = {
+  const KPI_TYPE_META: Record<string, { Icon: React.ElementType; def: string; example: string; timing: string; suitable: string }> = {
     impact: {
-      icon:     '🎯',
+      Icon:     Target,
       def:      'التحسّن في المؤشر النهائي الناتج عن تراكم النتائج على مدى سنوات',
       example:  'ارتفاع معدل التحصيل في امتحانات الدولة — انخفاض نسبة التسرب المدرسي',
       timing:   'يُقاس بعد 3–5 سنوات من التنفيذ',
       suitable: 'الأهداف الاستراتيجية العليا',
     },
     outcome: {
-      icon:     '📊',
+      Icon:     TrendingUp,
       def:      'التغيير في سلوك المستفيد الناتج عن الأنشطة والمبادرات',
       example:  'نسبة المعلمين الذين غيّروا طريقة تدريسهم — تحسّن مشاركة الطلاب داخل الفصل',
       timing:   'يُقاس خلال 1–2 سنة من التنفيذ',
       suitable: 'الأهداف العامة والمبادرات',
     },
     output: {
-      icon:     '📦',
+      Icon:     Package,
       def:      'ما قام به الفريق من إنجازات دون النظر إلى تأثيرها أو أثرها',
       example:  'عدد الدورات المنفّذة — عدد الوثائق المُعدَّة — عدد الطلاب الملتحقين ببرنامج',
       timing:   'يُقاس فور الانتهاء من التنفيذ',
@@ -477,7 +482,7 @@ export default function PlanOverviewPage() {
                 {planRatingInfo && (
                   <div className="text-left">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 text-white font-bold text-sm">
-                      <span className="text-xl">{planRatingInfo.icon}</span>
+                      <Star size={18} className="text-white" />
                       <div>
                         <div className="text-base font-bold leading-none">{planRatingInfo.label}</div>
                         <div className="text-white/60 text-xs mt-0.5">{planRatingAvg!.toFixed(1)} / 5</div>
@@ -495,7 +500,7 @@ export default function PlanOverviewPage() {
               <div className="flex gap-2 mt-1 flex-wrap justify-end">
                 <Link href={`/dashboard/plans/${planId}/kpis`}
                   className="flex items-center gap-1.5 bg-violet-500/25 hover:bg-violet-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  📊 لوحة KPI
+                  <BarChart3 size={14} className="inline ml-1" /> لوحة KPI
                 </Link>
                 <button onClick={openKpiSettings}
                   className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
@@ -526,7 +531,7 @@ export default function PlanOverviewPage() {
                   <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium
                     ${hasKpi ? 'bg-emerald-400/25 text-emerald-100' : 'bg-white/15'}`}>
                     {lname}
-                    {hasKpi && <span className="text-emerald-300 text-xs">📊</span>}
+                    {hasKpi && <BarChart3 size={12} className="text-emerald-300 flex-shrink-0" />}
                   </span>
                   <span className="text-violet-300 text-xs">›</span>
                 </span>
@@ -707,7 +712,7 @@ export default function PlanOverviewPage() {
                               <span className="text-xs font-bold text-violet-600">{nodeProgress}%</span>
                               {nodeRatingInfo && (
                                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${nodeRatingInfo.cls}`}>
-                                  {nodeRatingInfo.icon} {nodeRatingInfo.label}
+                                  <Star size={12} className="inline ml-1" /> {nodeRatingInfo.label}
                                 </span>
                               )}
                             </div>
@@ -826,7 +831,7 @@ export default function PlanOverviewPage() {
             {/* رأس المودال */}
             <div className="flex items-center justify-between p-5 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">📊 إعدادات مؤشرات الأداء KPI</h3>
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 size={18} /> إعدادات مؤشرات الأداء KPI</h3>
                 <p className="text-xs text-slate-400 mt-0.5">فعّل أو عطّل مؤشرات الأداء لكل مستوى من مستويات الخطة</p>
               </div>
               <button onClick={() => setShowKpiSettings(false)} className="text-slate-400 hover:text-slate-600 text-xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">✕</button>
@@ -899,7 +904,7 @@ export default function PlanOverviewPage() {
                                       checked={cfg.kpiType === t}
                                       onChange={() => updateKpiLevel(cfg.levelIndex, { kpiType: t })}
                                       className="accent-emerald-500" />
-                                    <span>{meta.icon} {KPI_TYPE_LABELS[t]}</span>
+                                    <span className="flex items-center gap-1"><meta.Icon size={14} /> {KPI_TYPE_LABELS[t]}</span>
                                     <span className="mr-auto flex-shrink-0 w-4 h-4 rounded-full border border-slate-300 text-slate-400 group-hover/tip:border-emerald-400 group-hover/tip:text-emerald-500 flex items-center justify-center text-[9px] font-bold transition-colors">
                                       ?
                                     </span>
@@ -910,7 +915,7 @@ export default function PlanOverviewPage() {
                                                   invisible opacity-0 group-hover/tip:visible group-hover/tip:opacity-100
                                                   transition-all duration-150 shadow-xl pointer-events-none">
                                     <div className="absolute -bottom-1.5 right-4 w-3 h-3 bg-white border-b border-r border-emerald-200 rotate-45 rounded-sm" />
-                                    <p className="text-slate-800 font-semibold mb-2">{meta.icon} {KPI_TYPE_LABELS[t]}</p>
+                                    <p className="text-slate-800 font-semibold mb-2 flex items-center gap-1"><meta.Icon size={14} /> {KPI_TYPE_LABELS[t]}</p>
                                     <p className="text-slate-600 mb-2 leading-relaxed">{meta.def}</p>
                                     <p className="text-slate-500 mb-1.5">
                                       <span className="text-amber-600 font-semibold">مثال: </span>{meta.example}

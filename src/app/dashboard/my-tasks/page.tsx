@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import {
   ClipboardList, Zap, CheckCircle2, AlertTriangle,
   UserRound, Users, Search, BookOpen, Archive, Pin,
-  CalendarDays, PartyPopper,
+  CalendarDays, PartyPopper, Clock, Star,
 } from 'lucide-react'
 
 import { STATUS_META, RATING_META, PRIORITY_META } from '@/lib/constants/tasks'
@@ -327,7 +327,7 @@ export default function MyTasksPage() {
                         )}
                         {activeTab === 'reviewer' && task.rating == null && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 font-medium">
-                            ⏳ بانتظار تقييمك
+                            <Clock size={12} className="inline ml-1" /> بانتظار تقييمك
                           </span>
                         )}
                       </div>
@@ -373,7 +373,7 @@ export default function MyTasksPage() {
                     <div className="mt-3">
                       <Link href={`/dashboard/tasks/${task.id}#rating`}
                         className="inline-flex items-center gap-2 text-xs bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded-xl font-semibold transition-colors">
-                        ⭐ تقييم هذه المهمة
+                        <Star size={13} className="inline ml-1" /> تقييم هذه المهمة
                       </Link>
                     </div>
                   )}

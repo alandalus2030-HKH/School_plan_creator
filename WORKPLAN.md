@@ -395,21 +395,18 @@ task_comments · team_members · meetings · dropdown_options
 
 ---
 
-### اليوم 13 — الثلاثاء | استبدال Emoji المتبقية
-**الوقت المقدر:** 3 ساعات
+### اليوم 13 — الثلاثاء | استبدال Emoji المتبقية ✅ 2026-06-06
 
 **المهام:**
-- [ ] `src/lib/permissions.ts` — استبدال icons الـ emoji بـ Lucide component names:
-  ```typescript
-  // قبل
-  { code: 'manage_users', label: 'إدارة المستخدمين', icon: '👥' }
-  // بعد
-  { code: 'manage_users', label: 'إدارة المستخدمين', Icon: Users }
-  ```
-- [ ] `src/app/dashboard/plans/[planId]/page.tsx` — استبدال emoji في `ratingBadgeClass`
-- [ ] `src/app/dashboard/my-tasks/page.tsx` — استبدال PRIORITY_LABEL icons
-- [ ] `src/app/dashboard/meetings/page.tsx` — استبدال PLATFORM_META icons
-- [ ] Build + Push
+- [x] `src/lib/permissions.ts` — 10 emoji → أسماء Lucide components
+- [x] `src/lib/notifications.ts` — NOTIF_ICONS → أسماء Lucide
+- [x] `src/components/NotificationBell.tsx` — عرض ديناميكي لأيقونات Lucide
+- [x] `src/app/dashboard/settings/page.tsx` — 🔓 ⚠️ 💾 ✅ → Lucide icons
+- [x] `src/app/dashboard/meetings/page.tsx` — PLATFORM_META: 🎥 💼 📹 🔗 → Lucide
+- [x] `src/app/dashboard/my-tasks/page.tsx` — ⏳ ⭐ → Clock, Star
+- [x] `src/app/dashboard/plans/new/page.tsx` — 🎯 📊 📦 → Target, TrendingUp, Package
+- [x] `src/app/dashboard/plans/[planId]/page.tsx` — ratingBadgeClass + KPI icons
+- [x] Build نظيف ✓
 
 ---
 
