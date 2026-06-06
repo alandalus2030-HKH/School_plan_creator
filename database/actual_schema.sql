@@ -339,42 +339,34 @@ CREATE TABLE audit_logs (
 );
 
 -- ════════════════════════════════════════════════════════════
--- القسم 2: جداول قديمة موروثة (موجودة لكن غير مستخدمة فعلياً)
+-- القسم 2: ما تم تنظيفه (الترحيل 004 — 2026-06-06)
 -- ════════════════════════════════════════════════════════════
--- هذه الجداول من التصميم الأول (الهيكل الثابت).
--- استُبدلت بـ plan_nodes (الهيكل المرن).
--- لا يزال التطبيق يتجاهلها تماماً.
--- يمكن حذفها مستقبلاً بعد التأكد من عدم الحاجة.
-
--- axes                → استُبدل بـ plan_nodes (level_num=1)
--- initiatives         → استُبدل بـ plan_nodes (level_num=2)
--- general_objectives  → استُبدل بـ plan_nodes (level_num=3)
--- sub_objectives      → استُبدل بـ plan_nodes (level_num=4)
--- task_assignments    → استُبدل بـ tasks.assigned_to_user_id/team_id
+-- ✅ حُذفت هذه الجداول الموروثة (كانت فارغة):
+--    axes, initiatives, general_objectives, sub_objectives, task_assignments
+--
+-- ✅ حُذف العمود المكرر: tasks.depends_on
+--    (يبقى tasks.depends_on_task_id هو المستخدم)
+--
+-- ✅ تصحيح اللون الافتراضي: #7c3aed → #8a1538
+--    في badges.color, teams.color, roles.color
 
 -- ════════════════════════════════════════════════════════════
--- القسم 3: ملاحظات التنظيف المستقبلية
+-- القسم 3: ملاحظات التنظيف المستقبلية (المتبقية)
 -- ════════════════════════════════════════════════════════════
 /*
-  مشاكل موثَّقة تحتاج معالجة مستقبلية:
+  مشاكل متبقية تحتاج معالجة مستقبلية:
 
-  1. tasks.depends_on و tasks.depends_on_task_id — نفس الغرض، عمودان
-     → احذف tasks.depends_on واستخدم depends_on_task_id فقط
-
-  2. profiles.role_id (UUID FK) و profiles.role (TEXT) — نظامان للأدوار
+  1. profiles.role_id (UUID FK) و profiles.role (TEXT) — نظامان للأدوار
      → التطبيق يستخدم role (TEXT). role_id غير مستخدم فعلياً.
 
-  3. meetings.teams_link و meetings.meeting_url — نفس الغرض
+  2. meetings.teams_link و meetings.meeting_url — نفس الغرض
      → احذف teams_link واستخدم meeting_url
 
-  4. meetings.meeting_date و meetings.scheduled_at — نفس الغرض
+  3. meetings.meeting_date و meetings.scheduled_at — نفس الغرض
      → احذف meeting_date واستخدم scheduled_at
 
-  5. ألوان افتراضية قديمة (#7c3aed) في:
-     → badges.color, teams.color, roles.color
-     → يجب تحديث القيم الافتراضية في DB لـ #8a1538
-
-  6. tasks.sub_objective_id — قديم لم يُحذف بعد migration لـ plan_nodes
+  4. tasks.sub_objective_id — عمود قديم (كان يربط بـ sub_objectives المحذوفة)
+     → يمكن حذفه بأمان الآن
 */
 
 -- ════════════════════════════════════════════════════════════

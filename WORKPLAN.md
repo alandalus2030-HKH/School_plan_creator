@@ -1058,4 +1058,5 @@ teams          → teams_school           ✅
 | 2026-06-06 | أسبوع 1 / يوم 3 | RLS كامل على plans+plan_nodes+tasks + school_id تلقائي | `migrations/001,002,002b`، `users/create/route.ts` |
 | 2026-06-06 | أسبوع 1 / يوم 4 | RLS على teams+kpis+notifications+evidence — 10 سياسات نظيفة | `migrations/003,003b` |
 | 2026-06-06 | أسبوع 2 / يوم 6 | توثيق الـ Schema الفعلي — 22 جدول | `database/actual_schema.sql` |
+| 2026-06-06 | أسبوع 2 / يوم 6+ | حذف 5 جداول قديمة + عمود مكرر + إصلاح ألوان | `migrations/004` + Supabase |
 | | | | |
