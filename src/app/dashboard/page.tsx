@@ -150,10 +150,7 @@ export default async function DashboardPage() {
               { href: '/dashboard/reports', Icon: TrendingUp,  label: 'التقارير'   },
             ].map(a => (
               <Link key={a.href} href={a.href}
-                className="flex items-center gap-2 p-2 rounded-xl text-sm text-slate-700 transition-colors"
-                style={{ ['--hover-bg' as string]: 'var(--maroon-50)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--maroon-50)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                className="flex items-center gap-2 p-2 rounded-xl text-sm text-slate-700 transition-colors hover:bg-violet-50">
                 <a.Icon size={15} style={{ color: 'var(--maroon-500)' }} />
                 {a.label}
               </Link>
