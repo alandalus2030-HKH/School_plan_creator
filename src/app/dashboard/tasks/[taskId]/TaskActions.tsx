@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
+import { Check } from 'lucide-react'
 
 type Status = 'not_started' | 'in_progress' | 'completed' | 'delayed'
 
@@ -39,11 +40,27 @@ export function StatusButtons({ taskId, currentStatus }: { taskId: string; curre
       .from('tasks').select('name_ar, assigned_to_user_id, reviewer_id').eq('id', taskId).single()
 
     if (task && user) {
-      const notifTitle = `🔄 تحديث حالة المهمة: ${task.name_ar}`
+      const link = `/dashboard/tasks/${taskId}`
+
+      /* عند الاكتمال: رسالة خاصة للمراجع تطلب التقييم */
+      if (newStatus === 'completed' && task.reviewer_id && task.reviewer_id !== user.id) {
+        await createNotification({
+          recipientId: task.reviewer_id,
+          senderId:    user.id,
+          type:        'task_status_changed',
+          title:       `مهمة بانتظار تقييمك: ${task.name_ar}`,
+          body:        'اكتملت المهمة — يُرجى مراجعتها وتقييمها',
+          link,
+        })
+      }
+
+      /* إشعار عام بتغيير الحالة لباقي المعنيين */
+      const notifTitle = `تحديث حالة المهمة: ${task.name_ar}`
       const notifBody  = `الحالة الجديدة: ${STATUS_LABELS[newStatus] || newStatus}`
-      const link       = `/dashboard/tasks/${taskId}`
       const targets    = [task.assigned_to_user_id, task.reviewer_id]
         .filter((id): id is string => !!id && id !== user.id)
+        /* لا تُكرّر إشعار المراجع عند الاكتمال (أُشعر أعلاه) */
+        .filter(id => !(newStatus === 'completed' && id === task.reviewer_id))
 
       for (const recipientId of targets) {
         await createNotification({ recipientId, senderId: user.id, type: 'task_status_changed', title: notifTitle, body: notifBody, link })
@@ -64,7 +81,7 @@ export function StatusButtons({ taskId, currentStatus }: { taskId: string; curre
           className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${s.bg} ${s.color}
             ${status === s.value ? 'ring-2 ring-offset-1 ring-current shadow-sm scale-105' : 'opacity-80'}
             disabled:opacity-50`}>
-          {status === s.value && '✓ '}{s.label}
+          {status === s.value && <Check size={13} className="inline ml-1" />}{s.label}
         </button>
       ))}
     </div>
