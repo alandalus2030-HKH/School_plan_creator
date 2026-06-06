@@ -64,7 +64,6 @@ CREATE TABLE roles (
 CREATE TABLE profiles (
   id              UUID    PRIMARY KEY,       -- REFERENCES auth.users(id)
   school_id       UUID,                      -- REFERENCES schools(id)
-  role_id         UUID,                      -- REFERENCES roles(id) — قديم غير مستخدم فعلياً
   role            TEXT    NOT NULL DEFAULT 'teacher',  -- ✅ يستخدمه التطبيق (code نصي)
   -- الاسم
   name_ar         TEXT    NOT NULL DEFAULT 'مستخدم جديد',
@@ -166,10 +165,8 @@ CREATE TABLE tasks (
   created_by          UUID,                         -- REFERENCES profiles(id)
   created_at          TIMESTAMPTZ DEFAULT now(),
   updated_at          TIMESTAMPTZ DEFAULT now(),
-  -- أعمدة قديمة / مكررة
-  sub_objective_id    UUID,                         -- قديم — استُبدل بـ node_id
-  depends_on          UUID,                         -- قديم — استُبدل بـ depends_on_task_id
-  depends_on_task_id  UUID                          -- REFERENCES tasks(id) — التبعيات
+  -- التبعيات بين المهام
+  depends_on_task_id  UUID                          -- REFERENCES tasks(id)
 );
 
 -- ── مؤشرات الأداء ─────────────────────────────────────────
@@ -264,10 +261,8 @@ CREATE TABLE meetings (
   title            TEXT    NOT NULL,
   description      TEXT,
   meeting_url      TEXT,
-  teams_link       TEXT,                          -- قديم — استُبدل بـ meeting_url
   platform         TEXT    DEFAULT 'other',       -- google_meet | teams | zoom | other
   scheduled_at     TIMESTAMPTZ,
-  meeting_date     TIMESTAMPTZ,                   -- قديم — استُبدل بـ scheduled_at
   duration_minutes INTEGER DEFAULT 60,
   plan_id          UUID,                          -- REFERENCES plans(id)
   task_id          UUID,                          -- REFERENCES tasks(id)
@@ -351,23 +346,16 @@ CREATE TABLE audit_logs (
 --    في badges.color, teams.color, roles.color
 
 -- ════════════════════════════════════════════════════════════
--- القسم 3: ملاحظات التنظيف المستقبلية (المتبقية)
+-- القسم 3: الترحيل 004b — تنظيف الأعمدة الزائدة (2026-06-06)
 -- ════════════════════════════════════════════════════════════
-/*
-  مشاكل متبقية تحتاج معالجة مستقبلية:
-
-  1. profiles.role_id (UUID FK) و profiles.role (TEXT) — نظامان للأدوار
-     → التطبيق يستخدم role (TEXT). role_id غير مستخدم فعلياً.
-
-  2. meetings.teams_link و meetings.meeting_url — نفس الغرض
-     → احذف teams_link واستخدم meeting_url
-
-  3. meetings.meeting_date و meetings.scheduled_at — نفس الغرض
-     → احذف meeting_date واستخدم scheduled_at
-
-  4. tasks.sub_objective_id — عمود قديم (كان يربط بـ sub_objectives المحذوفة)
-     → يمكن حذفه بأمان الآن
-*/
+-- ✅ حُذفت فوراً — لا ديون تقنية متبقية:
+--
+--   tasks.sub_objective_id   → كان يشير لجدول محذوف
+--   meetings.teams_link      → مكرر مع meeting_url
+--   meetings.meeting_date    → مكرر مع scheduled_at
+--   profiles.role_id         → UUID FK غير مستخدم
+--
+-- قاعدة البيانات الآن نظيفة بالكامل — لا أعمدة زائدة.
 
 -- ════════════════════════════════════════════════════════════
 -- القسم 4: الـ Indexes المطبَّقة (من الترحيل 003)
