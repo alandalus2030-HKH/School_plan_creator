@@ -10,22 +10,20 @@ import {
   CalendarDays, PartyPopper,
 } from 'lucide-react'
 
-/* ── ألوان الحالة ── */
-const STATUS_INFO: Record<string, { label: string; badge: string; dot: string }> = {
-  not_started: { label: 'لم تبدأ',  badge: 'bg-slate-100  text-slate-600  border-slate-200',  dot: 'bg-slate-400'  },
-  in_progress: { label: 'جارية',    badge: 'bg-blue-50    text-blue-700    border-blue-200',    dot: 'bg-blue-500'   },
-  completed:   { label: 'منجزة ✓',  badge: 'bg-green-50   text-green-700   border-green-200',   dot: 'bg-green-500'  },
-  delayed:     { label: 'متأخرة',   badge: 'bg-red-50     text-red-700     border-red-200',     dot: 'bg-red-500'    },
-}
+import { STATUS_META, RATING_META, PRIORITY_META } from '@/lib/constants/tasks'
 
-/* ── ألوان تقييم (ثابتة لـ Tailwind JIT) ── */
-const RATING_INFO: Record<number, { label: string; icon: string; badge: string }> = {
-  5: { label: 'ممتاز',    icon: '🌟', badge: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
-  4: { label: 'جيد جداً', icon: '⭐', badge: 'bg-blue-50    text-blue-700    border border-blue-200'    },
-  3: { label: 'جيد',      icon: '✅', badge: 'bg-violet-50  text-violet-700  border border-violet-200'  },
-  2: { label: 'مقبول',    icon: '⚠️', badge: 'bg-amber-50   text-amber-700   border border-amber-200'   },
-  1: { label: 'ضعيف',     icon: '❌', badge: 'bg-red-50     text-red-700     border border-red-200'     },
-}
+/* ── aliases للتوافق مع الكود الموجود ── */
+const STATUS_INFO = Object.fromEntries(
+  Object.entries(STATUS_META).map(([k, v]) => [k, {
+    label: v.ar,
+    badge: `${v.light} ${v.text} ${v.tailwindBorder}`,
+    dot:   '',
+  }])
+)
+const RATING_INFO = RATING_META
+const PRIORITY_LABEL = Object.fromEntries(
+  Object.entries(PRIORITY_META).map(([k, v]) => [k, { icon: '', label: v.ar }])
+)
 
 const TYPE_ICON_MAP: Record<string, any> = {
   academic: BookOpen, administrative: Archive, general: Pin,
@@ -33,12 +31,6 @@ const TYPE_ICON_MAP: Record<string, any> = {
 function TaskTypeIcon({ type }: { type: string }) {
   const Icon = TYPE_ICON_MAP[type] || Pin
   return <Icon size={18} style={{ color: 'var(--maroon-400)' }} />
-}
-
-const PRIORITY_LABEL: Record<string, { icon: string; label: string }> = {
-  high:   { icon: '🔴', label: 'عالية'   },
-  medium: { icon: '🟡', label: 'متوسطة' },
-  low:    { icon: '🟢', label: 'منخفضة' },
 }
 
 type Task = {
@@ -329,7 +321,7 @@ export default function MyTasksPage() {
                         {/* شارة التقييم إن وُجدت */}
                         {task.rating != null && (
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${RATING_INFO[task.rating]?.badge}`}>
-                            {RATING_INFO[task.rating]?.icon} {RATING_INFO[task.rating]?.label}
+                            {RATING_INFO[task.rating]?.label}
                           </span>
                         )}
                         {activeTab === 'reviewer' && task.rating == null && (

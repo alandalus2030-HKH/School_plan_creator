@@ -317,8 +317,11 @@ task_comments · team_members · meetings · dropdown_options
     general:        { ar: 'عامة',       icon: 'Pin'       },
   } as const
   ```
-- [ ] استيراده في `tasks/page.tsx` و `reports/page.tsx` وحذف التعريفات المكررة
-- [ ] Build + Push
+- [x] الملف مُنشأ: `src/lib/constants/tasks.ts`
+- [x] مُستورَد في: `tasks/page.tsx` + `reports/page.tsx` + `my-tasks/page.tsx`
+- [x] حذف التعريفات المكررة من 3 ملفات
+- [x] إصلاح emoji → نصوص عربية في reports
+- [x] Build نظيف ✓
 
 ---
 

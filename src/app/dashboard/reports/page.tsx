@@ -13,31 +13,9 @@ import {
   ClipboardList, CheckCircle2, Clock, Circle, AlertTriangle, Star,
   LayoutDashboard, Network, Users, Printer,
 } from 'lucide-react'
-
-/* ══════════════════ ثوابت ══════════════════ */
-const STATUS_META: Record<string, { ar: string; hex: string; light: string; text: string }> = {
-  not_started: { ar: 'لم تبدأ',  hex: '#94a3b8', light: 'bg-slate-100', text: 'text-slate-700' },
-  in_progress: { ar: 'جارية',    hex: '#3b82f6', light: 'bg-blue-100',  text: 'text-blue-700'  },
-  completed:   { ar: 'منجزة',    hex: '#22c55e', light: 'bg-green-100', text: 'text-green-700' },
-  delayed:     { ar: 'متأخرة',   hex: '#ef4444', light: 'bg-red-100',   text: 'text-red-700'   },
-}
-const TYPE_META: Record<string, { ar: string; icon: string }> = {
-  academic:       { ar: 'أكاديمية',   icon: '📚' },
-  administrative: { ar: 'إدارية',     icon: '🗃️' },
-  general:        { ar: 'عامة',       icon: '📌' },
-}
-const PRIORITY_META: Record<string, { ar: string; icon: string }> = {
-  high:   { ar: 'عالية',   icon: '🔴' },
-  medium: { ar: 'متوسطة',  icon: '🟡' },
-  low:    { ar: 'منخفضة',  icon: '🟢' },
-}
-const RATING_META: Record<number, { label: string; icon: string; color: string }> = {
-  5: { label: 'ممتاز',    icon: '🌟', color: '#10b981' },
-  4: { label: 'جيد جداً', icon: '⭐', color: '#3b82f6' },
-  3: { label: 'جيد',      icon: '✅', color: '#8b5cf6' },
-  2: { label: 'مقبول',    icon: '⚠️', color: '#f59e0b' },
-  1: { label: 'ضعيف',     icon: '❌', color: '#ef4444' },
-}
+import {
+  STATUS_META, RATING_META, PRIORITY_META, TYPE_META,
+} from '@/lib/constants/tasks'
 
 /* ══════════════════ دالة الطباعة المشتركة ══════════════════ */
 function printContent(html: string, title: string) {
@@ -233,7 +211,7 @@ function TasksModal({
                     </td>
                     <td className="px-4 py-3 text-center">
                       {rating
-                        ? <span className="text-sm" title={rating.label}>{rating.icon}</span>
+                        ? <span className="text-sm font-medium" title={rating.label} style={{ color: rating.color }}>{rating.label}</span>
                         : <span className="text-slate-300 text-xs">—</span>}
                     </td>
                   </tr>
@@ -589,10 +567,10 @@ function NodeRow({
                       {t.end_date ? new Date(t.end_date).toLocaleDateString('ar-QA') : '—'}
                     </td>
                     <td className="px-2 py-2 text-center">
-                      {r ? <span title={r.label}>{r.icon}</span> : '—'}
+                      {r ? <span title={r.label} style={{ color: r.color }} className="font-medium text-xs">{r.label}</span> : '—'}
                     </td>
                     <td className="px-2 py-2 text-center">
-                      {PRIORITY_META[t.priority]?.icon || '—'}
+                      {PRIORITY_META[t.priority]?.ar || '—'}
                     </td>
                   </tr>
                 )
@@ -1573,7 +1551,7 @@ export default function ReportsPage() {
                             ) : '—'}
                           </td>
                           <td className="px-4 py-3 text-center text-sm">
-                            {PRIORITY_META[t.priority]?.icon||'—'}
+                            {PRIORITY_META[t.priority]?.ar||'—'}
                           </td>
                         </tr>
                       ))}

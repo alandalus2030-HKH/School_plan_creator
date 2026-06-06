@@ -11,33 +11,29 @@ import {
   CheckCircle2, List, LayoutGrid, GanttChartSquare, Star,
   CheckCheck, Circle, UserRound,
 } from 'lucide-react'
+import {
+  STATUS_META, RATING_META, PRIORITY_META,
+} from '@/lib/constants/tasks'
 
-const STATUS_LIST = [
-  { value: 'not_started', label: 'لم تبدأ',  bg: 'bg-slate-100  text-slate-600'  },
-  { value: 'in_progress', label: 'جارية',    bg: 'bg-blue-100   text-blue-700'   },
-  { value: 'completed',   label: 'منجزة',    bg: 'bg-green-100  text-green-700'  },
-  { value: 'delayed',     label: 'متأخرة',   bg: 'bg-red-100    text-red-700'    },
-]
+/* ── مصفوفة الحالات للفلاتر والـ tabs ── */
+const STATUS_LIST = Object.entries(STATUS_META).map(([value, m]) => ({
+  value,
+  label: m.ar,
+  bg:    `${m.light} ${m.text}`,
+}))
+
 function TaskTypeIcon({ type }: { type: string }) {
   const props = { size: 17, style: { color: 'var(--maroon-400)', flexShrink: 0 } as any }
   if (type === 'academic')       return <BookOpen {...props} />
   if (type === 'administrative') return <Archive  {...props} />
   return <Pin {...props} />
 }
-const PRIORITY_DOT: Record<string, string> = {
-  high:   '#8a1538',
-  medium: '#d98ea0',
-  low:    '#f4dde2',
-}
 
-/* ── بيانات التقييم (كلاسات Tailwind كاملة لتجنب حذف JIT) ── */
-const RATING_INFO: Record<number, { label: string; bg: string; fg: string }> = {
-  5: { label: 'ممتاز',    bg: '#46091a', fg: '#ffffff' },
-  4: { label: 'جيد جداً', bg: '#8a1538', fg: '#ffffff' },
-  3: { label: 'جيد',      bg: '#a83356', fg: '#ffffff' },
-  2: { label: 'مقبول',    bg: '#d98ea0', fg: '#46091a' },
-  1: { label: 'ضعيف',     bg: '#f4dde2', fg: '#8a1538' },
-}
+/* aliases للتوافق مع الكود الموجود في هذا الملف */
+const PRIORITY_DOT: Record<string, string> = Object.fromEntries(
+  Object.entries(PRIORITY_META).map(([k, v]) => [k, v.dot])
+)
+const RATING_INFO = RATING_META
 
 export default function TasksPage() {
   const supabase = createClient()
