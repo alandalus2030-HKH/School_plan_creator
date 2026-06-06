@@ -1081,4 +1081,18 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-06 | أسبوع 2 / يوم 8  | Soft Delete — deleted_at + updated_by + RLS محدَّث | `migrations/006` + Supabase |
 | 2026-06-06 | أسبوع 2 / يوم 9  | Soft Delete كود — 7 استعلامات في 5 ملفات | TaskActions, taskId/page, planId/page, plans/page, nodeId/page |
 | 2026-06-06 | أسبوع 2 / يوم 10 | حدود الاستعلامات (22 limit) + ErrorBoundary في layout | reports, tasks, users, meetings, layout.tsx |
+| 2026-06-06 | أسبوع 3 / يوم 11 | ملف الثوابت المركزي STATUS/RATING/PRIORITY/TYPE | `lib/constants/tasks.ts` + 3 صفحات |
+| 2026-06-06 | أسبوع 3 / يوم 12 | TypeScript Types — استبدال any[] | `lib/types/index.ts` + 4 صفحات |
+| 2026-06-06 | أسبوع 3 / يوم 13 | استبدال Emoji بأيقونات Lucide | 8 ملفات |
+| 2026-06-06 | أسبوع 3 / يوم 14 | توحيد ألوان الحالة للعنابي | TaskActions, taskId, my-tasks, nodeId |
+| 2026-06-06 | أسبوع 3 / يوم 15 | Loading Skeletons (8 مكوّنات) | `Skeleton.tsx` + 3 صفحات |
+| 2026-06-06 | أسبوع 4 / يوم 16 | Inline Status Update في قائمة المهام | `tasks/page.tsx` |
+| 2026-06-06 | أسبوع 4 / يوم 17 | Toast + عداد مهامي في Sidebar | `Toast.tsx`, `Sidebar.tsx` |
+| 2026-06-06 | أسبوع 4 / يوم 18 | Breadcrumb في صفحة المهمة | `Breadcrumb.tsx`, taskId |
+| 2026-06-06 | أسبوع 4 / يوم 19 | حفظ الفلاتر في localStorage | `tasks/page.tsx` |
+| 2026-06-06 | أسبوع 4 / يوم 20 | Quick Add Floating Button + اختصار N | `QuickAddTask.tsx`, layout |
+| 2026-06-06 | أسبوع 5 / يوم 26-27 | Global Search (Ctrl+K) | `GlobalSearch.tsx`, TopBar |
+| 2026-06-06 | أسبوع 5 / يوم 28 | Activity Feed + logActivity | `lib/activity.ts`, `ActivityFeed.tsx`, `migrations/007` |
+| 2026-06-06 | أسبوع 5 / يوم 29 | Workload View — توزيع حِمل العمل | `WorkloadView.tsx`, teams/page |
+| 2026-06-06 | أسبوع 5 / يوم 30 | اختصارات لوحة المفاتيح (N, Ctrl+K, Esc) | مدمجة في المكوّنات |
 | | | | |
