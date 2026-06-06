@@ -16,6 +16,7 @@ import {
 import {
   STATUS_META, RATING_META, PRIORITY_META, TYPE_META,
 } from '@/lib/constants/tasks'
+import type { Task, Plan, PlanNode, Profile, Kpi } from '@/lib/types'
 
 /* ══════════════════ دالة الطباعة المشتركة ══════════════════ */
 function printContent(html: string, title: string) {
@@ -611,11 +612,11 @@ export default function ReportsPage() {
   const { can, loading: permsLoading } = usePermissions()
 
   /* ── بيانات خام ── */
-  const [tasks,       setTasks]       = useState<any[]>([])
-  const [plans,       setPlans]       = useState<any[]>([])
-  const [nodes,       setNodes]       = useState<any[]>([])
-  const [profiles,    setProfiles]    = useState<any[]>([])
-  const [kpis,        setKpis]        = useState<any[]>([])
+  const [tasks,       setTasks]       = useState<Task[]>([])
+  const [plans,       setPlans]       = useState<Pick<Plan, 'id' | 'name_ar' | 'academic_year' | 'level_names' | 'level_count'>[]>([])
+  const [nodes,       setNodes]       = useState<Pick<PlanNode, 'id' | 'plan_id' | 'parent_id' | 'name_ar' | 'level_num' | 'order_num'>[]>([])
+  const [profiles,    setProfiles]    = useState<Pick<Profile, 'id' | 'name_ar' | 'department' | 'role'>[]>([])
+  const [kpis,        setKpis]        = useState<Kpi[]>([])
   const [loading,     setLoading]     = useState(true)
 
   /* ── فلاتر ── */

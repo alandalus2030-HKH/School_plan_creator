@@ -325,10 +325,17 @@ task_comments · team_members · meetings · dropdown_options
 
 ---
 
-### اليوم 12 — الاثنين | ملف الأنواع (TypeScript Types)
-**الوقت المقدر:** 3 ساعات
+### اليوم 12 — الاثنين | ملف الأنواع (TypeScript Types) ✅ 2026-06-06
 
 **المهام:**
+- [x] إنشاء `src/lib/types/index.ts` — 10 أنواع كاملة
+- [x] تطبيق الأنواع في 4 ملفات رئيسية:
+  - `tasks/page.tsx` → Task, Profile, Team, PlanNode, Plan
+  - `my-tasks/page.tsx` → PlanNode, Plan, Team
+  - `reports/page.tsx` → Task, Plan, PlanNode, Profile, Kpi
+  - `meetings/page.tsx` → Meeting, Plan, Team, TeamMember
+- [x] إصلاح 8 أخطاء TypeScript تدريجياً
+- [x] Build نظيف بلا أخطاء ✓
 - [ ] إنشاء `src/lib/types/index.ts`:
   ```typescript
   export type TaskStatus   = 'not_started' | 'in_progress' | 'completed' | 'delayed'

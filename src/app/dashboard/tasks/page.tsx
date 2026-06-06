@@ -14,6 +14,7 @@ import {
 import {
   STATUS_META, RATING_META, PRIORITY_META,
 } from '@/lib/constants/tasks'
+import type { Task, Profile, Team, PlanNode, Plan } from '@/lib/types'
 
 /* ── مصفوفة الحالات للفلاتر والـ tabs ── */
 const STATUS_LIST = Object.entries(STATUS_META).map(([value, m]) => ({
@@ -39,11 +40,11 @@ export default function TasksPage() {
   const supabase = createClient()
   const { can, loading: permsLoading, userId: permUserId } = usePermissions()
 
-  const [tasks,         setTasks]         = useState<any[]>([])
-  const [profiles,      setProfiles]      = useState<any[]>([])
-  const [teams,         setTeams]         = useState<any[]>([])
-  const [nodes,         setNodes]         = useState<any[]>([])
-  const [plans,         setPlans]         = useState<any[]>([])
+  const [tasks,         setTasks]         = useState<Task[]>([])
+  const [profiles,      setProfiles]      = useState<Profile[]>([])
+  const [teams,         setTeams]         = useState<Team[]>([])
+  const [nodes,         setNodes]         = useState<PlanNode[]>([])
+  const [plans,         setPlans]         = useState<Plan[]>([])
   const [loading,       setLoading]       = useState(true)
   const [myId,          setMyId]          = useState('')
   const [canManage,     setCanManage]     = useState(false)
@@ -115,13 +116,13 @@ export default function TasksPage() {
   }, [permsLoading])
 
   /* ── بناء مسار المهمة ── */
-  const buildPath = (nodeId: string): string => {
+  const buildPath = (nodeId: string | null | undefined): string => {
     if (!nodeId) return ''
     const path: string[] = []
     let cur = nodes.find(n => n.id === nodeId)
     while (cur) {
       path.unshift(cur.name_ar)
-      cur = nodes.find(n => n.id === cur.parent_id)
+      cur = nodes.find(n => n.id === cur?.parent_id)
     }
     const plan = plans.find(p => p.id === nodes.find(n => n.id === nodeId)?.plan_id)
     if (plan) path.unshift(plan.name_ar)
@@ -358,7 +359,7 @@ export default function TasksPage() {
               const assignee    = profiles.find(p => p.id === task.assigned_to_user_id)
               const assignTeam  = teams.find(t => t.id === task.assigned_to_team_id)
               const overdue     = isOverdue(task)
-              const path        = buildPath(task.node_id)
+              const path        = buildPath(task.node_id ?? null)
 
               return (
                 <Link key={task.id} href={`/dashboard/tasks/${task.id}`}

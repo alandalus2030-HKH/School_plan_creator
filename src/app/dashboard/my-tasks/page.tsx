@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 import { STATUS_META, RATING_META, PRIORITY_META } from '@/lib/constants/tasks'
+import type { PlanNode, Plan, Team } from '@/lib/types'
 
 /* ── aliases للتوافق مع الكود الموجود ── */
 const STATUS_INFO = Object.fromEntries(
@@ -58,9 +59,9 @@ export default function MyTasksPage() {
   const [userId,    setUserId]    = useState('')
   const [userName,  setUserName]  = useState('')
   const [tasks,     setTasks]     = useState<Task[]>([])
-  const [nodes,     setNodes]     = useState<any[]>([])
-  const [plans,     setPlans]     = useState<any[]>([])
-  const [teams,     setTeams]     = useState<any[]>([])
+  const [nodes,     setNodes]     = useState<Pick<PlanNode, 'id' | 'parent_id' | 'name_ar' | 'plan_id'>[]>([])
+  const [plans,     setPlans]     = useState<Pick<Plan, 'id' | 'name_ar'>[]>([])
+  const [teams,     setTeams]     = useState<Pick<Team, 'id' | 'name_ar' | 'color' | 'leader_id'>[]>([])
   const [loading,   setLoading]   = useState(true)
   const [activeTab, setActiveTab] = useState<'assigned' | 'team' | 'reviewer'>('assigned')
   const [savingId,  setSavingId]  = useState<string | null>(null)
@@ -162,7 +163,7 @@ export default function MyTasksPage() {
     let cur = nodes.find(n => n.id === nodeId)
     while (cur) {
       path.unshift(cur.name_ar)
-      cur = nodes.find(n => n.id === cur.parent_id)
+      cur = nodes.find(n => n.id === cur?.parent_id)
     }
     const plan = plans.find(p => p.id === nodes.find(n => n.id === nodeId)?.plan_id)
     if (plan) path.unshift(plan.name_ar)

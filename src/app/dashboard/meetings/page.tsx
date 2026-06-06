@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createNotification } from '@/lib/notifications'
 import { CalendarDays, CalendarClock, CalendarCheck, UserRound, AlertTriangle, Inbox } from 'lucide-react'
+import type { Plan, Team, TeamMember, Meeting } from '@/lib/types'
 
 /* ══════════════════ ثوابت ══════════════════ */
 const PLATFORM_META: Record<string, { name: string; icon: string; color: string; bg: string; border: string }> = {
@@ -43,12 +44,12 @@ export default function MeetingsPage() {
   const supabase = createClient()
   const { can, userId } = usePermissions()
 
-  const [meetings,     setMeetings]     = useState<any[]>([])
-  const [plans,        setPlans]        = useState<any[]>([])
-  const [tasks,        setTasks]        = useState<any[]>([])
-  const [profiles,     setProfiles]     = useState<any[]>([])
-  const [teams,        setTeams]        = useState<any[]>([])
-  const [teamMembers,  setTeamMembers]  = useState<any[]>([])
+  const [meetings,     setMeetings]     = useState<Meeting[]>([])
+  const [plans,        setPlans]        = useState<Pick<Plan, 'id' | 'name_ar' | 'school_id'>[]>([])
+  const [tasks,        setTasks]        = useState<{ id: string; name_ar: string }[]>([])
+  const [profiles,     setProfiles]     = useState<{ id: string; name_ar: string; full_name_ar: string }[]>([])
+  const [teams,        setTeams]        = useState<Pick<Team, 'id' | 'name_ar' | 'color'>[]>([])
+  const [teamMembers,  setTeamMembers]  = useState<Pick<TeamMember, 'team_id' | 'profile_id'>[]>([])
   const [schoolId,     setSchoolId]     = useState<string | null>(null)
   const [loading,      setLoading]      = useState(true)
   const [loadError,    setLoadError]    = useState('')
