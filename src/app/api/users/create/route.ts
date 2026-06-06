@@ -88,6 +88,15 @@ export async function POST(req: NextRequest) {
 
     if (!userId) return NextResponse.json({ error: 'فشل إنشاء المستخدم' }, { status: 500 })
 
+    /* ── جلب school_id تلقائياً (المدرسة الوحيدة في النظام) ── */
+    const { data: schoolRow } = await admin
+      .from('schools')
+      .select('id')
+      .order('created_at')
+      .limit(1)
+      .single()
+    const autoSchoolId = schoolRow?.id ?? null
+
     /* ── upsert الملف الشخصي (حقول مُعتمدة فقط) ── */
     const allowedProfileData = {
       id:              userId,
@@ -97,6 +106,7 @@ export async function POST(req: NextRequest) {
       first_name_ar:   first_name_ar   || null,
       last_name_ar:    last_name_ar    || null,
       username:        uname,
+      school_id:       autoSchoolId,
       nationality,
       school,
       department,
@@ -128,6 +138,7 @@ export async function POST(req: NextRequest) {
         first_name_ar:   first_name_ar   || null,
         last_name_ar:    last_name_ar    || null,
         email,
+        school_id:       autoSchoolId,
         nationality,
         school,
         department,
