@@ -12,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className="h-full" translate="no" suppressHydrationWarning>
-      <body className="min-h-full bg-slate-50" suppressHydrationWarning>{children}</body>
+    <html lang="ar" dir="rtl" className="h-full" translate="no" suppressHydrationWarning style={{ fontFamily: "'Cairo', 'Segoe UI', Arial, sans-serif" }}>
+      <body className="min-h-full bg-slate-50" style={{ fontFamily: "inherit" }} suppressHydrationWarning>{children}</body>
     </html>
   );
 }
