@@ -96,27 +96,30 @@ if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 
 
 ---
 
-### اليوم 3 — الثلاثاء | إصلاح RLS — الجزء الأول
+### اليوم 3 — الثلاثاء | إصلاح RLS — الجزء الأول ⏳ جزئي — ينتظر التشغيل في Supabase
 **الوقت المقدر:** 3-4 ساعات
 **الأثر:** 🔴 حرج — عزل بيانات المدارس عن بعضها
 
 **المهام:**
-- [ ] فتح Supabase Dashboard → Authentication → Policies
-- [ ] تحديث سياسة جدول `plans`:
-  ```sql
-  DROP POLICY "plans_all" ON plans;
-  CREATE POLICY "plans_school" ON plans FOR ALL
-    USING (school_id = (
-      SELECT school_id FROM profiles WHERE id = auth.uid()
-    ));
-  ```
-- [ ] تطبيق نفس المنطق على: `tasks`, `plan_nodes`
-- [ ] اختبار: تسجيل دخول بمستخدمَين من مدرستَين مختلفتَين والتأكد من العزل
+- [x] إنشاء `database/migrations/001_set_school_ids.sql` — تعيين school_id للمستخدمين
+- [x] إنشاء `database/migrations/002_rls_school_isolation.sql` — سياسات RLS للـ 3 جداول
+- [x] إنشاء `database/migrations/002_rollback.sql` — للطوارئ
+- [x] تحديث `create-user` ليُعيّن school_id تلقائياً لكل مستخدم جديد
+- [ ] **⚠️ خطوة يدوية مطلوبة — شغّل في Supabase SQL Editor:**
+  1. `database/migrations/001_set_school_ids.sql` أولاً
+  2. تحقق أن النتيجة = 0 profiles بدون school_id
+  3. `database/migrations/002_rls_school_isolation.sql`
+  4. تحقق من السياسات في: Authentication → Policies
+- [ ] اختبار: تسجيل دخول والتأكد أن البيانات تظهر بشكل طبيعي
 
-**الجداول المتأثرة في Supabase:**
+**الملفات المُنشأة:**
 ```
-plans, plan_nodes, tasks
+database/migrations/001_set_school_ids.sql
+database/migrations/002_rls_school_isolation.sql
+database/migrations/002_rollback.sql
+src/app/api/users/create/route.ts (school_id تلقائي)
 ```
+**commit:** `20398d7`
 
 ---
 
@@ -1065,4 +1068,5 @@ teams, kpis, notifications, evidence
 | 2026-06-06 | — | إصلاح شريط التقدم من بنفسجي لعنابي | `reports/page.tsx` |
 | 2026-06-06 | أسبوع 1 / يوم 1 | حذف debug endpoint + whitelist في create-user | `api/debug/` محذوف، `api/users/create/route.ts` |
 | 2026-06-06 | أسبوع 1 / يوم 2 | requireAuth() + حماية 4 API routes + تنظيف .gitignore | `server.ts`، `invite`، `export-excel`، `kpis/generate` |
+| 2026-06-06 | أسبوع 1 / يوم 3 | ملفات ترحيل RLS + school_id تلقائي في create-user | `migrations/001,002`، `users/create/route.ts` |
 | | | | |
