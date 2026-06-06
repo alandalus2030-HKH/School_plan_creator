@@ -14,6 +14,7 @@ import {
 import {
   STATUS_META, RATING_META, PRIORITY_META,
 } from '@/lib/constants/tasks'
+import { toast } from '@/components/Toast'
 import type { Task, Profile, Team, PlanNode, Plan } from '@/lib/types'
 
 /* ── مصفوفة الحالات للفلاتر والـ tabs ── */
@@ -48,18 +49,30 @@ export default function TasksPage() {
   const [loading,       setLoading]       = useState(true)
   const [myId,          setMyId]          = useState('')
   const [canManage,     setCanManage]     = useState(false)
+  const [savingId,      setSavingId]      = useState<string | null>(null)
+  const [savedId,       setSavedId]       = useState<string | null>(null) // flash تأكيد
 
   /* ── وضع العرض ── */
   const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('list')
 
-  /* ── فلاتر ── */
-  const [search,     setSearch]     = useState('')
-  const [statusF,    setStatusF]    = useState('')
-  const [priorityF,  setPriorityF]  = useState('')
-  const [planF,      setPlanF]      = useState('')
-  const [teamF,      setTeamF]      = useState('')
-  const [onlyMine,   setOnlyMine]   = useState(false)
-  const [ratingF,    setRatingF]    = useState('')   // '' | 'rated' | 'unrated' | '1'..'5'
+  /* ── فلاتر — تُحفظ في localStorage ── */
+  const FILTERS_KEY = 'tasks_filters_v1'
+  const savedFilters = typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem(FILTERS_KEY) || '{}') : {}
+
+  const [search,    setSearch]    = useState('')
+  const [statusF,   setStatusF]   = useState(savedFilters.statusF   || '')
+  const [priorityF, setPriorityF] = useState(savedFilters.priorityF || '')
+  const [planF,     setPlanF]     = useState(savedFilters.planF     || '')
+  const [teamF,     setTeamF]     = useState(savedFilters.teamF     || '')
+  const [onlyMine,  setOnlyMine]  = useState(savedFilters.onlyMine  || false)
+  const [ratingF,   setRatingF]   = useState(savedFilters.ratingF   || '')
+
+  /* حفظ الفلاتر عند كل تغيير */
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(FILTERS_KEY, JSON.stringify({ statusF, priorityF, planF, teamF, onlyMine, ratingF }))
+  }, [statusF, priorityF, planF, teamF, onlyMine, ratingF])
 
   useEffect(() => {
     if (permsLoading) return   // انتظر تحميل الصلاحيات أولاً
@@ -160,6 +173,25 @@ export default function TasksPage() {
   /* ── هل المهمة متأخرة؟ ── */
   const isOverdue = (t: any) =>
     t.status !== 'completed' && t.end_date && new Date(t.end_date) < new Date()
+
+  /* ── تحديث الحالة Inline (بدون فتح صفحة المهمة) ── */
+  const updateStatus = async (e: React.MouseEvent, taskId: string, newStatus: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (savingId) return
+    setSavingId(taskId)
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as Task['status'] } : t))
+    await supabase.from('tasks').update({
+      status:     newStatus,
+      updated_by: permUserId || null,
+    }).eq('id', taskId)
+    setSavingId(null)
+    setSavedId(taskId)
+    setTimeout(() => setSavedId(null), 1500)
+    const label = STATUS_LIST.find(s => s.value === newStatus)?.label || newStatus
+    toast(`تم تحديث الحالة: ${label}`)
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -441,10 +473,33 @@ export default function TasksPage() {
                     </span>
                   )}
 
-                  {/* الحالة */}
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${statusInfo?.bg}`}>
-                    {statusInfo?.label}
-                  </span>
+                  {/* الحالة — Inline dropdown */}
+                  <div className="relative flex-shrink-0 group/status" onClick={e => e.preventDefault()}>
+                    <button
+                      onClick={e => e.stopPropagation()}
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium transition-all
+                        ${savedId === task.id ? 'ring-2 ring-violet-400 ring-offset-1' : ''}
+                        ${savingId === task.id ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:shadow-sm'}
+                        ${statusInfo?.bg}`}>
+                      {savingId === task.id ? '...' : statusInfo?.label}
+                    </button>
+                    {/* القائمة المنسدلة */}
+                    <div className="absolute left-0 top-full mt-1 w-28 bg-white rounded-xl shadow-lg border border-slate-200 z-20
+                                    opacity-0 invisible group-hover/status:opacity-100 group-hover/status:visible
+                                    transition-all duration-150 overflow-hidden">
+                      {STATUS_LIST.map(s => (
+                        <button key={s.value}
+                          onClick={e => updateStatus(e, task.id, s.value)}
+                          disabled={task.status === s.value}
+                          className={`w-full text-right px-3 py-1.5 text-xs font-medium transition-colors
+                            ${task.status === s.value
+                              ? 'bg-slate-100 text-slate-400 cursor-default'
+                              : 'hover:bg-slate-50 text-slate-700'}`}>
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </Link>
               )
             })}

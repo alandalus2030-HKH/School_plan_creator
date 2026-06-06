@@ -6,6 +6,8 @@ import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
 import { PermissionsProvider } from '@/lib/PermissionsContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import ToastContainer  from '@/components/Toast'
+import QuickAddTask    from '@/components/QuickAddTask'
 
 const SIDEBAR_KEY = 'sidebar_collapsed'
 
@@ -67,6 +69,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </div>
       </div>
+      <QuickAddTask />
+      <ToastContainer />
     </PermissionsProvider>
   )
 }

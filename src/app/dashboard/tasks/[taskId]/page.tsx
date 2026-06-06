@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
 import { BookOpen, Archive, Pin, Folder, Lock, Star } from 'lucide-react'
+import Breadcrumb from '@/components/Breadcrumb'
 
 /* ══ تعريف كلاسات التقييم كنصوص كاملة حتى يتعرف عليها Tailwind ══
    (يجب أن تكون هنا وليس في ملف خارجي لضمان إدراجها في CSS) */
@@ -448,13 +449,11 @@ export default function TaskPage() {
     <div className="max-w-3xl mx-auto space-y-5">
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-400 flex-wrap">
-        <Link href="/dashboard/plans" className="hover:text-violet-600">الخطط</Link>
-        <span>›</span>
-        <Link href="/dashboard/tasks" className="hover:text-violet-600">المهام</Link>
-        <span>›</span>
-        <span className="text-violet-700 font-medium">{task.name_ar}</span>
-      </div>
+      <Breadcrumb items={[
+        { label: 'الخطط',    href: '/dashboard/plans' },
+        { label: 'كل المهام', href: '/dashboard/tasks' },
+        { label: task.name_ar },
+      ]} />
 
       {/* ══ Header Card ══ */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
