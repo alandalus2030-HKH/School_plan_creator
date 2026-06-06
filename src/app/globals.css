@@ -1,11 +1,11 @@
-@import "tailwindcss";
-
 /* ══════════════════════════════════════════════
    QNSA School Plans — Design System
    Cairo (عربي) + IBM Plex Sans (لاتيني/أرقام)
 ══════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=block');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=block');
+
+@import "tailwindcss";
 
 /* ══════════════════════════════════════════════
    Tailwind @theme — إعادة تعريف الألوان
