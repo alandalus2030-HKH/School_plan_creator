@@ -306,7 +306,9 @@ export default function TaskPage() {
   }
 
   const deleteEvidence = async (evId: string) => {
-    await supabase.from('evidence').delete().eq('id', evId)
+    await supabase.from('evidence').update({
+      deleted_at: new Date().toISOString(),
+    }).eq('id', evId)
     await loadTask()
   }
 
@@ -415,7 +417,10 @@ export default function TaskPage() {
 
   const deleteTask = async () => {
     setDeleting(true)
-    await supabase.from('tasks').delete().eq('id', taskId)
+    await supabase.from('tasks').update({
+      deleted_at: new Date().toISOString(),
+      updated_by: userId || null,
+    }).eq('id', taskId)
     router.push('/dashboard/tasks')
   }
 

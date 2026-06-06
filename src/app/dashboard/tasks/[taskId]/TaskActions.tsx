@@ -153,7 +153,11 @@ export function DeleteTaskButton({ taskId }: { taskId: string }) {
 
   const handleDelete = async () => {
     setLoading(true)
-    await supabase.from('tasks').delete().eq('id', taskId)
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('tasks').update({
+      deleted_at: new Date().toISOString(),
+      updated_by: user?.id ?? null,
+    }).eq('id', taskId)
     router.push('/dashboard/tasks')
   }
 

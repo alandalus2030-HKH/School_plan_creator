@@ -737,7 +737,9 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
 
   const deleteNode = async () => {
     setSaving(true)
-    await supabase.from('plan_nodes').delete().eq('id', node.id)
+    await supabase.from('plan_nodes').update({
+      deleted_at: new Date().toISOString(),
+    }).eq('id', node.id)
     setSaving(false); onRefresh()
   }
 

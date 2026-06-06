@@ -135,10 +135,14 @@ export default function PlanOverviewPage() {
     await load()
   }
 
-  /* ── حذف الخطة ── */
+  /* ── حذف الخطة (Soft Delete) ── */
   const deletePlan = async () => {
     setDeletingPlan(true)
-    await supabase.from('plans').delete().eq('id', planId)
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('plans').update({
+      deleted_at: new Date().toISOString(),
+      updated_by: user?.id ?? null,
+    }).eq('id', planId)
     router.push('/dashboard/plans')
   }
 
@@ -227,9 +231,11 @@ export default function PlanOverviewPage() {
     setEditNodeId(null); setSaving(false); await load()
   }
 
-  /* ── حذف عقدة ── */
+  /* ── حذف عقدة (Soft Delete) ── */
   const deleteNode = async (nodeId: string) => {
-    await supabase.from('plan_nodes').delete().eq('id', nodeId)
+    await supabase.from('plan_nodes').update({
+      deleted_at: new Date().toISOString(),
+    }).eq('id', nodeId)
     setConfirmDelId(null); await load()
   }
 

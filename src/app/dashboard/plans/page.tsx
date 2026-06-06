@@ -25,7 +25,7 @@ type Plan = {
 }
 
 export default function PlansPage() {
-  const { can, loading: permsLoading } = usePermissions()
+  const { can, loading: permsLoading, userId } = usePermissions()
   if (!permsLoading && !can('manage_plans')) return <NoAccess message="إدارة الخطط متاحة للمديرين فقط. للاطلاع على مهامك انتقل إلى صفحة مهامي." />
   const supabase = createClient()
   const [plans,        setPlans]        = useState<Plan[]>([])
@@ -54,10 +54,13 @@ export default function PlansPage() {
     setMenuOpen(null)
   }
 
-  /* ─── حذف خطة ─── */
+  /* ─── حذف خطة (Soft Delete) ─── */
   const deletePlan = async (id: string) => {
     setDeleting(true)
-    await supabase.from('plans').delete().eq('id', id)
+    await supabase.from('plans').update({
+      deleted_at: new Date().toISOString(),
+      updated_by: userId || null,
+    }).eq('id', id)
     setPlans(prev => prev.filter(p => p.id !== id))
     setConfirmDel(null)
     setDeleting(false)

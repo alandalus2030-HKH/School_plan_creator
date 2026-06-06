@@ -213,21 +213,17 @@ task_comments · team_members · meetings · dropdown_options
 
 ---
 
-### اليوم 9 — الأربعاء | Soft Delete — الكود
-**الوقت المقدر:** 4 ساعات
+### اليوم 9 — الأربعاء | Soft Delete — الكود ✅ 2026-06-06
 
 **المهام:**
-- [ ] تحديث كل استعلام حذف في الكود من:
-  ```typescript
-  supabase.from('tasks').delete().eq('id', taskId)
-  ```
-  إلى:
-  ```typescript
-  supabase.from('tasks').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('id', taskId)
-  ```
-- [ ] تحديث كل استعلام جلب ليستثني المحذوفات:
-  ```typescript
-  supabase.from('tasks').select('...').is('deleted_at', null)
+- [x] `TaskActions.tsx` — حذف المهمة → soft delete + updated_by
+- [x] `tasks/[taskId]/page.tsx` — حذف المهمة + حذف الدليل → soft delete
+- [x] `plans/[planId]/page.tsx` — حذف الخطة + حذف العقدة → soft delete
+- [x] `plans/page.tsx` — حذف الخطة → soft delete + userId من usePermissions
+- [x] `plans/[planId]/nodes/[nodeId]/page.tsx` — حذف العقدة → soft delete
+- [x] الجداول الأخرى (meetings, kpis, comments...) تبقى حذفاً حقيقياً ✓
+- [x] ملاحظة: لا حاجة لإضافة `.is('deleted_at', null)` — RLS يُخفيها تلقائياً
+- [x] `npm run build` — نجح ✓
   ```
 - [ ] الملفات المتأثرة الرئيسية:
   - `src/app/dashboard/tasks/[taskId]/page.tsx`
@@ -1049,4 +1045,5 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-06 | أسبوع 2 / يوم 6+ | حذف 5 جداول قديمة + عمود مكرر + إصلاح ألوان | `migrations/004` + Supabase |
 | 2026-06-06 | أسبوع 2 / يوم 7  | 23 index جديد — 31 index نشط إجمالاً | `migrations/005` + Supabase |
 | 2026-06-06 | أسبوع 2 / يوم 8  | Soft Delete — deleted_at + updated_by + RLS محدَّث | `migrations/006` + Supabase |
+| 2026-06-06 | أسبوع 2 / يوم 9  | Soft Delete كود — 7 استعلامات في 5 ملفات | TaskActions, taskId/page, planId/page, plans/page, nodeId/page |
 | | | | |
