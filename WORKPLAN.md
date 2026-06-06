@@ -1095,4 +1095,9 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-06 | أسبوع 5 / يوم 28 | Activity Feed + logActivity | `lib/activity.ts`, `ActivityFeed.tsx`, `migrations/007` |
 | 2026-06-06 | أسبوع 5 / يوم 29 | Workload View — توزيع حِمل العمل | `WorkloadView.tsx`, teams/page |
 | 2026-06-06 | أسبوع 5 / يوم 30 | اختصارات لوحة المفاتيح (N, Ctrl+K, Esc) | مدمجة في المكوّنات |
+| 2026-06-07 | إصلاح | school_id في إنشاء الفرق + إزالة أعمدة محذوفة من الاجتماعات | teams, meetings |
+| 2026-06-07 | أسبوع 6 / ميزة 1 | @Mentions في التعليقات + إشعار المذكورين | `MentionInput.tsx`, taskId |
+| 2026-06-07 | أسبوع 6 / ميزة 2 | Subtasks — خطوات فرعية | `Subtasks.tsx`, `migrations/008` |
+| 2026-06-07 | أسبوع 6 / ميزة 3 | Calendar View — عرض تقويمي | `TaskCalendar.tsx`, tasks/page |
+| 2026-06-07 | أسبوع 6 / ميزة 4 | ربط الاجتماعات بالمهام + محضر | `migrations/009`, meetings/page |
 | | | | |
