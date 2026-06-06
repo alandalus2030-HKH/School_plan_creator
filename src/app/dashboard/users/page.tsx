@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import * as XLSX from 'xlsx'
+import { Users, CheckCircle2, BookOpen, Crown } from 'lucide-react'
 
 /* ══════════════════════ أنواع البيانات ══════════════════════ */
 type RoleItem = { code: string; name_ar: string; color: string; permissions?: string[] }
@@ -642,11 +643,17 @@ export default function UsersPage() {
           :                               p.is_active === false)
   })
 
+  const statTones: Record<string,{bg:string;fg:string;iconFg:string}> = {
+    dark:   { bg: 'linear-gradient(135deg,#5a0d22,#8a1538)', fg: '#fff',    iconFg: 'rgba(255,255,255,0.8)' },
+    medium: { bg: '#f4dde2',                                  fg: '#8a1538', iconFg: '#c25c74' },
+    light2: { bg: '#fbf2f4',                                  fg: '#8a1538', iconFg: '#d98ea0' },
+    light:  { bg: '#f4dde2',                                  fg: '#6f1029', iconFg: '#c25c74' },
+  }
   const stats = [
-    { label: 'إجمالي',   value: profiles.length,                           icon: '👥', color: 'bg-violet-50 border-violet-200 text-violet-700' },
-    { label: 'نشطون',    value: profiles.filter(p => p.is_active).length,  icon: '✅', color: 'bg-green-50  border-green-200  text-green-700'  },
-    { label: 'معلمون',   value: profiles.filter(p => p.role === 'teacher').length, icon: '📚', color: 'bg-blue-50 border-blue-200 text-blue-700' },
-    { label: 'إداريون',  value: profiles.filter(p => !['teacher','staff'].includes(p.role)).length, icon: '👑', color: 'bg-amber-50 border-amber-200 text-amber-700' },
+    { label: 'إجمالي',  value: profiles.length,                                                     Icon: Users,        tone: 'dark'   },
+    { label: 'نشطون',   value: profiles.filter(p => p.is_active).length,                            Icon: CheckCircle2, tone: 'medium' },
+    { label: 'معلمون',  value: profiles.filter(p => p.role === 'teacher').length,                   Icon: BookOpen,     tone: 'light2' },
+    { label: 'إداريون', value: profiles.filter(p => !['teacher','staff'].includes(p.role)).length,  Icon: Crown,        tone: 'light'  },
   ]
 
   /* ════ حماية الوصول ════ */
@@ -691,13 +698,17 @@ export default function UsersPage() {
 
       {/* ── إحصائيات ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {stats.map(s => (
-          <div key={s.label} className={`rounded-2xl border p-4 shadow-sm text-center ${s.color}`}>
-            <div className="text-3xl mb-1">{s.icon}</div>
-            <div className="text-2xl font-bold">{s.value}</div>
-            <div className="text-xs font-medium mt-0.5 opacity-75">{s.label}</div>
-          </div>
-        ))}
+        {stats.map(s => {
+          const t = statTones[s.tone]
+          return (
+            <div key={s.label} className="rounded-2xl p-4 shadow-sm text-center"
+              style={{ background: t.bg, color: t.fg }}>
+              <s.Icon size={24} style={{ color: t.iconFg, margin: '0 auto 6px' }} />
+              <div className="text-2xl font-bold">{s.value}</div>
+              <div className="text-xs font-medium mt-0.5 opacity-80">{s.label}</div>
+            </div>
+          )
+        })}
       </div>
 
       {/* ── بحث وتصفية ── */}

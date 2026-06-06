@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Eye, Archive, ClipboardList } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -126,7 +127,7 @@ export default function PlansPage() {
                 ${showArchived
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'}`}>
-              {showArchived ? '👁️ النشطة' : '📦 المؤرشفة'}
+              {showArchived ? <><Eye size={14} className="inline ml-1" />النشطة</> : <><Archive size={14} className="inline ml-1" />المؤرشفة</>}
               {yearPlans.filter(p => p.is_archived).length > 0 && !showArchived && (
                 <span className="bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full">
                   {yearPlans.filter(p => p.is_archived).length}
@@ -190,7 +191,9 @@ export default function PlansPage() {
                             <button
                               onClick={() => toggleArchive(plan)}
                               className="w-full text-right px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                              {plan.is_archived ? '📂 إظهار الخطة' : '📦 إخفاء الخطة'}
+                              {plan.is_archived
+                                ? <><Eye size={14} className="inline ml-1" />إظهار الخطة</>
+                                : <><Archive size={14} className="inline ml-1" />إخفاء الخطة</>}
                             </button>
                             <div className="border-t border-slate-100 my-1" />
                             <button
@@ -238,7 +241,9 @@ export default function PlansPage() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">{showArchived ? '📦' : '📋'}</div>
+          <div className="flex justify-center mb-4" style={{ color: 'var(--maroon-300)' }}>
+            {showArchived ? <Archive size={48} /> : <ClipboardList size={48} />}
+          </div>
           <h3 className="text-xl font-bold text-slate-700 mb-2">
             {showArchived
               ? `لا توجد خطط مؤرشفة في ${selectedYear}`

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePermissions } from '@/lib/PermissionsContext'
 import KanbanBoard  from '@/components/KanbanBoard'
 import GanttChart   from '@/components/GanttChart'
+import { BookOpen, Archive, Pin, AlertTriangle, Lock, Unlock, Users } from 'lucide-react'
 
 const STATUS_LIST = [
   { value: 'not_started', label: 'لم تبدأ',  bg: 'bg-slate-100  text-slate-600'  },
@@ -13,8 +14,17 @@ const STATUS_LIST = [
   { value: 'completed',   label: 'منجزة',    bg: 'bg-green-100  text-green-700'  },
   { value: 'delayed',     label: 'متأخرة',   bg: 'bg-red-100    text-red-700'    },
 ]
-const TYPE_ICON: Record<string,string> = { academic:'📚', administrative:'🗃️', general:'📌' }
-const PRIORITY_ICON: Record<string,string> = { high:'🔴', medium:'🟡', low:'🟢' }
+function TaskTypeIcon({ type }: { type: string }) {
+  const props = { size: 17, style: { color: 'var(--maroon-400)', flexShrink: 0 } as any }
+  if (type === 'academic')       return <BookOpen {...props} />
+  if (type === 'administrative') return <Archive  {...props} />
+  return <Pin {...props} />
+}
+const PRIORITY_DOT: Record<string, string> = {
+  high:   '#8a1538',
+  medium: '#d98ea0',
+  low:    '#f4dde2',
+}
 
 /* ── بيانات التقييم (كلاسات Tailwind كاملة لتجنب حذف JIT) ── */
 const RATING_INFO: Record<number, { label: string; icon: string; badge: string }> = {
@@ -347,7 +357,7 @@ export default function TasksPage() {
                   className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors group">
 
                   {/* نوع المهمة */}
-                  <span className="text-xl flex-shrink-0">{TYPE_ICON[task.task_type] || '📌'}</span>
+                  <TaskTypeIcon type={task.task_type} />
 
                   {/* المعلومات */}
                   <div className="flex-1 min-w-0">
@@ -372,7 +382,7 @@ export default function TasksPage() {
                         {assignTeam && (
                           <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full text-white font-medium"
                             style={{ backgroundColor: assignTeam.color || '#7c3aed' }}>
-                            👥 {assignTeam.name_ar}
+                            <Users size={10} className="inline ml-1" />{assignTeam.name_ar}
                           </span>
                         )}
                       </div>
@@ -382,13 +392,14 @@ export default function TasksPage() {
                   {/* التاريخ */}
                   {task.end_date && (
                     <span className={`text-xs flex-shrink-0 ${overdue ? 'text-red-500 font-semibold' : 'text-slate-400'}`}>
-                      {overdue && '⚠️ '}
+                      {overdue && <AlertTriangle size={11} className="inline ml-1" />}
                       {new Date(task.end_date).toLocaleDateString('ar-QA')}
                     </span>
                   )}
 
                   {/* الأولوية */}
-                  <span className="text-base flex-shrink-0">{PRIORITY_ICON[task.priority]}</span>
+                  <span className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ background: PRIORITY_DOT[task.priority] || '#f4dde2' }} />
 
                   {/* التبعية */}
                   {task.depends_on_task_id && (() => {
@@ -404,7 +415,7 @@ export default function TasksPage() {
                             ? 'bg-orange-50 text-orange-600 border-orange-200'
                             : 'bg-green-50 text-green-600 border-green-200'
                         }`}>
-                        {blocked ? '🔒 محجوبة' : '🔓 متاحة'}
+                        {blocked ? <><Lock size={10} className="inline ml-1" />محجوبة</> : <><Unlock size={10} className="inline ml-1" />متاحة</>}
                       </span>
                     )
                   })()}
