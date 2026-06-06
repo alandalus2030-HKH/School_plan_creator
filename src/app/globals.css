@@ -13,7 +13,7 @@
    → منظومة العنابي الكاملة
 ══════════════════════════════════════════════ */
 @theme {
-  --font-sans: 'Cairo', 'Segoe UI', Arial, sans-serif;
+  --font-sans: 'Cairo', Arial, sans-serif;
 
   /* ── violet → عنابي ── */
   --color-violet-50:  #fbf2f4;
@@ -142,8 +142,8 @@
   --shadow-brand-sm: 0 6px 14px -6px rgba(138, 21, 56, 0.30);
 
   /* ── الخطوط ── */
-  --font-sans:   'Cairo', 'Segoe UI', Arial, sans-serif;
-  --font-latin:  'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
+  --font-sans:   'Cairo', Arial, sans-serif;
+  --font-latin:  'IBM Plex Sans', Arial, sans-serif;
 
   /* ── الحركة ── */
   --duration-fast:   150ms;
