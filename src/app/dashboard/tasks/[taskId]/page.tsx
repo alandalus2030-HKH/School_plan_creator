@@ -9,6 +9,7 @@ import { createNotification } from '@/lib/notifications'
 import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2 } from 'lucide-react'
 import Breadcrumb from '@/components/Breadcrumb'
 import MentionInput, { extractMentions } from '@/components/MentionInput'
+import Subtasks from '@/components/Subtasks'
 
 /* ══ تعريف كلاسات التقييم كنصوص كاملة حتى يتعرف عليها Tailwind ══
    (يجب أن تكون هنا وليس في ملف خارجي لضمان إدراجها في CSS) */
@@ -998,6 +999,14 @@ export default function TaskPage() {
           </div>
         )}
       </div>
+
+      {/* ══ Subtasks ══ */}
+      <Subtasks
+        taskId={taskId}
+        userId={userId}
+        users={profiles.map((p: any) => ({ id: p.id, name_ar: p.name_ar }))}
+        canEdit={canManageTasks}
+      />
 
       {/* ══ Comments ══ */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">

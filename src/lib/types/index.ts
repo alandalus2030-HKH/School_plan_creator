@@ -267,6 +267,21 @@ export type School = {
 /* ════════════════════════════════════════════════════════
    تعليقات المهام
 ════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════
+   الخطوات الفرعية
+════════════════════════════════════════════════════════ */
+export type Subtask = {
+  id:          string
+  task_id:     string
+  name_ar:     string
+  assignee_id: string | null
+  due_date:    string | null
+  is_done:     boolean
+  order_num:   number
+  created_by:  string | null
+  created_at:  string
+}
+
 export type TaskComment = {
   id:         string
   task_id:    string
