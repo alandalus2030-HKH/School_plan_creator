@@ -6,8 +6,8 @@ import { Users, UserRound, ClipboardList, BarChart3 } from 'lucide-react'
 import WorkloadView from '@/components/WorkloadView'
 
 const TEAM_COLORS = [
-  '#7c3aed', '#2563eb', '#0891b2', '#059669',
-  '#d97706', '#dc2626', '#db2777', '#4f46e5',
+  '#8a1538', '#a83356', '#c25c74', '#6f1029',
+  '#d98ea0', '#0891b2', '#059669', '#d97706',
 ]
 
 type Profile = { id: string; name_ar: string; role: string; job_title: string | null; is_active: boolean }
@@ -111,7 +111,14 @@ export default function TeamsPage() {
     if (editTeam) {
       ;({ error } = await supabase.from('teams').update(payload).eq('id', editTeam.id))
     } else {
-      ;({ error } = await supabase.from('teams').insert(payload))
+      /* جلب school_id للمستخدم — مطلوب لسياسة RLS */
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: profile } = await supabase
+        .from('profiles').select('school_id').eq('id', user?.id).single()
+      ;({ error } = await supabase.from('teams').insert({
+        ...payload,
+        school_id: profile?.school_id ?? null,
+      }))
     }
     if (error) {
       setFormError(error.message)
@@ -256,8 +263,8 @@ export default function TeamsPage() {
                         <span className="font-bold text-slate-800">{team.name_ar}</span>
                         <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{members.length} عضو</span>
                         {(team.taskCount ?? 0) > 0 && (
-                          <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
-                            ✅ {team.taskCount} مهمة
+                          <span className="inline-flex items-center gap-1 text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+                            <ClipboardList size={11} /> {team.taskCount} مهمة
                           </span>
                         )}
                       </div>
@@ -441,7 +448,7 @@ export default function TeamsPage() {
               <div className="flex gap-3 pt-1">
                 <button type="submit" disabled={saving}
                   className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl disabled:opacity-60 transition-colors">
-                  {saving ? 'جارٍ الحفظ...' : (editTeam ? '💾 حفظ التعديلات' : '✅ إنشاء الفريق')}
+                  {saving ? 'جارٍ الحفظ...' : (editTeam ? 'حفظ التعديلات' : 'إنشاء الفريق')}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}
                   className="px-5 py-3 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors">

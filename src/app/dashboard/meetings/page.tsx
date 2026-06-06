@@ -202,14 +202,13 @@ export default function MeetingsPage() {
       title:            form.title.trim(),
       description:      form.description.trim() || null,
       meeting_url:      form.meeting_url.trim()  || null,
-      teams_link:       form.meeting_url.trim()  || null,  /* عمود الجدول الأصلي */
       platform:         form.platform,
       scheduled_at,
-      meeting_date:     scheduled_at,                      /* عمود الجدول الأصلي */
       duration_minutes: form.duration_minutes,
       plan_id:          form.plan_id  || null,
       task_id:          form.task_id  || null,
       created_by:       userId || null,
+      school_id:        schoolId || null,
       attendees:        form.attendees,
     }
 
