@@ -9,8 +9,9 @@ import GanttChart   from '@/components/GanttChart'
 import {
   BookOpen, Archive, Pin, AlertTriangle, Lock, Unlock, Users,
   CheckCircle2, List, LayoutGrid, GanttChartSquare, Star,
-  CheckCheck, Circle, UserRound,
+  CheckCheck, Circle, UserRound, CalendarDays,
 } from 'lucide-react'
+import TaskCalendar from '@/components/TaskCalendar'
 import {
   STATUS_META, RATING_META, PRIORITY_META,
 } from '@/lib/constants/tasks'
@@ -54,7 +55,7 @@ export default function TasksPage() {
   const [savedId,       setSavedId]       = useState<string | null>(null) // flash تأكيد
 
   /* ── وضع العرض ── */
-  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt' | 'calendar'>('list')
 
   /* ── فلاتر — تُحفظ في localStorage ── */
   const FILTERS_KEY = 'tasks_filters_v1'
@@ -256,6 +257,16 @@ export default function TasksPage() {
               }`}>
               <GanttChartSquare size={14} /> جانت
             </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              title="عرض تقويم"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'calendar'
+                  ? 'bg-white text-violet-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}>
+              <CalendarDays size={14} /> تقويم
+            </button>
           </div>
           {canManage && (
             <Link href="/dashboard/tasks/new"
@@ -369,6 +380,9 @@ export default function TasksPage() {
           planFilter={planF}
         />
       )}
+
+      {/* ── عرض التقويم ── */}
+      {viewMode === 'calendar' && <TaskCalendar tasks={filtered} />}
 
       {/* ── عرض الكانبان ── */}
       {viewMode === 'kanban' && (
