@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { usePermissions } from '@/lib/PermissionsContext'
 import {
-  LayoutDashboard, ClipboardList, Map, CheckSquare,
-  Users, BarChart3, CalendarDays, UserRound, Settings,
+  LayoutDashboard, ClipboardList, Map, CircleCheckBig,
+  Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
   Contact, ChevronRight, ChevronLeft,
 } from 'lucide-react'
 import Logo from './Logo'
@@ -14,9 +14,9 @@ const NAV_ITEMS = [
   { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: null               },
   { href: '/dashboard/my-tasks',  Icon: ClipboardList,   ar: 'مهامي',         en: 'My Tasks',   perm: 'self'             },
   { href: '/dashboard/plans',     Icon: Map,             ar: 'الخطط',         en: 'Plans',      perm: 'manage_plans'     },
-  { href: '/dashboard/tasks',     Icon: CheckSquare,     ar: 'كل المهام',     en: 'All Tasks',  perm: 'manage_tasks'     },
+  { href: '/dashboard/tasks',     Icon: CircleCheckBig,  ar: 'كل المهام',     en: 'All Tasks',  perm: 'manage_tasks'     },
   { href: '/dashboard/teams',     Icon: Users,           ar: 'الفرق',         en: 'Teams',      perm: 'manage_teams'     },
-  { href: '/dashboard/reports',   Icon: BarChart3,       ar: 'التقارير',      en: 'Reports',    perm: 'view_reports'     },
+  { href: '/dashboard/reports',   Icon: ChartNoAxesColumn, ar: 'التقارير',      en: 'Reports',    perm: 'view_reports'     },
   { href: '/dashboard/meetings',  Icon: CalendarDays,    ar: 'الاجتماعات',    en: 'Meetings',   perm: null               },
   { href: '/dashboard/users',     Icon: UserRound,       ar: 'المستخدمون',   en: 'Users',      perm: 'manage_users'     },
   { href: '/dashboard/settings',  Icon: Settings,        ar: 'الإعدادات',     en: 'Settings',   perm: 'manage_settings'  },

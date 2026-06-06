@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { NOTIF_ICONS, NOTIF_LABELS, timeAgo } from '@/lib/notifications'
-import { Bell } from 'lucide-react'
+import { Bell, Trash2 } from 'lucide-react'
 
 type Notif = {
   id:         string
@@ -180,8 +180,9 @@ export default function NotificationBell() {
           {readNotifs.length > 0 && (
             <div className="border-t border-slate-100 px-4 py-2.5 bg-slate-50 flex justify-end">
               <button onClick={clearRead} disabled={clearing}
-                className="text-[11px] text-slate-400 hover:text-red-500 transition-colors">
-                {clearing ? '...' : '🗑 حذف المقروءة'}
+                className="text-[11px] text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1">
+                <Trash2 size={12} />
+                {clearing ? '...' : 'حذف المقروءة'}
               </button>
             </div>
           )}
