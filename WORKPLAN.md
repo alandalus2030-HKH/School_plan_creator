@@ -43,17 +43,17 @@
 
 ---
 
-### اليوم 1 — الأحد | حذف الثغرة الأمنية الكبرى
+### اليوم 1 — الأحد | حذف الثغرة الأمنية الكبرى ✅ 2026-06-06
 **الوقت المقدر:** 2-3 ساعات
 **الأثر:** 🔴 حرج — ثغرة مكشوفة للعموم
 
 **المهام:**
-- [ ] حذف المجلد كاملاً: `src/app/api/debug/check-username/`
-- [ ] تنظيف `...rest` في create-user API
-  - الملف: `src/app/api/users/create/route.ts` السطر 76
-  - الإجراء: تحديد whitelist صريحة للحقول المسموح بها فقط
-- [ ] `npm run build` للتأكد من عدم وجود أخطاء
-- [ ] Push لـ GitHub والتحقق من نشر Vercel
+- [x] حذف المجلد كاملاً: `src/app/api/debug/check-username/`
+- [x] تنظيف `...rest` في create-user API
+  - الملف: `src/app/api/users/create/route.ts`
+  - whitelist صريحة بـ 13 حقلاً مسموحاً بها فقط
+- [x] `npm run build` — نجح بدون أخطاء
+- [x] Push لـ GitHub ✓ | commit: `46239dd`
 
 **الملفات المتأثرة:**
 ```
@@ -1061,4 +1061,5 @@ teams, kpis, notifications, evidence
 | التاريخ | اليوم | المنجز | الملفات المتأثرة |
 |---------|-------|--------|-----------------|
 | 2026-06-06 | — | إصلاح شريط التقدم من بنفسجي لعنابي | `reports/page.tsx` |
+| 2026-06-06 | أسبوع 1 / يوم 1 | حذف debug endpoint + whitelist في create-user | `api/debug/` محذوف، `api/users/create/route.ts` |
 | | | | |
