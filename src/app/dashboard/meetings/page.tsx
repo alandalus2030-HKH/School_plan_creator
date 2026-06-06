@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createNotification } from '@/lib/notifications'
 import { CalendarDays, CalendarClock, CalendarCheck, UserRound,
-  AlertTriangle, Inbox, Video, Briefcase, Link2, Monitor } from 'lucide-react'
+  AlertTriangle, Inbox, Video, Briefcase, Link2, Monitor,
+  Map, CircleCheckBig, Plus, Pencil, Trash2 } from 'lucide-react'
 import type { Plan, Team, TeamMember, Meeting } from '@/lib/types'
 
 /* ══════════════════ ثوابت ══════════════════ */
@@ -35,6 +36,7 @@ const EMPTY_FORM = {
   duration_minutes: 60,
   plan_id:          '',
   task_id:          '',
+  notes:            '',
   attendees:        [] as string[],
 }
 
@@ -150,6 +152,7 @@ export default function MeetingsPage() {
       duration_minutes: m.duration_minutes || 60,
       plan_id:          m.plan_id  || '',
       task_id:          m.task_id  || '',
+      notes:            m.notes    || '',
       attendees:        Array.isArray(m.attendees) ? [...m.attendees] : [],
     })
     setShowAttendeesDrop(false)
@@ -207,6 +210,7 @@ export default function MeetingsPage() {
       duration_minutes: form.duration_minutes,
       plan_id:          form.plan_id  || null,
       task_id:          form.task_id  || null,
+      notes:            form.notes.trim() || null,
       created_by:       userId || null,
       school_id:        schoolId || null,
       attendees:        form.attendees,
@@ -260,6 +264,49 @@ export default function MeetingsPage() {
     setSaving(false)
     setShowForm(false)
     await load()
+  }
+
+  /* ════ إنشاء مهمة من قرار الاجتماع ════ */
+  const createTaskFromMeeting = async (m: any) => {
+    const name = window.prompt('اسم المهمة المستخرجة من قرار الاجتماع:', '')
+    if (!name || !name.trim()) return
+
+    /* أوجد عقدة من خطة الاجتماع لربط المهمة بها */
+    let nodeId: string | null = null
+    if (m.plan_id) {
+      const { data: node } = await supabase
+        .from('plan_nodes').select('id').eq('plan_id', m.plan_id)
+        .order('order_num').limit(1).maybeSingle()
+      nodeId = node?.id ?? null
+    }
+
+    const { error } = await supabase.from('tasks').insert({
+      name_ar:     name.trim(),
+      description: `مستخرجة من اجتماع: ${m.title}`,
+      status:      'not_started',
+      priority:    'medium',
+      task_type:   'general',
+      node_id:     nodeId,
+      created_by:  userId || null,
+      order_num:   1,
+    })
+
+    if (error) { alert('تعذّر إنشاء المهمة: ' + error.message); return }
+
+    /* إشعار الحاضرين */
+    const attendees: string[] = Array.isArray(m.attendees) ? m.attendees : []
+    for (const uid of attendees) {
+      if (uid === userId) continue
+      createNotification({
+        recipientId: uid,
+        senderId:    userId,
+        type:        'task_assigned',
+        title:       `مهمة جديدة من اجتماع "${m.title}"`,
+        body:        name.trim(),
+        link:        '/dashboard/tasks',
+      })
+    }
+    alert('تم إنشاء المهمة بنجاح ✓')
   }
 
   /* ════ حذف ════ */
@@ -494,21 +541,35 @@ export default function MeetingsPage() {
                   {/* الخطة والمهمة والمنشئ */}
                   <div className="flex flex-wrap gap-1.5">
                     {plan && (
-                      <span className="text-[10px] px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full font-medium">
-                        🗺️ {plan.name_ar}
+                      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full font-medium">
+                        <Map size={10} /> {plan.name_ar}
                       </span>
                     )}
                     {task && (
-                      <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
-                        ✅ {task.name_ar}
+                      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full font-medium">
+                        <CircleCheckBig size={10} /> {task.name_ar}
                       </span>
                     )}
                     {creator && (
-                      <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">
-                        📌 {profileName(creator)}
+                      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">
+                        <UserRound size={10} /> {profileName(creator)}
                       </span>
                     )}
                   </div>
+
+                  {/* محضر الاجتماع + إنشاء مهمة من قرار */}
+                  {m.notes && (
+                    <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-2.5 mt-1">
+                      <p className="text-[10px] font-semibold text-amber-700 mb-1">محضر الاجتماع</p>
+                      <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed line-clamp-4">{m.notes}</p>
+                      {canManage && (
+                        <button onClick={() => createTaskFromMeeting(m)}
+                          className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-violet-700 hover:underline">
+                          <Plus size={11} /> أنشئ مهمة من قرار
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* أزرار */}
                   <div className="flex items-center gap-2 pt-1">
@@ -525,13 +586,13 @@ export default function MeetingsPage() {
                     )}
                     {canManage && (
                       <div className="flex gap-1">
-                        <button onClick={() => openEdit(m)}
-                          className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-amber-500 hover:bg-amber-50 hover:border-amber-200 transition-colors text-sm">
-                          ✏️
+                        <button onClick={() => openEdit(m)} aria-label="تعديل الاجتماع"
+                          className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-amber-500 hover:bg-amber-50 hover:border-amber-200 transition-colors">
+                          <Pencil size={14} />
                         </button>
-                        <button onClick={() => setConfirmDel(m.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors text-sm">
-                          🗑️
+                        <button onClick={() => setConfirmDel(m.id)} aria-label="حذف الاجتماع"
+                          className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors">
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     )}
@@ -764,13 +825,25 @@ export default function MeetingsPage() {
                 </div>
               </div>
 
+              {/* محضر / قرارات الاجتماع */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  محضر الاجتماع والقرارات
+                </label>
+                <textarea value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={3}
+                  placeholder="دوّن أبرز القرارات والملاحظات... يمكن تحويلها لمهام لاحقاً"
+                  className={iCls + ' resize-none'} />
+              </div>
+
             </form>
 
             {/* أزرار الحفظ */}
             <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between gap-2">
               <span className="text-xs text-slate-400">
                 {form.attendees.filter(id => id !== userId).length > 0 &&
-                  `📨 سيصل إشعار لـ ${form.attendees.filter(id => id !== userId).length} شخص`}
+                  `سيصل إشعار لـ ${form.attendees.filter(id => id !== userId).length} شخص`}
               </span>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setShowForm(false)}
@@ -779,7 +852,7 @@ export default function MeetingsPage() {
                 </button>
                 <button onClick={save} disabled={saving || !form.title.trim()}
                   className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                  {saving ? '⏳ جارٍ الحفظ...' : editId ? '💾 حفظ التعديلات' : '✅ إضافة الاجتماع'}
+                  {saving ? 'جارٍ الحفظ...' : editId ? 'حفظ التعديلات' : 'إضافة الاجتماع'}
                 </button>
               </div>
             </div>

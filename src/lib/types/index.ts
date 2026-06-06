@@ -229,6 +229,7 @@ export type Meeting = {
   duration_minutes: number
   plan_id:          string | null
   task_id:          string | null
+  notes:            string | null
   attendees:        string[]
   created_by:       string | null
   created_at:       string
