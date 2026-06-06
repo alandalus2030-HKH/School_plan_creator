@@ -121,8 +121,10 @@ CREATE TABLE plans (
   is_template   BOOLEAN DEFAULT false,
   template_name TEXT,
   created_by    UUID,                        -- REFERENCES profiles(id)
+  updated_by    UUID,                        -- REFERENCES profiles(id) ✅ مُضاف 006
   created_at    TIMESTAMPTZ DEFAULT now(),
-  updated_at    TIMESTAMPTZ DEFAULT now()
+  updated_at    TIMESTAMPTZ DEFAULT now(),
+  deleted_at    TIMESTAMPTZ DEFAULT NULL     -- ✅ Soft Delete — مُضاف 006
 );
 
 -- ── عقد الخطة (الهيكل الهرمي المرن) ─────────────────────
@@ -131,10 +133,11 @@ CREATE TABLE plan_nodes (
   id        UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
   plan_id   UUID    NOT NULL,               -- REFERENCES plans(id)
   parent_id UUID,                           -- REFERENCES plan_nodes(id) — null للمستوى الأول
-  level_num INTEGER NOT NULL DEFAULT 1,
-  name_ar   TEXT    NOT NULL,
-  order_num INTEGER NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ DEFAULT now()
+  level_num  INTEGER NOT NULL DEFAULT 1,
+  name_ar    TEXT    NOT NULL,
+  order_num  INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  deleted_at TIMESTAMPTZ DEFAULT NULL      -- ✅ Soft Delete — مُضاف 006
 );
 
 -- ── المهام ────────────────────────────────────────────────
@@ -163,8 +166,10 @@ CREATE TABLE tasks (
   evidence_required   TEXT,
   order_num           INTEGER  NOT NULL DEFAULT 1,
   created_by          UUID,                         -- REFERENCES profiles(id)
+  updated_by          UUID,                         -- REFERENCES profiles(id) ✅ مُضاف 006
   created_at          TIMESTAMPTZ DEFAULT now(),
   updated_at          TIMESTAMPTZ DEFAULT now(),
+  deleted_at          TIMESTAMPTZ DEFAULT NULL,     -- ✅ Soft Delete — مُضاف 006
   -- التبعيات بين المهام
   depends_on_task_id  UUID                          -- REFERENCES tasks(id)
 );
@@ -227,7 +232,8 @@ CREATE TABLE evidence (
   evidence_number TEXT,
   uploaded_by     UUID,                           -- REFERENCES profiles(id)
   created_at      TIMESTAMPTZ DEFAULT now(),
-  updated_at      TIMESTAMPTZ DEFAULT now()
+  updated_at      TIMESTAMPTZ DEFAULT now(),
+  deleted_at      TIMESTAMPTZ DEFAULT NULL        -- ✅ Soft Delete — مُضاف 006
 );
 
 -- ── تعليقات المهام ────────────────────────────────────────

@@ -201,23 +201,15 @@ task_comments · team_members · meetings · dropdown_options
 
 ---
 
-### اليوم 8 — الثلاثاء | Soft Delete — قاعدة البيانات
-**الوقت المقدر:** 3 ساعات
+### اليوم 8 — الثلاثاء | Soft Delete — قاعدة البيانات ✅ 2026-06-06
 
 **المهام:**
-- [ ] إضافة عمود `deleted_at` في Supabase SQL Editor:
-  ```sql
-  ALTER TABLE tasks      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
-  ALTER TABLE plans      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
-  ALTER TABLE plan_nodes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
-  ALTER TABLE evidence   ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
-  ```
-- [ ] إضافة عمود `updated_by`:
-  ```sql
-  ALTER TABLE tasks  ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES profiles(id);
-  ALTER TABLE plans  ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES profiles(id);
-  ```
-- [ ] توثيق التغييرات في `database/actual_schema.sql`
+- [x] إضافة `deleted_at` لـ: tasks, plans, plan_nodes, evidence
+- [x] إضافة `updated_by` لـ: tasks, plans
+- [x] تحديث `idx_tasks_status_end_date` بشرط `WHERE deleted_at IS NULL`
+- [x] تحديث RLS لـ tasks/plans/plan_nodes لاستبعاد المحذوفات تلقائياً
+- [x] توثيق في `actual_schema.sql`
+- [x] commit: `8c55c77`
 
 ---
 
@@ -1056,4 +1048,5 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-06 | أسبوع 2 / يوم 6 | توثيق الـ Schema الفعلي — 22 جدول | `database/actual_schema.sql` |
 | 2026-06-06 | أسبوع 2 / يوم 6+ | حذف 5 جداول قديمة + عمود مكرر + إصلاح ألوان | `migrations/004` + Supabase |
 | 2026-06-06 | أسبوع 2 / يوم 7  | 23 index جديد — 31 index نشط إجمالاً | `migrations/005` + Supabase |
+| 2026-06-06 | أسبوع 2 / يوم 8  | Soft Delete — deleted_at + updated_by + RLS محدَّث | `migrations/006` + Supabase |
 | | | | |
