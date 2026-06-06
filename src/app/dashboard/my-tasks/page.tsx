@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import {
+  ClipboardList, Zap, CheckCircle2, AlertTriangle,
+  UserRound, Users, Search, BookOpen, Archive, Pin,
+  CalendarDays, PartyPopper,
+} from 'lucide-react'
 
 /* ── ألوان الحالة ── */
 const STATUS_INFO: Record<string, { label: string; badge: string; dot: string }> = {
@@ -22,8 +27,12 @@ const RATING_INFO: Record<number, { label: string; icon: string; badge: string }
   1: { label: 'ضعيف',     icon: '❌', badge: 'bg-red-50     text-red-700     border border-red-200'     },
 }
 
-const TYPE_ICON: Record<string, string> = {
-  academic: '📚', administrative: '🗃️', general: '📌',
+const TYPE_ICON_MAP: Record<string, any> = {
+  academic: BookOpen, administrative: Archive, general: Pin,
+}
+function TaskTypeIcon({ type }: { type: string }) {
+  const Icon = TYPE_ICON_MAP[type] || Pin
+  return <Icon size={18} style={{ color: 'var(--maroon-400)' }} />
 }
 
 const PRIORITY_LABEL: Record<string, { icon: string; label: string }> = {
@@ -182,9 +191,9 @@ export default function MyTasksPage() {
 
   /* ── تبويبات ── */
   const TABS = [
-    { key: 'assigned' as const, label: 'مهامي المباشرة',  icon: '👤', count: myTasks.length,     color: 'violet' },
-    { key: 'team'     as const, label: 'مهام فريقي',       icon: '👥', count: teamTasks.length,   color: 'blue'   },
-    { key: 'reviewer' as const, label: 'أقيّمها',           icon: '🔍', count: reviewTasks.length, color: 'amber'  },
+    { key: 'assigned' as const, label: 'مهامي المباشرة', Icon: UserRound,  count: myTasks.length,     color: 'violet' },
+    { key: 'team'     as const, label: 'مهام فريقي',      Icon: Users,      count: teamTasks.length,   color: 'blue'   },
+    { key: 'reviewer' as const, label: 'أقيّمها',          Icon: Search,     count: reviewTasks.length, color: 'amber'  },
   ]
 
   const currentTasks =
@@ -218,13 +227,14 @@ export default function MyTasksPage() {
       {/* ══ بطاقات الإحصائيات ══ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'إجمالي مهامي',  value: myTasks.length,  icon: '📋', cls: 'border-violet-200 text-violet-700 bg-violet-50'  },
-          { label: 'جارية',          value: inProgress,      icon: '⚡', cls: 'border-blue-200   text-blue-700   bg-blue-50'    },
-          { label: 'منجزة',          value: done,            icon: '✅', cls: 'border-green-200  text-green-700  bg-green-50'   },
-          { label: 'متأخرة',         value: overdue,         icon: '⚠️', cls: 'border-red-200    text-red-700    bg-red-50'     },
+          { label: 'إجمالي مهامي', value: myTasks.length, Icon: ClipboardList,  bg: 'linear-gradient(135deg,#5a0d22,#8a1538)', fg: '#fff',     iconFg: 'rgba(255,255,255,0.8)' },
+          { label: 'جارية',         value: inProgress,     Icon: Zap,            bg: '#f4dde2',                                  fg: '#8a1538',  iconFg: '#c25c74' },
+          { label: 'منجزة',         value: done,           Icon: CheckCircle2,   bg: '#fbf2f4',                                  fg: '#8a1538',  iconFg: '#d98ea0' },
+          { label: 'متأخرة',        value: overdue,        Icon: AlertTriangle,  bg: '#f4dde2',                                  fg: '#6f1029',  iconFg: '#a83356' },
         ].map(s => (
-          <div key={s.label} className={`rounded-2xl border p-4 text-center ${s.cls}`}>
-            <div className="text-2xl mb-1">{s.icon}</div>
+          <div key={s.label} className="rounded-2xl border border-transparent p-4 text-center"
+            style={{ background: s.bg, color: s.fg }}>
+            <s.Icon size={24} style={{ color: s.iconFg, margin: '0 auto 6px' }} />
             <div className="text-2xl font-bold">{s.value}</div>
             <div className="text-xs font-medium mt-0.5 opacity-80">{s.label}</div>
           </div>
@@ -233,12 +243,13 @@ export default function MyTasksPage() {
 
       {/* تنبيه انتظار التقييم */}
       {toReview > 0 && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 cursor-pointer"
+        <div className="flex items-center gap-3 rounded-2xl p-4 cursor-pointer"
+          style={{ background: 'var(--maroon-50)', border: '1px solid var(--maroon-200)' }}
           onClick={() => setActiveTab('reviewer')}>
-          <span className="text-2xl">🔍</span>
+          <Search size={22} style={{ color: 'var(--maroon-600)', flexShrink: 0 }} />
           <div>
-            <p className="font-semibold text-amber-800">لديك {toReview} مهمة بانتظار تقييمك</p>
-            <p className="text-xs text-amber-600">انقر هنا للانتقال إلى مهام التقييم</p>
+            <p className="font-semibold" style={{ color: 'var(--maroon-800)' }}>لديك {toReview} مهمة بانتظار تقييمك</p>
+            <p className="text-xs" style={{ color: 'var(--maroon-600)' }}>انقر هنا للانتقال إلى مهام التقييم</p>
           </div>
           <span className="mr-auto text-amber-400 text-xl">←</span>
         </div>
@@ -255,7 +266,7 @@ export default function MyTasksPage() {
                 ${activeTab === tab.key
                   ? 'text-violet-700 border-b-2 border-violet-600 bg-violet-50/50'
                   : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
-              <span>{tab.icon}</span>
+              <tab.Icon size={15} />
               <span>{tab.label}</span>
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold
                 ${activeTab === tab.key ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -268,9 +279,9 @@ export default function MyTasksPage() {
         {/* قائمة المهام */}
         {currentTasks.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-4xl mb-3">
-              {activeTab === 'assigned' ? '🎉' : activeTab === 'team' ? '👥' : '🔍'}
-            </p>
+            <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}>
+              {activeTab === 'assigned' ? <PartyPopper size={40} /> : activeTab === 'team' ? <Users size={40} /> : <Search size={40} />}
+            </div>
             <p className="text-slate-500 font-medium">
               {activeTab === 'assigned' ? 'لا توجد مهام مكلَّف بها' :
                activeTab === 'team'     ? 'لا توجد مهام لفريقك' :
@@ -289,7 +300,7 @@ export default function MyTasksPage() {
                 <div key={task.id} className="p-4">
                   {/* سطر العنوان */}
                   <div className="flex items-start gap-3">
-                    <span className="text-xl flex-shrink-0 mt-0.5">{TYPE_ICON[task.task_type] || '📌'}</span>
+                    <span className="flex-shrink-0 mt-0.5"><TaskTypeIcon type={task.task_type} /></span>
 
                     <div className="flex-1 min-w-0">
                       <Link href={`/dashboard/tasks/${task.id}`}
@@ -308,7 +319,9 @@ export default function MyTasksPage() {
                         </span>
                         {task.end_date && (
                           <span className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-400'}`}>
-                            {isOverdue ? '⚠️ ' : '📅 '}
+                            {isOverdue
+                              ? <AlertTriangle size={11} className="inline ml-1" />
+                              : <CalendarDays  size={11} className="inline ml-1" />}
                             {new Date(task.end_date).toLocaleDateString('ar-QA')}
                             {isOverdue && ' (متأخرة)'}
                           </span>
