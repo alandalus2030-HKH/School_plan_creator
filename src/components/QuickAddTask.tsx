@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { Plus, X, ChevronLeft } from 'lucide-react'
 import { toast } from '@/components/Toast'
+import { logActivity } from '@/lib/activity'
 
 /**
  * Quick Add Task — زر عائم لإنشاء مهمة سريعة من أي صفحة
@@ -92,6 +93,11 @@ export default function QuickAddTask() {
     setSaving(false)
     if (error) { toast('حدث خطأ أثناء الإنشاء', 'error'); return }
     toast(`✓ تم إنشاء "${name.trim()}"`)
+    logActivity({
+      action:    'task_created',
+      tableName: 'tasks',
+      summary:   name.trim(),
+    })
     setOpen(false)
   }
 

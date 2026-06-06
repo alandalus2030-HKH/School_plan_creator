@@ -5,6 +5,7 @@ import {
   Map, CheckCircle2, Trophy, TrendingUp,
   AlertTriangle, Zap, Clock, BookOpen, Archive, Pin, Inbox,
 } from 'lucide-react'
+import ActivityFeed from '@/components/ActivityFeed'
 
 type Task = {
   id: string
@@ -178,6 +179,9 @@ export default function DashboardClient(props: Props) {
           </div>
         )}
       </div>
+
+      {/* ── سجل النشاط ── */}
+      <ActivityFeed limit={8} />
     </div>
   )
 }

@@ -15,6 +15,7 @@ import {
   STATUS_META, RATING_META, PRIORITY_META,
 } from '@/lib/constants/tasks'
 import { toast } from '@/components/Toast'
+import { logActivity } from '@/lib/activity'
 import type { Task, Profile, Team, PlanNode, Plan } from '@/lib/types'
 
 /* ── مصفوفة الحالات للفلاتر والـ tabs ── */
@@ -189,8 +190,16 @@ export default function TasksPage() {
     setSavingId(null)
     setSavedId(taskId)
     setTimeout(() => setSavedId(null), 1500)
-    const label = STATUS_LIST.find(s => s.value === newStatus)?.label || newStatus
+    const label   = STATUS_LIST.find(s => s.value === newStatus)?.label || newStatus
+    const taskObj = tasks.find(t => t.id === taskId)
     toast(`تم تحديث الحالة: ${label}`)
+    logActivity({
+      action:    'task_status_changed',
+      tableName: 'tasks',
+      recordId:  taskId,
+      summary:   `${taskObj?.name_ar || ''} → ${label}`,
+      newValues: { status: newStatus },
+    })
   }
 
   if (loading) return (

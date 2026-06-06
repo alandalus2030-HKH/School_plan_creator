@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import NotificationBell from './NotificationBell'
+import GlobalSearch from './GlobalSearch'
 
 interface TopBarProps {
   lang: 'ar' | 'en'
@@ -24,6 +25,9 @@ export default function TopBar({ lang, onLangChange, title }: TopBarProps) {
     <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm">
       <h1 className="text-lg font-bold text-slate-800">{title || ''}</h1>
       <div className="flex items-center gap-3">
+        {/* البحث الشامل */}
+        <GlobalSearch />
+
         <button
           onClick={onLangChange}
           className="px-3 py-1.5 text-xs rounded-full border border-violet-300 text-violet-700 hover:bg-violet-50 transition-colors font-medium"
