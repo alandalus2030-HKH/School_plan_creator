@@ -169,7 +169,7 @@ export default function UsersPage() {
 
     // تحميل المستخدمين
     const { data: profilesData } = await supabase
-      .from('profiles').select('id,first_name_ar,last_name_ar,name_ar,nationality,school,department,job_title,phone,email,username,role,is_active,created_at')
+      .from('profiles').select('id,first_name_ar,last_name_ar,name_ar,nationality,school,department,job_title,phone,email,username,role,is_active,created_at').limit(500)
       .order('created_at', { ascending: false })
     setProfiles((profilesData || []) as Profile[])
 

@@ -85,7 +85,7 @@ export default function MeetingsPage() {
 
     /* جلب الاجتماعات أولاً بشكل مستقل لاكتشاف أي خطأ */
     const { data: mtgs, error: mtgsErr } = await supabase
-      .from('meetings').select('*').order('scheduled_at', { ascending: true })
+      .from('meetings').select('*').order('scheduled_at', { ascending: true }).limit(500)
 
     if (mtgsErr) {
       console.error('[meetings] load error:', mtgsErr)
@@ -102,11 +102,11 @@ export default function MeetingsPage() {
       { data: tms    },
       { data: tmMbrs },
     ] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, school_id'),
-      supabase.from('tasks').select('id, name_ar'),
-      supabase.from('profiles').select('id, name_ar, full_name_ar').order('name_ar'),
-      supabase.from('teams').select('id, name_ar, color').order('name_ar'),
-      supabase.from('team_members').select('team_id, profile_id'),
+      supabase.from('plans').select('id, name_ar, school_id').limit(100),
+      supabase.from('tasks').select('id, name_ar').limit(1000),
+      supabase.from('profiles').select('id, name_ar, full_name_ar').order('name_ar').limit(500),
+      supabase.from('teams').select('id, name_ar, color').order('name_ar').limit(100),
+      supabase.from('team_members').select('team_id, profile_id').limit(1000),
     ])
 
     setMeetings(mtgs    || [])

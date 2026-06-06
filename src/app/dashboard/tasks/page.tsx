@@ -84,11 +84,11 @@ export default function TasksPage() {
           id, name_ar, status, task_type, priority,
           start_date, end_date, order_num, node_id,
           rating, rated_at, depends_on_task_id
-        `).order('created_at', { ascending: false }),
-        supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num'),
-        supabase.from('plans').select('id, name_ar'),
-        supabase.from('profiles').select('id, name_ar'),
-        supabase.from('teams').select('id, name_ar, color'),
+        `).order('created_at', { ascending: false }).limit(1000),
+        supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num').limit(2000),
+        supabase.from('plans').select('id, name_ar').limit(100),
+        supabase.from('profiles').select('id, name_ar').limit(500),
+        supabase.from('teams').select('id, name_ar, color').limit(100),
       ])
 
       // جلب حقول التكليف إذا كانت موجودة
@@ -96,7 +96,7 @@ export default function TasksPage() {
       try {
         const { data: ta } = await supabase
           .from('tasks').select('id, assigned_to_user_id, assigned_to_team_id')
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false }).limit(1000)
         if (ta) {
           const map = Object.fromEntries(ta.map(x => [x.id, x]))
           tasksWithAssign = tasksWithAssign.map(t => ({ ...t, ...map[t.id] }))

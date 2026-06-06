@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
 import { PermissionsProvider } from '@/lib/PermissionsContext'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 const SIDEBAR_KEY = 'sidebar_collapsed'
 
@@ -60,7 +61,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             title={pageTitle}
           />
           <main className="flex-1 overflow-auto bg-slate-50 p-6">
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </main>
         </div>
       </div>

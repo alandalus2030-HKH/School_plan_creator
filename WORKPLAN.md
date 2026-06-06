@@ -233,15 +233,19 @@ task_comments · team_members · meetings · dropdown_options
 
 ---
 
-### اليوم 10 — الخميس | حدود الاستعلامات + Error Boundary
-**الوقت المقدر:** 3-4 ساعات
+### اليوم 10 — الخميس | حدود الاستعلامات + Error Boundary ✅ 2026-06-06
 
 **المهام:**
-- [ ] إضافة `.limit(500)` لكل استعلامات `supabase.from('tasks').select(...)` في:
-  - `src/app/dashboard/tasks/page.tsx`
-  - `src/app/dashboard/reports/page.tsx`
-  - `src/app/dashboard/my-tasks/page.tsx`
-- [ ] إنشاء `src/components/ErrorBoundary.tsx`:
+- [x] إضافة `.limit()` في 4 ملفات (22 استعلام):
+  - `reports/page.tsx` — 7 استعلامات (tasks×2, plans, nodes, profiles, kpis, readings)
+  - `tasks/page.tsx` — 5 استعلامات (tasks×2, nodes, profiles, teams)
+  - `users/page.tsx` — profiles.limit(500)
+  - `meetings/page.tsx` — 5 استعلامات (meetings, plans, tasks, profiles, teams)
+- [x] إنشاء `src/components/ErrorBoundary.tsx`
+  - زر "إعادة المحاولة" + رسالة واضحة بالعربية
+- [x] تطبيق ErrorBoundary في `dashboard/layout.tsx`
+  - يُغلّف كل صفحات الـ dashboard دفعة واحدة
+- [x] `npm run build` — نجح ✓
   ```tsx
   'use client'
   import { Component, ReactNode } from 'react'
@@ -1046,4 +1050,5 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-06 | أسبوع 2 / يوم 7  | 23 index جديد — 31 index نشط إجمالاً | `migrations/005` + Supabase |
 | 2026-06-06 | أسبوع 2 / يوم 8  | Soft Delete — deleted_at + updated_by + RLS محدَّث | `migrations/006` + Supabase |
 | 2026-06-06 | أسبوع 2 / يوم 9  | Soft Delete كود — 7 استعلامات في 5 ملفات | TaskActions, taskId/page, planId/page, plans/page, nodeId/page |
+| 2026-06-06 | أسبوع 2 / يوم 10 | حدود الاستعلامات (22 limit) + ErrorBoundary في layout | reports, tasks, users, meetings, layout.tsx |
 | | | | |

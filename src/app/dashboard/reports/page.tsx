@@ -692,13 +692,13 @@ export default function ReportsPage() {
         { data: kpisRaw  },
         { data: readings },
       ] = await Promise.all([
-        supabase.from('tasks').select('id,name_ar,description,status,task_type,priority,start_date,end_date,rating,node_id,created_at'),
-        supabase.from('tasks').select('id,assigned_to_user_id,assigned_to_team_id,reviewer_id'),
-        supabase.from('plans').select('id,name_ar,academic_year,level_names,level_count'),
-        supabase.from('plan_nodes').select('id,plan_id,parent_id,name_ar,level_num,order_num').order('order_num'),
-        supabase.from('profiles').select('id,name_ar,department,role'),
-        supabase.from('kpis').select('id,name_ar,kpi_type,frequency,target_value,unit,baseline_value,description,node_id'),
-        supabase.from('kpi_readings').select('kpi_id,actual_value,reading_date').order('reading_date',{ascending:false}),
+        supabase.from('tasks').select('id,name_ar,description,status,task_type,priority,start_date,end_date,rating,node_id,created_at').limit(2000),
+        supabase.from('tasks').select('id,assigned_to_user_id,assigned_to_team_id,reviewer_id').limit(2000),
+        supabase.from('plans').select('id,name_ar,academic_year,level_names,level_count').limit(100),
+        supabase.from('plan_nodes').select('id,plan_id,parent_id,name_ar,level_num,order_num').order('order_num').limit(2000),
+        supabase.from('profiles').select('id,name_ar,department,role').limit(500),
+        supabase.from('kpis').select('id,name_ar,kpi_type,frequency,target_value,unit,baseline_value,description,node_id').limit(500),
+        supabase.from('kpi_readings').select('kpi_id,actual_value,reading_date').order('reading_date',{ascending:false}).limit(2000),
       ])
 
       /* دمج بيانات التكليف */
