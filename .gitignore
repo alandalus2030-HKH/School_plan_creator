@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ملفات Office (لا ترفع للـ repo)
+*.docx
+*.xlsx
+*.xls
+*.pptx
+~$*

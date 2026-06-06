@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
+import { requireAuth } from '@/lib/supabase/server'
 
 const KPI_TYPE_LABEL: Record<string, string> = {
   impact:  'الأثر البعيد — تغيير حقيقي في الواقع التعليمي',
@@ -14,6 +15,10 @@ const KPI_FREQ_LABEL: Record<string, string> = {
 }
 
 export async function POST(req: NextRequest) {
+  /* ── التحقق من هوية المُستدعي أولاً ── */
+  const auth = await requireAuth()
+  if (auth instanceof NextResponse) return auth
+
   try {
     const { nodeName, planName, levelName, kpiType, frequency, existingKpis } = await req.json()
 

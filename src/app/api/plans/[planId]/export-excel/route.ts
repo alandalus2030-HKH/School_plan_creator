@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import ExcelJS from 'exceljs'
+import { requireAuth } from '@/lib/supabase/server'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,6 +23,10 @@ export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ planId: string }> }
 ) {
+  /* ── التحقق من هوية المُستدعي أولاً ── */
+  const auth = await requireAuth()
+  if (auth instanceof NextResponse) return auth
+
   const { planId } = await context.params
 
   /* ── جلب الخطة ── */

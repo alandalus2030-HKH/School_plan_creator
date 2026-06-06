@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
+  /* ── التحقق من هوية المُستدعي أولاً ── */
+  const auth = await requireAuth()
+  if (auth instanceof NextResponse) return auth
+
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceKey) {
     return NextResponse.json(
