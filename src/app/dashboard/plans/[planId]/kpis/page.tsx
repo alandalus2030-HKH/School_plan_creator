@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { BarChart3 } from 'lucide-react'
 
 /* ── أنواع البيانات ── */
 type Kpi = {
@@ -525,7 +526,7 @@ export default function KpiDashboardPage() {
       {/* ── محتوى الصفحة ── */}
       {kpis.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
-          <p className="text-5xl mb-4">📊</p>
+          <div className="flex justify-center mb-4" style={{ color: 'var(--maroon-300)' }}><BarChart3 size={48} /></div>
           <p className="text-slate-600 font-semibold text-lg">لا توجد مؤشرات أداء بعد</p>
           <p className="text-slate-400 text-sm mt-2">أضف مؤشرات من صفحات الأهداف والمبادرات</p>
           <Link href={`/dashboard/plans/${planId}`}

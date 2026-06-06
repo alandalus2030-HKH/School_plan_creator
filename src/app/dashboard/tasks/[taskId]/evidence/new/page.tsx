@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
+import { FileText, FolderOpen } from 'lucide-react'
 import Link from 'next/link'
 
 export default function NewEvidencePage() {
@@ -110,13 +111,13 @@ export default function NewEvidencePage() {
                 <img src={preview} alt="معاينة" className="max-h-32 mx-auto rounded-lg" />
               ) : file ? (
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-4xl">📄</span>
+                  <FileText size={40} style={{ color: 'var(--maroon-400)', margin: '0 auto' }} />
                   <p className="text-sm text-slate-600 font-medium">{file.name}</p>
                   <p className="text-xs text-slate-400">{(file.size / 1024).toFixed(0)} KB</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-4xl">📁</span>
+                  <FolderOpen size={40} style={{ color: 'var(--maroon-300)', margin: '0 auto' }} />
                   <p className="text-sm text-slate-500">اضغط لاختيار ملف</p>
                   <p className="text-xs text-slate-400">PDF, صور, Word, Excel …</p>
                 </div>

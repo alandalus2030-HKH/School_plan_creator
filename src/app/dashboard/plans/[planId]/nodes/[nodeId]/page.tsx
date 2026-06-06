@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { calcNodeRating } from '@/lib/rating'
+import { FolderOpen } from 'lucide-react'
 
 /* كلاسات التقييم كنصوص ثابتة لضمان إدراجها في CSS */
 function ratingBadgeClass(avg: number): { label: string; icon: string; cls: string } {
@@ -1026,7 +1027,7 @@ export default function NodePage() {
           ))
         ) : (
           <div className="text-center py-8 text-slate-400">
-            <p className="text-3xl mb-2">📂</p>
+            <FolderOpen size={36} className="mx-auto mb-2" style={{ color: 'var(--maroon-300)' }} />
             <p className="text-sm">لا يوجد محتوى بعد</p>
           </div>
         )}

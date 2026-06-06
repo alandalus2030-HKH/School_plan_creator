@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Eye, Archive, ClipboardList } from 'lucide-react'
+import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -99,7 +99,7 @@ export default function PlansPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">📁</span>
+            <FolderOpen size={24} style={{ color: 'var(--maroon-400)', flexShrink: 0 }} />
             <div>
               <p className="font-bold text-slate-800 text-sm">العام الدراسي</p>
               <p className="text-xs text-slate-400">اختر العام لعرض خططه</p>
@@ -223,7 +223,7 @@ export default function PlansPage() {
                     <Link href={`/dashboard/plans/${plan.id}`}
                       className="flex items-center justify-between p-4 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 transition-colors group">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">📋</span>
+                        <Map size={20} style={{ color: 'var(--maroon-600)', flexShrink: 0 }} />
                         <div>
                           <p className="font-semibold text-violet-700">فتح الخطة والهيكل الهرمي</p>
                           <p className="text-xs text-violet-400 mt-0.5">
@@ -266,7 +266,7 @@ export default function PlansPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
           onClick={() => setConfirmDel(null)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <div className="text-4xl text-center mb-3">⚠️</div>
+            <div className="flex justify-center mb-3"><AlertTriangle size={40} style={{ color: 'var(--maroon-600)' }} /></div>
             <h3 className="text-lg font-bold text-slate-800 text-center mb-2">حذف الخطة نهائياً</h3>
             <p className="text-slate-500 text-sm text-center mb-5">
               سيتم حذف الخطة وجميع محاورها ومبادراتها وأهدافها ومهامها بشكل نهائي لا يمكن التراجع عنه.

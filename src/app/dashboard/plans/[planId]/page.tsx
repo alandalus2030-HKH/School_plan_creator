@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
+import { ClipboardList, AlertTriangle } from 'lucide-react'
 
 /* كلاسات التقييم كنصوص ثابتة */
 function ratingBadgeClass(avg: number): { label: string; icon: string; cls: string } {
@@ -728,7 +729,7 @@ export default function PlanOverviewPage() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-            <p className="text-3xl mb-3">📋</p>
+            <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><ClipboardList size={36} /></div>
             <p className="text-slate-500 font-medium">لا يوجد {level1Name} بعد</p>
             <button onClick={() => setAdding(true)} className="mt-4 text-sm text-violet-600 hover:underline">
               ➕ إضافة أول {level1Name}
@@ -970,7 +971,7 @@ export default function PlanOverviewPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
           onClick={() => setConfirmDelPlan(false)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <div className="text-4xl text-center mb-3">⚠️</div>
+            <div className="flex justify-center mb-3"><AlertTriangle size={40} style={{ color: 'var(--maroon-600)' }} /></div>
             <h3 className="text-lg font-bold text-slate-800 text-center mb-2">حذف الخطة نهائياً</h3>
             <p className="text-slate-500 text-sm text-center mb-5">
               سيتم حذف "<strong>{plan.name_ar}</strong>" وجميع هيكلها ومهامها بشكل نهائي لا يمكن التراجع عنه.

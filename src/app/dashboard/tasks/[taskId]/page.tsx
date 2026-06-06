@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
+import { BookOpen, Archive, Pin, Folder, Lock } from 'lucide-react'
 
 /* ══ تعريف كلاسات التقييم كنصوص كاملة حتى يتعرف عليها Tailwind ══
    (يجب أن تكون هنا وليس في ملف خارجي لضمان إدراجها في CSS) */
@@ -55,7 +56,12 @@ const RATING_INFO: Record<number, {
   },
 }
 
-const typeIcon: Record<string, string> = { academic: '📚', administrative: '🗃️', general: '📌' }
+function TaskTypeIcon({ type }: { type: string }) {
+  const s = { size: 28, style: { color: 'var(--maroon-400)', flexShrink: 0 } as any }
+  if (type === 'academic')       return <BookOpen {...s} />
+  if (type === 'administrative') return <Archive  {...s} />
+  return <Pin {...s} />
+}
 const typeAr:   Record<string, string> = { academic: 'أكاديمية', administrative: 'إدارية', general: 'عامة' }
 const statusList = [
   { value: 'not_started', label: 'لم تبدأ',  ring: 'ring-slate-400',  bg: 'bg-slate-100  text-slate-700  border-slate-200  hover:bg-slate-200'  },
@@ -465,7 +471,7 @@ export default function TaskPage() {
         <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white p-5">
           {!editing ? (
             <div className="flex items-start gap-3">
-              <span className="text-3xl flex-shrink-0">{typeIcon[task.task_type] || '📌'}</span>
+              <TaskTypeIcon type={task.task_type} />
               <div className="flex-1 min-w-0">
                 {taskNum && (
                   <div className="flex items-center gap-2 mb-2">
@@ -803,7 +809,7 @@ export default function TaskPage() {
           </div>
         ) : (
           <div className="text-center py-6">
-            <p className="text-3xl mb-2">📂</p>
+            <Folder size={36} className="mx-auto mb-2" style={{ color: 'var(--maroon-300)' }} />
             <p className="text-sm text-slate-400">لا توجد أدلة مرفقة بعد</p>
           </div>
         )}
@@ -966,7 +972,7 @@ export default function TaskPage() {
         {/* رسالة لغير المخوّلين */}
         {!canRate && !task.rating && (
           <div className="text-center py-4 text-slate-400">
-            <p className="text-2xl mb-1">🔒</p>
+            <Lock size={24} className="mx-auto mb-1" style={{ color: 'var(--maroon-300)' }} />
             <p className="text-sm">لم يتم التقييم بعد — بانتظار المقيّم المعيّن</p>
           </div>
         )}
