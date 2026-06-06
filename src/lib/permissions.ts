@@ -12,6 +12,7 @@ export const ALL_PERMISSIONS = [
   { code: 'manage_settings',       label: 'إدارة الإعدادات',       icon: '⚙️' },
   { code: 'manage_roles',          label: 'إدارة الأدوار',         icon: '👑' },
   { code: 'receive_notifications', label: 'استقبال الإشعارات',     icon: '🔔' },
+  { code: 'rate_tasks',            label: 'تقييم المهام',          icon: '⭐' },
 ] as const
 
 export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']
@@ -24,7 +25,7 @@ export function hasPermission(
   return permissions.includes('all') || permissions.includes(permission)
 }
 
-/** ألوان الشارات الافتراضية (يمكن استبدالها بألوان الدور) */
+/** ألوان الشارات الافتراضية */
 export const ROLE_BADGE_COLORS: Record<string, string> = {
   super_admin:  'bg-violet-100 text-violet-700',
   school_admin: 'bg-indigo-100 text-indigo-700',
@@ -34,6 +35,6 @@ export const ROLE_BADGE_COLORS: Record<string, string> = {
 }
 
 export const ROLE_COLORS_PALETTE = [
-  '#7c3aed', '#2563eb', '#0891b2', '#059669',
-  '#d97706', '#dc2626', '#db2777', '#4f46e5', '#6b7280',
+  '#8a1538', '#6f1029', '#a83356', '#c25c74',
+  '#d98ea0', '#5a0d22', '#46091a', '#2563eb', '#6b7280',
 ]

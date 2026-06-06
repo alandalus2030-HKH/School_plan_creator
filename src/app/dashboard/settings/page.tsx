@@ -3,17 +3,20 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE } from '@/lib/permissions'
-import { Bell, Crown } from 'lucide-react'
+import {
+  Bell, Crown, Briefcase, BookOpen, GraduationCap,
+  Globe, Heart, ClipboardList, MessageCircle, Users,
+} from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
 /* ══════════════════════ فئات القوائم المنسدلة ══════════════════════ */
 const CATEGORIES = [
-  { key: 'job_title',       label: 'المسمى الوظيفي',   icon: '💼', desc: 'الوظائف والمسميات الوظيفية' },
-  { key: 'department',      label: 'القسم / المادة',     icon: '📚', desc: 'الأقسام والمواد الدراسية' },
-  { key: 'education_level', label: 'المؤهل العلمي',      icon: '🎓', desc: 'مستويات التأهيل الأكاديمي' },
-  { key: 'nationality',     label: 'الجنسية',            icon: '🌍', desc: 'قائمة الجنسيات' },
-  { key: 'marital_status',  label: 'الحالة الاجتماعية', icon: '👫', desc: 'الحالات الاجتماعية' },
+  { key: 'job_title',       label: 'المسمى الوظيفي',   Icon: Briefcase,      desc: 'الوظائف والمسميات الوظيفية' },
+  { key: 'department',      label: 'القسم / المادة',     Icon: BookOpen,       desc: 'الأقسام والمواد الدراسية'   },
+  { key: 'education_level', label: 'المؤهل العلمي',      Icon: GraduationCap,  desc: 'مستويات التأهيل الأكاديمي' },
+  { key: 'nationality',     label: 'الجنسية',            Icon: Globe,          desc: 'قائمة الجنسيات'             },
+  { key: 'marital_status',  label: 'الحالة الاجتماعية', Icon: Heart,          desc: 'الحالات الاجتماعية'         },
 ]
 
 type Option = { id: string; category: string; value: string; sort_order: number; is_active: boolean }
@@ -233,7 +236,7 @@ export default function SettingsPage() {
                   ${active
                     ? 'bg-violet-600 text-white shadow-lg shadow-violet-200'
                     : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}>
-                <span className="text-xl flex-shrink-0">{cat.icon}</span>
+                <cat.Icon size={18} className="flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-semibold truncate ${active ? 'text-white' : 'text-slate-700'}`}>{cat.label}</p>
                 </div>
@@ -257,7 +260,7 @@ export default function SettingsPage() {
               ${isRoles
                 ? 'bg-amber-500 text-white shadow-lg shadow-amber-200'
                 : 'bg-white border border-slate-200 text-slate-700 hover:border-amber-200 hover:bg-amber-50'}`}>
-            <span className="text-xl flex-shrink-0">👑</span>
+            <Crown size={18} className="flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-semibold truncate ${isRoles ? 'text-white' : 'text-slate-700'}`}>الأدوار والصلاحيات</p>
             </div>
@@ -279,7 +282,7 @@ export default function SettingsPage() {
               ${activeCat === '__notifications__'
                 ? 'bg-violet-600 text-white shadow-lg shadow-violet-200'
                 : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}>
-            <span className="text-xl flex-shrink-0">📢</span>
+            <Bell size={18} className="flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-semibold truncate ${activeCat === '__notifications__' ? 'text-white' : 'text-slate-700'}`}>إرسال إشعار</p>
             </div>
@@ -309,9 +312,9 @@ export default function SettingsPage() {
                   {/* أزرار الاختيار السريع */}
                   <div className="flex gap-2 mb-3">
                     {([
-                      { value: 'me',       label: '📱 أنا فقط'           },
-                      { value: 'all',      label: '📢 جميع المستخدمين'   },
-                      { value: 'selected', label: '👥 مستخدمون محددون'   },
+                      { value: 'me',       label: 'أنا فقط'           },
+                      { value: 'all',      label: 'جميع المستخدمين'   },
+                      { value: 'selected', label: 'مستخدمون محددون'   },
                     ] as const).map(opt => (
                       <button key={opt.value} type="button"
                         onClick={() => { setNotifRecipient(opt.value); setNotifSelectedUsers([]) }}
@@ -375,12 +378,12 @@ export default function SettingsPage() {
                   <label className="block text-sm font-semibold text-slate-700 mb-2">النوع</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { value: 'system',        label: '🔔 نظام'      },
-                      { value: 'task_assigned', label: '📋 مهمة'      },
-                      { value: 'badge_earned',  label: '🏅 وسام'      },
-                      { value: 'plan_updated',  label: '📝 خطة'       },
-                      { value: 'task_overdue',  label: '🚨 تأخير'     },
-                      { value: 'task_comment',  label: '💬 تعليق'     },
+                      { value: 'system',        label: 'نظام'    },
+                      { value: 'task_assigned', label: 'مهمة'    },
+                      { value: 'badge_earned',  label: 'وسام'    },
+                      { value: 'plan_updated',  label: 'خطة'     },
+                      { value: 'task_overdue',  label: 'تأخير'   },
+                      { value: 'task_comment',  label: 'تعليق'   },
                     ].map(t => (
                       <button key={t.value} type="button"
                         onClick={() => setNotifType(t.value)}
@@ -489,14 +492,14 @@ export default function SettingsPage() {
                             {/* الصلاحيات */}
                             <div className="flex flex-wrap gap-1.5">
                               {role.permissions.includes('all') ? (
-                                <span className="text-xs bg-violet-100 text-violet-700 px-2.5 py-1 rounded-full font-medium">🔓 كل الصلاحيات</span>
+                                <span className="text-xs bg-violet-100 text-violet-700 px-2.5 py-1 rounded-full font-medium">كل الصلاحيات</span>
                               ) : role.permissions.length === 0 ? (
                                 <span className="text-xs text-slate-400 italic">لا توجد صلاحيات</span>
                               ) : role.permissions.map(p => {
                                 const info = ALL_PERMISSIONS.find(x => x.code === p)
                                 return info ? (
                                   <span key={p} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                                    {info.icon} {info.label}
+                                    {info.label}
                                   </span>
                                 ) : null
                               })}
@@ -521,11 +524,13 @@ export default function SettingsPage() {
 
               {/* بطاقة شرح الصلاحيات */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                <h4 className="font-bold text-slate-700 mb-3 text-sm">📋 قائمة الصلاحيات المتاحة في النظام</h4>
+                <h4 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                  <ClipboardList size={14} style={{ color: 'var(--maroon-600)' }} /> قائمة الصلاحيات المتاحة في النظام
+                </h4>
                 <div className="grid grid-cols-2 gap-2">
                   {ALL_PERMISSIONS.map(p => (
                     <div key={p.code} className="flex items-center gap-3 text-sm bg-slate-50 px-3 py-2.5 rounded-xl">
-                      <span className="text-lg">{p.icon}</span>
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--maroon-400)' }} />
                       <div>
                         <p className="font-medium text-xs text-slate-700">{p.label}</p>
                         <p className="text-xs text-slate-400 font-mono mt-0.5">{p.code}</p>
@@ -543,7 +548,7 @@ export default function SettingsPage() {
               {/* رأس الفئة */}
               <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-l from-violet-50 to-white">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{activeCatInfo.icon}</span>
+                  <activeCatInfo.Icon size={28} style={{ color: 'var(--maroon-600)', flexShrink: 0 }} />
                   <div>
                     <h3 className="font-bold text-slate-800">{activeCatInfo.label}</h3>
                     <p className="text-xs text-slate-400">{activeCatInfo.desc} · {catOptions.length} بند</p>
@@ -691,7 +696,6 @@ export default function SettingsPage() {
                         <input type="checkbox" checked={roleFormPerms.includes(p.code)}
                           onChange={() => togglePerm(p.code)}
                           className="w-4 h-4 accent-amber-500 flex-shrink-0" />
-                        <span className="text-lg">{p.icon}</span>
                         <div>
                           <p className="text-sm font-medium text-slate-700">{p.label}</p>
                           <p className="text-xs text-slate-400 font-mono">{p.code}</p>

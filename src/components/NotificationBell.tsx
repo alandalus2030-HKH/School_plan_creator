@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { NOTIF_ICONS, NOTIF_LABELS, timeAgo } from '@/lib/notifications'
+import { Bell } from 'lucide-react'
 
 type Notif = {
   id:         string
@@ -105,7 +106,7 @@ export default function NotificationBell() {
         className="relative p-2 text-slate-500 hover:text-violet-700 hover:bg-violet-50 rounded-full transition-colors"
         title="الإشعارات"
       >
-        <span className="text-xl">🔔</span>
+        <Bell size={20} />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white
                            text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
@@ -144,7 +145,7 @@ export default function NotificationBell() {
 
             {notifs.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-3xl mb-2">🔔</p>
+                <Bell size={32} className="mx-auto mb-2 opacity-30" />
                 <p className="text-slate-400 text-sm">لا توجد إشعارات</p>
               </div>
             ) : (
