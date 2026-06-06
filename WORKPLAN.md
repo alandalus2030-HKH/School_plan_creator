@@ -65,17 +65,19 @@
 
 ---
 
-### اليوم 2 — الاثنين | حماية API Routes
+### اليوم 2 — الاثنين | حماية API Routes ✅ 2026-06-06
 **الوقت المقدر:** 3-4 ساعات
 **الأثر:** 🔴 حرج — يمكن تجاوز الصلاحيات بـ Postman
 
 **المهام:**
-- [ ] إضافة دالة مساعدة `requireAuth()` في `src/lib/supabase/server.ts`
-- [ ] تطبيقها في route.ts الأهم أولاً:
-  - `src/app/api/users/create/route.ts`
-  - `src/app/api/invite/route.ts`
-  - `src/app/api/plans/[planId]/export-excel/route.ts`
-- [ ] `npm run build` + push
+- [x] إضافة دالة مساعدة `requireAuth()` في `src/lib/supabase/server.ts`
+- [x] تطبيقها على 4 routes كانت مكشوفة:
+  - `src/app/api/users/create/route.ts` ✓
+  - `src/app/api/invite/route.ts` ✓
+  - `src/app/api/plans/[planId]/export-excel/route.ts` ✓
+  - `src/app/api/kpis/generate/route.ts` ✓ (إضافي)
+- [x] إضافة *.docx لـ .gitignore + حذف الملفات المتسربة
+- [x] `npm run build` — نجح ✓ | commit: `c79db80`
 
 **نموذج الكود المطلوب:**
 ```typescript
@@ -1062,4 +1064,5 @@ teams, kpis, notifications, evidence
 |---------|-------|--------|-----------------|
 | 2026-06-06 | — | إصلاح شريط التقدم من بنفسجي لعنابي | `reports/page.tsx` |
 | 2026-06-06 | أسبوع 1 / يوم 1 | حذف debug endpoint + whitelist في create-user | `api/debug/` محذوف، `api/users/create/route.ts` |
+| 2026-06-06 | أسبوع 1 / يوم 2 | requireAuth() + حماية 4 API routes + تنظيف .gitignore | `server.ts`، `invite`، `export-excel`، `kpis/generate` |
 | | | | |
