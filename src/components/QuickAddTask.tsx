@@ -7,25 +7,54 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import { Plus, X, ChevronLeft } from 'lucide-react'
 import { toast } from '@/components/Toast'
 import { logActivity } from '@/lib/activity'
+import { createNotification } from '@/lib/notifications'
+
+/* تعبئة مسبقة عند الفتح برمجياً (مثلاً من الاجتماعات) */
+export type QuickAddPrefill = {
+  name?:    string
+  planId?:  string
+  source?:  string   // وصف اختياري يُضاف لوصف المهمة
+}
+
+let _openQuickAdd: ((prefill?: QuickAddPrefill) => void) | null = null
+
+/** افتح نافذة الإضافة السريعة من أي مكان مع تعبئة مسبقة */
+export function openQuickAdd(prefill?: QuickAddPrefill) {
+  _openQuickAdd?.(prefill)
+}
 
 /**
  * Quick Add Task — زر عائم لإنشاء مهمة سريعة من أي صفحة
- * يُشغَّل بالضغط على الزر أو بالاختصار N
+ * يُشغَّل بالضغط على الزر أو بالاختصار N أو برمجياً عبر openQuickAdd()
  */
 export default function QuickAddTask() {
   const supabase = createClient()
   const router   = useRouter()
-  const { userId, can } = usePermissions()
+  const { userId, userName, can } = usePermissions()
   const inputRef  = useRef<HTMLInputElement>(null)
 
-  const [open,    setOpen]    = useState(false)
-  const [name,    setName]    = useState('')
-  const [planId,  setPlanId]  = useState('')
-  const [nodeId,  setNodeId]  = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [saving,  setSaving]  = useState(false)
-  const [plans,   setPlans]   = useState<{ id: string; name_ar: string }[]>([])
-  const [nodes,   setNodes]   = useState<{ id: string; name_ar: string; level_num: number }[]>([])
+  const [open,     setOpen]     = useState(false)
+  const [name,     setName]     = useState('')
+  const [planId,   setPlanId]   = useState('')
+  const [nodeId,   setNodeId]   = useState('')
+  const [endDate,  setEndDate]  = useState('')
+  const [assignee, setAssignee] = useState('')
+  const [extraDesc, setExtraDesc] = useState('')   // وصف من المصدر (اجتماع مثلاً)
+  const [saving,   setSaving]   = useState(false)
+  const [plans,    setPlans]    = useState<{ id: string; name_ar: string }[]>([])
+  const [nodes,    setNodes]    = useState<{ id: string; name_ar: string; level_num: number }[]>([])
+  const [people,   setPeople]   = useState<{ id: string; name_ar: string }[]>([])
+
+  /* ── تسجيل المُشغّل البرمجي openQuickAdd() ── */
+  useEffect(() => {
+    _openQuickAdd = (prefill?: QuickAddPrefill) => {
+      setName(prefill?.name ?? '')
+      setPlanId(prefill?.planId ?? '')
+      setExtraDesc(prefill?.source ?? '')
+      setOpen(true)
+    }
+    return () => { _openQuickAdd = null }
+  }, [])
 
   /* ── اختصار لوحة المفاتيح: N ── */
   useEffect(() => {
@@ -50,18 +79,22 @@ export default function QuickAddTask() {
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50)
-      loadPlans()
+      loadData()
     } else {
-      setName(''); setPlanId(''); setNodeId(''); setEndDate('')
+      setName(''); setPlanId(''); setNodeId(''); setEndDate(''); setAssignee(''); setExtraDesc('')
     }
   }, [open])
 
-  /* ── تحميل الخطط ── */
-  const loadPlans = async () => {
-    const { data } = await supabase
-      .from('plans').select('id, name_ar')
-      .eq('is_archived', false).limit(50).order('created_at', { ascending: false })
-    setPlans(data || [])
+  /* ── تحميل الخطط + الأشخاص ── */
+  const loadData = async () => {
+    const [{ data: pl }, { data: pr }] = await Promise.all([
+      supabase.from('plans').select('id, name_ar')
+        .eq('is_archived', false).limit(50).order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, name_ar')
+        .eq('is_active', true).order('name_ar').limit(500),
+    ])
+    setPlans(pl || [])
+    setPeople(pr || [])
   }
 
   /* ── تحميل العقد عند اختيار خطة ── */
@@ -79,25 +112,35 @@ export default function QuickAddTask() {
   const handleSave = async () => {
     if (!name.trim()) return
     setSaving(true)
-    const { error } = await supabase.from('tasks').insert({
+    const assignedTo = assignee || userId || null
+    const { data, error } = await supabase.from('tasks').insert({
       name_ar:             name.trim(),
+      description:         extraDesc || null,
       status:              'not_started',
       priority:            'medium',
       task_type:           'general',
       node_id:             nodeId || null,
       end_date:            endDate || null,
-      assigned_to_user_id: userId || null,
+      assigned_to_user_id: assignedTo,
       created_by:          userId || null,
       order_num:           1,
-    })
+    }).select('id').single()
     setSaving(false)
     if (error) { toast('حدث خطأ أثناء الإنشاء', 'error'); return }
     toast(`✓ تم إنشاء "${name.trim()}"`)
-    logActivity({
-      action:    'task_created',
-      tableName: 'tasks',
-      summary:   name.trim(),
-    })
+    logActivity({ action: 'task_created', tableName: 'tasks', summary: name.trim() })
+
+    /* إشعار المكلَّف إن كان غير المُنشئ */
+    if (assignedTo && assignedTo !== userId) {
+      createNotification({
+        recipientId: assignedTo,
+        senderId:    userId,
+        type:        'task_assigned',
+        title:       `كُلِّفت بمهمة جديدة من ${userName || 'مستخدم'}`,
+        body:        name.trim(),
+        link:        data?.id ? `/dashboard/tasks/${data.id}` : '/dashboard/my-tasks',
+      })
+    }
     setOpen(false)
   }
 
@@ -173,15 +216,23 @@ export default function QuickAddTask() {
               </select>
             </div>
 
-            {/* الموعد النهائي */}
-            <input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-violet-300"
-              style={{ direction: 'ltr' }}
-            />
+            {/* المكلَّف + الموعد النهائي */}
+            <div className="grid grid-cols-2 gap-3">
+              <select value={assignee} onChange={e => setAssignee(e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white">
+                <option value="">المكلَّف (أنا)</option>
+                {people.map(p => <option key={p.id} value={p.id}>{p.name_ar}</option>)}
+              </select>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-violet-300"
+                style={{ direction: 'ltr' }}
+              />
+            </div>
 
             {/* الأزرار */}
             <div className="flex gap-2 pt-1">

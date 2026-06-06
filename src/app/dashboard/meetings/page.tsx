@@ -7,6 +7,7 @@ import { createNotification } from '@/lib/notifications'
 import { CalendarDays, CalendarClock, CalendarCheck, UserRound,
   AlertTriangle, Inbox, Video, Briefcase, Link2, Monitor,
   Map, CircleCheckBig, Plus, Pencil, Trash2 } from 'lucide-react'
+import { openQuickAdd } from '@/components/QuickAddTask'
 import type { Plan, Team, TeamMember, Meeting } from '@/lib/types'
 
 /* ══════════════════ ثوابت ══════════════════ */
@@ -266,47 +267,16 @@ export default function MeetingsPage() {
     await load()
   }
 
-  /* ════ إنشاء مهمة من قرار الاجتماع ════ */
-  const createTaskFromMeeting = async (m: any) => {
-    const name = window.prompt('اسم المهمة المستخرجة من قرار الاجتماع:', '')
-    if (!name || !name.trim()) return
-
-    /* أوجد عقدة من خطة الاجتماع لربط المهمة بها */
-    let nodeId: string | null = null
-    if (m.plan_id) {
-      const { data: node } = await supabase
-        .from('plan_nodes').select('id').eq('plan_id', m.plan_id)
-        .order('order_num').limit(1).maybeSingle()
-      nodeId = node?.id ?? null
-    }
-
-    const { error } = await supabase.from('tasks').insert({
-      name_ar:     name.trim(),
-      description: `مستخرجة من اجتماع: ${m.title}`,
-      status:      'not_started',
-      priority:    'medium',
-      task_type:   'general',
-      node_id:     nodeId,
-      created_by:  userId || null,
-      order_num:   1,
+  /* ════ إنشاء مهمة من قرار الاجتماع ════
+     يفتح نافذة الإضافة السريعة مع تعبئة مسبقة
+     (اسم + خطة الاجتماع + المصدر) ليكمل المستخدم
+     المكلَّف والموعد قبل الحفظ */
+  const createTaskFromMeeting = (m: any) => {
+    openQuickAdd({
+      name:   '',
+      planId: m.plan_id || '',
+      source: `قرار من اجتماع: ${m.title}`,
     })
-
-    if (error) { alert('تعذّر إنشاء المهمة: ' + error.message); return }
-
-    /* إشعار الحاضرين */
-    const attendees: string[] = Array.isArray(m.attendees) ? m.attendees : []
-    for (const uid of attendees) {
-      if (uid === userId) continue
-      createNotification({
-        recipientId: uid,
-        senderId:    userId,
-        type:        'task_assigned',
-        title:       `مهمة جديدة من اجتماع "${m.title}"`,
-        body:        name.trim(),
-        link:        '/dashboard/tasks',
-      })
-    }
-    alert('تم إنشاء المهمة بنجاح ✓')
   }
 
   /* ════ حذف ════ */
