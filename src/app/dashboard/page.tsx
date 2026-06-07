@@ -7,6 +7,15 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  /* ── مالك المجموعة → لوحة المجموعة مباشرةً ── */
+  let redirectToGroup = false
+  try {
+    const { data: gp } = await supabase
+      .from('profiles').select('is_group_owner, is_super_admin').eq('id', user.id).single()
+    if (gp?.is_group_owner && !gp?.is_super_admin) redirectToGroup = true
+  } catch { /* تجاهل */ }
+  if (redirectToGroup) redirect('/dashboard/group')
+
   /* ── تحقق من الصلاحيات ── */
   let redirectToMyTasks = false
   try {

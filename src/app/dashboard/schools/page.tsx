@@ -6,9 +6,10 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
   Building2, Plus, Users, Map, X, Loader2, Pencil, Trash2,
-  Power, PowerOff, BarChart3, List,
+  Power, PowerOff, BarChart3, List, Layers,
 } from 'lucide-react'
 import SchoolsOverview from '@/components/SchoolsOverview'
+import GroupsManager from '@/components/GroupsManager'
 
 type School = {
   id:           string
@@ -26,7 +27,7 @@ export default function SchoolsPage() {
 
   const [schools, setSchools] = useState<School[]>([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'manage' | 'overview'>('manage')
+  const [view, setView] = useState<'manage' | 'overview' | 'groups'>('manage')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -181,10 +182,18 @@ export default function SchoolsPage() {
             ${view === 'overview' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <BarChart3 size={14} /> نظرة إجمالية
         </button>
+        <button onClick={() => setView('groups')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5
+            ${view === 'groups' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Layers size={14} /> المجموعات
+        </button>
       </div>
 
       {/* عرض النظرة الإجمالية */}
       {view === 'overview' && <SchoolsOverview />}
+
+      {/* عرض المجموعات */}
+      {view === 'groups' && <GroupsManager />}
 
       {/* ════ عرض الإدارة ════ */}
       {view === 'manage' && (<>

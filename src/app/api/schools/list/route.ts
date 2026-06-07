@@ -22,7 +22,7 @@ export async function GET() {
 
   /* ── جلب المدارس + الإحصائيات ── */
   const [{ data: schools }, { data: profiles }, { data: plans }] = await Promise.all([
-    admin.from('schools').select('id, name_ar, name_en, is_active, created_at').order('created_at'),
+    admin.from('schools').select('id, name_ar, name_en, is_active, group_id, created_at').order('created_at'),
     admin.from('profiles').select('school_id, is_active'),
     admin.from('plans').select('school_id').is('deleted_at', null),
   ])

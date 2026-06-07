@@ -8,11 +8,12 @@ import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
-  Contact, ChevronRight, ChevronLeft, Building2,
+  Contact, ChevronRight, ChevronLeft, Building2, Layers,
 } from 'lucide-react'
 import Logo from './Logo'
 
 const NAV_ITEMS = [
+  { href: '/dashboard/group',     Icon: Layers,          ar: 'نظرة المجموعة', en: 'Group',      perm: 'group_owner'      },
   { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: null               },
   { href: '/dashboard/my-tasks',  Icon: ClipboardList,   ar: 'مهامي',         en: 'My Tasks',   perm: 'self'             },
   { href: '/dashboard/plans',     Icon: Map,             ar: 'الخطط',         en: 'Plans',      perm: 'manage_plans'     },
@@ -35,7 +36,7 @@ interface SidebarProps {
 
 export default function Sidebar({ lang, collapsed = false, onToggle, schoolName }: SidebarProps) {
   const pathname = usePathname()
-  const { can, loading, userName, userEmail, userId, isSuperAdmin, schoolName: ctxSchoolName } = usePermissions()
+  const { can, loading, userName, userEmail, userId, isSuperAdmin, isGroupOwner, schoolName: ctxSchoolName } = usePermissions()
   const isRtl = lang === 'ar'
   const supabase = createClient()
 
@@ -58,10 +59,15 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
   }, [userId])
 
   const visibleNav = NAV_ITEMS.filter(item => {
-    if (loading)               return item.perm === null || item.perm === 'self'
-    if (item.perm === null)    return true
-    if (item.perm === 'self')  return true
-    if (item.perm === 'super') return isSuperAdmin   // إدارة المدارس لمشرف النظام فقط
+    /* مالك المجموعة (غير المشرف): يرى نظرة المجموعة + ملفه الشخصي فقط */
+    if (isGroupOwner && !isSuperAdmin) {
+      return item.perm === 'group_owner' || item.perm === 'self'
+    }
+    if (loading)                  return item.perm === null || item.perm === 'self'
+    if (item.perm === 'group_owner') return false      // يظهر لمالك المجموعة فقط
+    if (item.perm === null)       return true
+    if (item.perm === 'self')     return true
+    if (item.perm === 'super')    return isSuperAdmin
     return can(item.perm)
   })
 
