@@ -60,9 +60,10 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
   }, [userId])
 
   const visibleNav = NAV_ITEMS.filter(item => {
-    /* مالك المجموعة (غير المشرف): يرى نظرة المجموعة + ملفه الشخصي فقط */
+    /* مالك المجموعة (غير المشرف): نظرة المجموعة + ملفه الشخصي فقط
+       (لا "مهامي" — فهو بلا مدرسة ولا مهام) */
     if (isGroupOwner && !isSuperAdmin) {
-      return item.perm === 'group_owner' || item.perm === 'self'
+      return item.perm === 'group_owner' || item.href === '/dashboard/profile'
     }
     if (loading)                  return item.perm === null || item.perm === 'self'
     if (item.perm === 'group_owner') return false      // يظهر لمالك المجموعة فقط
