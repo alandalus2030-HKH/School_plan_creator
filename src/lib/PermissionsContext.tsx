@@ -23,12 +23,17 @@ export type PermsCtx = {
   isSuperAdmin: boolean
   /** اسم مدرسة المستخدم */
   schoolName:  string
+  /** هل مالك مجموعة مدارس؟ */
+  isGroupOwner: boolean
+  /** معرّف المجموعة المملوكة (لمالك المجموعة) */
+  ownedGroupId: string
 }
 
 const PermCtx = createContext<PermsCtx>({
   userId: '', userName: '', userEmail: '', role: '',
   permissions: [], loading: true,
   can: () => false, isFullAdmin: false, isSuperAdmin: false, schoolName: '',
+  isGroupOwner: false, ownedGroupId: '',
 })
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
@@ -40,6 +45,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [loading,     setLoading]     = useState(true)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [schoolName,  setSchoolName]  = useState('')
+  const [isGroupOwner, setIsGroupOwner] = useState(false)
+  const [ownedGroupId, setOwnedGroupId] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -51,13 +58,15 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, full_name_ar, name_ar, is_active, is_super_admin, school_id, schools(name_ar, is_active)')
+        .select('role, full_name_ar, name_ar, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, schools(name_ar, is_active)')
         .eq('id', user.id)
         .single()
 
       if (!profile) { setLoading(false); return }
 
       setIsSuperAdmin(profile.is_super_admin === true)
+      setIsGroupOwner((profile as any).is_group_owner === true)
+      setOwnedGroupId((profile as any).owned_group_id || '')
 
       /* ── اسم المدرسة للشريط الجانبي ── */
       const school = (profile as any).schools
@@ -108,6 +117,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   return (
     <PermCtx.Provider value={{
       userId, userName, userEmail, role, permissions, loading, can, isFullAdmin, isSuperAdmin, schoolName,
+      isGroupOwner, ownedGroupId,
     }}>
       {children}
     </PermCtx.Provider>
