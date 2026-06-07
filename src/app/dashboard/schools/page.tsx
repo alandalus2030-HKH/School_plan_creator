@@ -6,8 +6,9 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
   Building2, Plus, Users, Map, X, Loader2, Pencil, Trash2,
-  Power, PowerOff,
+  Power, PowerOff, BarChart3, List,
 } from 'lucide-react'
+import SchoolsOverview from '@/components/SchoolsOverview'
 
 type School = {
   id:           string
@@ -25,6 +26,7 @@ export default function SchoolsPage() {
 
   const [schools, setSchools] = useState<School[]>([])
   const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'manage' | 'overview'>('manage')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -158,12 +160,34 @@ export default function SchoolsPage() {
           </h2>
           <p className="text-slate-500 text-sm mt-1">إنشاء وإدارة المدارس المشتركة في النظام</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true) }}
-          className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
-          style={{ background: 'var(--gradient-button)' }}>
-          <Plus size={16} /> مدرسة جديدة
+        {view === 'manage' && (
+          <button onClick={() => { resetForm(); setShowForm(true) }}
+            className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
+            style={{ background: 'var(--gradient-button)' }}>
+            <Plus size={16} /> مدرسة جديدة
+          </button>
+        )}
+      </div>
+
+      {/* تبويبات */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
+        <button onClick={() => setView('manage')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5
+            ${view === 'manage' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <List size={14} /> الإدارة
+        </button>
+        <button onClick={() => setView('overview')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5
+            ${view === 'overview' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <BarChart3 size={14} /> نظرة إجمالية
         </button>
       </div>
+
+      {/* عرض النظرة الإجمالية */}
+      {view === 'overview' && <SchoolsOverview />}
+
+      {/* ════ عرض الإدارة ════ */}
+      {view === 'manage' && (<>
 
       {/* إحصائية */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -244,6 +268,8 @@ export default function SchoolsPage() {
           </table>
         </div>
       </div>
+
+      </>)}
 
       {/* نافذة الإنشاء */}
       {showForm && (
