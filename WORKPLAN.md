@@ -1107,4 +1107,6 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-08 | المرحلة 1 | لوحة المقارنة الإجمالية للمدارس (أرقام مُجمَّعة) | `api/schools/overview`, `SchoolsOverview.tsx` |
 | 2026-06-08 | المرحلة 2 | مجموعات المدارس + مالك مخصص + لوحة المالك | `migrations/013`, `api/groups/*`, `GroupsManager`, group/page |
 | 2026-06-08 | اجتماعات المجموعة | المالك يجدول اجتماعات مع مديري مدارسه | `migrations/014`, `api/groups/meetings`, group/meetings |
+| 2026-06-08 | المرحلة 3 | الدخول كمدرسة (تقمّص مؤقت + شريط + تدقيق) | `migrations/015,016`, `api/impersonate`, `ImpersonationBanner` |
+| 2026-06-08 | إصلاح | علاقة schools غامضة + توحيد كل RLS على my_school_id() | `migrations/016`, PermissionsContext |
 | | | | |
