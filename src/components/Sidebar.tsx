@@ -38,7 +38,8 @@ interface SidebarProps {
 export default function Sidebar({ lang, collapsed = false, onToggle, schoolName }: SidebarProps) {
   const pathname = usePathname()
   const { can, loading, userName, userEmail, userId, isSuperAdmin, isGroupOwner,
-    schoolName: ctxSchoolName, groupName, roleLabel } = usePermissions()
+    schoolName: ctxSchoolName, groupName, roleLabel,
+    impersonating, impersonatedSchool } = usePermissions()
   const isRtl = lang === 'ar'
   const supabase = createClient()
 
@@ -106,9 +107,11 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
         <Logo size={collapsed ? 32 : 40} />
         {!collapsed && (
           <span className="text-sm font-bold truncate">
-            {isGroupOwner
-              ? (groupName ? `مجموعة ${groupName}` : 'نظرة المجموعة')
-              : (ctxSchoolName || schoolName || (lang === 'ar' ? 'مدرستي' : 'My School'))}
+            {impersonating
+              ? (impersonatedSchool || 'مدرسة')
+              : isGroupOwner
+                ? (groupName ? `مجموعة ${groupName}` : 'نظرة المجموعة')
+                : (ctxSchoolName || schoolName || (lang === 'ar' ? 'مدرستي' : 'My School'))}
           </span>
         )}
       </div>
