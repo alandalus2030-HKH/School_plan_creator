@@ -27,13 +27,17 @@ export type PermsCtx = {
   isGroupOwner: boolean
   /** معرّف المجموعة المملوكة (لمالك المجموعة) */
   ownedGroupId: string
+  /** اسم المجموعة المملوكة */
+  groupName:   string
+  /** وصف دور المستخدم للعرض (مشرف النظام / مالك المجموعة / ...) */
+  roleLabel:   string
 }
 
 const PermCtx = createContext<PermsCtx>({
   userId: '', userName: '', userEmail: '', role: '',
   permissions: [], loading: true,
   can: () => false, isFullAdmin: false, isSuperAdmin: false, schoolName: '',
-  isGroupOwner: false, ownedGroupId: '',
+  isGroupOwner: false, ownedGroupId: '', groupName: '', roleLabel: '',
 })
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
@@ -47,6 +51,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [schoolName,  setSchoolName]  = useState('')
   const [isGroupOwner, setIsGroupOwner] = useState(false)
   const [ownedGroupId, setOwnedGroupId] = useState('')
+  const [groupName,    setGroupName]    = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -67,6 +72,14 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       setIsSuperAdmin(profile.is_super_admin === true)
       setIsGroupOwner((profile as any).is_group_owner === true)
       setOwnedGroupId((profile as any).owned_group_id || '')
+
+      /* اسم المجموعة لمالكها */
+      if ((profile as any).owned_group_id) {
+        const { data: grp } = await supabase
+          .from('school_groups').select('name_ar')
+          .eq('id', (profile as any).owned_group_id).single()
+        setGroupName(grp?.name_ar || '')
+      }
 
       /* ── اسم المدرسة للشريط الجانبي ── */
       const school = (profile as any).schools
@@ -114,10 +127,20 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
   const isFullAdmin = can('all')
 
+  /* وصف الدور للعرض */
+  const ROLE_NAMES: Record<string, string> = {
+    super_admin: 'مشرف النظام', school_admin: 'مدير المدرسة', admin: 'مدير',
+    coordinator: 'منسق الخطة', team_leader: 'قائد فريق', teacher: 'معلم', staff: 'موظف',
+  }
+  const roleLabel =
+    isSuperAdmin ? 'مشرف النظام' :
+    isGroupOwner ? 'مالك المجموعة' :
+    (ROLE_NAMES[role] || (can('all') ? 'مدير' : 'مستخدم'))
+
   return (
     <PermCtx.Provider value={{
       userId, userName, userEmail, role, permissions, loading, can, isFullAdmin, isSuperAdmin, schoolName,
-      isGroupOwner, ownedGroupId,
+      isGroupOwner, ownedGroupId, groupName, roleLabel,
     }}>
       {children}
     </PermCtx.Provider>

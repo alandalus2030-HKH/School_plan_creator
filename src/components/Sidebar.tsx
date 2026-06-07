@@ -36,7 +36,8 @@ interface SidebarProps {
 
 export default function Sidebar({ lang, collapsed = false, onToggle, schoolName }: SidebarProps) {
   const pathname = usePathname()
-  const { can, loading, userName, userEmail, userId, isSuperAdmin, isGroupOwner, schoolName: ctxSchoolName } = usePermissions()
+  const { can, loading, userName, userEmail, userId, isSuperAdmin, isGroupOwner,
+    schoolName: ctxSchoolName, groupName, roleLabel } = usePermissions()
   const isRtl = lang === 'ar'
   const supabase = createClient()
 
@@ -103,7 +104,9 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
         <Logo size={collapsed ? 32 : 40} />
         {!collapsed && (
           <span className="text-sm font-bold truncate">
-            {ctxSchoolName || schoolName || (lang === 'ar' ? 'مدرستي' : 'My School')}
+            {isGroupOwner
+              ? (groupName ? `مجموعة ${groupName}` : 'نظرة المجموعة')
+              : (ctxSchoolName || schoolName || (lang === 'ar' ? 'مدرستي' : 'My School'))}
           </span>
         )}
       </div>
@@ -159,8 +162,12 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
           </div>
           {!collapsed && (
             <div className="overflow-hidden flex-1">
-              <p className="text-xs font-semibold truncate font-latin">{userName || userEmail}</p>
-              <p className="text-xs text-white/50 truncate font-latin">{userEmail}</p>
+              <p className="text-xs font-semibold truncate">{userName || userEmail}</p>
+              {roleLabel && (
+                <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-white/15 text-white/90 mt-0.5">
+                  {roleLabel}
+                </span>
+              )}
             </div>
           )}
         </Link>
