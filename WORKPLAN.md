@@ -1100,4 +1100,11 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-07 | أسبوع 6 / ميزة 2 | Subtasks — خطوات فرعية | `Subtasks.tsx`, `migrations/008` |
 | 2026-06-07 | أسبوع 6 / ميزة 3 | Calendar View — عرض تقويمي | `TaskCalendar.tsx`, tasks/page |
 | 2026-06-07 | أسبوع 6 / ميزة 4 | ربط الاجتماعات بالمهام + محضر | `migrations/009`, meetings/page |
+| 2026-06-07 | أتمتة | Cron Jobs (تحديث المتأخرات + تذكير) + إشعار المراجع | `vercel.json`, `api/cron/*`, `lib/supabase/admin` |
+| 2026-06-07 | Onboarding | إنشاء/تعديل/تفعيل/حذف مدارس + مشرف نظام | `migrations/010,012`, `api/schools/*`, schools/page |
+| 2026-06-07 | أمان | إغلاق تسريبات العزل (profiles+meetings+...) | `migrations/011,011b` |
+| 2026-06-08 | معمارية | توثيق ARCHITECTURE.md (هرمية + 3 مراحل + impersonation) | `ARCHITECTURE.md` |
+| 2026-06-08 | المرحلة 1 | لوحة المقارنة الإجمالية للمدارس (أرقام مُجمَّعة) | `api/schools/overview`, `SchoolsOverview.tsx` |
+| 2026-06-08 | المرحلة 2 | مجموعات المدارس + مالك مخصص + لوحة المالك | `migrations/013`, `api/groups/*`, `GroupsManager`, group/page |
+| 2026-06-08 | اجتماعات المجموعة | المالك يجدول اجتماعات مع مديري مدارسه | `migrations/014`, `api/groups/meetings`, group/meetings |
 | | | | |
