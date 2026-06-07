@@ -8,6 +8,7 @@ import { PermissionsProvider } from '@/lib/PermissionsContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import ToastContainer  from '@/components/Toast'
 import QuickAddTask    from '@/components/QuickAddTask'
+import ImpersonationBanner from '@/components/ImpersonationBanner'
 
 const SIDEBAR_KEY = 'sidebar_collapsed'
 
@@ -57,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         <Sidebar lang={lang} collapsed={collapsed} onToggle={toggleSidebar} />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <ImpersonationBanner />
           <TopBar
             lang={lang}
             onLangChange={() => setLang(lang === 'ar' ? 'en' : 'ar')}

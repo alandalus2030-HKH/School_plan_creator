@@ -31,6 +31,10 @@ export type PermsCtx = {
   groupName:   string
   /** وصف دور المستخدم للعرض (مشرف النظام / مالك المجموعة / ...) */
   roleLabel:   string
+  /** هل المشرف يتقمّص مدرسة حالياً؟ */
+  impersonating:        boolean
+  /** اسم المدرسة المُتقمَّصة */
+  impersonatedSchool:   string
 }
 
 const PermCtx = createContext<PermsCtx>({
@@ -38,6 +42,7 @@ const PermCtx = createContext<PermsCtx>({
   permissions: [], loading: true,
   can: () => false, isFullAdmin: false, isSuperAdmin: false, schoolName: '',
   isGroupOwner: false, ownedGroupId: '', groupName: '', roleLabel: '',
+  impersonating: false, impersonatedSchool: '',
 })
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
@@ -52,6 +57,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [isGroupOwner, setIsGroupOwner] = useState(false)
   const [ownedGroupId, setOwnedGroupId] = useState('')
   const [groupName,    setGroupName]    = useState('')
+  const [impersonating, setImpersonating] = useState(false)
+  const [impersonatedSchool, setImpersonatedSchool] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -63,13 +70,22 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, full_name_ar, name_ar, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, schools(name_ar, is_active)')
+        .select('role, full_name_ar, name_ar, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, active_school_id, schools(name_ar, is_active)')
         .eq('id', user.id)
         .single()
 
       if (!profile) { setLoading(false); return }
 
       setIsSuperAdmin(profile.is_super_admin === true)
+
+      /* حالة التقمّص (مشرف يدخل كمدرسة) */
+      const activeSid = (profile as any).active_school_id
+      if (profile.is_super_admin === true && activeSid) {
+        setImpersonating(true)
+        const { data: imp } = await supabase
+          .from('schools').select('name_ar').eq('id', activeSid).single()
+        setImpersonatedSchool(imp?.name_ar || '')
+      }
       setIsGroupOwner((profile as any).is_group_owner === true)
       setOwnedGroupId((profile as any).owned_group_id || '')
 
@@ -140,7 +156,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   return (
     <PermCtx.Provider value={{
       userId, userName, userEmail, role, permissions, loading, can, isFullAdmin, isSuperAdmin, schoolName,
-      isGroupOwner, ownedGroupId, groupName, roleLabel,
+      isGroupOwner, ownedGroupId, groupName, roleLabel, impersonating, impersonatedSchool,
     }}>
       {children}
     </PermCtx.Provider>

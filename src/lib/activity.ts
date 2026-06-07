@@ -24,6 +24,8 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   plan_created:        'أنشأ خطة',
   plan_deleted:        'حذف خطة',
   node_created:        'أضاف عنصراً للخطة',
+  impersonate_enter:   'دخل كمدرسة',
+  impersonate_exit:    'خرج من تقمّص مدرسة',
 }
 
 type LogParams = {

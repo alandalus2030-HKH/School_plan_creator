@@ -6,7 +6,7 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
   Building2, Plus, Users, Map, X, Loader2, Pencil, Trash2,
-  Power, PowerOff, BarChart3, List, Layers,
+  Power, PowerOff, BarChart3, List, Layers, Eye,
 } from 'lucide-react'
 import SchoolsOverview from '@/components/SchoolsOverview'
 import GroupsManager from '@/components/GroupsManager'
@@ -52,6 +52,18 @@ export default function SchoolsPage() {
 
   const openEdit = (s: School) => {
     setEditSchool(s); setEditAr(s.name_ar); setEditEn(s.name_en || ''); setError('')
+  }
+
+  const enterAsSchool = async (s: School) => {
+    const res = await fetch('/api/impersonate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ school_id: s.id }),
+    })
+    if (res.ok) {
+      window.location.href = '/dashboard'   // إعادة تحميل لتطبيق سياق المدرسة
+    } else {
+      toast('تعذّر الدخول كمدرسة', 'error')
+    }
   }
 
   const saveEdit = async (e: React.FormEvent) => {
@@ -249,6 +261,11 @@ export default function SchoolsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => enterAsSchool(s)}
+                        aria-label="دخول كمدرسة" title="دخول كمدرسة (متابعة)"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                        <Eye size={14} />
+                      </button>
                       <button onClick={() => setConfirmToggle(s)}
                         aria-label={s.is_active ? 'تعطيل المدرسة' : 'تفعيل المدرسة'}
                         title={s.is_active ? 'تعطيل المدرسة' : 'تفعيل المدرسة'}
