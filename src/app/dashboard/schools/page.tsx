@@ -44,6 +44,8 @@ export default function SchoolsPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [confirmDel, setConfirmDel] = useState<School | null>(null)
   const [deleting, setDeleting]   = useState(false)
+  const [confirmToggle, setConfirmToggle] = useState<School | null>(null)
+  const [toggling, setToggling]   = useState(false)
 
   const openEdit = (s: School) => {
     setEditSchool(s); setEditAr(s.name_ar); setEditEn(s.name_en || ''); setError('')
@@ -65,12 +67,17 @@ export default function SchoolsPage() {
     setEditSchool(null); await load()
   }
 
-  const toggleActive = async (s: School) => {
+  const doToggleActive = async () => {
+    if (!confirmToggle) return
+    const s = confirmToggle
+    setToggling(true)
     const res = await fetch(`/api/schools/${s.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: !s.is_active }),
     })
+    setToggling(false)
+    setConfirmToggle(null)
     if (res.ok) {
       toast(s.is_active ? 'تم تعطيل المدرسة' : 'تم تفعيل المدرسة')
       await load()
@@ -209,7 +216,7 @@ export default function SchoolsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => toggleActive(s)}
+                      <button onClick={() => setConfirmToggle(s)}
                         aria-label={s.is_active ? 'تعطيل المدرسة' : 'تفعيل المدرسة'}
                         title={s.is_active ? 'تعطيل المدرسة' : 'تفعيل المدرسة'}
                         className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors
@@ -379,6 +386,54 @@ export default function SchoolsPage() {
                 {deleting ? 'جارٍ الحذف...' : 'نعم، احذف'}
               </button>
               <button onClick={() => setConfirmDel(null)}
+                className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* تأكيد التفعيل / التعطيل */}
+      {confirmToggle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setConfirmToggle(null)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 text-center"
+            dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3
+              ${confirmToggle.is_active ? 'bg-amber-50' : 'bg-green-50'}`}>
+              {confirmToggle.is_active
+                ? <PowerOff size={22} className="text-amber-500" />
+                : <Power size={22} className="text-green-500" />}
+            </div>
+            <h3 className="font-bold text-slate-800 mb-1">
+              {confirmToggle.is_active ? 'تعطيل المدرسة' : 'تفعيل المدرسة'}
+            </h3>
+            <p className="text-sm text-slate-500 mb-2">
+              {confirmToggle.is_active ? (
+                <>سيتم منع دخول <span className="font-semibold text-slate-700">جميع مستخدمي</span>{' '}
+                  <span className="font-semibold text-slate-700">{confirmToggle.name_ar}</span>{' '}
+                  ({confirmToggle.active_count} مستخدم نشط). تُحفظ كل البيانات ويمكن التفعيل لاحقاً.</>
+              ) : (
+                <>سيعود دخول مستخدمي <span className="font-semibold text-slate-700">{confirmToggle.name_ar}</span>{' '}
+                  للنظام بشكل طبيعي.</>
+              )}
+            </p>
+            {confirmToggle.is_active && (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-4">
+                يُستخدم التعطيل عند انتهاء التعاقد — بديل آمن للحذف يحفظ البيانات.
+              </p>
+            )}
+            <div className="flex gap-2 mt-2">
+              <button onClick={doToggleActive} disabled={toggling}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-colors
+                  ${confirmToggle.is_active ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'}`}>
+                {toggling
+                  ? 'جارٍ التنفيذ...'
+                  : confirmToggle.is_active ? 'نعم، عطّل المدرسة' : 'نعم، فعّل المدرسة'}
+              </button>
+              <button onClick={() => setConfirmToggle(null)}
                 className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">
                 إلغاء
               </button>
