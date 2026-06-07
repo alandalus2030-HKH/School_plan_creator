@@ -19,12 +19,14 @@ export type PermsCtx = {
   can:         (perm: string) => boolean
   /** هل مدير كامل الصلاحيات؟ */
   isFullAdmin: boolean
+  /** هل مشرف نظام (يدير كل المدارس)؟ */
+  isSuperAdmin: boolean
 }
 
 const PermCtx = createContext<PermsCtx>({
   userId: '', userName: '', userEmail: '', role: '',
   permissions: [], loading: true,
-  can: () => false, isFullAdmin: false,
+  can: () => false, isFullAdmin: false, isSuperAdmin: false,
 })
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
@@ -34,6 +36,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [role,        setRole]        = useState('')
   const [permissions, setPermissions] = useState<string[]>([])
   const [loading,     setLoading]     = useState(true)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -45,11 +48,13 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, full_name_ar, name_ar, is_active')
+        .select('role, full_name_ar, name_ar, is_active, is_super_admin')
         .eq('id', user.id)
         .single()
 
       if (!profile) { setLoading(false); return }
+
+      setIsSuperAdmin(profile.is_super_admin === true)
 
       /* ── طبقة أمان: إذا كان الحساب معطَّلاً → أخرجه فوراً ── */
       if (profile.is_active === false) {
@@ -88,7 +93,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
   return (
     <PermCtx.Provider value={{
-      userId, userName, userEmail, role, permissions, loading, can, isFullAdmin,
+      userId, userName, userEmail, role, permissions, loading, can, isFullAdmin, isSuperAdmin,
     }}>
       {children}
     </PermCtx.Provider>

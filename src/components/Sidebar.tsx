@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
-  Contact, ChevronRight, ChevronLeft,
+  Contact, ChevronRight, ChevronLeft, Building2,
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/reports',   Icon: ChartNoAxesColumn, ar: 'التقارير',      en: 'Reports',    perm: 'view_reports'     },
   { href: '/dashboard/meetings',  Icon: CalendarDays,    ar: 'الاجتماعات',    en: 'Meetings',   perm: null               },
   { href: '/dashboard/users',     Icon: UserRound,       ar: 'المستخدمون',   en: 'Users',      perm: 'manage_users'     },
+  { href: '/dashboard/schools',   Icon: Building2,       ar: 'إدارة المدارس', en: 'Schools',    perm: 'super'            },
   { href: '/dashboard/settings',  Icon: Settings,        ar: 'الإعدادات',     en: 'Settings',   perm: 'manage_settings'  },
   { href: '/dashboard/profile',   Icon: Contact,         ar: 'ملفي الشخصي',  en: 'My Profile', perm: 'self'             },
 ]
@@ -34,7 +35,7 @@ interface SidebarProps {
 
 export default function Sidebar({ lang, collapsed = false, onToggle, schoolName }: SidebarProps) {
   const pathname = usePathname()
-  const { can, loading, userName, userEmail, userId } = usePermissions()
+  const { can, loading, userName, userEmail, userId, isSuperAdmin } = usePermissions()
   const isRtl = lang === 'ar'
   const supabase = createClient()
 
@@ -57,9 +58,10 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
   }, [userId])
 
   const visibleNav = NAV_ITEMS.filter(item => {
-    if (loading)              return item.perm === null || item.perm === 'self'
-    if (item.perm === null)   return true
-    if (item.perm === 'self') return true
+    if (loading)               return item.perm === null || item.perm === 'self'
+    if (item.perm === null)    return true
+    if (item.perm === 'self')  return true
+    if (item.perm === 'super') return isSuperAdmin   // إدارة المدارس لمشرف النظام فقط
     return can(item.perm)
   })
 
