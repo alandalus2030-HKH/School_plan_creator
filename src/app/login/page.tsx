@@ -30,8 +30,11 @@ function LoginForm() {
 
   useEffect(() => {
     setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)])
-    if (searchParams.get('reason') === 'deactivated') {
+    const reason = searchParams.get('reason')
+    if (reason === 'deactivated') {
       setError(isAr ? 'تم تعطيل حسابك، تواصل مع مشرف النظام' : 'Your account has been deactivated, contact your administrator')
+    } else if (reason === 'school_suspended') {
+      setError(isAr ? 'تم تعطيل اشتراك مدرستك، تواصل مع مشرف النظام' : 'Your school subscription has been suspended, contact the system administrator')
     }
   }, [])
 

@@ -23,17 +23,24 @@ export async function PATCH(
 
   const { schoolId } = await context.params
   const body = await req.json()
-  const { name_ar, name_en } = body
+  const { name_ar, name_en, is_active } = body
 
-  if (!name_ar?.trim()) {
-    return NextResponse.json({ error: 'اسم المدرسة مطلوب' }, { status: 400 })
+  /* بناء التحديث ديناميكياً (تعديل بيانات أو تبديل الحالة) */
+  const updates: Record<string, any> = {}
+  if (name_ar !== undefined) {
+    if (!name_ar?.trim()) return NextResponse.json({ error: 'اسم المدرسة مطلوب' }, { status: 400 })
+    updates.name_ar = name_ar.trim()
+    updates.name_en = name_en?.trim() || null
+  }
+  if (is_active !== undefined) {
+    updates.is_active = !!is_active
   }
 
-  const { error } = await admin
-    .from('schools')
-    .update({ name_ar: name_ar.trim(), name_en: name_en?.trim() || null })
-    .eq('id', schoolId)
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'لا توجد تغييرات' }, { status: 400 })
+  }
 
+  const { error } = await admin.from('schools').update(updates).eq('id', schoolId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

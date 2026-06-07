@@ -6,12 +6,14 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
   Building2, Plus, Users, Map, X, Loader2, Pencil, Trash2,
+  Power, PowerOff,
 } from 'lucide-react'
 
 type School = {
   id:           string
   name_ar:      string
   name_en:      string | null
+  is_active:    boolean
   created_at:   string
   user_count:   number
   active_count: number
@@ -61,6 +63,20 @@ export default function SchoolsPage() {
     if (!res.ok) { setError(json.error || 'حدث خطأ'); return }
     toast('تم تحديث بيانات المدرسة')
     setEditSchool(null); await load()
+  }
+
+  const toggleActive = async (s: School) => {
+    const res = await fetch(`/api/schools/${s.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: !s.is_active }),
+    })
+    if (res.ok) {
+      toast(s.is_active ? 'تم تعطيل المدرسة' : 'تم تفعيل المدرسة')
+      await load()
+    } else {
+      toast('تعذّر تغيير الحالة', 'error')
+    }
   }
 
   const doDelete = async () => {
@@ -175,7 +191,14 @@ export default function SchoolsPage() {
               {schools.map(s => (
                 <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-slate-800">{s.name_ar}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-slate-800">{s.name_ar}</p>
+                      {s.is_active ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">نشطة</span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">معطَّلة</span>
+                      )}
+                    </div>
                     {s.name_en && <p className="text-xs text-slate-400 font-latin">{s.name_en}</p>}
                   </td>
                   <td className="px-4 py-3 text-center font-semibold text-slate-700">{s.user_count}</td>
@@ -186,6 +209,15 @@ export default function SchoolsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => toggleActive(s)}
+                        aria-label={s.is_active ? 'تعطيل المدرسة' : 'تفعيل المدرسة'}
+                        title={s.is_active ? 'تعطيل المدرسة' : 'تفعيل المدرسة'}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors
+                          ${s.is_active
+                            ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                            : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}>
+                        {s.is_active ? <PowerOff size={14} /> : <Power size={14} />}
+                      </button>
                       <button onClick={() => openEdit(s)} aria-label="تعديل المدرسة"
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors">
                         <Pencil size={14} />
