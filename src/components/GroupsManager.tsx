@@ -31,6 +31,14 @@ export default function GroupsManager() {
   const [selOwner, setSelOwner]     = useState('')
   const [mgSaving, setMgSaving]     = useState(false)
 
+  /* إنشاء حساب مالك مخصص */
+  const [showOwnerForm, setShowOwnerForm] = useState(false)
+  const [ownerName, setOwnerName]   = useState('')
+  const [ownerEmail, setOwnerEmail] = useState('')
+  const [ownerUser, setOwnerUser]   = useState('')
+  const [ownerPass, setOwnerPass]   = useState('')
+  const [ownerSaving, setOwnerSaving] = useState(false)
+
   const [confirmDel, setConfirmDel] = useState<Group | null>(null)
 
   const load = async () => {
@@ -68,6 +76,22 @@ export default function GroupsManager() {
     setManage(g)
     setSelSchools(schools.filter(s => s.group_id === g.id).map(s => s.id))
     setSelOwner(g.owner?.id || '')
+    setShowOwnerForm(false)
+    setOwnerName(''); setOwnerEmail(''); setOwnerUser(''); setOwnerPass('')
+  }
+
+  const createOwner = async () => {
+    if (!manage || !ownerEmail.trim() || !ownerUser.trim()) return
+    setOwnerSaving(true)
+    const res = await fetch(`/api/groups/${manage.id}/owner`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: ownerName, email: ownerEmail, username: ownerUser, password: ownerPass }),
+    })
+    const json = await res.json()
+    setOwnerSaving(false)
+    if (!res.ok) { toast(json.error || 'تعذّر إنشاء المالك', 'error'); return }
+    toast(json.message || 'تم إنشاء المالك')
+    setManage(null); await load()
   }
 
   const saveManage = async () => {
@@ -187,13 +211,41 @@ export default function GroupsManager() {
             <div className="p-5 space-y-4">
               {/* المالك */}
               <div>
-                <p className="text-xs font-bold text-slate-500 mb-1.5">مالك المجموعة</p>
-                <select value={selOwner} onChange={e => setSelOwner(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300">
-                  <option value="">— بلا مالك —</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.name_ar} {u.email ? `(${u.email})` : ''}</option>)}
-                </select>
-                <p className="text-[10px] text-slate-400 mt-1">المالك يرى أرقام مدارس المجموعة المُجمَّعة فقط.</p>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-bold text-slate-500">مالك المجموعة</p>
+                  <button type="button" onClick={() => setShowOwnerForm(v => !v)}
+                    className="text-[11px] font-medium text-violet-700 hover:underline">
+                    {showOwnerForm ? 'اختيار موجود' : '+ إنشاء حساب مالك مخصص'}
+                  </button>
+                </div>
+
+                {!showOwnerForm ? (
+                  <>
+                    <select value={selOwner} onChange={e => setSelOwner(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300">
+                      <option value="">— بلا مالك —</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.name_ar} {u.email ? `(${u.email})` : ''}</option>)}
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1">المالك يرى أرقام مدارس المجموعة المُجمَّعة فقط.</p>
+                  </>
+                ) : (
+                  <div className="space-y-2 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <p className="text-[10px] text-slate-500">حساب مالك مخصص (بلا مدرسة) — يُنشأ ويُربط بالمجموعة فوراً.</p>
+                    <input value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="اسم المالك"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                    <input value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} placeholder="البريد الإلكتروني *" type="email" dir="ltr"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                    <input value={ownerUser} onChange={e => setOwnerUser(e.target.value)} placeholder="اسم الدخول *" dir="ltr"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                    <input value={ownerPass} onChange={e => setOwnerPass(e.target.value)} placeholder="كلمة المرور (8 أحرف+)" type="text" dir="ltr"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                    <button type="button" onClick={createOwner} disabled={ownerSaving || !ownerEmail.trim() || !ownerUser.trim()}
+                      className="w-full py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-50 transition-all hover:brightness-110"
+                      style={{ background: 'var(--gradient-button)' }}>
+                      {ownerSaving ? 'جارٍ الإنشاء...' : 'إنشاء وربط المالك'}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* المدارس */}
