@@ -70,54 +70,36 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, full_name_ar, name_ar, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, active_school_id, schools(name_ar, is_active)')
+        .select('role, full_name_ar, name_ar, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, active_school_id, school:schools!school_id(name_ar, is_active)')
         .eq('id', user.id)
         .single()
 
       if (!profile) { setLoading(false); return }
 
-      setIsSuperAdmin(profile.is_super_admin === true)
+      const p = profile as any
+      const school = p.school
 
-      /* حالة التقمّص (مشرف يدخل كمدرسة) */
-      const activeSid = (profile as any).active_school_id
-      if (profile.is_super_admin === true && activeSid) {
-        setImpersonating(true)
-        const { data: imp } = await supabase
-          .from('schools').select('name_ar').eq('id', activeSid).single()
-        setImpersonatedSchool(imp?.name_ar || '')
-      }
-      setIsGroupOwner((profile as any).is_group_owner === true)
-      setOwnedGroupId((profile as any).owned_group_id || '')
-
-      /* اسم المجموعة لمالكها */
-      if ((profile as any).owned_group_id) {
-        const { data: grp } = await supabase
-          .from('school_groups').select('name_ar')
-          .eq('id', (profile as any).owned_group_id).single()
-        setGroupName(grp?.name_ar || '')
-      }
-
-      /* ── اسم المدرسة للشريط الجانبي ── */
-      const school = (profile as any).schools
-      setSchoolName(school?.name_ar || '')
-
-      /* ── طبقة أمان: مدرسة معطَّلة → أخرج المستخدم (إلا مشرف النظام) ── */
-      if (school && school.is_active === false && profile.is_super_admin !== true) {
+      /* ── طبقتا الأمان أولاً (إخراج المستخدم إن لزم) ── */
+      if (school && school.is_active === false && p.is_super_admin !== true) {
         await supabase.auth.signOut()
         window.location.href = '/login?reason=school_suspended'
         return
       }
-
-      /* ── طبقة أمان: إذا كان الحساب معطَّلاً → أخرجه فوراً ── */
       if (profile.is_active === false) {
         await supabase.auth.signOut()
         window.location.href = '/login?reason=deactivated'
         return
       }
 
+      /* ── الهوية الأساسية (تُضبط دائماً) ── */
+      setIsSuperAdmin(p.is_super_admin === true)
+      setIsGroupOwner(p.is_group_owner === true)
+      setOwnedGroupId(p.owned_group_id || '')
+      setSchoolName(school?.name_ar || '')
       setRole(profile.role || '')
       setUserName(profile.full_name_ar || profile.name_ar || '')
 
+      /* ── الصلاحيات ── */
       if (profile.role) {
         const { data: roleData } = await supabase
           .from('roles').select('permissions').eq('code', profile.role).single()
@@ -134,6 +116,22 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
           /* وإلا تبقى الصلاحيات [] = مستخدم عادي */
         }
       }
+
+      /* ── استعلامات تجميلية اختيارية (لا تُعطّل الهوية عند فشلها) ── */
+      try {
+        if (p.is_super_admin === true && p.active_school_id) {
+          setImpersonating(true)
+          const { data: imp } = await supabase
+            .from('schools').select('name_ar').eq('id', p.active_school_id).single()
+          setImpersonatedSchool(imp?.name_ar || '')
+        }
+        if (p.owned_group_id) {
+          const { data: grp } = await supabase
+            .from('school_groups').select('name_ar').eq('id', p.owned_group_id).single()
+          setGroupName(grp?.name_ar || '')
+        }
+      } catch { /* تجاهل — الهوية الأساسية مضبوطة */ }
+
       setLoading(false)
     })()
   }, [])
