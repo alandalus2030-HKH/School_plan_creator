@@ -5,7 +5,7 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
-  Building2, Plus, Users, Map, X, Loader2,
+  Building2, Plus, Users, Map, X, Loader2, Pencil, Trash2,
 } from 'lucide-react'
 
 type School = {
@@ -34,6 +34,45 @@ export default function SchoolsPage() {
   const [adminEmail, setAdminEmail] = useState('')
   const [adminUser, setAdminUser] = useState('')
   const [adminPass, setAdminPass] = useState('')
+
+  /* تعديل / حذف */
+  const [editSchool, setEditSchool] = useState<School | null>(null)
+  const [editAr, setEditAr]   = useState('')
+  const [editEn, setEditEn]   = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+  const [confirmDel, setConfirmDel] = useState<School | null>(null)
+  const [deleting, setDeleting]   = useState(false)
+
+  const openEdit = (s: School) => {
+    setEditSchool(s); setEditAr(s.name_ar); setEditEn(s.name_en || ''); setError('')
+  }
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editSchool || !editAr.trim()) return
+    setEditSaving(true); setError('')
+    const res = await fetch(`/api/schools/${editSchool.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name_ar: editAr, name_en: editEn }),
+    })
+    const json = await res.json()
+    setEditSaving(false)
+    if (!res.ok) { setError(json.error || 'حدث خطأ'); return }
+    toast('تم تحديث بيانات المدرسة')
+    setEditSchool(null); await load()
+  }
+
+  const doDelete = async () => {
+    if (!confirmDel) return
+    setDeleting(true)
+    const res = await fetch(`/api/schools/${confirmDel.id}`, { method: 'DELETE' })
+    const json = await res.json()
+    setDeleting(false)
+    if (!res.ok) { toast(json.error || 'تعذّر الحذف', 'error'); setConfirmDel(null); return }
+    toast('تم حذف المدرسة')
+    setConfirmDel(null); await load()
+  }
 
   const load = async () => {
     setLoading(true)
@@ -129,6 +168,7 @@ export default function SchoolsPage() {
                 <th className="px-4 py-3 text-center">النشطون</th>
                 <th className="px-4 py-3 text-center">الخطط</th>
                 <th className="px-4 py-3 text-center hidden sm:table-cell">تاريخ الإنشاء</th>
+                <th className="px-4 py-3 text-center">إجراءات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -144,10 +184,22 @@ export default function SchoolsPage() {
                   <td className="px-4 py-3 text-center text-xs text-slate-400 hidden sm:table-cell">
                     {new Date(s.created_at).toLocaleDateString('ar-QA')}
                   </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => openEdit(s)} aria-label="تعديل المدرسة"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors">
+                        <Pencil size={14} />
+                      </button>
+                      <button onClick={() => setConfirmDel(s)} aria-label="حذف المدرسة"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {schools.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">لا توجد مدارس بعد</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">لا توجد مدارس بعد</td></tr>
               )}
             </tbody>
           </table>
@@ -224,6 +276,81 @@ export default function SchoolsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة التعديل */}
+      {editSchool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setEditSchool(null)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-5"
+            dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Pencil size={16} style={{ color: 'var(--maroon-600)' }} /> تعديل المدرسة
+              </h3>
+              <button onClick={() => setEditSchool(null)} aria-label="إغلاق"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={saveEdit} className="space-y-3">
+              <input value={editAr} onChange={e => setEditAr(e.target.value)}
+                placeholder="اسم المدرسة بالعربية *"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+              <input value={editEn} onChange={e => setEditEn(e.target.value)}
+                placeholder="School name (English)" dir="ltr"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-xl">{error}</div>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button type="submit" disabled={editSaving || !editAr.trim()}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:brightness-110"
+                  style={{ background: 'var(--gradient-button)' }}>
+                  {editSaving ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}
+                </button>
+                <button type="button" onClick={() => setEditSchool(null)}
+                  className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* تأكيد الحذف */}
+      {confirmDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setConfirmDel(null)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 text-center"
+            dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-3">
+              <Trash2 size={22} className="text-red-500" />
+            </div>
+            <h3 className="font-bold text-slate-800 mb-1">حذف المدرسة</h3>
+            <p className="text-sm text-slate-500 mb-5">
+              هل أنت متأكد من حذف <span className="font-semibold text-slate-700">{confirmDel.name_ar}</span>؟
+              {(confirmDel.user_count > 0 || confirmDel.plan_count > 0) && (
+                <span className="block mt-2 text-xs text-red-600">
+                  ملاحظة: المدرسة تحتوي على {confirmDel.user_count} مستخدم و {confirmDel.plan_count} خطة — لن يُسمح بالحذف.
+                </span>
+              )}
+            </p>
+            <div className="flex gap-2">
+              <button onClick={doDelete} disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors">
+                {deleting ? 'جارٍ الحذف...' : 'نعم، احذف'}
+              </button>
+              <button onClick={() => setConfirmDel(null)}
+                className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">
+                إلغاء
+              </button>
+            </div>
           </div>
         </div>
       )}
