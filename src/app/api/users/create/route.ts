@@ -88,14 +88,21 @@ export async function POST(req: NextRequest) {
 
     if (!userId) return NextResponse.json({ error: 'فشل إنشاء المستخدم' }, { status: 500 })
 
-    /* ── جلب school_id تلقائياً (المدرسة الوحيدة في النظام) ── */
-    const { data: schoolRow } = await admin
-      .from('schools')
-      .select('id')
-      .order('created_at')
-      .limit(1)
+    /* ── المستخدم الجديد ينتمي لمدرسة المُنشئ (الأدمن المُستدعي) ──
+       يضمن العزل: مدير مدرسة الاختبار يُنشئ مستخدمين في مدرسته فقط */
+    const { data: callerProfile } = await admin
+      .from('profiles')
+      .select('school_id')
+      .eq('id', auth.user.id)
       .single()
-    const autoSchoolId = schoolRow?.id ?? null
+    let autoSchoolId = callerProfile?.school_id ?? null
+
+    /* احتياط: لو لم يكن للمُنشئ مدرسة، استخدم أقدم مدرسة */
+    if (!autoSchoolId) {
+      const { data: schoolRow } = await admin
+        .from('schools').select('id').order('created_at').limit(1).single()
+      autoSchoolId = schoolRow?.id ?? null
+    }
 
     /* ── upsert الملف الشخصي (حقول مُعتمدة فقط) ── */
     const allowedProfileData = {
