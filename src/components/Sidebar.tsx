@@ -13,7 +13,8 @@ import {
 import Logo from './Logo'
 
 const NAV_ITEMS = [
-  { href: '/dashboard/group',     Icon: Layers,          ar: 'نظرة المجموعة', en: 'Group',      perm: 'group_owner'      },
+  { href: '/dashboard/group',          Icon: Layers,       ar: 'نظرة المجموعة',   en: 'Group',      perm: 'group_owner' },
+  { href: '/dashboard/group/meetings', Icon: CalendarDays, ar: 'اجتماعات المجموعة', en: 'Meetings', perm: 'group_owner' },
   { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: null               },
   { href: '/dashboard/my-tasks',  Icon: ClipboardList,   ar: 'مهامي',         en: 'My Tasks',   perm: 'self'             },
   { href: '/dashboard/plans',     Icon: Map,             ar: 'الخطط',         en: 'Plans',      perm: 'manage_plans'     },
@@ -115,9 +116,11 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
       {/* ── Navigation ── */}
       <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
         {visibleNav.map(item => {
-          const active =
-            pathname === item.href ||
-            (item.href !== '/dashboard' && pathname.startsWith(item.href))
+          /* مسارات تُطابَق تماماً (لها مسارات فرعية تحتها) */
+          const exactOnly = ['/dashboard', '/dashboard/group']
+          const active = exactOnly.includes(item.href)
+            ? pathname === item.href
+            : (pathname === item.href || pathname.startsWith(item.href))
 
           return (
             <Link
