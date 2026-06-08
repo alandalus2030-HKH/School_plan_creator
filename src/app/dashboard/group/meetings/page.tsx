@@ -6,12 +6,29 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
   CalendarDays, Plus, X, Loader2, Trash2, Video, Link2, UserRound, Clock,
+  Briefcase, Monitor,
 } from 'lucide-react'
+
+/* ── منصات الاجتماع (نفس آلية صفحة الاجتماعات الرئيسية) ── */
+const PLATFORM_META: Record<string, { name: string; Icon: React.ElementType; color: string; bg: string }> = {
+  google_meet: { name: 'Google Meet',     Icon: Video,     color: '#1a73e8', bg: '#e8f0fe' },
+  teams:       { name: 'Microsoft Teams', Icon: Briefcase, color: '#6264a7', bg: '#edecf6' },
+  zoom:        { name: 'Zoom',            Icon: Monitor,   color: '#2d8cff', bg: '#e3f0ff' },
+  other:       { name: 'رابط اجتماع',    Icon: Link2,     color: '#64748b', bg: '#f1f5f9' },
+}
+function detectPlatform(u: string): string {
+  if (!u) return 'other'
+  const url = u.toLowerCase()
+  if (url.includes('meet.google.com'))                                    return 'google_meet'
+  if (url.includes('teams.microsoft.com') || url.includes('teams.live.com')) return 'teams'
+  if (url.includes('zoom.us'))                                            return 'zoom'
+  return 'other'
+}
 
 type Principal = { id: string; name_ar: string; email: string | null; school_name: string }
 type Meeting = {
   id: string; title: string; description: string | null
-  meeting_url: string | null; scheduled_at: string | null
+  meeting_url: string | null; platform: string | null; scheduled_at: string | null
   duration_minutes: number; attendees: string[]; created_at: string
 }
 
@@ -27,6 +44,7 @@ export default function GroupMeetingsPage() {
   /* النموذج */
   const [title, setTitle]       = useState('')
   const [url, setUrl]           = useState('')
+  const platform = detectPlatform(url)
   const [date, setDate]         = useState('')
   const [time, setTime]         = useState('')
   const [duration, setDuration] = useState(60)
@@ -66,7 +84,7 @@ export default function GroupMeetingsPage() {
     const res = await fetch('/api/groups/meetings', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title, meeting_url: url, scheduled_at, duration_minutes: duration, attendees: invited,
+        title, meeting_url: url, platform, scheduled_at, duration_minutes: duration, attendees: invited,
       }),
     })
     setSaving(false)
@@ -151,13 +169,16 @@ export default function GroupMeetingsPage() {
                       ))}
                     </div>
                   )}
-                  {m.meeting_url ? (
-                    <a href={m.meeting_url} target="_blank" rel="noopener noreferrer"
-                      className="mt-3 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold text-white transition-all hover:brightness-110"
-                      style={{ backgroundColor: isPast ? '#94a3b8' : 'var(--maroon-600)' }}>
-                      <Video size={13} /> {isPast ? 'عرض الرابط' : 'انضمام للاجتماع'}
-                    </a>
-                  ) : (
+                  {m.meeting_url ? (() => {
+                    const pm = PLATFORM_META[m.platform || detectPlatform(m.meeting_url)] || PLATFORM_META.other
+                    return (
+                      <a href={m.meeting_url} target="_blank" rel="noopener noreferrer"
+                        className="mt-3 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold text-white transition-all hover:brightness-110"
+                        style={{ backgroundColor: isPast ? '#94a3b8' : 'var(--maroon-600)' }}>
+                        <pm.Icon size={13} /> {isPast ? 'عرض الرابط' : `انضمام عبر ${pm.name}`}
+                      </a>
+                    )
+                  })() : (
                     <span className="mt-3 block text-center text-xs text-slate-400 py-2 bg-slate-50 rounded-xl border border-dashed border-slate-200">لا يوجد رابط</span>
                   )}
                 </div>
@@ -179,10 +200,42 @@ export default function GroupMeetingsPage() {
             <form onSubmit={save} className="p-5 space-y-3">
               <input value={title} onChange={e => setTitle(e.target.value)} placeholder="عنوان الاجتماع *"
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
-              <div className="relative">
-                <Link2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input value={url} onChange={e => setUrl(e.target.value)} placeholder="رابط الاجتماع (Meet/Zoom/Teams)" dir="ltr"
-                  className="w-full pr-9 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+              {/* رابط الاجتماع + اكتشاف المنصة + إنشاء Meet */}
+              <div>
+                <div className="relative">
+                  {(() => {
+                    const pm = PLATFORM_META[platform]
+                    const Ic = pm?.Icon || Link2
+                    return <Ic size={15} className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: platform !== 'other' ? pm.color : '#94a3b8' }} />
+                  })()}
+                  <input value={url} onChange={e => setUrl(e.target.value)} placeholder="رابط الاجتماع (Meet/Zoom/Teams)" dir="ltr"
+                    className="w-full pr-9 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                </div>
+
+                {/* شارة المنصة المكتشفة */}
+                {url && platform !== 'other' && (() => {
+                  const pm = PLATFORM_META[platform]
+                  return (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-500">تم اكتشاف المنصة:</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1"
+                        style={{ backgroundColor: pm.bg, color: pm.color }}>
+                        <pm.Icon size={10} /> {pm.name}
+                      </span>
+                    </div>
+                  )
+                })()}
+
+                {/* إنشاء اجتماع Google Meet */}
+                <div className="mt-2 flex items-center gap-2">
+                  <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                    <Video size={12} className="inline ml-1" /> إنشاء اجتماع Google Meet جديد ↗
+                  </a>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-[10px] text-slate-400">الصق الرابط هنا بعد الإنشاء</span>
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} dir="ltr"
