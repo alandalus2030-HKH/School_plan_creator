@@ -981,14 +981,17 @@ task_comments · team_members · meetings · dropdown_options
   - الخطوة 3: wizard سريع لإنشاء الخطة الأولى
 - [ ] Build + Push
 
-### اليوم 53-54 | تقرير QNSA رسمي
-- [ ] إنشاء `src/app/api/plans/[planId]/export-qnsa/route.ts`:
-  - تصدير PDF منسق بمعايير QNSA
-  - رأسية المدرسة (اسم + شعار)
-  - الهيكل الهرمي الكامل مع نسب الإنجاز
-  - جدول مؤشرات الأداء
-- [ ] زر "تصدير QNSA" في صفحة الخطة
-- [ ] Build + Push
+### اليوم 53-54 | تقرير QNSA رسمي + بيانات المدرسة ✅ 2026-06-08
+- [x] `src/lib/qnsaReport.ts` — تقرير QNSA (طباعة → PDF) بالغلاف والملخص والمحاور والمؤشرات
+- [x] زر "تقرير QNSA" في صفحة الخطة
+- [x] **بيانات المدرسة** (شرط مسبق): قسم في الإعدادات
+  - `migrations/017` — حقول (عنوان/هاتف/بريد/مدير/رقم وزاري/رأسية/تذييل)
+  - `api/school-profile` (GET/PATCH/POST) + `SchoolProfile.tsx`
+  - رفع الشعار عبر الخادم (service role) — Supabase Storage bucket `school-logos`
+- [x] ربط بيانات المدرسة (شعار/رؤية/رسالة/اتصال/رأسية/تذييل) في تقرير QNSA
+- [x] عرض شعار المدرسة في رأس الشريط الجانبي
+- [x] إصلاح: `meta notranslate` لمنع انهيار React من ترجمة Chrome (insertBefore)
+- [ ] (لاحقاً) تحسين تنسيق تقرير QNSA
 
 ### اليوم 55 | سياسة الخصوصية + شروط الاستخدام
 - [ ] إنشاء `src/app/privacy/page.tsx` و `src/app/terms/page.tsx`
@@ -1116,4 +1119,5 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-08 | اجتماعات المجموعة | المالك يجدول اجتماعات مع مديري مدارسه | `migrations/014`, `api/groups/meetings`, group/meetings |
 | 2026-06-08 | المرحلة 3 | الدخول كمدرسة (تقمّص مؤقت + شريط + تدقيق) | `migrations/015,016`, `api/impersonate`, `ImpersonationBanner` |
 | 2026-06-08 | إصلاح | علاقة schools غامضة + توحيد كل RLS على my_school_id() | `migrations/016`, PermissionsContext |
+| 2026-06-08 | أسبوع 11 / يوم 53-54 | تقرير QNSA + بيانات المدرسة (شعار/رؤية/اتصال/رأسية) + شعار الشريط الجانبي | `qnsaReport.ts`, `migrations/017`, `api/school-profile`, `SchoolProfile.tsx`, Sidebar, layout |
 | | | | |
