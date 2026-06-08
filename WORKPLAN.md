@@ -1120,4 +1120,5 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-08 | المرحلة 3 | الدخول كمدرسة (تقمّص مؤقت + شريط + تدقيق) | `migrations/015,016`, `api/impersonate`, `ImpersonationBanner` |
 | 2026-06-08 | إصلاح | علاقة schools غامضة + توحيد كل RLS على my_school_id() | `migrations/016`, PermissionsContext |
 | 2026-06-08 | أسبوع 11 / يوم 53-54 | تقرير QNSA + بيانات المدرسة (شعار/رؤية/اتصال/رأسية) + شعار الشريط الجانبي | `qnsaReport.ts`, `migrations/017`, `api/school-profile`, `SchoolProfile.tsx`, Sidebar, layout |
+| 2026-06-08 | إصلاح حرج | حل insertBefore عند رفع الشعار: أيقونة شرطية بجوار نص شرطي تكسر مُوفّق React 19 → عزلها في span ثابت (شُخّص بإعادة إنتاج معزولة) | `SchoolProfile.tsx` |
 | | | | |
