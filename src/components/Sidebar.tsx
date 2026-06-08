@@ -46,6 +46,20 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
   /* ── عداد مهام اليوم ── */
   const [myTasksCount, setMyTasksCount] = useState<number | null>(null)
 
+  /* ── شعار المدرسة الفعّالة (يحترم التقمّص) ── */
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null)
+  useEffect(() => {
+    if (loading || (isGroupOwner && !isSuperAdmin)) { setSchoolLogo(null); return }
+    ;(async () => {
+      try {
+        const res = await fetch('/api/school-profile')
+        if (!res.ok) { setSchoolLogo(null); return }
+        const json = await res.json()
+        setSchoolLogo(json.school?.logo_url || null)
+      } catch { setSchoolLogo(null) }
+    })()
+  }, [loading, isGroupOwner, isSuperAdmin, impersonating, impersonatedSchool])
+
   useEffect(() => {
     if (!userId) return
     const today = new Date().toISOString().split('T')[0]
@@ -104,7 +118,19 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
       {/* ── Header ── */}
       <div className={`flex items-center border-b border-white/10 transition-all duration-300
         ${collapsed ? 'p-3 justify-center' : 'gap-3 p-4'}`}>
-        <Logo size={collapsed ? 32 : 40} />
+        {schoolLogo ? (
+          <img
+            src={schoolLogo}
+            alt="شعار المدرسة"
+            width={collapsed ? 32 : 40}
+            height={collapsed ? 32 : 40}
+            className="rounded-lg object-contain bg-white/95 p-0.5 flex-shrink-0"
+            style={{ width: collapsed ? 32 : 40, height: collapsed ? 32 : 40 }}
+            onError={() => setSchoolLogo(null)}
+          />
+        ) : (
+          <Logo size={collapsed ? 32 : 40} />
+        )}
         {!collapsed && (
           <span className="text-sm font-bold truncate">
             {impersonating
