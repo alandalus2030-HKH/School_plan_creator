@@ -6,7 +6,7 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
   Building2, Plus, Users, Map, X, Loader2, Pencil, Trash2,
-  Power, PowerOff, BarChart3, List, Layers, Eye,
+  Power, PowerOff, BarChart3, List, Layers, Eye, Sparkles,
 } from 'lucide-react'
 import SchoolsOverview from '@/components/SchoolsOverview'
 import GroupsManager from '@/components/GroupsManager'
@@ -174,11 +174,17 @@ export default function SchoolsPage() {
           <p className="text-slate-500 text-sm mt-1">إنشاء وإدارة المدارس المشتركة في النظام</p>
         </div>
         {view === 'manage' && (
-          <button onClick={() => { resetForm(); setShowForm(true) }}
-            className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
-            style={{ background: 'var(--gradient-button)' }}>
-            <Plus size={16} /> مدرسة جديدة
-          </button>
+          <div className="flex items-center gap-2">
+            <a href="/onboarding"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:border-violet-300 hover:bg-violet-50 transition-all">
+              <Sparkles size={16} /> معالج الإعداد
+            </a>
+            <button onClick={() => { resetForm(); setShowForm(true) }}
+              className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
+              style={{ background: 'var(--gradient-button)' }}>
+              <Plus size={16} /> مدرسة جديدة
+            </button>
+          </div>
         )}
       </div>
 
