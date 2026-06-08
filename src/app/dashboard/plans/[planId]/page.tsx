@@ -6,7 +6,9 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
-import { ClipboardList, AlertTriangle, Target, TrendingUp, Package, BarChart3, Star } from 'lucide-react'
+import { ClipboardList, AlertTriangle, Target, TrendingUp, Package, BarChart3, Star,
+  Settings, Pencil, Trash2, Award } from 'lucide-react'
+import { generateQnsaReport } from '@/lib/qnsaReport'
 
 /* خريطة أيقونات KPI */
 const KPI_ICON_MAP: Record<string, React.ElementType> = {
@@ -498,21 +500,26 @@ export default function PlanOverviewPage() {
               </div>
               {/* أزرار إجراءات الخطة */}
               <div className="flex gap-2 mt-1 flex-wrap justify-end">
+                <button onClick={() => generateQnsaReport(planId)}
+                  className="flex items-center gap-1.5 bg-white text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors hover:bg-white/90"
+                  style={{ color: 'var(--maroon-700)' }}>
+                  <Award size={14} /> تقرير QNSA
+                </button>
                 <Link href={`/dashboard/plans/${planId}/kpis`}
                   className="flex items-center gap-1.5 bg-violet-500/25 hover:bg-violet-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <BarChart3 size={14} className="inline ml-1" /> لوحة KPI
+                  <BarChart3 size={14} /> لوحة KPI
                 </Link>
                 <button onClick={openKpiSettings}
                   className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  ⚙️ إعدادات KPI
+                  <Settings size={14} /> إعدادات KPI
                 </button>
                 <button onClick={openEditPlan}
                   className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  ✏️ تعديل
+                  <Pencil size={14} /> تعديل
                 </button>
                 <button onClick={() => setConfirmDelPlan(true)}
                   className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  🗑️ حذف
+                  <Trash2 size={14} /> حذف
                 </button>
               </div>
             </div>
