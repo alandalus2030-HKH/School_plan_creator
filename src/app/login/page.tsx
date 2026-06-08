@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import Logo from '@/components/Logo'
 
 const QUOTES = [
@@ -235,6 +236,16 @@ function LoginForm() {
               ? 'إذا نسيت كلمة المرور تواصل مع مشرف النظام'
               : 'Forgot your password? Contact your system administrator'}
           </p>
+
+          <div className="flex items-center justify-center gap-3 mt-4 text-xs text-slate-400">
+            <Link href="/privacy" className="hover:text-violet-600 transition-colors">
+              {isAr ? 'سياسة الخصوصية' : 'Privacy Policy'}
+            </Link>
+            <span className="text-slate-300">·</span>
+            <Link href="/terms" className="hover:text-violet-600 transition-colors">
+              {isAr ? 'شروط الاستخدام' : 'Terms of Use'}
+            </Link>
+          </div>
         </div>
       </div>
     </div>

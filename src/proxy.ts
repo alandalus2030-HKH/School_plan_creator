@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const publicPaths = ['/login', '/auth/callback', '/api/']
+  const publicPaths = ['/login', '/auth/callback', '/api/', '/privacy', '/terms']
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path))
 
   if (!user && !isPublicPath) {

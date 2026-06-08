@@ -993,11 +993,13 @@ task_comments · team_members · meetings · dropdown_options
 - [x] إصلاح: `meta notranslate` لمنع انهيار React من ترجمة Chrome (insertBefore)
 - [ ] (لاحقاً) تحسين تنسيق تقرير QNSA
 
-### اليوم 55 | سياسة الخصوصية + شروط الاستخدام
-- [ ] إنشاء `src/app/privacy/page.tsx` و `src/app/terms/page.tsx`
-- [ ] محتوى يغطي: ما نجمعه، كيف نحفظه، حقوق المستخدم، التواصل
-- [ ] رابطهما في صفحة login وصفحة Onboarding
-- [ ] Build + Push
+### اليوم 55 | سياسة الخصوصية + شروط الاستخدام ✅ 2026-06-08
+- [x] `src/components/LegalShell.tsx` — هيكل قانوني مشترك ثنائي اللغة (ar/en) + مبدّل لغة
+- [x] `src/app/privacy/page.tsx` — 6 أقسام (الجمع/الاستخدام/الحفظ/المشاركة/الحقوق/التواصل)
+- [x] `src/app/terms/page.tsx` — 7 أقسام (الخدمة/الحساب/الاستخدام المقبول/الملكية/المسؤولية/التعديلات/التواصل)
+- [x] إضافة `/privacy` و `/terms` للمسارات العامة في `proxy.ts`
+- [x] روابطهما في تذييل صفحة الدخول
+- [ ] (لاحقاً) ربطهما في صفحة Onboarding عند إنشائها (يوم 51-52)
 
 ---
 ---
@@ -1121,4 +1123,5 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-08 | إصلاح | علاقة schools غامضة + توحيد كل RLS على my_school_id() | `migrations/016`, PermissionsContext |
 | 2026-06-08 | أسبوع 11 / يوم 53-54 | تقرير QNSA + بيانات المدرسة (شعار/رؤية/اتصال/رأسية) + شعار الشريط الجانبي | `qnsaReport.ts`, `migrations/017`, `api/school-profile`, `SchoolProfile.tsx`, Sidebar, layout |
 | 2026-06-08 | إصلاح حرج | حل insertBefore عند رفع الشعار: أيقونة شرطية بجوار نص شرطي تكسر مُوفّق React 19 → عزلها في span ثابت (شُخّص بإعادة إنتاج معزولة) | `SchoolProfile.tsx` |
+| 2026-06-08 | أسبوع 11 / يوم 55 | سياسة الخصوصية + شروط الاستخدام (ثنائي اللغة) + روابط الدخول | `LegalShell.tsx`, `privacy/page`, `terms/page`, `proxy.ts`, `login/page` |
 | | | | |
