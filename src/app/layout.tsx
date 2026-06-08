@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "نظام متابعة الخطط المدرسية",
   description: "نظام متابعة الخطط المدرسية",
+  other: { google: "notranslate" }, // منع ترجمة Chrome المدمجة (تكسر React: insertBefore)
 };
 
 export default function RootLayout({
