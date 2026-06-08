@@ -13,11 +13,8 @@
 
 ## 📌 مهام معلّقة (تذكيرات)
 
-- [ ] **إضافة "إنشاء اجتماع Google Meet" في صفحة اجتماعات المجموعة**
-  - الهدف: نفس آلية صفحة الاجتماعات الحالية `meetings/page.tsx`
-    (زر إنشاء Meet → `meet.google.com/new` + `detectPlatform` + أيقونة المنصة)
-  - الملف المستهدف: `src/app/dashboard/group/meetings/page.tsx`
-  - إعادة استخدام الكود الموجود في `meetings/page.tsx`
+- [x] **إضافة "إنشاء اجتماع Google Meet" في صفحة اجتماعات المجموعة** ✅ 2026-06-08
+  - نُفّذ: PLATFORM_META + detectPlatform + زر Meet + شارة المنصة + أيقونة الانضمام
 
 ---
 
