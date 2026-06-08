@@ -333,13 +333,13 @@ export default function OnboardingPage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>العام الدراسي</label>
-                  <select value={planYear} onChange={e => setPlanYear(e.target.value)} className={inputCls} disabled={!planName.trim()}>
+                  <select value={planYear} onChange={e => setPlanYear(e.target.value)} className={inputCls}>
                     {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className={labelCls}>عدد مستويات الهيكل</label>
-                  <select value={planLevels} onChange={e => setPlanLevels(parseInt(e.target.value, 10))} className={inputCls} disabled={!planName.trim()}>
+                  <select value={planLevels} onChange={e => setPlanLevels(parseInt(e.target.value, 10))} className={inputCls}>
                     <option value={2}>2 — محور · مبادرة</option>
                     <option value={3}>3 — محور · مبادرة · هدف</option>
                     <option value={4}>4 — محور · هدف استراتيجي · عام · فرعي</option>

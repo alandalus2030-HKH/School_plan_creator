@@ -6,7 +6,7 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
   Building2, Plus, Users, Map, X, Loader2, Pencil, Trash2,
-  Power, PowerOff, BarChart3, List, Layers, Eye, Sparkles,
+  Power, PowerOff, BarChart3, List, Layers, Eye,
 } from 'lucide-react'
 import SchoolsOverview from '@/components/SchoolsOverview'
 import GroupsManager from '@/components/GroupsManager'
@@ -28,17 +28,7 @@ export default function SchoolsPage() {
   const [schools, setSchools] = useState<School[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'manage' | 'overview' | 'groups'>('manage')
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  /* حقول النموذج */
-  const [schoolAr, setSchoolAr]   = useState('')
-  const [schoolEn, setSchoolEn]   = useState('')
-  const [adminName, setAdminName] = useState('')
-  const [adminEmail, setAdminEmail] = useState('')
-  const [adminUser, setAdminUser] = useState('')
-  const [adminPass, setAdminPass] = useState('')
 
   /* تعديل / حذف */
   const [editSchool, setEditSchool] = useState<School | null>(null)
@@ -125,36 +115,6 @@ export default function SchoolsPage() {
     else if (!permsLoading) setLoading(false)
   }, [permsLoading, isSuperAdmin])
 
-  const resetForm = () => {
-    setSchoolAr(''); setSchoolEn(''); setAdminName('')
-    setAdminEmail(''); setAdminUser(''); setAdminPass(''); setError('')
-  }
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!schoolAr.trim() || !adminEmail.trim() || !adminUser.trim()) return
-    setSaving(true); setError('')
-
-    const res = await fetch('/api/schools/create', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        school_name_ar: schoolAr,
-        school_name_en: schoolEn,
-        admin_email:    adminEmail,
-        admin_name:     adminName,
-        admin_username: adminUser,
-        admin_password: adminPass,
-      }),
-    })
-    const json = await res.json()
-    setSaving(false)
-
-    if (!res.ok) { setError(json.error || 'حدث خطأ'); return }
-    toast(json.message || 'تم إنشاء المدرسة بنجاح')
-    setShowForm(false); resetForm(); await load()
-  }
-
   if (permsLoading || loading) return (
     <div className="flex items-center justify-center h-64">
       <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--maroon-600)' }} />
@@ -174,17 +134,11 @@ export default function SchoolsPage() {
           <p className="text-slate-500 text-sm mt-1">إنشاء وإدارة المدارس المشتركة في النظام</p>
         </div>
         {view === 'manage' && (
-          <div className="flex items-center gap-2">
-            <a href="/onboarding"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:border-violet-300 hover:bg-violet-50 transition-all">
-              <Sparkles size={16} /> معالج الإعداد
-            </a>
-            <button onClick={() => { resetForm(); setShowForm(true) }}
-              className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
-              style={{ background: 'var(--gradient-button)' }}>
-              <Plus size={16} /> مدرسة جديدة
-            </button>
-          </div>
+          <a href="/onboarding"
+            className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
+            style={{ background: 'var(--gradient-button)' }}>
+            <Plus size={16} /> مدرسة جديدة
+          </a>
         )}
       </div>
 
@@ -302,80 +256,6 @@ export default function SchoolsPage() {
       </div>
 
       </>)}
-
-      {/* نافذة الإنشاء */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowForm(false)}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
-            dir="rtl" onClick={e => e.stopPropagation()}>
-
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <Building2 size={18} style={{ color: 'var(--maroon-600)' }} /> مدرسة جديدة
-              </h3>
-              <button onClick={() => setShowForm(false)} aria-label="إغلاق"
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="p-5 space-y-4">
-              {/* بيانات المدرسة */}
-              <div>
-                <p className="text-xs font-bold text-slate-400 mb-2 uppercase">بيانات المدرسة</p>
-                <div className="space-y-3">
-                  <input value={schoolAr} onChange={e => setSchoolAr(e.target.value)}
-                    placeholder="اسم المدرسة بالعربية *"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
-                  <input value={schoolEn} onChange={e => setSchoolEn(e.target.value)}
-                    placeholder="School name (English)"
-                    dir="ltr"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
-                </div>
-              </div>
-
-              {/* بيانات المدير الأول */}
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-400 mb-2 uppercase">حساب المدير الأول</p>
-                <div className="space-y-3">
-                  <input value={adminName} onChange={e => setAdminName(e.target.value)}
-                    placeholder="اسم المدير"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
-                  <input value={adminEmail} onChange={e => setAdminEmail(e.target.value)}
-                    placeholder="البريد الإلكتروني *" type="email" dir="ltr"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
-                  <input value={adminUser} onChange={e => setAdminUser(e.target.value)}
-                    placeholder="اسم الدخول *" dir="ltr"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
-                  <input value={adminPass} onChange={e => setAdminPass(e.target.value)}
-                    placeholder="كلمة المرور (8 أحرف على الأقل)" type="text" dir="ltr"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
-                </div>
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-xl">
-                  {error}
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-1">
-                <button type="submit" disabled={saving || !schoolAr.trim() || !adminEmail.trim() || !adminUser.trim()}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:brightness-110"
-                  style={{ background: 'var(--gradient-button)' }}>
-                  {saving ? 'جارٍ الإنشاء...' : 'إنشاء المدرسة'}
-                </button>
-                <button type="button" onClick={() => setShowForm(false)}
-                  className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* نافذة التعديل */}
       {editSchool && (
