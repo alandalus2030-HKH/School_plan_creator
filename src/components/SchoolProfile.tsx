@@ -44,20 +44,27 @@ export default function SchoolProfile() {
   /* ── رفع الشعار ── */
   const onPickLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    if (e.target) e.target.value = '' // السماح بإعادة اختيار نفس الملف
     if (!file || !data) return
     if (file.size > MAX_LOGO) { toast('حجم الصورة يتجاوز 2MB', 'error'); return }
     if (!['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'].includes(file.type)) {
       toast('صيغة غير مدعومة (PNG/JPG/SVG/WEBP)', 'error'); return
     }
     setUploading(true)
-    const ext  = file.name.split('.').pop()
-    const path = `${data.id}/logo_${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from(LOGO_BUCKET).upload(path, file, { upsert: true })
-    if (error) { toast('تعذّر رفع الشعار: ' + error.message, 'error'); setUploading(false); return }
-    const { data: pub } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path)
-    setField('logo_url', pub.publicUrl)
-    setUploading(false)
-    toast('تم رفع الشعار — لا تنسَ الحفظ')
+    try {
+      const ext  = (file.name.split('.').pop() || 'png').toLowerCase()
+      const path = `${data.id}/logo_${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from(LOGO_BUCKET).upload(path, file, { upsert: true })
+      if (error) { toast('تعذّر رفع الشعار: ' + error.message, 'error'); return }
+      const { data: pub } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path)
+      setField('logo_url', pub?.publicUrl || '')
+      toast('تم رفع الشعار — لا تنسَ الحفظ')
+    } catch (err: any) {
+      console.error('[SchoolProfile] upload failed:', err)
+      toast('تعذّر رفع الشعار: ' + (err?.message || 'خطأ غير معروف'), 'error')
+    } finally {
+      setUploading(false)
+    }
   }
 
   /* ── حفظ كل البيانات ── */
