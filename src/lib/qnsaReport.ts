@@ -33,7 +33,7 @@ export async function generateQnsaReport(planId: string) {
 
   const [{ data: school }, { data: nodes }] = await Promise.all([
     supabase.from('schools')
-      .select('name_ar, name_en, logo_url, vision_ar, mission_ar')
+      .select('name_ar, name_en, logo_url, vision_ar, mission_ar, address, phone, email, principal_name, ministry_number, report_header, report_footer')
       .eq('id', plan.school_id).single(),
     supabase.from('plan_nodes')
       .select('id, parent_id, level_num, name_ar, order_num')
@@ -100,13 +100,23 @@ export async function generateQnsaReport(planId: string) {
     ? `<img src="${esc(school.logo_url)}" style="height:64px;width:64px;object-fit:contain;border-radius:8px" />`
     : `<div style="height:64px;width:64px;border-radius:12px;background:linear-gradient(135deg,#6f1029,#a83356);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700">${esc((school?.name_ar || 'م')[0])}</div>`
 
+  /* بيانات الاتصال (سطر واحد) */
+  const contactBits = [
+    school?.principal_name ? `المدير: ${esc(school.principal_name)}` : '',
+    school?.ministry_number ? `الرقم الوزاري: ${esc(school.ministry_number)}` : '',
+    school?.phone ? `هاتف: ${esc(school.phone)}` : '',
+    school?.email ? esc(school.email) : '',
+  ].filter(Boolean).join(' · ')
+
   const header = `
+    ${school?.report_header ? `<div class="custom-header">${esc(school.report_header)}</div>` : ''}
     <div class="cover">
       <div class="cover-top">
         ${logoHtml}
         <div style="flex:1">
           <div class="school-name">${esc(school?.name_ar || 'المدرسة')}</div>
           ${school?.name_en ? `<div class="school-en">${esc(school.name_en)}</div>` : ''}
+          ${school?.address ? `<div class="school-addr">${esc(school.address)}</div>` : ''}
         </div>
         <div class="qnsa-seal">
           <div style="font-size:10px;opacity:.8">دولة قطر</div>
@@ -118,6 +128,7 @@ export async function generateQnsaReport(planId: string) {
       <div class="report-sub">${esc(plan.name_ar)} · العام الدراسي ${esc(plan.academic_year)}</div>
       ${school?.vision_ar ? `<div class="vm"><span class="vm-label">الرؤية:</span> ${esc(school.vision_ar)}</div>` : ''}
       ${school?.mission_ar ? `<div class="vm"><span class="vm-label">الرسالة:</span> ${esc(school.mission_ar)}</div>` : ''}
+      ${contactBits ? `<div class="contact-bar">${contactBits}</div>` : ''}
     </div>`
 
   /* ملخص تنفيذي */
@@ -218,7 +229,10 @@ export async function generateQnsaReport(planId: string) {
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif;color:#1e293b;direction:rtl;font-size:12.5px;padding:0;background:#fff}
+  .custom-header{text-align:center;font-size:11px;color:#6f1029;font-weight:600;padding:8px 32px 0}
   .cover{background:linear-gradient(135deg,#46091a,#8a1538 60%,#a83356);color:#fff;padding:28px 32px;border-radius:0 0 18px 18px;margin-bottom:22px}
+  .school-addr{font-size:10.5px;opacity:.8;margin-top:3px}
+  .contact-bar{font-size:10.5px;opacity:.9;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.2)}
   .cover-top{display:flex;align-items:center;gap:16px;margin-bottom:18px}
   .school-name{font-size:22px;font-weight:700}
   .school-en{font-size:13px;opacity:.85;direction:ltr;text-align:right}
@@ -256,7 +270,7 @@ export async function generateQnsaReport(planId: string) {
 </style></head><body>
   ${html}
   <div class="foot">
-    <span>نظام متابعة الخطط المدرسية · تقرير وفق معايير الاعتماد المدرسي الوطني القطري (QNSA)</span>
+    <span>${school?.report_footer ? esc(school.report_footer) : 'نظام متابعة الخطط المدرسية · تقرير وفق معايير الاعتماد المدرسي الوطني القطري (QNSA)'}</span>
     <span>تاريخ الإصدار: ${new Date().toLocaleDateString('ar-QA')}</span>
   </div>
   <script>window.onload=()=>{setTimeout(()=>window.print(),400)}<\/script>

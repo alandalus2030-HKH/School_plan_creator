@@ -6,8 +6,9 @@ import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE } from '@/lib/permissions'
 import {
   Bell, Crown, Briefcase, BookOpen, GraduationCap,
   Globe, Heart, ClipboardList, MessageCircle, Users,
-  Unlock, AlertTriangle, Save, CircleCheckBig,
+  Unlock, AlertTriangle, Save, CircleCheckBig, Building2,
 } from 'lucide-react'
+import SchoolProfile from '@/components/SchoolProfile'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -176,6 +177,7 @@ export default function SettingsPage() {
   const activeCatInfo = CATEGORIES.find(c => c.key === activeCat)
   const isRoles  = activeCat === '__roles__'
   const isNotifs = activeCat === '__notifications__'
+  const isSchool = activeCat === '__school__'
 
   const sendNotif = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -225,6 +227,21 @@ export default function SettingsPage() {
 
         {/* ══ الشريط الجانبي ══ */}
         <div className="w-56 flex-shrink-0 space-y-2">
+          {/* بيانات المدرسة */}
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1 mb-3">المدرسة</p>
+          <button
+            onClick={() => { setActiveCat('__school__'); setEditId(null); setConfirmDel(null) }}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
+              ${isSchool
+                ? 'text-white shadow-lg'
+                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
+            style={isSchool ? { background: 'var(--gradient-button)' } : undefined}>
+            <Building2 size={18} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold truncate ${isSchool ? 'text-white' : 'text-slate-700'}`}>بيانات المدرسة</p>
+            </div>
+          </button>
+
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1 mb-3">القوائم المنسدلة</p>
 
           {CATEGORIES.map(cat => {
@@ -293,7 +310,10 @@ export default function SettingsPage() {
         {/* ══ المحتوى الرئيسي ══ */}
         <div className="flex-1 min-w-0">
 
-          {isNotifs ? (
+          {isSchool ? (
+            /* ════ قسم بيانات المدرسة ════ */
+            <SchoolProfile />
+          ) : isNotifs ? (
             /* ════ قسم إرسال الإشعارات ════ */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="flex items-center gap-3 p-5 border-b border-slate-100 bg-gradient-to-l from-violet-50 to-white">
