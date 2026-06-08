@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/Toast'
 import {
   Building2, Loader2, Upload, ImageIcon, Save, Phone, Mail, MapPin,
@@ -17,11 +16,9 @@ type SchoolData = {
   report_header: string | null; report_footer: string | null
 }
 
-const LOGO_BUCKET = 'school-logos'
 const MAX_LOGO = 2 * 1024 * 1024 // 2MB
 
 export default function SchoolProfile() {
-  const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [data, setData]       = useState<SchoolData | null>(null)
@@ -52,12 +49,12 @@ export default function SchoolProfile() {
     }
     setUploading(true)
     try {
-      const ext  = (file.name.split('.').pop() || 'png').toLowerCase()
-      const path = `${data.id}/logo_${Date.now()}.${ext}`
-      const { error } = await supabase.storage.from(LOGO_BUCKET).upload(path, file, { upsert: true })
-      if (error) { toast('تعذّر رفع الشعار: ' + error.message, 'error'); return }
-      const { data: pub } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path)
-      setField('logo_url', pub?.publicUrl || '')
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/school-profile', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) { toast('تعذّر رفع الشعار: ' + (json.error || res.status), 'error'); return }
+      setField('logo_url', json.url || '')
       toast('تم رفع الشعار — لا تنسَ الحفظ')
     } catch (err: any) {
       console.error('[SchoolProfile] upload failed:', err)
