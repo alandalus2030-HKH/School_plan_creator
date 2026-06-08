@@ -119,8 +119,9 @@ export default function SchoolProfile() {
             <div className="flex gap-1">
               <button onClick={() => fileRef.current?.click()} disabled={uploading}
                 className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-50">
-                {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                {uploading ? 'جارٍ الرفع' : 'رفع شعار'}
+                {/* عزل تبديل الأيقونة داخل span ثابت لتجنّب خطأ insertBefore في React */}
+                <span className="inline-flex">{uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}</span>
+                <span>{uploading ? 'جارٍ الرفع' : 'رفع شعار'}</span>
               </button>
               {data.logo_url && (
                 <button onClick={() => setField('logo_url', '')} aria-label="إزالة الشعار"
