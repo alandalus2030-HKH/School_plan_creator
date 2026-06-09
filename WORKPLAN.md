@@ -1138,4 +1138,5 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-08 | أسبوع 11 / يوم 55 | سياسة الخصوصية + شروط الاستخدام (ثنائي اللغة) + روابط الدخول | `LegalShell.tsx`, `privacy/page`, `terms/page`, `proxy.ts`, `login/page` |
 | 2026-06-08 | أسبوع 11 / يوم 51-52 | معالج Onboarding (3 خطوات) + نقطة /api/onboarding الموحّدة | `onboarding/page`, `api/onboarding`, schools/page |
 | 2026-06-09 | أسبوع 12 / يوم 56-57 (أ) | ميزة الأوسمة (صفحة مستقلة + RLS عزل + صلاحية grant_badges + عرض في الملف) | `migrations/018`, `api/badges/*`, `badges/page`, `badgeIcons`, Sidebar, profile |
+| 2026-06-09 | تحسين الأوسمة | 14 لوناً (معدنية) + نقاط/وسام + لوحة ترتيب بالفترة + إشعار عند المنح + اسم المانح + أسباب جاهزة | `migrations/019`, badges/page, api/badges/*, profile, badgeIcons |
 | | | | |

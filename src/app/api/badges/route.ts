@@ -39,12 +39,14 @@ export async function POST(req: NextRequest) {
   const name_ar = body.name_ar?.toString().trim()
   if (!name_ar) return NextResponse.json({ error: 'اسم الوسام مطلوب' }, { status: 400 })
 
+  const points = Math.max(0, Math.min(1000, parseInt(body.points, 10) || 10))
   const { data, error } = await ctx.admin.from('badges').insert({
     school_id: ctx.schoolId,
     name_ar,
     name_en: body.name_en?.toString().trim() || null,
     icon:    body.icon?.toString().trim() || 'Award',
     color:   body.color?.toString().trim() || '#8a1538',
+    points,
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true, id: data.id })

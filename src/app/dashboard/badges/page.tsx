@@ -6,14 +6,37 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
-  Award, Trophy, Sparkles, Plus, X, Loader2, Trash2, Gift, Send,
+  Award, Trophy, Sparkles, Plus, X, Loader2, Trash2, Gift, Send, Star, Medal, BarChart3,
 } from 'lucide-react'
-import { ROLE_COLORS_PALETTE } from '@/lib/permissions'
-import { BadgeIcon, ICON_NAMES } from '@/lib/badgeIcons'
+import { BadgeIcon, ICON_NAMES, BADGE_COLORS } from '@/lib/badgeIcons'
 
-type Badge   = { id: string; name_ar: string; name_en: string | null; icon: string; color: string }
+type Badge   = { id: string; name_ar: string; name_en: string | null; icon: string; color: string; points: number }
 type Profile = { id: string; name_ar: string }
 type Grant   = { id: string; badge_id: string; profile_id: string; note: string | null; granted_at: string }
+type RankRow = { profile_id: string; name: string; total: number; count: number }
+
+/* أسباب منح جاهزة (مستندة لأنظمة التقدير العالمية: Bonusly / PBIS / Credly) */
+const PRESET_REASONS = [
+  'التميّز في الأداء', 'التعاون وروح الفريق', 'المبادرة والابتكار',
+  'الالتزام والانضباط', 'إنجاز المهام في وقتها', 'جودة عمل متميّزة',
+  'القيادة الفاعلة', 'المثابرة وتجاوز التحديات', 'خدمة متميّزة للطلاب', 'تطوّر مهني مستمر',
+]
+
+const PERIODS = [
+  { key: 'month', label: 'هذا الشهر',   days: 0 },
+  { key: 'q',     label: 'آخر 3 أشهر',  days: 90 },
+  { key: 'year',  label: 'هذه السنة',   days: 365 },
+  { key: 'all',   label: 'الكل',        days: -1 },
+] as const
+
+function periodStart(key: string): string | null {
+  if (key === 'all') return null
+  const d = new Date()
+  if (key === 'month') { d.setDate(1); d.setHours(0, 0, 0, 0); return d.toISOString() }
+  const days = key === 'q' ? 90 : 365
+  d.setDate(d.getDate() - days)
+  return d.toISOString()
+}
 
 export default function BadgesPage() {
   const supabase = createClient()
@@ -29,7 +52,8 @@ export default function BadgesPage() {
   const [fName, setFName]   = useState('')
   const [fNameEn, setFNameEn] = useState('')
   const [fIcon, setFIcon]   = useState('Award')
-  const [fColor, setFColor] = useState(ROLE_COLORS_PALETTE[0])
+  const [fColor, setFColor] = useState(BADGE_COLORS[0].value)
+  const [fPoints, setFPoints] = useState(10)
   const [saving, setSaving] = useState(false)
   const [confirmDel, setConfirmDel] = useState<Badge | null>(null)
 
@@ -39,9 +63,13 @@ export default function BadgesPage() {
   const [grantNote,  setGrantNote]  = useState('')
   const [granting,   setGranting]   = useState(false)
 
+  /* لوحة الترتيب */
+  const [period, setPeriod] = useState<string>('month')
+  const [ranks, setRanks]   = useState<RankRow[]>([])
+
   const load = async () => {
     const [b, p, g] = await Promise.all([
-      supabase.from('badges').select('id, name_ar, name_en, icon, color').order('created_at', { ascending: false }),
+      supabase.from('badges').select('id, name_ar, name_en, icon, color, points').order('created_at', { ascending: false }),
       supabase.from('profiles').select('id, name_ar').eq('is_active', true).order('name_ar').limit(500),
       supabase.from('user_badges').select('id, badge_id, profile_id, note, granted_at').order('granted_at', { ascending: false }).limit(100),
     ])
@@ -52,18 +80,42 @@ export default function BadgesPage() {
   }
   useEffect(() => { if (!permsLoading && can('grant_badges')) load(); else if (!permsLoading) setLoading(false) }, [permsLoading])
 
+  /* حساب لوحة الترتيب حسب الفترة */
+  useEffect(() => {
+    if (badges.length === 0) { setRanks([]); return }
+    ;(async () => {
+      const start = periodStart(period)
+      let q = supabase.from('user_badges').select('profile_id, badge_id, granted_at')
+      if (start) q = q.gte('granted_at', start)
+      const { data } = await q.limit(5000)
+      const ptMap = new Map(badges.map(b => [b.id, b.points ?? 0]))
+      const agg = new Map<string, RankRow>()
+      for (const r of (data || [])) {
+        const pts = ptMap.get(r.badge_id) ?? 0
+        const cur = agg.get(r.profile_id) || { profile_id: r.profile_id, name: '', total: 0, count: 0 }
+        cur.total += pts; cur.count += 1
+        agg.set(r.profile_id, cur)
+      }
+      const rows = [...agg.values()]
+        .map(r => ({ ...r, name: profiles.find(p => p.id === r.profile_id)?.name_ar || '—' }))
+        .sort((a, b) => b.total - a.total || b.count - a.count)
+        .slice(0, 20)
+      setRanks(rows)
+    })()
+  }, [period, badges, profiles])
+
   const createBadge = async () => {
     if (!fName.trim()) { toast('اسم الوسام مطلوب', 'error'); return }
     setSaving(true)
     const res = await fetch('/api/badges', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name_ar: fName, name_en: fNameEn, icon: fIcon, color: fColor }),
+      body: JSON.stringify({ name_ar: fName, name_en: fNameEn, icon: fIcon, color: fColor, points: fPoints }),
     })
     const json = await res.json()
     setSaving(false)
     if (!res.ok) { toast(json.error || 'تعذّر الإنشاء', 'error'); return }
     toast('تم إنشاء الوسام')
-    setShowForm(false); setFName(''); setFNameEn(''); setFIcon('Award'); setFColor(ROLE_COLORS_PALETTE[0])
+    setShowForm(false); setFName(''); setFNameEn(''); setFIcon('Award'); setFColor(BADGE_COLORS[0].value); setFPoints(10)
     await load()
   }
 
@@ -141,7 +193,9 @@ export default function BadgesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-700 truncate">{b.name_ar}</p>
-                    {b.name_en && <p className="text-xs text-slate-400 truncate" dir="ltr">{b.name_en}</p>}
+                    <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
+                      <Star size={11} className="fill-amber-400 text-amber-400" /> {b.points ?? 0} نقطة
+                    </p>
                   </div>
                   <button onClick={() => setConfirmDel(b)} aria-label="حذف الوسام"
                     className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0">
@@ -176,9 +230,18 @@ export default function BadgesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">ملاحظة (اختياري)</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">سبب المنح (اختياري)</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {PRESET_REASONS.map(r => (
+                  <button key={r} type="button" onClick={() => setGrantNote(r)}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors
+                      ${grantNote === r ? 'border-violet-400 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-500 hover:border-violet-300 hover:bg-violet-50'}`}>
+                    {r}
+                  </button>
+                ))}
+              </div>
               <input value={grantNote} onChange={e => setGrantNote(e.target.value)}
-                placeholder="سبب المنح..." className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                placeholder="أو اكتب سبباً مخصصاً..." className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
             </div>
             <button onClick={grant} disabled={granting || !grantBadge || !grantUser}
               className="w-full flex items-center justify-center gap-2 text-white font-semibold py-2.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 shadow-lg"
@@ -222,6 +285,47 @@ export default function BadgesPage() {
                     className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0">
                     <Trash2 size={14} />
                   </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ══ لوحة الترتيب ══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <BarChart3 size={18} style={{ color: 'var(--maroon-600)' }} /> لوحة الترتيب (حسب النقاط)
+          </h3>
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+            {PERIODS.map(p => (
+              <button key={p.key} onClick={() => setPeriod(p.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+                  ${period === p.key ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {ranks.length === 0 ? (
+          <p className="text-center text-slate-400 text-sm py-8">لا توجد نقاط في هذه الفترة</p>
+        ) : (
+          <div className="space-y-1.5">
+            {ranks.map((r, i) => {
+              const rankColor = i === 0 ? '#d4af37' : i === 1 ? '#9ca3af' : i === 2 ? '#cd7f32' : null
+              return (
+                <div key={r.profile_id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${i < 3 ? 'bg-slate-50' : ''}`}>
+                  <div className="w-7 flex items-center justify-center flex-shrink-0">
+                    {rankColor
+                      ? <span className="inline-flex"><Medal size={20} style={{ color: rankColor }} /></span>
+                      : <span className="text-sm font-bold text-slate-400">{i + 1}</span>}
+                  </div>
+                  <span className="flex-1 text-sm font-medium text-slate-700 truncate">{r.name}</span>
+                  <span className="text-xs text-slate-400 flex-shrink-0">{r.count} وسام</span>
+                  <span className="flex items-center gap-1 text-sm font-bold flex-shrink-0" style={{ color: 'var(--maroon-600)' }}>
+                    <Star size={13} className="fill-amber-400 text-amber-400" /> {r.total}
+                  </span>
                 </div>
               )
             })}
@@ -277,11 +381,29 @@ export default function BadgesPage() {
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-2">اللون</label>
                 <div className="flex gap-2 flex-wrap">
-                  {ROLE_COLORS_PALETTE.map(c => (
-                    <button key={c} onClick={() => setFColor(c)}
-                      className={`w-8 h-8 rounded-full transition-all ${fColor === c ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'}`}
-                      style={{ backgroundColor: c }} aria-label={`لون ${c}`} />
+                  {BADGE_COLORS.map(c => (
+                    <button key={c.value} onClick={() => setFColor(c.value)} title={c.name}
+                      className={`w-8 h-8 rounded-full transition-all ${fColor === c.value ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'}`}
+                      style={{ backgroundColor: c.value }} aria-label={`لون ${c.name}`} />
                   ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1">
+                  <Star size={12} className="text-amber-500" /> النقاط (تُضاف لرصيد من يحصل عليه)
+                </label>
+                <div className="flex items-center gap-2">
+                  {[5, 10, 25, 50, 100].map(v => (
+                    <button key={v} onClick={() => setFPoints(v)}
+                      className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-colors
+                        ${fPoints === v ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-slate-200 text-slate-500 hover:border-amber-300'}`}>
+                      {v}
+                    </button>
+                  ))}
+                  <input type="number" min={0} max={1000} value={fPoints}
+                    onChange={e => setFPoints(Math.max(0, Math.min(1000, parseInt(e.target.value, 10) || 0)))}
+                    dir="ltr" className="w-16 px-2 py-2 rounded-lg border border-slate-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
               </div>
 

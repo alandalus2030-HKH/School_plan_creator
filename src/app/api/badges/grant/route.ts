@@ -40,21 +40,37 @@ export async function POST(req: NextRequest) {
   if (!badge_id || !profile_id) return NextResponse.json({ error: 'الوسام والمستخدم مطلوبان' }, { status: 400 })
 
   /* التحقق أن الوسام والمستخدم في مدرسة المُستدعي */
-  const { data: badge } = await ctx.admin.from('badges').select('school_id').eq('id', badge_id).maybeSingle()
+  const { data: badge } = await ctx.admin.from('badges').select('school_id, name_ar').eq('id', badge_id).maybeSingle()
   if (!badge || badge.school_id !== ctx.schoolId) {
     return NextResponse.json({ error: 'الوسام غير موجود' }, { status: 404 })
   }
-  const { data: prof } = await ctx.admin.from('profiles').select('school_id').eq('id', profile_id).maybeSingle()
+  const { data: prof } = await ctx.admin.from('profiles').select('school_id, notif_enabled, notif_inapp').eq('id', profile_id).maybeSingle()
   if (!prof || prof.school_id !== ctx.schoolId) {
     return NextResponse.json({ error: 'المستخدم غير موجود في هذه المدرسة' }, { status: 404 })
   }
 
+  const note = body.note?.toString().trim() || null
   const { data, error } = await ctx.admin.from('user_badges').insert({
     badge_id, profile_id,
     granted_by: auth.user.id,
-    note: body.note?.toString().trim() || null,
+    note,
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  /* إشعار للمستخدم الذي حصل على الوسام */
+  if (prof.notif_enabled !== false && prof.notif_inapp !== false) {
+    await ctx.admin.from('notifications').insert({
+      recipient_id: profile_id,
+      sender_id:    auth.user.id,
+      type:         'badge_earned',
+      title:        `حصلت على وسام: ${badge.name_ar}`,
+      body:         note,
+      link:         '/dashboard/profile',
+      is_read:      false,
+      send_email:   false,
+    })
+  }
+
   return NextResponse.json({ ok: true, id: data.id })
 }
 

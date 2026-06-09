@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { UserRound, Phone, Award } from 'lucide-react'
 import { BadgeIcon } from '@/lib/badgeIcons'
 
-type MyBadge = { id: string; name_ar: string; icon: string; color: string; note: string | null; granted_at: string }
+type MyBadge = { id: string; name_ar: string; icon: string; color: string; note: string | null; granted_at: string; by: string | null }
 
 export default function ProfilePage() {
   const supabase = createClient()
@@ -38,16 +38,26 @@ export default function ProfilePage() {
     if (!userId) return
     ;(async () => {
       const { data: ub } = await supabase
-        .from('user_badges').select('id, badge_id, note, granted_at')
+        .from('user_badges').select('id, badge_id, note, granted_at, granted_by')
         .eq('profile_id', userId).order('granted_at', { ascending: false })
       if (!ub || ub.length === 0) { setMyBadges([]); return }
-      const ids = [...new Set(ub.map(r => r.badge_id))]
-      const { data: bs } = await supabase
-        .from('badges').select('id, name_ar, icon, color').in('id', ids)
-      const map = new Map((bs || []).map(b => [b.id, b]))
+      const badgeIds = [...new Set(ub.map(r => r.badge_id))]
+      const granterIds = [...new Set(ub.map(r => r.granted_by).filter(Boolean))]
+      const [{ data: bs }, { data: gs }] = await Promise.all([
+        supabase.from('badges').select('id, name_ar, icon, color').in('id', badgeIds),
+        granterIds.length
+          ? supabase.from('profiles').select('id, name_ar').in('id', granterIds as string[])
+          : Promise.resolve({ data: [] as { id: string; name_ar: string }[] }),
+      ])
+      const bMap = new Map((bs || []).map(b => [b.id, b]))
+      const gMap = new Map((gs || []).map(g => [g.id, g.name_ar]))
       setMyBadges(ub.map(r => {
-        const b = map.get(r.badge_id)
-        return { id: r.id, name_ar: b?.name_ar || 'وسام', icon: b?.icon || 'Award', color: b?.color || '#8a1538', note: r.note, granted_at: r.granted_at }
+        const b = bMap.get(r.badge_id)
+        return {
+          id: r.id, name_ar: b?.name_ar || 'وسام', icon: b?.icon || 'Award',
+          color: b?.color || '#8a1538', note: r.note, granted_at: r.granted_at,
+          by: r.granted_by ? (gMap.get(r.granted_by) || null) : null,
+        }
       }))
     })()
   }, [userId])
@@ -170,14 +180,19 @@ export default function ProfilePage() {
             <Award size={16} style={{ color: 'var(--maroon-600)' }} /> أوسمتي
             <span className="text-xs font-normal text-slate-400">({myBadges.length})</span>
           </h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
             {myBadges.map(b => (
-              <div key={b.id} title={b.note || undefined}
-                className="flex items-center gap-2 pr-2 pl-3 py-1.5 rounded-full border border-slate-150 bg-slate-50">
-                <span className="w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0" style={{ background: b.color }}>
-                  <BadgeIcon name={b.icon} size={14} />
+              <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                <span className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ background: b.color }}>
+                  <BadgeIcon name={b.icon} size={20} />
                 </span>
-                <span className="text-sm font-medium text-slate-700">{b.name_ar}</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-700 truncate">{b.name_ar}</p>
+                  {b.note && <p className="text-xs text-slate-500 truncate">{b.note}</p>}
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {b.by ? `منحك: ${b.by}` : ''}{b.by ? ' · ' : ''}{new Date(b.granted_at).toLocaleDateString('ar')}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
