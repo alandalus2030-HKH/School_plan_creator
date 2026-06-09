@@ -12,6 +12,7 @@ export type PermsCtx = {
   userId:      string
   userName:    string
   userEmail:   string
+  userAvatar:  string
   role:        string
   permissions: string[]
   loading:     boolean
@@ -38,7 +39,7 @@ export type PermsCtx = {
 }
 
 const PermCtx = createContext<PermsCtx>({
-  userId: '', userName: '', userEmail: '', role: '',
+  userId: '', userName: '', userEmail: '', userAvatar: '', role: '',
   permissions: [], loading: true,
   can: () => false, isFullAdmin: false, isSuperAdmin: false, schoolName: '',
   isGroupOwner: false, ownedGroupId: '', groupName: '', roleLabel: '',
@@ -49,6 +50,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [userId,      setUserId]      = useState('')
   const [userName,    setUserName]    = useState('')
   const [userEmail,   setUserEmail]   = useState('')
+  const [userAvatar,  setUserAvatar]  = useState('')
   const [role,        setRole]        = useState('')
   const [permissions, setPermissions] = useState<string[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -70,7 +72,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, full_name_ar, name_ar, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, active_school_id, school:schools!school_id(name_ar, is_active)')
+        .select('role, full_name_ar, name_ar, avatar_url, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, active_school_id, school:schools!school_id(name_ar, is_active)')
         .eq('id', user.id)
         .single()
 
@@ -98,6 +100,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       setSchoolName(school?.name_ar || '')
       setRole(profile.role || '')
       setUserName(profile.full_name_ar || profile.name_ar || '')
+      setUserAvatar(p.avatar_url || '')
 
       /* ── الصلاحيات ── */
       if (profile.role) {
@@ -153,7 +156,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
   return (
     <PermCtx.Provider value={{
-      userId, userName, userEmail, role, permissions, loading, can, isFullAdmin, isSuperAdmin, schoolName,
+      userId, userName, userEmail, userAvatar, role, permissions, loading, can, isFullAdmin, isSuperAdmin, schoolName,
       isGroupOwner, ownedGroupId, groupName, roleLabel, impersonating, impersonatedSchool,
     }}>
       {children}

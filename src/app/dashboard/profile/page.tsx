@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserRound, Phone, Award, Star } from 'lucide-react'
+import { UserRound, Phone, Award, Star, Camera, Loader2, Trash2 } from 'lucide-react'
+import { toast } from '@/components/Toast'
 import { BadgeIcon } from '@/lib/badgeIcons'
 
 type MyBadge = { id: string; name_ar: string; icon: string; color: string; note: string | null; granted_at: string; by: string | null; points: number }
@@ -31,6 +32,39 @@ export default function ProfilePage() {
   /* تغيير كلمة المرور */
   const [sendingReset,  setSendingReset]  = useState(false)
   const [resetMsg,      setResetMsg]      = useState('')
+
+  /* الصورة الشخصية */
+  const [avatarUrl,       setAvatarUrl]       = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarRef = useRef<HTMLInputElement>(null)
+
+  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (e.target) e.target.value = ''
+    if (!f) return
+    if (f.size > 2 * 1024 * 1024) { toast('حجم الصورة يتجاوز 2MB', 'error'); return }
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(f.type)) { toast('صيغة غير مدعومة (PNG/JPG/WEBP)', 'error'); return }
+    setUploadingAvatar(true)
+    try {
+      const fd = new FormData(); fd.append('file', f)
+      const res = await fetch('/api/profile/avatar', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) { toast(json.error || 'تعذّر رفع الصورة', 'error'); return }
+      setAvatarUrl(json.url || '')
+      toast('تم تحديث صورتك الشخصية')
+    } catch (err: any) {
+      toast('تعذّر رفع الصورة: ' + (err?.message || 'خطأ'), 'error')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+  const removeAvatar = async () => {
+    setUploadingAvatar(true)
+    const res = await fetch('/api/profile/avatar', { method: 'DELETE' })
+    setUploadingAvatar(false)
+    if (res.ok) { setAvatarUrl(''); toast('تم حذف الصورة') }
+    else toast('تعذّر الحذف', 'error')
+  }
 
   /* أوسمتي + الإحصاء التحفيزي (النقاط/الترتيب) */
   const [myBadges, setMyBadges] = useState<MyBadge[]>([])
@@ -89,11 +123,12 @@ export default function ProfilePage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('first_name_ar, last_name_ar, first_name_en, last_name_en, phone, role, job_title, department')
+        .select('first_name_ar, last_name_ar, first_name_en, last_name_en, phone, role, job_title, department, avatar_url')
         .eq('id', user.id)
         .single()
 
       if (profile) {
+        setAvatarUrl(profile.avatar_url || '')
         setFirstNameAr(profile.first_name_ar || '')
         setLastNameAr(profile.last_name_ar   || '')
         setFirstNameEn(profile.first_name_en || '')
@@ -166,8 +201,27 @@ export default function ProfilePage() {
       {/* ══ بطاقة المعلومات الأساسية ══ */}
       <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white rounded-2xl p-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold">
-            {initial}
+          {/* الصورة الشخصية مع زر الرفع */}
+          <div className="relative flex-shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="الصورة الشخصية" className="w-20 h-20 rounded-full object-cover ring-2 ring-white/40" />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold">
+                {initial}
+              </div>
+            )}
+            <input ref={avatarRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={onPickAvatar} className="hidden" />
+            <button onClick={() => avatarRef.current?.click()} disabled={uploadingAvatar}
+              aria-label="تغيير الصورة" title="تغيير الصورة"
+              className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full bg-white text-violet-700 flex items-center justify-center shadow-md hover:bg-violet-50 transition-colors disabled:opacity-60">
+              <span className="inline-flex">{uploadingAvatar ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}</span>
+            </button>
+            {avatarUrl && !uploadingAvatar && (
+              <button onClick={removeAvatar} aria-label="حذف الصورة" title="حذف الصورة"
+                className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-white text-red-500 flex items-center justify-center shadow-md hover:bg-red-50 transition-colors">
+                <Trash2 size={11} />
+              </button>
+            )}
           </div>
           <div>
             <h1 className="text-xl font-bold">

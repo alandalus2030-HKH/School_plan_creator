@@ -38,7 +38,7 @@ interface SidebarProps {
 
 export default function Sidebar({ lang, collapsed = false, onToggle, schoolName }: SidebarProps) {
   const pathname = usePathname()
-  const { can, loading, userName, userEmail, userId, isSuperAdmin, isGroupOwner,
+  const { can, loading, userName, userEmail, userId, userAvatar, isSuperAdmin, isGroupOwner,
     schoolName: ctxSchoolName, groupName, roleLabel,
     impersonating, impersonatedSchool } = usePermissions()
   const isRtl = lang === 'ar'
@@ -191,10 +191,15 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
           title={collapsed ? (userName || userEmail || '') : undefined}
           className={`flex items-center hover:bg-white/10 rounded-xl transition-colors group
             ${collapsed ? 'justify-center p-2' : 'gap-3 p-1.5'}`}>
-          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm group-hover:ring-2 group-hover:ring-white/30 transition-all"
-            style={{ background: 'var(--maroon-400)' }}>
-            {initial}
-          </div>
+          {userAvatar ? (
+            <img src={userAvatar} alt={userName || 'الصورة الشخصية'}
+              className="w-9 h-9 rounded-full object-cover flex-shrink-0 group-hover:ring-2 group-hover:ring-white/30 transition-all" />
+          ) : (
+            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm group-hover:ring-2 group-hover:ring-white/30 transition-all"
+              style={{ background: 'var(--maroon-400)' }}>
+              {initial}
+            </div>
+          )}
           {!collapsed && (
             <div className="overflow-hidden flex-1">
               <p className="text-xs font-semibold truncate">{userName || userEmail}</p>
