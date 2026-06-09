@@ -81,7 +81,7 @@ export const OVERDUE_META = {
   text:           'text-red-700',
   tailwindBorder: 'border-red-200',
 }
-export function isOverdue(endDate: string | null, status: string): boolean {
+export const isOverdue = (endDate: string | null, status: string): boolean => {
   if (!endDate || status === 'completed') return false
   return new Date(endDate) < new Date(new Date().toISOString().split('T')[0])
 }
