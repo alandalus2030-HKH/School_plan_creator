@@ -6,7 +6,7 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import {
-  Award, Trophy, Sparkles, Plus, X, Loader2, Trash2, Gift, Send, Star, Medal, BarChart3,
+  Award, Trophy, Sparkles, Plus, X, Loader2, Trash2, Gift, Send, Star, Medal, BarChart3, Pencil,
 } from 'lucide-react'
 import { BadgeIcon, ICON_NAMES, BADGE_COLORS } from '@/lib/badgeIcons'
 
@@ -47,8 +47,9 @@ export default function BadgesPage() {
   const [grants,   setGrants]   = useState<Grant[]>([])
   const [loading,  setLoading]  = useState(true)
 
-  /* نموذج إنشاء وسام */
+  /* نموذج إنشاء/تعديل وسام */
   const [showForm, setShowForm] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
   const [fName, setFName]   = useState('')
   const [fNameEn, setFNameEn] = useState('')
   const [fIcon, setFIcon]   = useState('Award')
@@ -61,6 +62,7 @@ export default function BadgesPage() {
   const [grantBadge, setGrantBadge] = useState('')
   const [grantUser,  setGrantUser]  = useState('')
   const [grantNote,  setGrantNote]  = useState('')
+  const [reasons,    setReasons]    = useState<string[]>([])
   const [granting,   setGranting]   = useState(false)
 
   /* لوحة الترتيب */
@@ -104,18 +106,28 @@ export default function BadgesPage() {
     })()
   }, [period, badges, profiles])
 
-  const createBadge = async () => {
+  const openCreate = () => {
+    setEditId(null); setFName(''); setFNameEn(''); setFIcon('Award'); setFColor(BADGE_COLORS[0].value); setFPoints(10)
+    setShowForm(true)
+  }
+  const openEdit = (b: Badge) => {
+    setEditId(b.id); setFName(b.name_ar); setFNameEn(b.name_en || ''); setFIcon(b.icon || 'Award')
+    setFColor(b.color || BADGE_COLORS[0].value); setFPoints(b.points ?? 10)
+    setShowForm(true)
+  }
+
+  const saveBadge = async () => {
     if (!fName.trim()) { toast('اسم الوسام مطلوب', 'error'); return }
     setSaving(true)
-    const res = await fetch('/api/badges', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name_ar: fName, name_en: fNameEn, icon: fIcon, color: fColor, points: fPoints }),
-    })
+    const payload = { name_ar: fName, name_en: fNameEn, icon: fIcon, color: fColor, points: fPoints }
+    const res = editId
+      ? await fetch('/api/badges', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, ...payload }) })
+      : await fetch('/api/badges', { method: 'POST',  headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     const json = await res.json()
     setSaving(false)
-    if (!res.ok) { toast(json.error || 'تعذّر الإنشاء', 'error'); return }
-    toast('تم إنشاء الوسام')
-    setShowForm(false); setFName(''); setFNameEn(''); setFIcon('Award'); setFColor(BADGE_COLORS[0].value); setFPoints(10)
+    if (!res.ok) { toast(json.error || 'تعذّر الحفظ', 'error'); return }
+    toast(editId ? 'تم تحديث الوسام' : 'تم إنشاء الوسام')
+    setShowForm(false)
     await load()
   }
 
@@ -127,18 +139,22 @@ export default function BadgesPage() {
     setConfirmDel(null); await load()
   }
 
+  const toggleReason = (r: string) =>
+    setReasons(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r])
+
   const grant = async () => {
     if (!grantBadge || !grantUser) { toast('اختر الوسام والمستخدم', 'error'); return }
+    const note = [...reasons, grantNote.trim()].filter(Boolean).join('، ')
     setGranting(true)
     const res = await fetch('/api/badges/grant', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ badge_id: grantBadge, profile_id: grantUser, note: grantNote }),
+      body: JSON.stringify({ badge_id: grantBadge, profile_id: grantUser, note }),
     })
     const json = await res.json()
     setGranting(false)
     if (!res.ok) { toast(json.error || 'تعذّر المنح', 'error'); return }
     toast('تم منح الوسام')
-    setGrantNote(''); setGrantUser('')
+    setGrantNote(''); setGrantUser(''); setReasons([])
     await load()
   }
 
@@ -168,7 +184,7 @@ export default function BadgesPage() {
           </h2>
           <p className="text-slate-500 text-sm mt-1">أنشئ أوسمة المدرسة وامنحها لتحفيز الفريق</p>
         </div>
-        <button onClick={() => setShowForm(true)}
+        <button onClick={openCreate}
           className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
           style={{ background: 'var(--gradient-button)' }}>
           <Plus size={16} /> وسام جديد
@@ -197,10 +213,16 @@ export default function BadgesPage() {
                       <Star size={11} className="fill-amber-400 text-amber-400" /> {b.points ?? 0} نقطة
                     </p>
                   </div>
-                  <button onClick={() => setConfirmDel(b)} aria-label="حذف الوسام"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0">
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    <button onClick={() => openEdit(b)} aria-label="تعديل الوسام"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50">
+                      <Pencil size={14} />
+                    </button>
+                    <button onClick={() => setConfirmDel(b)} aria-label="حذف الوسام"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -230,18 +252,25 @@ export default function BadgesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">سبب المنح (اختياري)</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                أسباب المنح (يمكن اختيار أكثر من سبب)
+                {reasons.length > 0 && <span className="text-violet-600"> · {reasons.length}</span>}
+              </label>
               <div className="flex flex-wrap gap-1.5 mb-2">
-                {PRESET_REASONS.map(r => (
-                  <button key={r} type="button" onClick={() => setGrantNote(r)}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors
-                      ${grantNote === r ? 'border-violet-400 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-500 hover:border-violet-300 hover:bg-violet-50'}`}>
-                    {r}
-                  </button>
-                ))}
+                {PRESET_REASONS.map(r => {
+                  const on = reasons.includes(r)
+                  return (
+                    <button key={r} type="button" onClick={() => toggleReason(r)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1
+                        ${on ? 'border-violet-400 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-500 hover:border-violet-300 hover:bg-violet-50'}`}>
+                      {on && <span className="inline-flex"><Star size={10} className="fill-violet-500 text-violet-500" /></span>}
+                      {r}
+                    </button>
+                  )
+                })}
               </div>
               <input value={grantNote} onChange={e => setGrantNote(e.target.value)}
-                placeholder="أو اكتب سبباً مخصصاً..." className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                placeholder="سبب إضافي مخصص (اختياري)..." className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
             </div>
             <button onClick={grant} disabled={granting || !grantBadge || !grantUser}
               className="w-full flex items-center justify-center gap-2 text-white font-semibold py-2.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 shadow-lg"
@@ -340,7 +369,8 @@ export default function BadgesPage() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-5" dir="rtl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <Award size={18} style={{ color: 'var(--maroon-600)' }} /> وسام جديد
+                <span className="inline-flex">{editId ? <Pencil size={18} style={{ color: 'var(--maroon-600)' }} /> : <Award size={18} style={{ color: 'var(--maroon-600)' }} />}</span>
+                {editId ? 'تعديل الوسام' : 'وسام جديد'}
               </h3>
               <button onClick={() => setShowForm(false)} aria-label="إغلاق"
                 className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
@@ -408,11 +438,11 @@ export default function BadgesPage() {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button onClick={createBadge} disabled={saving || !fName.trim()}
+                <button onClick={saveBadge} disabled={saving || !fName.trim()}
                   className="flex-1 flex items-center justify-center gap-2 text-white font-semibold py-2.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
                   style={{ background: 'var(--gradient-button)' }}>
-                  <span className="inline-flex">{saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}</span>
-                  <span>{saving ? 'جارٍ الإنشاء...' : 'إنشاء الوسام'}</span>
+                  <span className="inline-flex">{saving ? <Loader2 size={16} className="animate-spin" /> : (editId ? <Pencil size={16} /> : <Plus size={16} />)}</span>
+                  <span>{saving ? 'جارٍ الحفظ...' : (editId ? 'حفظ التعديلات' : 'إنشاء الوسام')}</span>
                 </button>
                 <button onClick={() => setShowForm(false)}
                   className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">

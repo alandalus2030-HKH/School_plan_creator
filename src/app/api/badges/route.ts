@@ -52,6 +52,38 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, id: data.id })
 }
 
+export async function PATCH(req: NextRequest) {
+  const auth = await requireAuth()
+  if (auth instanceof NextResponse) return auth
+  const ctx = await getContext(auth.user.id)
+  if (!ctx?.schoolId) return NextResponse.json({ error: 'لا توجد مدرسة مرتبطة' }, { status: 400 })
+  if (!(await canGrant(ctx))) return NextResponse.json({ error: 'لا تملك صلاحية إدارة الأوسمة' }, { status: 403 })
+
+  const body = await req.json()
+  const id = body.id?.toString()
+  if (!id) return NextResponse.json({ error: 'معرّف الوسام مطلوب' }, { status: 400 })
+
+  /* التحقق أن الوسام يخص مدرسة المُستدعي */
+  const { data: badge } = await ctx.admin.from('badges').select('school_id').eq('id', id).maybeSingle()
+  if (!badge || badge.school_id !== ctx.schoolId) {
+    return NextResponse.json({ error: 'الوسام غير موجود' }, { status: 404 })
+  }
+
+  const name_ar = body.name_ar?.toString().trim()
+  if (!name_ar) return NextResponse.json({ error: 'اسم الوسام مطلوب' }, { status: 400 })
+  const points = Math.max(0, Math.min(1000, parseInt(body.points, 10) || 10))
+
+  const { error } = await ctx.admin.from('badges').update({
+    name_ar,
+    name_en: body.name_en?.toString().trim() || null,
+    icon:    body.icon?.toString().trim() || 'Award',
+    color:   body.color?.toString().trim() || '#8a1538',
+    points,
+  }).eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
 export async function DELETE(req: NextRequest) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
