@@ -93,6 +93,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     return NextResponse.json({ ok: true, status: to })
   }
 
+  /* ════ start (بدء العمل) ════ */
+  if (action === 'start') {
+    if (!isAssignee) return NextResponse.json({ error: 'بدء العمل متاح للمكلّف فقط' }, { status: 403 })
+    if (!['not_started', 'returned'].includes(task.status)) {
+      return NextResponse.json({ error: 'لا يمكن بدء العمل من حالتها الحالية' }, { status: 400 })
+    }
+    return logAndRespond('in_progress', { return_note: null }, null, null, '', null)
+  }
+
   /* ════ submit ════ */
   if (action === 'submit') {
     if (!isAssignee) return NextResponse.json({ error: 'الرفع للتقييم متاح للمكلّف فقط' }, { status: 403 })

@@ -6,7 +6,8 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
-import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2 } from 'lucide-react'
+import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2 } from 'lucide-react'
+import { STATUS_META, OVERDUE_META, isOverdue } from '@/lib/constants/tasks'
 import Breadcrumb from '@/components/Breadcrumb'
 import MentionInput, { extractMentions } from '@/components/MentionInput'
 import Subtasks from '@/components/Subtasks'
@@ -262,6 +263,25 @@ export default function TaskPage() {
     await supabase.from('tasks').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', taskId)
     setStatus(newStatus)
     setSavingStatus(false)
+  }
+
+  /* ── سير العمل: انتقالات عبر الخادم ── */
+  const [transitioning, setTransitioning] = useState(false)
+  const [wfError,       setWfError]       = useState('')
+  const [returnNote,    setReturnNote]    = useState('')
+  const [showReturn,    setShowReturn]    = useState(false)
+  const doTransition = async (action: string, payload: Record<string, any> = {}) => {
+    setTransitioning(true); setWfError('')
+    const res = await fetch(`/api/tasks/${taskId}/transition`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...payload }),
+    })
+    const json = await res.json()
+    setTransitioning(false)
+    if (!res.ok) { setWfError(json.error || 'تعذّر تنفيذ الإجراء'); return false }
+    setShowReturn(false); setReturnNote('')
+    await loadTask()
+    return true
   }
 
   const openEdit = () => {
@@ -581,19 +601,56 @@ export default function TaskPage() {
           )}
         </div>
 
-        {/* Status Buttons */}
+        {/* حالة المهمة + سير العمل */}
         <div className="p-5">
-          <p className="text-sm font-semibold text-slate-700 mb-3">تحديث الحالة</p>
-          <div className="flex flex-wrap gap-2">
-            {statusList.map(s => (
-              <button key={s.value} onClick={() => updateStatus(s.value)} disabled={savingStatus}
-                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${s.bg}
-                  ${status === s.value ? `ring-2 ring-offset-1 ${s.ring} shadow-sm scale-105` : 'opacity-70 hover:opacity-100'}
-                  disabled:opacity-40`}>
-                {s.label}
-              </button>
-            ))}
+          <p className="text-sm font-semibold text-slate-700 mb-3">حالة المهمة</p>
+
+          {/* الحالة الحالية + وسم التأخير */}
+          <div className="flex items-center gap-2 flex-wrap mb-3">
+            <span className="px-3 py-1.5 rounded-xl text-sm font-semibold border border-transparent"
+              style={{ background: STATUS_META[status]?.bg, color: STATUS_META[status]?.fg }}>
+              {STATUS_META[status]?.ar || status}
+            </span>
+            {isOverdue(task.end_date, status) && (
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1 ${OVERDUE_META.light} ${OVERDUE_META.text} ${OVERDUE_META.tailwindBorder}`}>
+                <Clock size={12} /> {OVERDUE_META.ar}
+              </span>
+            )}
           </div>
+
+          {/* سبب الإعادة */}
+          {status === 'returned' && task.return_note && (
+            <div className="mb-3 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 text-sm text-orange-700">
+              <span className="font-semibold">سبب الإعادة: </span>{task.return_note}
+            </div>
+          )}
+
+          {/* أزرار المكلّف */}
+          {task.assigned_to_user_id === userId && status !== 'submitted' && status !== 'completed' && (
+            <div className="flex flex-wrap gap-2">
+              {(status === 'not_started' || status === 'returned') && (
+                <button onClick={() => doTransition('start')} disabled={transitioning}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-sm font-medium hover:bg-violet-100 disabled:opacity-50">
+                  <Play size={14} /> بدء العمل
+                </button>
+              )}
+              <button onClick={() => doTransition('submit')} disabled={transitioning}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold hover:brightness-110 disabled:opacity-50"
+                style={{ background: 'var(--gradient-button)' }}>
+                <span className="inline-flex">{transitioning ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}</span>
+                رفع للتقييم
+              </button>
+            </div>
+          )}
+
+          {/* بانتظار التقييم */}
+          {status === 'submitted' && (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-1.5">
+              <Clock size={14} /> المهمة مرفوعة وبانتظار اعتماد المقيّم.
+            </p>
+          )}
+
+          {wfError && <p className="mt-2 text-sm text-red-600">{wfError}</p>}
         </div>
       </div>
 
@@ -854,36 +911,6 @@ export default function TaskPage() {
             )}
           </h2>
 
-          {/* أزرار التحكم — تظهر فقط عند وجود تقييم وعدم التعديل */}
-          {canRate && task.rating && !editingRating && (
-            <div className="flex items-center gap-2">
-              {/* زر التعديل */}
-              <button onClick={() => { setEditingRating(true); setRatingValue(task.rating); setRatingNote(task.rating_note || ''); setConfirmResetRating(false) }}
-                className="text-sm text-amber-600 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-colors border border-amber-200">
-                ✏️ تعديل
-              </button>
-
-              {/* زر إعادة التعيين مع تأكيد */}
-              {!confirmResetRating ? (
-                <button onClick={() => setConfirmResetRating(true)}
-                  className="text-sm text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors border border-red-200">
-                  🔄 إعادة تعيين
-                </button>
-              ) : (
-                <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-xl px-3 py-1.5">
-                  <span className="text-xs text-red-700 font-medium">تأكيد الحذف؟</span>
-                  <button onClick={resetRating} disabled={resettingRating}
-                    className="text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded-lg font-semibold disabled:opacity-50 transition-colors">
-                    {resettingRating ? '...' : 'نعم'}
-                  </button>
-                  <button onClick={() => setConfirmResetRating(false)}
-                    className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg transition-colors">
-                    لا
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* معلومات المقيّم */}
@@ -922,25 +949,22 @@ export default function TaskPage() {
           </div>
         )}
 
-        {/* نموذج التقييم — للمقيّم أو أصحاب الصلاحية */}
-        {canRate && (!task.rating || editingRating) && (
+        {/* لوحة المقيّم — تظهر عند رفع المهمة للتقييم */}
+        {canRate && status === 'submitted' && (
           <div className="space-y-4">
-            {!task.rating && (
-              <p className="text-sm text-slate-500 bg-slate-50 rounded-xl p-3">
-                لم يتم تقييم هذه المهمة بعد. راجع الأدلة المرفوعة والتعليقات ثم أضف تقييمك.
-              </p>
-            )}
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              المهمة مرفوعة للتقييم. راجع الأدلة والتعليقات، ثم <strong>اعتمدها مع تقييم الجودة</strong>، أو <strong>أعدها للتعديل</strong> مع بيان السبب.
+            </p>
 
             {/* أزرار التقدير الخماسي */}
             <div>
-              <p className="text-xs font-medium text-slate-600 mb-2">اختر التقدير:</p>
+              <p className="text-xs font-medium text-slate-600 mb-2">تقييم جودة التنفيذ:</p>
               <div className="grid grid-cols-5 gap-2">
                 {([5,4,3,2,1] as RatingValue[]).map(val => {
                   const info = RATING_INFO[val]
                   const isSelected = ratingValue === val
                   return (
-                    <button key={val} type="button"
-                      onClick={() => setRatingValue(val)}
+                    <button key={val} type="button" onClick={() => setRatingValue(val)}
                       className={`flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-bold transition-all border-2 ${isSelected ? info.btn : ''}`}
                       style={isSelected
                         ? { background: info.bg, color: info.fg, borderColor: info.border }
@@ -954,44 +978,53 @@ export default function TaskPage() {
               </div>
             </div>
 
-            {/* ملاحظة المقيّم */}
+            {/* ملاحظة الاعتماد */}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">
-                💬 ملاحظة المقيّم <span className="text-slate-400 font-normal">(اختياري)</span>
-              </label>
-              <textarea
-                value={ratingNote}
-                onChange={e => setRatingNote(e.target.value.slice(0, 500))}
-                rows={3} maxLength={500}
-                placeholder="أضف ملاحظاتك حول جودة التنفيذ..."
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 text-slate-800 resize-none text-sm"
-              />
-              <p className="text-xs text-slate-400 mt-1 text-left">{ratingNote.length} / 500</p>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">ملاحظة الاعتماد <span className="text-slate-400 font-normal">(اختياري)</span></label>
+              <textarea value={ratingNote} onChange={e => setRatingNote(e.target.value.slice(0, 500))} rows={2} maxLength={500}
+                placeholder="ملاحظاتك حول جودة التنفيذ..."
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 text-slate-800 resize-none text-sm" />
             </div>
 
-            {/* رسالة خطأ */}
-            {ratingError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
-                ⚠️ {ratingError}
+            {wfError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">{wfError}</div>}
+
+            {/* اعتماد */}
+            <button onClick={() => doTransition('approve', { rating: ratingValue, note: ratingNote })}
+              disabled={transitioning || !ratingValue}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-white font-semibold rounded-xl text-sm disabled:opacity-50 hover:brightness-110"
+              style={{ background: 'var(--gradient-button)' }}>
+              <span className="inline-flex">{transitioning ? <Loader2 size={16} className="animate-spin" /> : <CircleCheckBig size={16} />}</span>
+              اعتماد المهمة (إنجاز)
+            </button>
+
+            {/* إعادة للتعديل */}
+            {!showReturn ? (
+              <button onClick={() => setShowReturn(true)} disabled={transitioning}
+                className="w-full flex items-center justify-center gap-2 py-2.5 border border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl text-sm font-medium disabled:opacity-50">
+                <Undo2 size={16} /> إعادة للتعديل
+              </button>
+            ) : (
+              <div className="space-y-2 border border-orange-200 rounded-xl p-3 bg-orange-50/50">
+                <textarea value={returnNote} onChange={e => setReturnNote(e.target.value.slice(0, 500))} rows={2}
+                  placeholder="سبب الإعادة (إلزامي)..."
+                  className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-sm" />
+                <div className="flex gap-2">
+                  <button onClick={() => doTransition('return', { note: returnNote })} disabled={transitioning || !returnNote.trim()}
+                    className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">إعادة المهمة</button>
+                  <button onClick={() => { setShowReturn(false); setReturnNote('') }} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm">إلغاء</button>
+                </div>
               </div>
             )}
-
-            <div className="flex gap-3">
-              <button onClick={saveRating} disabled={savingRating || !ratingValue}
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-sm disabled:opacity-50 transition-colors">
-                {savingRating ? 'جارٍ الحفظ...' : '💾 حفظ التقييم'}
-              </button>
-              {editingRating && (
-                <button onClick={() => { setEditingRating(false); setRatingError(''); setConfirmResetRating(false) }}
-                  className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50">
-                  إلغاء
-                </button>
-              )}
-            </div>
           </div>
         )}
 
-        {/* رسالة لغير المخوّلين */}
+        {/* حالات أخرى للمقيّم/غيره */}
+        {canRate && status !== 'submitted' && !task.rating && (
+          <div className="text-center py-4 text-slate-400">
+            <Clock size={24} className="mx-auto mb-1" style={{ color: 'var(--maroon-300)' }} />
+            <p className="text-sm">لم تُرفَع المهمة للتقييم بعد.</p>
+          </div>
+        )}
         {!canRate && !task.rating && (
           <div className="text-center py-4 text-slate-400">
             <Lock size={24} className="mx-auto mb-1" style={{ color: 'var(--maroon-300)' }} />
