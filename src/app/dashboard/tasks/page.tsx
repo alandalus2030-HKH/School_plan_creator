@@ -496,33 +496,10 @@ export default function TasksPage() {
                     </span>
                   )}
 
-                  {/* الحالة — Inline dropdown */}
-                  <div className="relative flex-shrink-0 group/status" onClick={e => e.preventDefault()}>
-                    <button
-                      onClick={e => e.stopPropagation()}
-                      className={`text-xs px-2.5 py-1 rounded-full font-medium transition-all
-                        ${savedId === task.id ? 'ring-2 ring-violet-400 ring-offset-1' : ''}
-                        ${savingId === task.id ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:shadow-sm'}
-                        ${statusInfo?.bg}`}>
-                      {savingId === task.id ? '...' : statusInfo?.label}
-                    </button>
-                    {/* القائمة المنسدلة */}
-                    <div className="absolute left-0 top-full mt-1 w-28 bg-white rounded-xl shadow-lg border border-slate-200 z-20
-                                    opacity-0 invisible group-hover/status:opacity-100 group-hover/status:visible
-                                    transition-all duration-150 overflow-hidden">
-                      {STATUS_LIST.map(s => (
-                        <button key={s.value}
-                          onClick={e => updateStatus(e, task.id, s.value)}
-                          disabled={task.status === s.value}
-                          className={`w-full text-right px-3 py-1.5 text-xs font-medium transition-colors
-                            ${task.status === s.value
-                              ? 'bg-slate-100 text-slate-400 cursor-default'
-                              : 'hover:bg-slate-50 text-slate-700'}`}>
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* الحالة — للعرض فقط (سير العمل يُدار من صفحة المهمة) */}
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${statusInfo?.bg}`}>
+                    {statusInfo?.label || task.status}
+                  </span>
                 </Link>
               )
             })}

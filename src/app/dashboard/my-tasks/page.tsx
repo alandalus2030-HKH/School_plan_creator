@@ -88,7 +88,7 @@ export default function MyTasksPage() {
       let memberTeamIds: string[] = []
       try {
         const { data: memberTeams } = await supabase
-          .from('team_members').select('team_id').eq('user_id', user.id)
+          .from('team_members').select('team_id').eq('profile_id', user.id)
         memberTeamIds = (memberTeams || []).map((m: any) => m.team_id)
       } catch { /* جدول team_members غير موجود بعد */ }
 
@@ -344,30 +344,16 @@ export default function MyTasksPage() {
                     </span>
                   </div>
 
-                  {/* أزرار التحكم — للمهام المكلَّف بها فقط */}
+                  {/* الإجراءات — سير العمل يُدار من صفحة المهمة */}
                   {(task._source === 'assigned' || task._source === 'team') && (
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-slate-400 ml-auto">تحديث الحالة:</span>
-                      {[
-                        { v: 'not_started', label: 'لم تبدأ',  cls: 'border-slate-200  text-slate-600  hover:bg-slate-50'   },
-                        { v: 'in_progress', label: 'جارية',    cls: 'border-violet-200 text-violet-700 hover:bg-violet-50' },
-                        { v: 'completed',   label: 'منجزة ✓',  cls: 'border-violet-400 text-violet-900 hover:bg-violet-100'},
-                        { v: 'delayed',     label: 'متأخرة',   cls: 'border-red-200    text-red-700    hover:bg-red-50'    },
-                      ].map(s => (
-                        <button key={s.v}
-                          onClick={() => task.status !== s.v && updateStatus(task.id, s.v)}
-                          disabled={isSaving}
-                          className={`px-2.5 py-1 rounded-xl text-xs font-medium border transition-all disabled:opacity-40
-                            ${task.status === s.v
-                              ? 'ring-2 ring-offset-1 ring-current scale-105 shadow-sm ' + s.cls
-                              : s.cls + ' bg-white opacity-60 hover:opacity-100'}`}>
-                          {isSaving && task.status === s.v ? '...' : s.label}
-                        </button>
-                      ))}
-
-                      {/* رابط رفع الأدلة */}
+                      <Link href={`/dashboard/tasks/${task.id}`}
+                        className="flex items-center gap-1 text-xs text-white px-3 py-1.5 rounded-xl font-medium transition-all hover:brightness-110"
+                        style={{ background: 'var(--gradient-button)' }}>
+                        فتح المهمة لإدارة الحالة ←
+                      </Link>
                       <Link href={`/dashboard/tasks/${task.id}/evidence/new`}
-                        className="mr-auto flex items-center gap-1 text-xs text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1 rounded-xl border border-violet-200 transition-colors">
+                        className="mr-auto flex items-center gap-1 text-xs text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl border border-violet-200 transition-colors">
                         📎 رفع دليل
                       </Link>
                     </div>

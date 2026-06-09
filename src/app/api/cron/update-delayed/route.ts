@@ -4,8 +4,8 @@ import { createAdminClient, isValidCronRequest } from '@/lib/supabase/admin'
 /**
  * GET /api/cron/update-delayed
  * يُشغّله Vercel Cron يومياً
- * يحوّل كل مهمة انتهى موعدها ولم تكتمل إلى "متأخرة"
- * ويُشعر المكلَّف بها
+ * يُشعر المكلَّفين بالمهام التي تجاوزت موعدها ولم تُنجَز.
+ * ملاحظة: التأخير أصبح وسماً محسوباً (لا حالة) — لذا لا نكتب فوق status.
  */
 export async function GET(req: Request) {
   if (!isValidCronRequest(req)) {
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     .from('tasks')
     .select('id, name_ar, assigned_to_user_id, end_date')
     .lt('end_date', today)
-    .in('status', ['not_started', 'in_progress'])
+    .neq('status', 'completed')
     .is('deleted_at', null)
     .limit(2000)
 
@@ -30,23 +30,10 @@ export async function GET(req: Request) {
   }
 
   if (!overdue || overdue.length === 0) {
-    return NextResponse.json({ ok: true, updated: 0 })
+    return NextResponse.json({ ok: true, notified: 0 })
   }
 
-  const ids = overdue.map(t => t.id)
-
-  /* ── تحديث الحالة دفعة واحدة ── */
-  const { error: updErr } = await admin
-    .from('tasks')
-    .update({ status: 'delayed' })
-    .in('id', ids)
-
-  if (updErr) {
-    console.error('[cron:update-delayed] update', updErr)
-    return NextResponse.json({ error: updErr.message }, { status: 500 })
-  }
-
-  /* ── إشعار المكلَّفين (مع احترام تفضيلاتهم) ── */
+  /* ── إشعار المكلَّفين (مع احترام تفضيلاتهم) — التأخير وسم محسوب، لا نكتب status ── */
   const assignees = [...new Set(overdue.map(t => t.assigned_to_user_id).filter(Boolean))]
   const { data: profs } = await admin
     .from('profiles')
@@ -74,5 +61,5 @@ export async function GET(req: Request) {
     await admin.from('notifications').insert(notifs)
   }
 
-  return NextResponse.json({ ok: true, updated: ids.length, notified: notifs.length })
+  return NextResponse.json({ ok: true, notified: notifs.length })
 }

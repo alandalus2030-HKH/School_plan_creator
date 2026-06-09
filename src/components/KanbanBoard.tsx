@@ -23,9 +23,12 @@ export const KANBAN_COLUMNS = [
   { value: 'in_progress', label: 'جارية',    icon: '🔄', color: 'blue',   hex: '#3b82f6',
     bg: 'bg-blue-50',  border: 'border-blue-200',  header: 'bg-blue-100  text-blue-700',
     badge: 'bg-blue-200  text-blue-700',  ring: 'ring-blue-300'  },
-  { value: 'delayed',     label: 'متأخرة',   icon: '⚠️', color: 'red',    hex: '#ef4444',
-    bg: 'bg-red-50',   border: 'border-red-200',   header: 'bg-red-100   text-red-700',
-    badge: 'bg-red-200   text-red-700',   ring: 'ring-red-300'   },
+  { value: 'submitted',   label: 'مرفوعة للتقييم', icon: '📤', color: 'amber', hex: '#f59e0b',
+    bg: 'bg-amber-50', border: 'border-amber-200', header: 'bg-amber-100 text-amber-700',
+    badge: 'bg-amber-200 text-amber-700', ring: 'ring-amber-300' },
+  { value: 'returned',    label: 'مُعادة للتعديل', icon: '↩️', color: 'orange', hex: '#ea580c',
+    bg: 'bg-orange-50', border: 'border-orange-200', header: 'bg-orange-100 text-orange-700',
+    badge: 'bg-orange-200 text-orange-700', ring: 'ring-orange-300' },
   { value: 'completed',   label: 'منجزة',    icon: '✅', color: 'green',  hex: '#22c55e',
     bg: 'bg-green-50', border: 'border-green-200', header: 'bg-green-100 text-green-700',
     badge: 'bg-green-200 text-green-700', ring: 'ring-green-300' },
@@ -328,28 +331,10 @@ export default function KanbanBoard({
     const task = tasks.find(t => t.id === taskId)
     if (!task || task.status === newStatus) return
 
-    // تحديث متفائل فوري
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
-    setSaving(true)
-    setSaveError(null)
-
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: newStatus })
-      .eq('id', taskId)
-
-    setSaving(false)
-    if (error) {
-      console.error('[Kanban] update error:', error)
-      // تراجع عن التحديث عند الخطأ
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: task.status } : t))
-      setSaveError(error.message || 'فشل التحديث')
-      setTimeout(() => setSaveError(null), 5000)
-    } else {
-      setLastSaved(taskId)
-      setTimeout(() => setLastSaved(null), 2000)
-    }
-  }, [tasks, supabase])
+    // سير العمل يحكم الحالة — لا يُسمح بتغييرها بالسحب
+    setSaveError('لتغيير الحالة، افتح المهمة واتبع سير العمل (بدء/رفع/اعتماد)')
+    setTimeout(() => setSaveError(null), 4000)
+  }, [tasks])
 
   const handleQuickAdd = (status: string) => {
     const params = new URLSearchParams({ defaultStatus: status })

@@ -57,18 +57,9 @@ export const STATUS_META: Record<string, {
     text:         'text-violet-900',
     tailwindBorder: 'border-violet-300',
   },
-  delayed: {
-    ar:           'متأخرة',
-    bg:           'var(--status-late-bg)',
-    fg:           'var(--status-late-fg)',
-    hex:          '#8a1538',
-    light:        'bg-violet-600',
-    text:         'text-white',
-    tailwindBorder: 'border-violet-700',
-  },
 }
 
-export type StatusKey = 'not_started' | 'in_progress' | 'submitted' | 'returned' | 'completed' | 'delayed'
+export type StatusKey = 'not_started' | 'in_progress' | 'submitted' | 'returned' | 'completed'
 
 /* ════════════════════════════════════════════════════════
    وسم التأخير (overdue) — يُعرض فوق أي حالة، ليس حالة مستقلة
