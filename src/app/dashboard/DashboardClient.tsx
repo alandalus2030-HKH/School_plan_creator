@@ -6,6 +6,7 @@ import {
   AlertTriangle, Zap, Clock, BookOpen, Archive, Pin, Inbox,
 } from 'lucide-react'
 import ActivityFeed from '@/components/ActivityFeed'
+import RecognitionPodium from '@/components/RecognitionPodium'
 
 type Task = {
   id: string
@@ -54,6 +55,9 @@ function TaskIcon({ type }: { type: string }) {
 export default function DashboardClient(props: Props) {
   return (
     <div className="space-y-6">
+
+      {/* ── صدارة الشهر ── */}
+      <RecognitionPodium />
 
       {/* ── إحصائيات رئيسية ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -12,6 +12,7 @@ import {
 
 import { STATUS_META, RATING_META, PRIORITY_META } from '@/lib/constants/tasks'
 import { SkeletonTaskList } from '@/components/Skeleton'
+import RecognitionPodium from '@/components/RecognitionPodium'
 import type { PlanNode, Plan, Team } from '@/lib/types'
 
 /* ── aliases للتوافق مع الكود الموجود ── */
@@ -217,6 +218,9 @@ export default function MyTasksPage() {
         </div>
         <p className="text-violet-200 text-sm mt-1">هذه المهام الموكلة إليك — يمكنك تحديث حالتها ورفع الأدلة عليها</p>
       </div>
+
+      {/* ══ صدارة الشهر ══ */}
+      <RecognitionPodium />
 
       {/* ══ بطاقات الإحصائيات ══ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
