@@ -272,16 +272,27 @@ export default function TaskPage() {
   const [showReturn,    setShowReturn]    = useState(false)
   const doTransition = async (action: string, payload: Record<string, any> = {}) => {
     setTransitioning(true); setWfError('')
-    const res = await fetch(`/api/tasks/${taskId}/transition`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...payload }),
-    })
-    const json = await res.json()
-    setTransitioning(false)
-    if (!res.ok) { setWfError(json.error || 'تعذّر تنفيذ الإجراء'); return false }
-    setShowReturn(false); setReturnNote('')
-    await loadTask()
-    return true
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/transition`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...payload }),
+      })
+      let json: any = {}
+      try { json = await res.json() } catch { /* استجابة غير JSON */ }
+      if (!res.ok) {
+        setWfError(json.error || `تعذّر تنفيذ الإجراء (${res.status})`)
+        return false
+      }
+      setShowReturn(false); setReturnNote('')
+      await loadTask()
+      return true
+    } catch (err: any) {
+      console.error('[transition] failed:', err)
+      setWfError('تعذّر الاتصال بالخادم: ' + (err?.message || 'خطأ غير معروف'))
+      return false
+    } finally {
+      setTransitioning(false)
+    }
   }
 
   const openEdit = () => {
