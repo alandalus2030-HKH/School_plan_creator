@@ -87,8 +87,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
   }
 
   const logAndRespond = async (to: string, fields: Record<string, any>, note: string | null, notifyTo: string | null, notifTitle: string, notifBody: string | null) => {
-    await admin.from('tasks').update({ ...fields, status: to, updated_at: new Date().toISOString(), updated_by: userId }).eq('id', taskId)
-    await admin.from('task_transitions').insert({ task_id: taskId, from_status: task.status, to_status: to, actor_id: userId, note })
+    const { data: upRows, error: upErr } = await admin.from('tasks')
+      .update({ ...fields, status: to, updated_at: new Date().toISOString(), updated_by: userId })
+      .eq('id', taskId).select('id')
+    if (upErr) return NextResponse.json({ error: 'فشل تحديث المهمة: ' + upErr.message }, { status: 500 })
+    if (!upRows || upRows.length === 0) return NextResponse.json({ error: 'لم يُحدَّث أي صف (تحقّق من معرّف المهمة/الصلاحيات)' }, { status: 500 })
+    const { error: trErr } = await admin.from('task_transitions')
+      .insert({ task_id: taskId, from_status: task.status, to_status: to, actor_id: userId, note })
+    if (trErr) console.error('[transition] log insert failed:', trErr.message)
     await notify(admin, notifyTo, userId, notifTitle, notifBody, `/dashboard/tasks/${taskId}`)
     return NextResponse.json({ ok: true, status: to })
   }
