@@ -1017,8 +1017,15 @@ task_comments · team_members · meetings · dropdown_options
 ### اليوم 56-57 | صورة شخصية للمستخدم + الأوسمة
 - [ ] رفع الصورة لـ Supabase Storage في `profile/page.tsx`
 - [ ] عرضها في Sidebar بدل الـ Avatar الحرفي
-- [ ] صفحة منح الأوسمة (إنشاء وسام + منحه لمستخدم)
-- [ ] Build + Push
+- [x] **الأوسمة** (صفحة مستقلة `/dashboard/badges`):
+  - `migrations/018` — إصلاح تسريب RLS + عزل badges/user_badges بـ my_school_id()
+  - صلاحية جديدة `grant_badges` في ALL_PERMISSIONS
+  - `api/badges` (إنشاء/حذف) + `api/badges/grant` (منح/سحب) — خادمياً مع فحص الصلاحية
+  - صفحة `/dashboard/badges`: كتالوج + منح + الممنوحة مؤخراً (12 أيقونة + ألوان)
+  - بند "الأوسمة" في القائمة الجانبية (مبوّب بـ grant_badges)
+  - عرض "أوسمتي" في الملف الشخصي
+  - `lib/badgeIcons.tsx` مشترك
+- [ ] Build + Push (الصورة الشخصية تالياً)
 
 ### اليوم 58 | عبارات تحفيزية في صفحة الدخول
 - [ ] إضافة جدول `motivational_quotes` (موجود في schema الأصلي)
@@ -1130,4 +1137,5 @@ task_comments · team_members · meetings · dropdown_options
 | 2026-06-08 | إصلاح حرج | حل insertBefore عند رفع الشعار: أيقونة شرطية بجوار نص شرطي تكسر مُوفّق React 19 → عزلها في span ثابت (شُخّص بإعادة إنتاج معزولة) | `SchoolProfile.tsx` |
 | 2026-06-08 | أسبوع 11 / يوم 55 | سياسة الخصوصية + شروط الاستخدام (ثنائي اللغة) + روابط الدخول | `LegalShell.tsx`, `privacy/page`, `terms/page`, `proxy.ts`, `login/page` |
 | 2026-06-08 | أسبوع 11 / يوم 51-52 | معالج Onboarding (3 خطوات) + نقطة /api/onboarding الموحّدة | `onboarding/page`, `api/onboarding`, schools/page |
+| 2026-06-09 | أسبوع 12 / يوم 56-57 (أ) | ميزة الأوسمة (صفحة مستقلة + RLS عزل + صلاحية grant_badges + عرض في الملف) | `migrations/018`, `api/badges/*`, `badges/page`, `badgeIcons`, Sidebar, profile |
 | | | | |

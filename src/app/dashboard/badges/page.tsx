@@ -1,0 +1,321 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { usePermissions } from '@/lib/PermissionsContext'
+import NoAccess from '@/components/NoAccess'
+import { toast } from '@/components/Toast'
+import {
+  Award, Trophy, Sparkles, Plus, X, Loader2, Trash2, Gift, Send,
+} from 'lucide-react'
+import { ROLE_COLORS_PALETTE } from '@/lib/permissions'
+import { BadgeIcon, ICON_NAMES } from '@/lib/badgeIcons'
+
+type Badge   = { id: string; name_ar: string; name_en: string | null; icon: string; color: string }
+type Profile = { id: string; name_ar: string }
+type Grant   = { id: string; badge_id: string; profile_id: string; note: string | null; granted_at: string }
+
+export default function BadgesPage() {
+  const supabase = createClient()
+  const { can, loading: permsLoading } = usePermissions()
+
+  const [badges,   setBadges]   = useState<Badge[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [grants,   setGrants]   = useState<Grant[]>([])
+  const [loading,  setLoading]  = useState(true)
+
+  /* نموذج إنشاء وسام */
+  const [showForm, setShowForm] = useState(false)
+  const [fName, setFName]   = useState('')
+  const [fNameEn, setFNameEn] = useState('')
+  const [fIcon, setFIcon]   = useState('Award')
+  const [fColor, setFColor] = useState(ROLE_COLORS_PALETTE[0])
+  const [saving, setSaving] = useState(false)
+  const [confirmDel, setConfirmDel] = useState<Badge | null>(null)
+
+  /* منح وسام */
+  const [grantBadge, setGrantBadge] = useState('')
+  const [grantUser,  setGrantUser]  = useState('')
+  const [grantNote,  setGrantNote]  = useState('')
+  const [granting,   setGranting]   = useState(false)
+
+  const load = async () => {
+    const [b, p, g] = await Promise.all([
+      supabase.from('badges').select('id, name_ar, name_en, icon, color').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, name_ar').eq('is_active', true).order('name_ar').limit(500),
+      supabase.from('user_badges').select('id, badge_id, profile_id, note, granted_at').order('granted_at', { ascending: false }).limit(100),
+    ])
+    setBadges((b.data || []) as Badge[])
+    setProfiles((p.data || []) as Profile[])
+    setGrants((g.data || []) as Grant[])
+    setLoading(false)
+  }
+  useEffect(() => { if (!permsLoading && can('grant_badges')) load(); else if (!permsLoading) setLoading(false) }, [permsLoading])
+
+  const createBadge = async () => {
+    if (!fName.trim()) { toast('اسم الوسام مطلوب', 'error'); return }
+    setSaving(true)
+    const res = await fetch('/api/badges', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name_ar: fName, name_en: fNameEn, icon: fIcon, color: fColor }),
+    })
+    const json = await res.json()
+    setSaving(false)
+    if (!res.ok) { toast(json.error || 'تعذّر الإنشاء', 'error'); return }
+    toast('تم إنشاء الوسام')
+    setShowForm(false); setFName(''); setFNameEn(''); setFIcon('Award'); setFColor(ROLE_COLORS_PALETTE[0])
+    await load()
+  }
+
+  const deleteBadge = async (b: Badge) => {
+    const res = await fetch(`/api/badges?id=${b.id}`, { method: 'DELETE' })
+    const json = await res.json()
+    if (!res.ok) { toast(json.error || 'تعذّر الحذف', 'error'); setConfirmDel(null); return }
+    toast('تم حذف الوسام')
+    setConfirmDel(null); await load()
+  }
+
+  const grant = async () => {
+    if (!grantBadge || !grantUser) { toast('اختر الوسام والمستخدم', 'error'); return }
+    setGranting(true)
+    const res = await fetch('/api/badges/grant', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ badge_id: grantBadge, profile_id: grantUser, note: grantNote }),
+    })
+    const json = await res.json()
+    setGranting(false)
+    if (!res.ok) { toast(json.error || 'تعذّر المنح', 'error'); return }
+    toast('تم منح الوسام')
+    setGrantNote(''); setGrantUser('')
+    await load()
+  }
+
+  const revoke = async (id: string) => {
+    const res = await fetch(`/api/badges/grant?id=${id}`, { method: 'DELETE' })
+    if (!res.ok) { toast('تعذّر السحب', 'error'); return }
+    toast('تم سحب الوسام'); await load()
+  }
+
+  const badgeById   = (id: string) => badges.find(b => b.id === id)
+  const profileName = (id: string) => profiles.find(p => p.id === id)?.name_ar || '—'
+
+  if (permsLoading || loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--maroon-600)' }} />
+    </div>
+  )
+  if (!can('grant_badges')) return <NoAccess />
+
+  return (
+    <div className="space-y-5" dir="rtl">
+      {/* رأس */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <Award size={22} style={{ color: 'var(--maroon-600)' }} /> الأوسمة والتحفيز
+          </h2>
+          <p className="text-slate-500 text-sm mt-1">أنشئ أوسمة المدرسة وامنحها لتحفيز الفريق</p>
+        </div>
+        <button onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
+          style={{ background: 'var(--gradient-button)' }}>
+          <Plus size={16} /> وسام جديد
+        </button>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-5">
+        {/* ══ كتالوج الأوسمة ══ */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Trophy size={18} style={{ color: 'var(--maroon-600)' }} /> أوسمة المدرسة
+            <span className="text-xs font-normal text-slate-400">({badges.length})</span>
+          </h3>
+          {badges.length === 0 ? (
+            <p className="text-center text-slate-400 text-sm py-8">لا توجد أوسمة بعد — أنشئ أول وسام</p>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-3">
+              {badges.map(b => (
+                <div key={b.id} className="group flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ background: b.color }}>
+                    <BadgeIcon name={b.icon} size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-700 truncate">{b.name_ar}</p>
+                    {b.name_en && <p className="text-xs text-slate-400 truncate" dir="ltr">{b.name_en}</p>}
+                  </div>
+                  <button onClick={() => setConfirmDel(b)} aria-label="حذف الوسام"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ══ منح وسام ══ */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Gift size={18} style={{ color: 'var(--maroon-600)' }} /> منح وسام
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">الوسام</label>
+              <select value={grantBadge} onChange={e => setGrantBadge(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
+                <option value="">— اختر وساماً —</option>
+                {badges.map(b => <option key={b.id} value={b.id}>{b.name_ar}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">المستخدم</label>
+              <select value={grantUser} onChange={e => setGrantUser(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
+                <option value="">— اختر مستخدماً —</option>
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.name_ar}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">ملاحظة (اختياري)</label>
+              <input value={grantNote} onChange={e => setGrantNote(e.target.value)}
+                placeholder="سبب المنح..." className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+            </div>
+            <button onClick={grant} disabled={granting || !grantBadge || !grantUser}
+              className="w-full flex items-center justify-center gap-2 text-white font-semibold py-2.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 shadow-lg"
+              style={{ background: 'var(--gradient-button)' }}>
+              <span className="inline-flex">{granting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}</span>
+              <span>{granting ? 'جارٍ المنح...' : 'منح الوسام'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ الأوسمة الممنوحة مؤخراً ══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Sparkles size={18} style={{ color: 'var(--maroon-600)' }} /> الأوسمة الممنوحة
+          <span className="text-xs font-normal text-slate-400">({grants.length})</span>
+        </h3>
+        {grants.length === 0 ? (
+          <p className="text-center text-slate-400 text-sm py-8">لم تُمنح أوسمة بعد</p>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {grants.map(g => {
+              const b = badgeById(g.badge_id)
+              return (
+                <div key={g.id} className="group flex items-center gap-3 py-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0" style={{ background: b?.color || '#8a1538' }}>
+                    <BadgeIcon name={b?.icon || 'Award'} size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-700">
+                      <span className="font-semibold">{profileName(g.profile_id)}</span>
+                      <span className="text-slate-400"> حصل على </span>
+                      <span className="font-semibold">{b?.name_ar || 'وسام'}</span>
+                    </p>
+                    {g.note && <p className="text-xs text-slate-400 truncate">{g.note}</p>}
+                  </div>
+                  <span className="text-xs text-slate-400 flex-shrink-0">
+                    {new Date(g.granted_at).toLocaleDateString('ar')}
+                  </span>
+                  <button onClick={() => revoke(g.id)} aria-label="سحب الوسام"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ══ نافذة إنشاء وسام ══ */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-5" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Award size={18} style={{ color: 'var(--maroon-600)' }} /> وسام جديد
+              </h3>
+              <button onClick={() => setShowForm(false)} aria-label="إغلاق"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* معاينة */}
+            <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-slate-50">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ background: fColor }}>
+                <BadgeIcon name={fIcon} size={24} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-700 truncate">{fName || 'اسم الوسام'}</p>
+                {fNameEn && <p className="text-xs text-slate-400 truncate" dir="ltr">{fNameEn}</p>}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <input value={fName} onChange={e => setFName(e.target.value)} placeholder="اسم الوسام (عربي) *"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+              <input value={fNameEn} onChange={e => setFNameEn(e.target.value)} placeholder="Badge name (English)" dir="ltr"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-2">الأيقونة</label>
+                <div className="grid grid-cols-6 gap-2">
+                  {ICON_NAMES.map(name => (
+                    <button key={name} onClick={() => setFIcon(name)}
+                      className={`aspect-square rounded-lg flex items-center justify-center border-2 transition-all
+                        ${fIcon === name ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-400 hover:border-violet-200'}`}>
+                      <BadgeIcon name={name} size={18} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-2">اللون</label>
+                <div className="flex gap-2 flex-wrap">
+                  {ROLE_COLORS_PALETTE.map(c => (
+                    <button key={c} onClick={() => setFColor(c)}
+                      className={`w-8 h-8 rounded-full transition-all ${fColor === c ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'}`}
+                      style={{ backgroundColor: c }} aria-label={`لون ${c}`} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button onClick={createBadge} disabled={saving || !fName.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 text-white font-semibold py-2.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
+                  style={{ background: 'var(--gradient-button)' }}>
+                  <span className="inline-flex">{saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}</span>
+                  <span>{saving ? 'جارٍ الإنشاء...' : 'إنشاء الوسام'}</span>
+                </button>
+                <button onClick={() => setShowForm(false)}
+                  className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ تأكيد حذف الوسام ══ */}
+      {confirmDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setConfirmDel(null)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 text-center" dir="rtl" onClick={e => e.stopPropagation()}>
+            <p className="text-slate-700 mb-1 font-semibold">حذف وسام «{confirmDel.name_ar}»؟</p>
+            <p className="text-xs text-slate-400 mb-4">ستُحذف كل منحاته من المستخدمين. لا يمكن التراجع.</p>
+            <div className="flex gap-2">
+              <button onClick={() => deleteBadge(confirmDel)} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors">حذف</button>
+              <button onClick={() => setConfirmDel(null)} className="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

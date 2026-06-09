@@ -12,6 +12,7 @@ export const ALL_PERMISSIONS = [
   { code: 'view_reports',          label: 'عرض التقارير',          icon: 'ChartNoAxesColumn' },
   { code: 'manage_settings',       label: 'إدارة الإعدادات',       icon: 'Settings'       },
   { code: 'manage_roles',          label: 'إدارة الأدوار',         icon: 'Crown'          },
+  { code: 'grant_badges',          label: 'منح الأوسمة',           icon: 'Award'          },
   { code: 'receive_notifications', label: 'استقبال الإشعارات',     icon: 'Bell'           },
   { code: 'rate_tasks',            label: 'تقييم المهام',          icon: 'Star'           },
 ] as const

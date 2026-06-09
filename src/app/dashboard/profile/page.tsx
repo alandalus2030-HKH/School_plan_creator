@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserRound, Phone } from 'lucide-react'
+import { UserRound, Phone, Award } from 'lucide-react'
+import { BadgeIcon } from '@/lib/badgeIcons'
+
+type MyBadge = { id: string; name_ar: string; icon: string; color: string; note: string | null; granted_at: string }
 
 export default function ProfilePage() {
   const supabase = createClient()
@@ -28,6 +31,26 @@ export default function ProfilePage() {
   /* تغيير كلمة المرور */
   const [sendingReset,  setSendingReset]  = useState(false)
   const [resetMsg,      setResetMsg]      = useState('')
+
+  /* أوسمتي */
+  const [myBadges, setMyBadges] = useState<MyBadge[]>([])
+  useEffect(() => {
+    if (!userId) return
+    ;(async () => {
+      const { data: ub } = await supabase
+        .from('user_badges').select('id, badge_id, note, granted_at')
+        .eq('profile_id', userId).order('granted_at', { ascending: false })
+      if (!ub || ub.length === 0) { setMyBadges([]); return }
+      const ids = [...new Set(ub.map(r => r.badge_id))]
+      const { data: bs } = await supabase
+        .from('badges').select('id, name_ar, icon, color').in('id', ids)
+      const map = new Map((bs || []).map(b => [b.id, b]))
+      setMyBadges(ub.map(r => {
+        const b = map.get(r.badge_id)
+        return { id: r.id, name_ar: b?.name_ar || 'وسام', icon: b?.icon || 'Award', color: b?.color || '#8a1538', note: r.note, granted_at: r.granted_at }
+      }))
+    })()
+  }, [userId])
 
   useEffect(() => {
     ;(async () => {
@@ -139,6 +162,27 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* ══ أوسمتي ══ */}
+      {myBadges.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <h2 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+            <Award size={16} style={{ color: 'var(--maroon-600)' }} /> أوسمتي
+            <span className="text-xs font-normal text-slate-400">({myBadges.length})</span>
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {myBadges.map(b => (
+              <div key={b.id} title={b.note || undefined}
+                className="flex items-center gap-2 pr-2 pl-3 py-1.5 rounded-full border border-slate-150 bg-slate-50">
+                <span className="w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0" style={{ background: b.color }}>
+                  <BadgeIcon name={b.icon} size={14} />
+                </span>
+                <span className="text-sm font-medium text-slate-700">{b.name_ar}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ══ نموذج تعديل البيانات الشخصية ══ */}
       <form onSubmit={saveProfile}

@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
-  Contact, ChevronRight, ChevronLeft, Building2, Layers,
+  Contact, ChevronRight, ChevronLeft, Building2, Layers, Award,
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/reports',   Icon: ChartNoAxesColumn, ar: 'التقارير',      en: 'Reports',    perm: 'view_reports'     },
   { href: '/dashboard/meetings',  Icon: CalendarDays,    ar: 'الاجتماعات',    en: 'Meetings',   perm: null               },
   { href: '/dashboard/users',     Icon: UserRound,       ar: 'المستخدمون',   en: 'Users',      perm: 'manage_users'     },
+  { href: '/dashboard/badges',    Icon: Award,           ar: 'الأوسمة',       en: 'Badges',     perm: 'grant_badges'     },
   { href: '/dashboard/schools',   Icon: Building2,       ar: 'إدارة المدارس', en: 'Schools',    perm: 'super'            },
   { href: '/dashboard/settings',  Icon: Settings,        ar: 'الإعدادات',     en: 'Settings',   perm: 'manage_settings'  },
   { href: '/dashboard/profile',   Icon: Contact,         ar: 'ملفي الشخصي',  en: 'My Profile', perm: 'self'             },
