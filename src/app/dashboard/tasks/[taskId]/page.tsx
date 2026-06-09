@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
 import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2 } from 'lucide-react'
-import { STATUS_META, OVERDUE_META, isOverdue } from '@/lib/constants/tasks'
+import { STATUS_META, OVERDUE_META } from '@/lib/constants/tasks'
 import Breadcrumb from '@/components/Breadcrumb'
 import MentionInput, { extractMentions } from '@/components/MentionInput'
 import Subtasks from '@/components/Subtasks'
@@ -611,7 +611,7 @@ export default function TaskPage() {
               style={{ background: STATUS_META[status]?.bg, color: STATUS_META[status]?.fg }}>
               {STATUS_META[status]?.ar || status}
             </span>
-            {isOverdue(task.end_date, status) && (
+            {isOverdue && (
               <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1 ${OVERDUE_META.light} ${OVERDUE_META.text} ${OVERDUE_META.tailwindBorder}`}>
                 <Clock size={12} /> {OVERDUE_META.ar}
               </span>
