@@ -80,7 +80,9 @@ export default function BadgesPage() {
     setGrants((g.data || []) as Grant[])
     setLoading(false)
   }
-  useEffect(() => { if (!permsLoading && can('grant_badges')) load(); else if (!permsLoading) setLoading(false) }, [permsLoading])
+  const canManage = can('manage_badges')
+  const canGrantP = can('grant_badges')
+  useEffect(() => { if (!permsLoading && (canManage || canGrantP)) load(); else if (!permsLoading) setLoading(false) }, [permsLoading])
 
   /* حساب لوحة الترتيب حسب الفترة */
   useEffect(() => {
@@ -172,7 +174,7 @@ export default function BadgesPage() {
       <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--maroon-600)' }} />
     </div>
   )
-  if (!can('grant_badges')) return <NoAccess />
+  if (!canManage && !canGrantP) return <NoAccess />
 
   return (
     <div className="space-y-5" dir="rtl">
@@ -184,11 +186,13 @@ export default function BadgesPage() {
           </h2>
           <p className="text-slate-500 text-sm mt-1">أنشئ أوسمة المدرسة وامنحها لتحفيز الفريق</p>
         </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
-          style={{ background: 'var(--gradient-button)' }}>
-          <Plus size={16} /> وسام جديد
-        </button>
+        {canManage && (
+          <button onClick={openCreate}
+            className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:brightness-110 shadow-lg"
+            style={{ background: 'var(--gradient-button)' }}>
+            <Plus size={16} /> وسام جديد
+          </button>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
@@ -199,7 +203,7 @@ export default function BadgesPage() {
             <span className="text-xs font-normal text-slate-400">({badges.length})</span>
           </h3>
           {badges.length === 0 ? (
-            <p className="text-center text-slate-400 text-sm py-8">لا توجد أوسمة بعد — أنشئ أول وسام</p>
+            <p className="text-center text-slate-400 text-sm py-8">{canManage ? 'لا توجد أوسمة بعد — أنشئ أول وسام' : 'لا توجد أوسمة بعد'}</p>
           ) : (
             <div className="grid sm:grid-cols-2 gap-3">
               {badges.map(b => (
@@ -213,16 +217,18 @@ export default function BadgesPage() {
                       <Star size={11} className="fill-amber-400 text-amber-400" /> {b.points ?? 0} نقطة
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                    <button onClick={() => openEdit(b)} aria-label="تعديل الوسام"
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50">
-                      <Pencil size={14} />
-                    </button>
-                    <button onClick={() => setConfirmDel(b)} aria-label="حذف الوسام"
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                  {canManage && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      <button onClick={() => openEdit(b)} aria-label="تعديل الوسام"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50">
+                        <Pencil size={14} />
+                      </button>
+                      <button onClick={() => setConfirmDel(b)} aria-label="حذف الوسام"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -230,6 +236,7 @@ export default function BadgesPage() {
         </div>
 
         {/* ══ منح وسام ══ */}
+        {canGrantP && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Gift size={18} style={{ color: 'var(--maroon-600)' }} /> منح وسام
@@ -280,6 +287,7 @@ export default function BadgesPage() {
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {/* ══ الأوسمة الممنوحة مؤخراً ══ */}

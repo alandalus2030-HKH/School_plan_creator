@@ -19,12 +19,12 @@ async function getContext(userId: string) {
   return { admin, me, schoolId }
 }
 
-async function canGrant(ctx: NonNullable<Awaited<ReturnType<typeof getContext>>>) {
+async function canManage(ctx: NonNullable<Awaited<ReturnType<typeof getContext>>>) {
   const { data: roleData } = await ctx.admin
     .from('roles').select('permissions').eq('code', ctx.me.role).maybeSingle()
   const perms: string[] = Array.isArray(roleData?.permissions) ? roleData!.permissions : []
   const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
-  return perms.includes('all') || perms.includes('grant_badges')
+  return perms.includes('all') || perms.includes('manage_badges')
     || ADMIN_ROLES.includes(ctx.me.role) || ctx.me.is_super_admin
 }
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
   const ctx = await getContext(auth.user.id)
   if (!ctx?.schoolId) return NextResponse.json({ error: 'لا توجد مدرسة مرتبطة' }, { status: 400 })
-  if (!(await canGrant(ctx))) return NextResponse.json({ error: 'لا تملك صلاحية إدارة الأوسمة' }, { status: 403 })
+  if (!(await canManage(ctx))) return NextResponse.json({ error: 'لا تملك صلاحية إدارة الأوسمة' }, { status: 403 })
 
   const body = await req.json()
   const name_ar = body.name_ar?.toString().trim()
@@ -57,7 +57,7 @@ export async function PATCH(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
   const ctx = await getContext(auth.user.id)
   if (!ctx?.schoolId) return NextResponse.json({ error: 'لا توجد مدرسة مرتبطة' }, { status: 400 })
-  if (!(await canGrant(ctx))) return NextResponse.json({ error: 'لا تملك صلاحية إدارة الأوسمة' }, { status: 403 })
+  if (!(await canManage(ctx))) return NextResponse.json({ error: 'لا تملك صلاحية إدارة الأوسمة' }, { status: 403 })
 
   const body = await req.json()
   const id = body.id?.toString()
@@ -89,7 +89,7 @@ export async function DELETE(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
   const ctx = await getContext(auth.user.id)
   if (!ctx?.schoolId) return NextResponse.json({ error: 'لا توجد مدرسة مرتبطة' }, { status: 400 })
-  if (!(await canGrant(ctx))) return NextResponse.json({ error: 'لا تملك صلاحية إدارة الأوسمة' }, { status: 403 })
+  if (!(await canManage(ctx))) return NextResponse.json({ error: 'لا تملك صلاحية إدارة الأوسمة' }, { status: 403 })
 
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'معرّف الوسام مطلوب' }, { status: 400 })

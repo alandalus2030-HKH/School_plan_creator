@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserRound, Phone, Award } from 'lucide-react'
+import { UserRound, Phone, Award, Star } from 'lucide-react'
 import { BadgeIcon } from '@/lib/badgeIcons'
 
-type MyBadge = { id: string; name_ar: string; icon: string; color: string; note: string | null; granted_at: string; by: string | null }
+type MyBadge = { id: string; name_ar: string; icon: string; color: string; note: string | null; granted_at: string; by: string | null; points: number }
 
 export default function ProfilePage() {
   const supabase = createClient()
@@ -32,33 +32,51 @@ export default function ProfilePage() {
   const [sendingReset,  setSendingReset]  = useState(false)
   const [resetMsg,      setResetMsg]      = useState('')
 
-  /* أوسمتي */
+  /* أوسمتي + الإحصاء التحفيزي (النقاط/الترتيب) */
   const [myBadges, setMyBadges] = useState<MyBadge[]>([])
+  const [badgeStats, setBadgeStats] = useState<{ total: number; count: number; rank: number; ranked: number } | null>(null)
   useEffect(() => {
     if (!userId) return
     ;(async () => {
-      const { data: ub } = await supabase
-        .from('user_badges').select('id, badge_id, note, granted_at, granted_by')
-        .eq('profile_id', userId).order('granted_at', { ascending: false })
-      if (!ub || ub.length === 0) { setMyBadges([]); return }
-      const badgeIds = [...new Set(ub.map(r => r.badge_id))]
-      const granterIds = [...new Set(ub.map(r => r.granted_by).filter(Boolean))]
-      const [{ data: bs }, { data: gs }] = await Promise.all([
-        supabase.from('badges').select('id, name_ar, icon, color').in('id', badgeIds),
-        granterIds.length
-          ? supabase.from('profiles').select('id, name_ar').in('id', granterIds as string[])
-          : Promise.resolve({ data: [] as { id: string; name_ar: string }[] }),
+      const [{ data: bs }, { data: ub }] = await Promise.all([
+        supabase.from('badges').select('id, name_ar, icon, color, points'),
+        supabase.from('user_badges').select('id, profile_id, badge_id, note, granted_at, granted_by'),
       ])
-      const bMap = new Map((bs || []).map(b => [b.id, b]))
+      const badges = bs || []
+      const all = ub || []
+      const bMap  = new Map(badges.map(b => [b.id, b]))
+      const ptMap = new Map(badges.map(b => [b.id, b.points ?? 0]))
+
+      const mine = all.filter(r => r.profile_id === userId)
+        .sort((a, b) => +new Date(b.granted_at) - +new Date(a.granted_at))
+      if (mine.length === 0) { setMyBadges([]); setBadgeStats(null); return }
+
+      const granterIds = [...new Set(mine.map(r => r.granted_by).filter(Boolean))]
+      const { data: gs } = granterIds.length
+        ? await supabase.from('profiles').select('id, name_ar').in('id', granterIds as string[])
+        : { data: [] as { id: string; name_ar: string }[] }
       const gMap = new Map((gs || []).map(g => [g.id, g.name_ar]))
-      setMyBadges(ub.map(r => {
+
+      setMyBadges(mine.map(r => {
         const b = bMap.get(r.badge_id)
         return {
           id: r.id, name_ar: b?.name_ar || 'وسام', icon: b?.icon || 'Award',
           color: b?.color || '#8a1538', note: r.note, granted_at: r.granted_at,
           by: r.granted_by ? (gMap.get(r.granted_by) || null) : null,
+          points: ptMap.get(r.badge_id) ?? 0,
         }
       }))
+
+      /* الترتيب على مستوى المدرسة حسب مجموع النقاط */
+      const agg = new Map<string, number>()
+      for (const r of all) agg.set(r.profile_id, (agg.get(r.profile_id) || 0) + (ptMap.get(r.badge_id) ?? 0))
+      const sorted = [...agg.entries()].sort((a, b) => b[1] - a[1])
+      setBadgeStats({
+        total: agg.get(userId) || 0,
+        count: mine.length,
+        rank:  sorted.findIndex(([id]) => id === userId) + 1,
+        ranked: sorted.length,
+      })
     })()
   }, [userId])
 
@@ -143,7 +161,7 @@ export default function ProfilePage() {
   )
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
+    <div className="max-w-3xl mx-auto space-y-5">
 
       {/* ══ بطاقة المعلومات الأساسية ══ */}
       <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white rounded-2xl p-6">
@@ -180,16 +198,40 @@ export default function ProfilePage() {
             <Award size={16} style={{ color: 'var(--maroon-600)' }} /> أوسمتي
             <span className="text-xs font-normal text-slate-400">({myBadges.length})</span>
           </h2>
+
+          {/* شريط تحفيزي: النقاط · الترتيب · العدد */}
+          {badgeStats && (
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="rounded-xl p-3 text-center" style={{ background: 'var(--maroon-50)' }}>
+                <p className="text-2xl font-bold" style={{ color: 'var(--maroon-700)' }}>{badgeStats.total}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">إجمالي النقاط</p>
+              </div>
+              <div className="rounded-xl p-3 text-center bg-amber-50">
+                <p className="text-2xl font-bold text-amber-600">{badgeStats.rank ? `#${badgeStats.rank}` : '—'}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">ترتيبك من {badgeStats.ranked}</p>
+              </div>
+              <div className="rounded-xl p-3 text-center bg-slate-50">
+                <p className="text-2xl font-bold text-slate-700">{badgeStats.count}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">عدد الأوسمة</p>
+              </div>
+            </div>
+          )}
+
           <div className="grid sm:grid-cols-2 gap-3">
             {myBadges.map(b => (
-              <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+              <div key={b.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
                 <span className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ background: b.color }}>
                   <BadgeIcon name={b.icon} size={20} />
                 </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-700 truncate">{b.name_ar}</p>
-                  {b.note && <p className="text-xs text-slate-500 truncate">{b.note}</p>}
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-slate-700">{b.name_ar}</p>
+                    <span className="text-[10px] text-amber-600 flex items-center gap-0.5">
+                      <Star size={9} className="fill-amber-400 text-amber-400" />{b.points}
+                    </span>
+                  </div>
+                  {b.note && <p className="text-xs text-slate-500 leading-snug mt-0.5 break-words">{b.note}</p>}
+                  <p className="text-[11px] text-slate-400 mt-1">
                     {b.by ? `منحك: ${b.by}` : ''}{b.by ? ' · ' : ''}{new Date(b.granted_at).toLocaleDateString('ar')}
                   </p>
                 </div>
