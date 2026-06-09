@@ -30,6 +30,24 @@ export const STATUS_META: Record<string, {
     text:         'text-violet-700',
     tailwindBorder: 'border-violet-200',
   },
+  submitted: {
+    ar:           'مرفوعة للتقييم',
+    bg:           '#fef3c7',
+    fg:           '#b45309',
+    hex:          '#f59e0b',
+    light:        'bg-amber-100',
+    text:         'text-amber-700',
+    tailwindBorder: 'border-amber-200',
+  },
+  returned: {
+    ar:           'مُعادة للتعديل',
+    bg:           '#ffedd5',
+    fg:           '#c2410c',
+    hex:          '#ea580c',
+    light:        'bg-orange-100',
+    text:         'text-orange-700',
+    tailwindBorder: 'border-orange-200',
+  },
   completed: {
     ar:           'منجزة',
     bg:           'var(--status-done-bg)',
@@ -50,7 +68,23 @@ export const STATUS_META: Record<string, {
   },
 }
 
-export type StatusKey = 'not_started' | 'in_progress' | 'completed' | 'delayed'
+export type StatusKey = 'not_started' | 'in_progress' | 'submitted' | 'returned' | 'completed' | 'delayed'
+
+/* ════════════════════════════════════════════════════════
+   وسم التأخير (overdue) — يُعرض فوق أي حالة، ليس حالة مستقلة
+   التأخير = end_date < اليوم AND status ≠ completed
+════════════════════════════════════════════════════════ */
+export const OVERDUE_META = {
+  ar:             'متأخرة',
+  hex:            '#dc2626',
+  light:          'bg-red-100',
+  text:           'text-red-700',
+  tailwindBorder: 'border-red-200',
+}
+export function isOverdue(endDate: string | null, status: string): boolean {
+  if (!endDate || status === 'completed') return false
+  return new Date(endDate) < new Date(new Date().toISOString().split('T')[0])
+}
 
 /* ════════════════════════════════════════════════════════
    تقييم المهام (1-5)

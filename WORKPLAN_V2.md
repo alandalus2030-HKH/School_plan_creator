@@ -41,11 +41,11 @@
 
 ## 🟦 الأسبوع الأول — قلب سير العمل (Phase 1)
 
-### اليوم 1 | التصميم + ترحيل قاعدة البيانات
-- [ ] مستند تصميم مختصر (آلة الحالات + الصلاحيات + الحالات الحدّية)
-- [ ] `migrations/021_task_workflow.sql` (الحقول + الجدول + الفئة + ترحيل البيانات)
-- [ ] تحديث `STATUS_META` (إضافة submitted/returned، فصل overdue كوسم) في `lib/constants/tasks.ts`
-- [ ] تشغيل الترحيل + التحقق
+### اليوم 1 | التصميم + ترحيل قاعدة البيانات ✅ 2026-06-09
+- [x] مستند تصميم `docs/TASK_WORKFLOW.md` (آلة الحالات + الصلاحيات + الحالات الحدّية)
+- [x] `migrations/021_task_workflow.sql` (الحقول + جدول التحوّلات + فئة evidence_type + ترحيل البيانات)
+- [x] `STATUS_META`: إضافة submitted/returned + `OVERDUE_META` + `isOverdue()` في `lib/constants/tasks.ts`
+- [ ] **يدوي:** تشغيل `migrations/021` في Supabase
 
 ### اليوم 2 | منطق الانتقالات + الصلاحيات (الخادم)
 - [ ] `api/tasks/[taskId]/transition` (submit / approve / return) مع التحقق:
