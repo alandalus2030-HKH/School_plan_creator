@@ -20,6 +20,15 @@ export const ALL_PERMISSIONS = [
 
 export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']
 
+/** تجميع الصلاحيات تحت عناوين رئيسية (لتنظيم واجهة الأدوار) */
+export const PERMISSION_GROUPS: { title: string; codes: string[] }[] = [
+  { title: 'المستخدمون والفِرق',   codes: ['manage_users', 'manage_teams'] },
+  { title: 'الخطط والمهام',         codes: ['manage_plans', 'manage_tasks', 'view_tasks', 'rate_tasks'] },
+  { title: 'التقارير والإشعارات',   codes: ['view_reports', 'receive_notifications'] },
+  { title: 'الأوسمة',               codes: ['manage_badges', 'grant_badges'] },
+  { title: 'النظام والصلاحيات',     codes: ['manage_settings', 'manage_roles'] },
+]
+
 /** هل يملك الدور صلاحية معينة؟ */
 export function hasPermission(
   permissions: string[],

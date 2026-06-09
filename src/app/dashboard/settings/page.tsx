@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE } from '@/lib/permissions'
+import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE, PERMISSION_GROUPS } from '@/lib/permissions'
 import {
   Bell, Crown, Briefcase, BookOpen, GraduationCap,
   Globe, Heart, ClipboardList, MessageCircle, Users,
@@ -657,7 +657,7 @@ export default function SettingsPage() {
       {showRoleForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
           onClick={() => setShowRoleForm(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
 
             <h3 className="text-lg font-bold text-slate-800 mb-5">
@@ -701,28 +701,64 @@ export default function SettingsPage() {
 
               {/* الصلاحيات */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">الصلاحيات</label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-slate-700">الصلاحيات</label>
+                  {!editRole?.is_system && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <button type="button" onClick={() => setRoleFormPerms(ALL_PERMISSIONS.map(p => p.code))}
+                        className="text-amber-700 hover:text-amber-800 font-semibold">تحديد الكل</button>
+                      <span className="text-slate-300">·</span>
+                      <button type="button" onClick={() => setRoleFormPerms([])}
+                        className="text-slate-500 hover:text-slate-700">مسح الكل</button>
+                    </div>
+                  )}
+                </div>
+
                 {editRole?.is_system ? (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-xl">
-                    <Unlock size={14} className="inline ml-1" /> هذا الدور النظامي يملك كل الصلاحيات تلقائياً ولا يمكن تقييدها
+                  <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-xl flex items-center gap-1.5">
+                    <span className="inline-flex"><Unlock size={14} /></span>
+                    هذا الدور النظامي يملك كل الصلاحيات تلقائياً ولا يمكن تقييدها
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {ALL_PERMISSIONS.map(p => (
-                      <label key={p.code}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer border transition-colors
-                          ${roleFormPerms.includes(p.code)
-                            ? 'bg-amber-50 border-amber-200'
-                            : 'bg-slate-50 border-transparent hover:border-amber-100 hover:bg-amber-50/50'}`}>
-                        <input type="checkbox" checked={roleFormPerms.includes(p.code)}
-                          onChange={() => togglePerm(p.code)}
-                          className="w-4 h-4 accent-amber-500 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-slate-700">{p.label}</p>
-                          <p className="text-xs text-slate-400 font-mono">{p.code}</p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {PERMISSION_GROUPS.map(group => {
+                      const items = group.codes
+                        .map(code => ALL_PERMISSIONS.find(p => p.code === code))
+                        .filter(Boolean) as { code: string; label: string }[]
+                      if (items.length === 0) return null
+                      const allOn = items.every(p => roleFormPerms.includes(p.code))
+                      return (
+                        <div key={group.title} className="rounded-xl border border-slate-200 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-slate-500">{group.title}</p>
+                            <button type="button"
+                              onClick={() => setRoleFormPerms(prev => allOn
+                                ? prev.filter(c => !group.codes.includes(c))
+                                : [...new Set([...prev, ...group.codes])])}
+                              className="text-[10px] text-amber-600 hover:text-amber-800 font-medium">
+                              {allOn ? 'إلغاء' : 'الكل'}
+                            </button>
+                          </div>
+                          <div className="space-y-1">
+                            {items.map(p => {
+                              const on = roleFormPerms.includes(p.code)
+                              return (
+                                <label key={p.code}
+                                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors
+                                    ${on ? 'bg-amber-50' : 'hover:bg-slate-50'}`}>
+                                  <input type="checkbox" checked={on} onChange={() => togglePerm(p.code)}
+                                    className="w-4 h-4 accent-amber-500 flex-shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="text-sm text-slate-700 leading-tight">{p.label}</p>
+                                    <p className="text-[10px] text-slate-400 font-mono">{p.code}</p>
+                                  </div>
+                                </label>
+                              )
+                            })}
+                          </div>
                         </div>
-                      </label>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
