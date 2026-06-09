@@ -6,8 +6,17 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
-import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2 } from 'lucide-react'
+import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2, History } from 'lucide-react'
 import { STATUS_META, OVERDUE_META } from '@/lib/constants/tasks'
+
+/* تسمية الانتقال حسب الحالة المُنتقَل إليها */
+const TRANSITION_LABEL: Record<string, string> = {
+  in_progress: 'بدء العمل',
+  submitted:   'رفع للتقييم',
+  returned:    'إعادة للتعديل',
+  completed:   'اعتماد وإنجاز',
+  not_started: 'إعادة فتح',
+}
 import Breadcrumb from '@/components/Breadcrumb'
 import MentionInput, { extractMentions } from '@/components/MentionInput'
 import Subtasks from '@/components/Subtasks'
@@ -144,6 +153,7 @@ export default function TaskPage() {
         start_date, end_date, order_num, node_id,
         assigned_to_user_id, assigned_to_team_id,
         reviewer_id, rating, rating_note, rated_at,
+        return_note, submitted_at, created_by,
         budget_qar, other_resources, evidence_required,
         depends_on_task_id,
         evidence ( id, name, description, evidence_number, file_url, file_type, created_at ),
@@ -158,6 +168,15 @@ export default function TaskPage() {
     if (!data) { router.push('/dashboard/tasks'); return }
     setTask(data)
     setStatus(data.status)
+
+    /* سجل تحوّلات المهمة (رفع/إعادة/اعتماد) */
+    const { data: trans } = await supabase
+      .from('task_transitions')
+      .select('id, from_status, to_status, actor_id, note, created_at')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: false })
+    setTransitions(trans || [])
+
     setAssignUserId(data.assigned_to_user_id || '')
     setAssignTeamId(data.assigned_to_team_id  || '')
     setAssignReviewer(data.reviewer_id || '')
@@ -270,6 +289,7 @@ export default function TaskPage() {
   const [wfError,       setWfError]       = useState('')
   const [returnNote,    setReturnNote]    = useState('')
   const [showReturn,    setShowReturn]    = useState(false)
+  const [transitions,   setTransitions]   = useState<{ id: string; from_status: string | null; to_status: string; actor_id: string | null; note: string | null; created_at: string }[]>([])
   const doTransition = async (action: string, payload: Record<string, any> = {}) => {
     setTransitioning(true); setWfError('')
     try {
@@ -664,6 +684,41 @@ export default function TaskPage() {
           {wfError && <p className="mt-2 text-sm text-red-600">{wfError}</p>}
         </div>
       </div>
+
+      {/* ══ سجل سير العمل ══ */}
+      {transitions.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <h2 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+            <History size={16} style={{ color: 'var(--maroon-600)' }} /> سجل سير العمل
+            <span className="text-xs font-normal text-slate-400">({transitions.length})</span>
+          </h2>
+          <div className="space-y-3">
+            {transitions.map(tr => {
+              const actor = profiles.find((p: any) => p.id === tr.actor_id)
+              const meta = STATUS_META[tr.to_status]
+              return (
+                <div key={tr.id} className="flex items-start gap-3">
+                  <span className="mt-1.5 w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: meta?.hex || '#94a3b8' }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-slate-700">{TRANSITION_LABEL[tr.to_status] || tr.to_status}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: meta?.bg, color: meta?.fg }}>{meta?.ar || tr.to_status}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {(actor as any)?.name_ar || '—'} · {new Date(tr.created_at).toLocaleString('ar-QA')}
+                    </p>
+                    {tr.note && (
+                      <p className="text-sm text-slate-600 mt-1 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 break-words">
+                        {tr.note}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ══ التبعية بين المهام ══ */}
       {(task.depends_on_task_id || canManageTasks) && (
@@ -1117,7 +1172,8 @@ export default function TaskPage() {
         </form>
       </div>
 
-      {/* ══ Danger Zone ══ */}
+      {/* ══ Danger Zone — للمدير أو منشئ المهمة فقط (لا المكلّف) ══ */}
+      {(canManageTasks || task.created_by === userId) && (
       <div className="bg-white rounded-2xl border border-red-100 p-5">
         <p className="text-sm font-semibold text-slate-700 mb-2">منطقة الخطر</p>
         <div className="flex items-center justify-between">
@@ -1140,6 +1196,7 @@ export default function TaskPage() {
           )}
         </div>
       </div>
+      )}
 
     </div>
   )
