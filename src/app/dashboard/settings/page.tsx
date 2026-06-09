@@ -6,7 +6,7 @@ import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE } from '@/lib/permissions'
 import {
   Bell, Crown, Briefcase, BookOpen, GraduationCap,
   Globe, Heart, ClipboardList, MessageCircle, Users,
-  Unlock, AlertTriangle, Save, CircleCheckBig, Building2,
+  Unlock, AlertTriangle, Save, CircleCheckBig, Building2, Loader2,
 } from 'lucide-react'
 import SchoolProfile from '@/components/SchoolProfile'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -735,11 +735,12 @@ export default function SettingsPage() {
 
               <div className="flex gap-3 pt-1">
                 <button type="submit" disabled={roleSaving}
-                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-xl disabled:opacity-60 transition-colors">
-                  {roleSaving ? 'جارٍ الحفظ...' : (editRole
-                    ? <><Save size={14} className="inline ml-1" /> حفظ التعديلات</>
-                    : <><CircleCheckBig size={14} className="inline ml-1" /> إنشاء الدور</>
-                  )}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-xl disabled:opacity-60 transition-colors">
+                  {/* أيقونة ونص معزولان في span ثابت لتجنّب خطأ removeChild في React */}
+                  <span className="inline-flex">
+                    {roleSaving ? <Loader2 size={14} className="animate-spin" /> : editRole ? <Save size={14} /> : <CircleCheckBig size={14} />}
+                  </span>
+                  <span>{roleSaving ? 'جارٍ الحفظ...' : editRole ? 'حفظ التعديلات' : 'إنشاء الدور'}</span>
                 </button>
                 <button type="button" onClick={() => setShowRoleForm(false)}
                   className="px-5 py-3 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors">
