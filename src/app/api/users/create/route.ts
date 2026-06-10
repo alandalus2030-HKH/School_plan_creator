@@ -1,20 +1,37 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
 
 export async function POST(req: NextRequest) {
   /* ── التحقق من هوية المُستدعي أولاً ── */
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceKey) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY غير مهيأ' }, { status: 500 })
+  const admin = createAdminClient()
+
+  /* ── سياق المُستدعي: المدرسة الفعّالة (تحترم تقمّص مشرف النظام) ── */
+  const { data: me } = await admin
+    .from('profiles')
+    .select('school_id, active_school_id, is_super_admin, role')
+    .eq('id', auth.user.id)
+    .single()
+  if (!me) return NextResponse.json({ error: 'تعذّر تحديد ملف المُستدعي' }, { status: 400 })
+
+  /* ── حارس خادمي: صلاحية manage_users ── */
+  const { data: roleData } = await admin.from('roles').select('permissions').eq('code', me.role).maybeSingle()
+  const perms: string[] = Array.isArray(roleData?.permissions) ? roleData!.permissions : []
+  const canManageUsers = perms.includes('all') || perms.includes('manage_users')
+    || ADMIN_ROLES.includes(me.role) || me.is_super_admin
+  if (!canManageUsers) {
+    return NextResponse.json({ error: 'لا تملك صلاحية إدارة المستخدمين' }, { status: 403 })
   }
 
-  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const effectiveSchoolId = (me.is_super_admin && me.active_school_id) ? me.active_school_id : me.school_id
+  if (!effectiveSchoolId) {
+    return NextResponse.json({ error: 'لا توجد مدرسة مرتبطة بحسابك — لا يمكن إنشاء مستخدم' }, { status: 400 })
+  }
 
   try {
     const body = await req.json()
@@ -88,21 +105,9 @@ export async function POST(req: NextRequest) {
 
     if (!userId) return NextResponse.json({ error: 'فشل إنشاء المستخدم' }, { status: 500 })
 
-    /* ── المستخدم الجديد ينتمي لمدرسة المُنشئ (الأدمن المُستدعي) ──
-       يضمن العزل: مدير مدرسة الاختبار يُنشئ مستخدمين في مدرسته فقط */
-    const { data: callerProfile } = await admin
-      .from('profiles')
-      .select('school_id')
-      .eq('id', auth.user.id)
-      .single()
-    let autoSchoolId = callerProfile?.school_id ?? null
-
-    /* احتياط: لو لم يكن للمُنشئ مدرسة، استخدم أقدم مدرسة */
-    if (!autoSchoolId) {
-      const { data: schoolRow } = await admin
-        .from('schools').select('id').order('created_at').limit(1).single()
-      autoSchoolId = schoolRow?.id ?? null
-    }
+    /* ── المستخدم الجديد ينتمي للمدرسة الفعّالة للمُنشئ ──
+       تحترم تقمّص مشرف النظام (active_school_id) وتضمن العزل المدرسي */
+    const autoSchoolId = effectiveSchoolId
 
     /* ── upsert الملف الشخصي (حقول مُعتمدة فقط) ── */
     const allowedProfileData = {

@@ -24,6 +24,7 @@ type Profile = {
   username:      string | null
   role:          string
   is_active:     boolean
+  is_super_admin?: boolean | null
   created_at:    string
 }
 
@@ -93,7 +94,7 @@ const TABS = ['👤 بيانات المستخدم', '🔐 الحساب', '⚙️
 /* ══════════════════════ المكوّن الرئيسي ══════════════════════ */
 export default function UsersPage() {
   const supabase = createClient()
-  const { can, loading: permsLoading } = usePermissions()
+  const { can, userId: myUserId, loading: permsLoading } = usePermissions()
 
   /* ── حالة القوائم ── */
   const [roles,         setRoles]         = useState<RoleItem[]>(FALLBACK_ROLES)
@@ -134,6 +135,8 @@ export default function UsersPage() {
 
   /* ── حذف ── */
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [delMsg,     setDelMsg]     = useState<{id:string; text:string} | null>(null)
 
   /* ── إعادة تعيين من القائمة ── */
   const [resetingId,   setResetingId]   = useState<string | null>(null)
@@ -169,7 +172,7 @@ export default function UsersPage() {
 
     // تحميل المستخدمين
     const { data: profilesData } = await supabase
-      .from('profiles').select('id,first_name_ar,last_name_ar,name_ar,nationality,school,department,job_title,phone,email,username,role,is_active,created_at').limit(500)
+      .from('profiles').select('id,first_name_ar,last_name_ar,name_ar,nationality,school,department,job_title,phone,email,username,role,is_active,is_super_admin,created_at').limit(500)
       .order('created_at', { ascending: false })
     setProfiles((profilesData || []) as Profile[])
 
@@ -402,14 +405,33 @@ export default function UsersPage() {
 
   /* ════ تفعيل / تعطيل ════ */
   const toggleActive = async (p: Profile) => {
-    await supabase.from('profiles').update({ is_active: !p.is_active }).eq('id', p.id)
+    const { error } = await supabase.from('profiles').update({ is_active: !p.is_active }).eq('id', p.id)
+    if (error) { alert(`تعذّر تغيير حالة الحساب: ${error.message}`); return }
     setProfiles(prev => prev.map(x => x.id === p.id ? { ...x, is_active: !x.is_active } : x))
   }
 
-  /* ════ حذف ════ */
+  /* ════ هل الحساب محمي من الحذف؟ (طبقة الواجهة — الخادم يتحقق أيضاً) ════ */
+  const isProtected = (p: Profile) =>
+    !!p.is_super_admin || ['super_admin', 'school_admin', 'admin'].includes(p.role) || p.id === myUserId
+
+  /* ════ حذف — عبر API خادمي، لا إزالة من الواجهة إلا بعد نجاح فعلي ════ */
   const deleteProfile = async (id: string) => {
-    await supabase.from('profiles').delete().eq('id', id)
-    setProfiles(prev => prev.filter(p => p.id !== id)); setConfirmDel(null)
+    setDeletingId(id); setDelMsg(null)
+    try {
+      const res  = await fetch(`/api/users/${id}`, { method: 'DELETE' })
+      const ct   = res.headers.get('content-type') || ''
+      const json = ct.includes('application/json') ? await res.json() : {}
+      if (!res.ok) {
+        setDelMsg({ id, text: `❌ ${json.error || 'تعذّر حذف المستخدم'}` })
+        return
+      }
+      setProfiles(prev => prev.filter(p => p.id !== id))
+      setConfirmDel(null)
+    } catch {
+      setDelMsg({ id, text: '❌ تعذّر الاتصال بالخادم' })
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   /* ════ تصدير Excel (مع قوائم منسدلة حقيقية) ════ */
@@ -774,12 +796,19 @@ export default function UsersPage() {
               return (
                 <div key={p.id}>
                   {confirmDel === p.id ? (
-                    <div className="px-4 py-3 bg-red-50 flex items-center gap-3 flex-wrap">
-                      <span className="text-sm text-red-700 flex-1">حذف "{p.name_ar}" نهائياً؟</span>
-                      <button onClick={() => deleteProfile(p.id)}
-                        className="px-4 py-1.5 bg-red-600 text-white text-xs rounded-lg">نعم، احذف</button>
-                      <button onClick={() => setConfirmDel(null)}
-                        className="px-4 py-1.5 border border-slate-200 text-slate-600 text-xs rounded-lg">إلغاء</button>
+                    <div className="px-4 py-3 bg-red-50 space-y-2">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-sm text-red-700 flex-1">حذف "{p.name_ar}" نهائياً؟</span>
+                        <button onClick={() => deleteProfile(p.id)} disabled={deletingId === p.id}
+                          className="px-4 py-1.5 bg-red-600 text-white text-xs rounded-lg disabled:opacity-60">
+                          {deletingId === p.id ? '⏳ جارٍ الحذف...' : 'نعم، احذف'}
+                        </button>
+                        <button onClick={() => { setConfirmDel(null); setDelMsg(null) }} disabled={deletingId === p.id}
+                          className="px-4 py-1.5 border border-slate-200 text-slate-600 text-xs rounded-lg disabled:opacity-60">إلغاء</button>
+                      </div>
+                      {delMsg?.id === p.id && (
+                        <p className="text-xs font-medium text-red-700 bg-red-100 px-3 py-2 rounded-lg">{delMsg.text}</p>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -857,8 +886,10 @@ export default function UsersPage() {
                           {/* تعديل وحذف — عند hover */}
                           <button onClick={() => openEdit(p)}
                             className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors text-sm opacity-0 group-hover:opacity-100">✏️</button>
-                          <button onClick={() => setConfirmDel(p.id)}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors text-sm opacity-0 group-hover:opacity-100">🗑️</button>
+                          {!isProtected(p) && (
+                            <button onClick={() => { setConfirmDel(p.id); setDelMsg(null) }}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors text-sm opacity-0 group-hover:opacity-100">🗑️</button>
+                          )}
                         </div>
                       </div>
 
