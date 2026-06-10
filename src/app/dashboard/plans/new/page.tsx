@@ -123,8 +123,6 @@ export default function NewPlanPage() {
   const handleCreate = async () => {
     setLoading(true); setError('')
     try {
-      const { data: school } = await supabase.from('schools').select('id').single()
-
       const kpiLevelsToSave = kpiLevels
         .filter(k => k.enabled)
         .map(k => ({
@@ -134,23 +132,21 @@ export default function NewPlanPage() {
           frequency:  k.frequency,
         }))
 
-      const { data: plan, error: planErr } = await supabase
-        .from('plans')
-        .insert({
-          school_id:    school?.id || null,
-          name_ar:      name.trim(),
+      const res = await fetch('/api/plans', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name_ar:       name.trim(),
           academic_year: year,
-          start_date:   startDate || null,
-          end_date:     endDate   || null,
-          level_count:  levelCount,
-          level_names:  levelNames,
-          kpi_levels:   kpiLevelsToSave,
-        })
-        .select('id')
-        .single()
-
-      if (planErr) throw planErr
-      router.push(`/dashboard/plans/${plan.id}`)
+          start_date:    startDate || null,
+          end_date:      endDate   || null,
+          level_count:   levelCount,
+          level_names:   levelNames,
+          kpi_levels:    kpiLevelsToSave,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'تعذّر إنشاء الخطة')
+      router.push(`/dashboard/plans/${json.id}`)
     } catch (e: any) {
       setError(e.message || 'حدث خطأ')
       setLoading(false)
