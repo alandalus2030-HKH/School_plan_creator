@@ -393,6 +393,7 @@ export default function TaskPage() {
   }
 
   const saveAssignment = async () => {
+    if (!canManageTasks) return   // التكليف/المقيّم لمن يملك manage_tasks فقط
     setSavingAssign(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -566,12 +567,14 @@ export default function TaskPage() {
                     status === 'in_progress' ? 'bg-violet-300/20 text-violet-100' :
                     status === 'delayed'     ? 'bg-red-400/20   text-red-100'   :
                     'bg-white/20 text-white/80'}`}>
-                  {statusList.find(s => s.value === status)?.label}
+                  {STATUS_META[status]?.ar || status}
                 </span>
-                <button onClick={openEdit}
-                  className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors">
-                  ✏️ تعديل
-                </button>
+                {canManageTasks && (
+                  <button onClick={openEdit}
+                    className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors">
+                    ✏️ تعديل
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -804,13 +807,15 @@ export default function TaskPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-slate-800">👥 التكليف والمقيّم</h2>
-          <button onClick={() => setShowAssign(!showAssign)}
-            className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-            {showAssign ? '✕ إلغاء' : '✏️ تعديل'}
-          </button>
+          {canManageTasks && (
+            <button onClick={() => setShowAssign(!showAssign)}
+              className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+              {showAssign ? '✕ إلغاء' : '✏️ تعديل'}
+            </button>
+          )}
         </div>
 
-        {!showAssign ? (
+        {(!showAssign || !canManageTasks) ? (
           <div className="flex flex-wrap gap-3">
             {/* المكلف */}
             {task.assigned_to_user_id ? (() => {
