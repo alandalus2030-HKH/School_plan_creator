@@ -8,6 +8,7 @@ import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
 import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2, History } from 'lucide-react'
 import { STATUS_META, OVERDUE_META } from '@/lib/constants/tasks'
+import { toast } from '@/components/Toast'
 
 /* تسمية الانتقال حسب الحالة المُنتقَل إليها */
 const TRANSITION_LABEL: Record<string, string> = {
@@ -329,16 +330,20 @@ export default function TaskPage() {
     e.preventDefault()
     if (!editName.trim()) return
     setSavingEdit(true)
-    await supabase.from('tasks').update({
-      name_ar: editName.trim(),
-      description: editDesc.trim() || null,
-      task_type: editType,
-      priority: editPriority,
-      start_date: editStart || null,
-      end_date: editEnd || null,
-      updated_at: new Date().toISOString(),
-    }).eq('id', taskId)
-    setEditing(false); setSavingEdit(false)
+    const res = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name_ar: editName.trim(),
+        description: editDesc.trim() || null,
+        task_type: editType,
+        priority: editPriority,
+        start_date: editStart || null,
+        end_date: editEnd || null,
+      }),
+    })
+    setSavingEdit(false)
+    if (!res.ok) { const j = await res.json().catch(() => ({})); toast(j.error || 'تعذّر حفظ التعديلات', 'error'); return }
+    setEditing(false)
     await loadTask()
   }
 
@@ -402,11 +407,18 @@ export default function TaskPage() {
     const prevAssignee = (task as any)?.assigned_to_user_id || ''
     const prevReviewer = (task as any)?.reviewer_id         || ''
 
-    await supabase.from('tasks').update({
-      assigned_to_user_id: assignUserId   || null,
-      assigned_to_team_id: assignTeamId   || null,
-      reviewer_id:         assignReviewer || null,
-    }).eq('id', taskId)
+    const res = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assigned_to_user_id: assignUserId   || null,
+        assigned_to_team_id: assignTeamId   || null,
+        reviewer_id:         assignReviewer || null,
+      }),
+    })
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      toast(j.error || 'تعذّر حفظ التكليف', 'error'); setSavingAssign(false); return
+    }
 
     const taskName = (task as any)?.name_ar || 'مهمة'
     const link     = `/dashboard/tasks/${taskId}`
@@ -498,10 +510,11 @@ export default function TaskPage() {
 
   const deleteTask = async () => {
     setDeleting(true)
-    await supabase.from('tasks').update({
-      deleted_at: new Date().toISOString(),
-      updated_by: userId || null,
-    }).eq('id', taskId)
+    const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      toast(j.error || 'تعذّر حذف المهمة', 'error'); setDeleting(false); setConfirmDel(false); return
+    }
     router.push('/dashboard/tasks')
   }
 
