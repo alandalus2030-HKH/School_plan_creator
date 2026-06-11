@@ -325,6 +325,7 @@ export default function UsersPage() {
         first_name_ar: form.first_name_ar || null,
         last_name_ar:  form.last_name_ar  || null,
         name_ar:       fullNameAr,
+        full_name_ar:  fullNameAr,   // يُعرض في الشريط الجانبي — يجب أن يتزامن مع name_ar
         nationality:   form.nationality   || null,
         school:        form.school        || null,
         department:    form.department    || null,
