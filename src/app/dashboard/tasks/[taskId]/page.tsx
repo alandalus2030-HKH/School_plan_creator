@@ -258,19 +258,34 @@ export default function TaskPage() {
     })()
   }, [loadTask])
 
+  /* المسار البنيوي للمهمة: الخطط › الخطة › المحور › ... › العقدة الأم */
+  const [pathCrumbs, setPathCrumbs] = useState<{ label: string; href?: string }[]>([])
+
   const getTaskNumber = useCallback(async (nodeId: string, taskOrderNum: number): Promise<string|null> => {
     if (!nodeId) return null
     const { data: node } = await supabase.from('plan_nodes').select('plan_id').eq('id', nodeId).single()
     if (!node) return null
-    const { data: allNodes } = await supabase.from('plan_nodes').select('id, parent_id, order_num').eq('plan_id', node.plan_id)
+    const [{ data: allNodes }, { data: plan }] = await Promise.all([
+      supabase.from('plan_nodes').select('id, parent_id, order_num, name_ar').eq('plan_id', node.plan_id),
+      supabase.from('plans').select('id, name_ar').eq('id', node.plan_id).single(),
+    ])
     if (!allNodes) return null
     const path: number[] = []
+    const chain: { id: string; name_ar: string }[] = []
     let current = allNodes.find(n => n.id === nodeId)
     while (current) {
       path.unshift(current.order_num)
+      chain.unshift({ id: current.id, name_ar: current.name_ar })
       current = allNodes.find(n => n.id === current!.parent_id)
     }
     path.push(taskOrderNum)
+
+    /* بناء المسار القابل للنقر (نفس بيانات الترقيم — لا استعلام إضافياً للعقد) */
+    const crumbs: { label: string; href?: string }[] = [{ label: 'الخطط', href: '/dashboard/plans' }]
+    if (plan) crumbs.push({ label: plan.name_ar, href: `/dashboard/plans/${plan.id}` })
+    chain.forEach(n => crumbs.push({ label: n.name_ar, href: `/dashboard/plans/${node.plan_id}/nodes/${n.id}` }))
+    setPathCrumbs(crumbs)
+
     return path.join('.')
   }, [supabase])
 
@@ -593,12 +608,17 @@ export default function TaskPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-5">
 
-      {/* Breadcrumb */}
-      <Breadcrumb items={[
-        { label: 'الخطط',    href: '/dashboard/plans' },
-        { label: 'كل المهام', href: '/dashboard/tasks' },
-        { label: task.name_ar },
-      ]} />
+      {/* Breadcrumb — المسار البنيوي الكامل (الخطة › المحور › ... › المهمة)؛
+          المهام الحرة بلا عقدة تعرض المسار العام */}
+      <Breadcrumb items={
+        pathCrumbs.length > 0
+          ? [...pathCrumbs, { label: task.name_ar }]
+          : [
+              { label: 'الخطط',    href: '/dashboard/plans' },
+              { label: 'كل المهام', href: '/dashboard/tasks' },
+              { label: task.name_ar },
+            ]
+      } />
 
       {/* ── الشريط اللاصق — يظهر عند التمرير بعد رأس المهمة ── */}
       <div className={`sticky top-2 z-30 transition-all duration-200 ${showSticky ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
