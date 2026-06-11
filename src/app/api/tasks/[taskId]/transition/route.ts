@@ -5,10 +5,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 /**
  * POST /api/tasks/[taskId]/transition
  * انتقالات سير عمل المهمة:
- *   submit  → المكلّف يرفع المهمة للتقييم
- *   approve → المقيّم يعتمد (+ تقييم 1-5) → منجزة
- *   return  → المقيّم يعيد المهمة (+ سبب) → مُعادة للتعديل
+ *   submit         → المكلّف يرفع المهمة للتقييم
+ *   approve        → المقيّم يعتمد (+ تقييم 1-5) → منجزة
+ *   return         → المقيّم يعيد المهمة (+ سبب) → مُعادة للتعديل
+ *   reopen         → صاحب manage_tasks يعيد فتح مهمة منجزة (+ سبب إلزامي)
+ *   request_reopen → المكلّف/المقيّم يطلب إعادة الفتح (إشعار لمشرف نظام المدرسة)
  * يحترم العزل بالمدرسة + الأدوار + منع التقييم الذاتي + يسجّل التحوّل.
+ * المهمة المنجزة مقفلة: لا انتقالات عليها إلا reopen/request_reopen.
  */
 
 async function getContext(userId: string) {
@@ -20,11 +23,18 @@ async function getContext(userId: string) {
   return { admin, me, schoolId }
 }
 
+const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
+
 async function hasReviewPerm(admin: any, role: string, isSuper: boolean) {
   const { data: roleData } = await admin.from('roles').select('permissions').eq('code', role).maybeSingle()
   const perms: string[] = Array.isArray(roleData?.permissions) ? roleData!.permissions : []
-  const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
   return perms.includes('all') || perms.includes('rate_tasks') || ADMIN_ROLES.includes(role) || isSuper
+}
+
+async function hasManagePerm(admin: any, role: string, isSuper: boolean) {
+  const { data: roleData } = await admin.from('roles').select('permissions').eq('code', role).maybeSingle()
+  const perms: string[] = Array.isArray(roleData?.permissions) ? roleData!.permissions : []
+  return perms.includes('all') || perms.includes('manage_tasks') || ADMIN_ROLES.includes(role) || isSuper
 }
 
 async function notify(admin: any, recipientId: string | null, senderId: string, title: string, body: string | null, link: string) {
@@ -151,6 +161,52 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     if (!note) return NextResponse.json({ error: 'سبب الإعادة مطلوب' }, { status: 400 })
     return logAndRespond('returned', { return_note: note }, note,
       task.assigned_to_user_id, `أُعيدت مهمتك للتعديل: ${task.name_ar}`, note)
+  }
+
+  /* ════ reopen (إعادة فتح مهمة منجزة — manage_tasks فقط، بسبب إلزامي) ════ */
+  if (action === 'reopen') {
+    if (!(await hasManagePerm(admin, ctx.me.role, ctx.me.is_super_admin))) {
+      return NextResponse.json({ error: 'إعادة فتح المهمة متاحة لمن يملك صلاحية إدارة المهام فقط' }, { status: 403 })
+    }
+    if (task.status !== 'completed') {
+      return NextResponse.json({ error: 'المهمة ليست منجزة — لا حاجة لإعادة الفتح' }, { status: 400 })
+    }
+    const note = body.note?.toString().trim()
+    if (!note) return NextResponse.json({ error: 'سبب إعادة الفتح مطلوب (يُسجَّل في سجل سير العمل)' }, { status: 400 })
+
+    /* التقييم السابق يبقى محفوظاً في سجل التحوّلات، ويُصفَّر من المهمة لإعادة دورة التقييم */
+    const res = await logAndRespond('in_progress',
+      { rating: null, rating_note: null, rated_at: null, submitted_at: null, submitted_by: null, return_note: null },
+      note, task.assigned_to_user_id, `أُعيد فتح المهمة: ${task.name_ar}`, note)
+    if (res.status === 200) {
+      await notify(admin, task.reviewer_id, userId, `أُعيد فتح المهمة: ${task.name_ar}`, note, `/dashboard/tasks/${taskId}`)
+    }
+    return res
+  }
+
+  /* ════ request_reopen (طلب إعادة الفتح — إشعار لمشرفي نظام المدرسة، بلا تغيير حالة) ════ */
+  if (action === 'request_reopen') {
+    if (task.status !== 'completed') {
+      return NextResponse.json({ error: 'المهمة ليست منجزة' }, { status: 400 })
+    }
+    if (!isAssignee && task.reviewer_id !== userId) {
+      return NextResponse.json({ error: 'طلب إعادة الفتح متاح للمكلّف أو المقيّم فقط' }, { status: 403 })
+    }
+    const note = body.note?.toString().trim() || null
+
+    const { data: schoolAdmins } = await admin.from('profiles').select('id')
+      .eq('school_id', ctx.schoolId).in('role', ADMIN_ROLES).eq('is_active', true)
+    let recipients = (schoolAdmins || []).map((a: any) => a.id)
+    if (recipients.length === 0) {
+      /* احتياط: لا مدير مدرسة → إشعار مشرفي النظام */
+      const { data: supers } = await admin.from('profiles').select('id')
+        .eq('is_super_admin', true).eq('is_active', true)
+      recipients = (supers || []).map((a: any) => a.id)
+    }
+    for (const rid of recipients) {
+      await notify(admin, rid, userId, `طلب إعادة فتح مهمة منجزة: ${task.name_ar}`, note, `/dashboard/tasks/${taskId}`)
+    }
+    return NextResponse.json({ ok: true, requested: true })
   }
 
   return NextResponse.json({ error: 'إجراء غير معروف' }, { status: 400 })

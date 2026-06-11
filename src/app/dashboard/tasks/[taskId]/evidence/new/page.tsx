@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { FileText, FolderOpen } from 'lucide-react'
+import { FileText, FolderOpen, Lock } from 'lucide-react'
 import Link from 'next/link'
 
 export default function NewEvidencePage() {
@@ -18,6 +18,15 @@ export default function NewEvidencePage() {
   const [loading,     setLoading]     = useState(false)
   const [error,       setError]       = useState('')
   const [preview,     setPreview]     = useState<string | null>(null)
+  const [taskLocked,  setTaskLocked]  = useState(false)
+
+  /* المهمة المنجزة مقفلة — لا رفع أدلة (الحارس الخادمي: RLS في الترحيل 024) */
+  useEffect(() => {
+    ;(async () => {
+      const { data } = await supabase.from('tasks').select('status').eq('id', taskId).single()
+      if (data?.status === 'completed') setTaskLocked(true)
+    })()
+  }, [taskId])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -96,6 +105,17 @@ export default function NewEvidencePage() {
         </div>
       </div>
 
+      {taskLocked ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+          <Lock size={36} className="mx-auto mb-3" style={{ color: 'var(--maroon-300)' }} />
+          <p className="text-sm font-semibold text-slate-700 mb-1">المهمة منجزة ومقفلة</p>
+          <p className="text-xs text-slate-400 mb-4">لا يمكن رفع أدلة على مهمة معتمدة — اطلب إعادة فتحها من صفحة المهمة.</p>
+          <Link href={`/dashboard/tasks/${taskId}`}
+            className="inline-block px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors">
+            ← العودة للمهمة
+          </Link>
+        </div>
+      ) : (
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -181,6 +201,7 @@ export default function NewEvidencePage() {
           </div>
         </form>
       </div>
+      )}
     </div>
   )
 }

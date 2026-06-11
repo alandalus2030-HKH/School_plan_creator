@@ -290,6 +290,13 @@ export default function TaskPage() {
   const [wfError,       setWfError]       = useState('')
   const [returnNote,    setReturnNote]    = useState('')
   const [showReturn,    setShowReturn]    = useState(false)
+
+  /* ── قفل المهمة المنجزة: إعادة الفتح / طلبها ── */
+  const [showReopen,    setShowReopen]    = useState(false)
+  const [reopenNote,    setReopenNote]    = useState('')
+  const [showRequest,   setShowRequest]   = useState(false)
+  const [requestNote,   setRequestNote]   = useState('')
+  const [requestSent,   setRequestSent]   = useState(false)
   const [transitions,   setTransitions]   = useState<{ id: string; from_status: string | null; to_status: string; actor_id: string | null; note: string | null; created_at: string }[]>([])
   const doTransition = async (action: string, payload: Record<string, any> = {}) => {
     setTransitioning(true); setWfError('')
@@ -529,6 +536,10 @@ export default function TaskPage() {
   const isOverdue = task.end_date && status !== 'completed' && new Date(task.end_date) < new Date()
   const evidence  = task.evidence || []
 
+  /* المهمة المنجزة مقفلة: لا تعديلات (عدا التعليقات) إلا بعد إعادة فتحها */
+  const isCompleted    = status === 'completed'
+  const canAskReopen   = task.assigned_to_user_id === userId || task.reviewer_id === userId
+
   // صلاحية التقييم: المقيّم المعيّن أو أصحاب manage_tasks
   const canRate = canManageTasks || (task.reviewer_id && task.reviewer_id === userId)
 
@@ -582,7 +593,7 @@ export default function TaskPage() {
                     'bg-white/20 text-white/80'}`}>
                   {STATUS_META[status]?.ar || status}
                 </span>
-                {canManageTasks && (
+                {canManageTasks && status !== 'completed' && (
                   <button onClick={openEdit}
                     className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors">
                     ✏️ تعديل
@@ -697,6 +708,67 @@ export default function TaskPage() {
             </p>
           )}
 
+          {/* ══ المهمة منجزة: مقفلة + إعادة الفتح / طلبها ══ */}
+          {isCompleted && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+                <span className="inline-flex mt-0.5"><Lock size={14} /></span>
+                <span>المهمة منجزة ومعتمدة — جميع التعديلات مقفلة (عدا التعليقات) حفاظاً على مصداقية سجل الاعتماد. أي تعديل يتطلب إعادة فتح المهمة.</span>
+              </div>
+
+              {/* إعادة الفتح المباشرة — لصاحب manage_tasks */}
+              {canManageTasks && (
+                !showReopen ? (
+                  <button onClick={() => setShowReopen(true)} disabled={transitioning}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-700 text-sm font-medium hover:bg-orange-100 disabled:opacity-50">
+                    <Undo2 size={14} /> إعادة فتح المهمة
+                  </button>
+                ) : (
+                  <div className="space-y-2 border border-orange-200 rounded-xl p-3 bg-orange-50/50">
+                    <p className="text-xs text-orange-700">سبب إعادة الفتح إلزامي ويُسجَّل في سجل سير العمل، وسيُصفَّر التقييم الحالي لإعادة دورة الاعتماد.</p>
+                    <textarea value={reopenNote} onChange={e => setReopenNote(e.target.value.slice(0, 500))} rows={2}
+                      placeholder="سبب إعادة الفتح (إلزامي)..."
+                      className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-sm" />
+                    <div className="flex gap-2">
+                      <button onClick={async () => { if (await doTransition('reopen', { note: reopenNote })) { setShowReopen(false); setReopenNote('') } }}
+                        disabled={transitioning || !reopenNote.trim()}
+                        className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">إعادة فتح المهمة</button>
+                      <button onClick={() => { setShowReopen(false); setReopenNote('') }}
+                        className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm">إلغاء</button>
+                    </div>
+                  </div>
+                )
+              )}
+
+              {/* طلب إعادة الفتح — للمكلّف/المقيّم بلا manage_tasks */}
+              {!canManageTasks && canAskReopen && (
+                requestSent ? (
+                  <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                    ✅ أُرسل طلب إعادة الفتح لمشرف نظام المدرسة.
+                  </p>
+                ) : !showRequest ? (
+                  <button onClick={() => setShowRequest(true)} disabled={transitioning}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-sm font-medium hover:bg-violet-100 disabled:opacity-50">
+                    <Send size={14} /> طلب إعادة فتح المهمة
+                  </button>
+                ) : (
+                  <div className="space-y-2 border border-violet-200 rounded-xl p-3 bg-violet-50/50">
+                    <textarea value={requestNote} onChange={e => setRequestNote(e.target.value.slice(0, 500))} rows={2}
+                      placeholder="سبب الطلب (اختياري — يصل لمشرف نظام المدرسة)..."
+                      className="w-full px-3 py-2 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white text-sm" />
+                    <div className="flex gap-2">
+                      <button onClick={async () => { if (await doTransition('request_reopen', { note: requestNote })) { setRequestSent(true); setShowRequest(false) } }}
+                        disabled={transitioning}
+                        className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">إرسال الطلب</button>
+                      <button onClick={() => { setShowRequest(false); setRequestNote('') }}
+                        className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm">إلغاء</button>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
           {wfError && <p className="mt-2 text-sm text-red-600">{wfError}</p>}
         </div>
       </div>
@@ -717,7 +789,11 @@ export default function TaskPage() {
                   <span className="mt-1.5 w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: meta?.hex || '#94a3b8' }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-slate-700">{TRANSITION_LABEL[tr.to_status] || tr.to_status}</span>
+                      <span className="text-sm font-semibold text-slate-700">
+                        {tr.from_status === 'completed' && tr.to_status === 'in_progress'
+                          ? 'إعادة فتح'
+                          : (TRANSITION_LABEL[tr.to_status] || tr.to_status)}
+                      </span>
                       <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: meta?.bg, color: meta?.fg }}>{meta?.ar || tr.to_status}</span>
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
@@ -745,7 +821,7 @@ export default function TaskPage() {
         }`}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-slate-800">🔗 التبعية</h2>
-            {canManageTasks && (
+            {canManageTasks && !isCompleted && (
               <button
                 onClick={() => { setNewDependsId(task.depends_on_task_id || ''); setEditingDepends(!editingDepends) }}
                 className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
@@ -820,7 +896,7 @@ export default function TaskPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-slate-800">👥 التكليف والمقيّم</h2>
-          {canManageTasks && (
+          {canManageTasks && !isCompleted && (
             <button onClick={() => setShowAssign(!showAssign)}
               className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
               {showAssign ? '✕ إلغاء' : '✏️ تعديل'}
@@ -930,10 +1006,12 @@ export default function TaskPage() {
             📎 الأدلة والإثباتات
             <span className="text-xs font-normal text-slate-400 mr-2">({evidence.length})</span>
           </h2>
-          <Link href={`/dashboard/tasks/${taskId}/evidence/new`}
-            className="text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-            ➕ إضافة دليل
-          </Link>
+          {!isCompleted && (
+            <Link href={`/dashboard/tasks/${taskId}/evidence/new`}
+              className="text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+              ➕ إضافة دليل
+            </Link>
+          )}
         </div>
 
         {evidence.length > 0 ? (
@@ -957,10 +1035,12 @@ export default function TaskPage() {
                     className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
                     📥 فتح
                   </a>
-                  <button onClick={() => deleteEvidence(ev.id)}
-                    className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
-                    🗑️
-                  </button>
+                  {!isCompleted && (
+                    <button onClick={() => deleteEvidence(ev.id)}
+                      className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1122,7 +1202,7 @@ export default function TaskPage() {
         taskId={taskId}
         userId={userId}
         users={profiles.map((p: any) => ({ id: p.id, name_ar: p.name_ar }))}
-        canEdit={canManageTasks}
+        canEdit={canManageTasks && !isCompleted}
       />
 
       {/* ══ Comments ══ */}
@@ -1190,8 +1270,8 @@ export default function TaskPage() {
         </form>
       </div>
 
-      {/* ══ Danger Zone — للمدير أو منشئ المهمة فقط (لا المكلّف) ══ */}
-      {(canManageTasks || task.created_by === userId) && (
+      {/* ══ Danger Zone — للمدير أو منشئ المهمة فقط (لا المكلّف)، وتُخفى للمهمة المنجزة (أعد فتحها أولاً) ══ */}
+      {(canManageTasks || task.created_by === userId) && !isCompleted && (
       <div className="bg-white rounded-2xl border border-red-100 p-5">
         <p className="text-sm font-semibold text-slate-700 mb-2">منطقة الخطر</p>
         <div className="flex items-center justify-between">

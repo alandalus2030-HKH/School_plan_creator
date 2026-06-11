@@ -34,7 +34,7 @@ async function canManageTasks(admin: any, role: string, isSuper: boolean) {
 /** يرجع المهمة + مدرستها، أو رد خطأ */
 async function loadScoped(admin: any, taskId: string, schoolId: string) {
   const { data: task } = await admin
-    .from('tasks').select('id, node_id, created_by, deleted_at').eq('id', taskId).maybeSingle()
+    .from('tasks').select('id, node_id, created_by, deleted_at, status').eq('id', taskId).maybeSingle()
   if (!task || task.deleted_at) return { error: NextResponse.json({ error: 'المهمة غير موجودة' }, { status: 404 }) }
   let taskSchool: string | null = null
   if (task.node_id) {
@@ -63,6 +63,11 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ taskI
   const scoped = await loadScoped(ctx.admin, taskId, ctx.schoolId)
   if (scoped.error) return scoped.error
 
+  /* المهمة المنجزة مقفلة — التعديل يتطلب إعادة فتحها أولاً (سجل اعتماد) */
+  if (scoped.task!.status === 'completed') {
+    return NextResponse.json({ error: 'المهمة منجزة ومقفلة — أعد فتحها أولاً من صفحة المهمة' }, { status: 403 })
+  }
+
   const body = await req.json()
   const updates: Record<string, any> = { updated_by: auth.user.id, updated_at: new Date().toISOString() }
   for (const key of EDITABLE) {
@@ -83,6 +88,11 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ task
 
   const scoped = await loadScoped(ctx.admin, taskId, ctx.schoolId)
   if (scoped.error) return scoped.error
+
+  /* المهمة المنجزة مقفلة — الحذف يتطلب إعادة فتحها أولاً */
+  if (scoped.task!.status === 'completed') {
+    return NextResponse.json({ error: 'المهمة منجزة ومقفلة — أعد فتحها أولاً إن لزم الحذف' }, { status: 403 })
+  }
 
   const isManager = await canManageTasks(ctx.admin, ctx.me.role, ctx.me.is_super_admin)
   const isCreator = scoped.task!.created_by === auth.user.id
