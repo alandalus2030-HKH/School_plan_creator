@@ -15,11 +15,11 @@ import Logo from './Logo'
 const NAV_ITEMS = [
   { href: '/dashboard/group',          Icon: Layers,       ar: 'نظرة المجموعة',   en: 'Group',      perm: 'group_owner' },
   { href: '/dashboard/group/meetings', Icon: CalendarDays, ar: 'اجتماعات المجموعة', en: 'Meetings', perm: 'group_owner' },
-  { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: null               },
+  { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: 'manager'          },
   { href: '/dashboard/my-tasks',  Icon: ClipboardList,   ar: 'مهامي',         en: 'My Tasks',   perm: 'self'             },
   { href: '/dashboard/plans',     Icon: Map,             ar: 'الخطط',         en: 'Plans',      perm: 'manage_plans'     },
   { href: '/dashboard/tasks',     Icon: CircleCheckBig,  ar: 'كل المهام',     en: 'All Tasks',  perm: 'manage_tasks'     },
-  { href: '/dashboard/teams',     Icon: Users,           ar: 'الفرق',         en: 'Teams',      perm: 'manage_teams'     },
+  { href: '/dashboard/teams',     Icon: Users,           ar: 'الفرق',         en: 'Teams',      perm: null               },
   { href: '/dashboard/reports',   Icon: ChartNoAxesColumn, ar: 'التقارير',      en: 'Reports',    perm: 'view_reports'     },
   { href: '/dashboard/meetings',  Icon: CalendarDays,    ar: 'الاجتماعات',    en: 'Meetings',   perm: null               },
   { href: '/dashboard/users',     Icon: UserRound,       ar: 'المستخدمون',   en: 'Users',      perm: 'manage_users'     },
@@ -88,6 +88,9 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
     if (item.perm === 'self')     return true
     if (item.perm === 'super')    return isSuperAdmin
     if (item.perm === 'badges')   return can('grant_badges') || can('manage_badges')
+    /* لوحة التحكم للمديرين فقط — نفس شرط إعادة التوجيه في dashboard/page */
+    if (item.perm === 'manager')
+      return can('manage_plans') || can('manage_tasks') || can('manage_users') || can('manage_settings')
     return can(item.perm)
   })
 

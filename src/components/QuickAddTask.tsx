@@ -150,7 +150,8 @@ export default function QuickAddTask() {
     router.push(`/dashboard/tasks/new${planId ? `?planId=${planId}` : ''}`)
   }
 
-  if (!can('manage_tasks') && !can('view_tasks')) return null
+  /* إنشاء المهام لمن يملك manage_tasks فقط — view_tasks للعرض لا الإنشاء */
+  if (!can('manage_tasks')) return null
 
   return (
     <>

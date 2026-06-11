@@ -352,10 +352,12 @@ export default function MeetingsPage() {
           <p className="text-slate-500 text-sm mt-1">إدارة روابط الاجتماعات وربطها بالخطط والمهام</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors">
-            🎥 إنشاء اجتماع Google Meet
-          </a>
+          {canManage && (
+            <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors">
+              🎥 إنشاء اجتماع Google Meet
+            </a>
+          )}
           {canManage && (
             <button onClick={openCreate}
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-violet-200">
