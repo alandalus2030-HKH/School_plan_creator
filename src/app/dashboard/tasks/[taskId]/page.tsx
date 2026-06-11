@@ -725,13 +725,13 @@ export default function TaskPage() {
                   </button>
                 ) : (
                   <div className="space-y-2 border border-orange-200 rounded-xl p-3 bg-orange-50/50">
-                    <p className="text-xs text-orange-700">سبب إعادة الفتح إلزامي ويُسجَّل في سجل سير العمل، وسيُصفَّر التقييم الحالي لإعادة دورة الاعتماد.</p>
+                    <p className="text-xs text-orange-700">السبب اختياري ويُسجَّل في سجل سير العمل، وسيُصفَّر التقييم الحالي لإعادة دورة الاعتماد.</p>
                     <textarea value={reopenNote} onChange={e => setReopenNote(e.target.value.slice(0, 500))} rows={2}
-                      placeholder="سبب إعادة الفتح (إلزامي)..."
+                      placeholder="سبب إعادة الفتح (اختياري)..."
                       className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-sm" />
                     <div className="flex gap-2">
                       <button onClick={async () => { if (await doTransition('reopen', { note: reopenNote })) { setShowReopen(false); setReopenNote('') } }}
-                        disabled={transitioning || !reopenNote.trim()}
+                        disabled={transitioning}
                         className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">إعادة فتح المهمة</button>
                       <button onClick={() => { setShowReopen(false); setReopenNote('') }}
                         className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm">إلغاء</button>
@@ -754,11 +754,11 @@ export default function TaskPage() {
                 ) : (
                   <div className="space-y-2 border border-violet-200 rounded-xl p-3 bg-violet-50/50">
                     <textarea value={requestNote} onChange={e => setRequestNote(e.target.value.slice(0, 500))} rows={2}
-                      placeholder="سبب الطلب (اختياري — يصل لمشرف نظام المدرسة)..."
+                      placeholder="سبب الطلب (إلزامي — يصل لمشرف نظام المدرسة)..."
                       className="w-full px-3 py-2 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white text-sm" />
                     <div className="flex gap-2">
                       <button onClick={async () => { if (await doTransition('request_reopen', { note: requestNote })) { setRequestSent(true); setShowRequest(false) } }}
-                        disabled={transitioning}
+                        disabled={transitioning || !requestNote.trim()}
                         className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">إرسال الطلب</button>
                       <button onClick={() => { setShowRequest(false); setRequestNote('') }}
                         className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm">إلغاء</button>

@@ -171,8 +171,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     if (task.status !== 'completed') {
       return NextResponse.json({ error: 'المهمة ليست منجزة — لا حاجة لإعادة الفتح' }, { status: 400 })
     }
-    const note = body.note?.toString().trim()
-    if (!note) return NextResponse.json({ error: 'سبب إعادة الفتح مطلوب (يُسجَّل في سجل سير العمل)' }, { status: 400 })
+    /* السبب اختياري للمشرف — سبب الطلب الإلزامي يصله في الإشعار */
+    const note = body.note?.toString().trim() || null
 
     /* التقييم السابق يبقى محفوظاً في سجل التحوّلات، ويُصفَّر من المهمة لإعادة دورة التقييم */
     const res = await logAndRespond('in_progress',
@@ -192,7 +192,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     if (!isAssignee && task.reviewer_id !== userId) {
       return NextResponse.json({ error: 'طلب إعادة الفتح متاح للمكلّف أو المقيّم فقط' }, { status: 403 })
     }
-    const note = body.note?.toString().trim() || null
+    const note = body.note?.toString().trim()
+    if (!note) return NextResponse.json({ error: 'سبب طلب إعادة الفتح مطلوب' }, { status: 400 })
 
     const { data: schoolAdmins } = await admin.from('profiles').select('id')
       .eq('school_id', ctx.schoolId).in('role', ADMIN_ROLES).eq('is_active', true)
