@@ -548,13 +548,24 @@ export default function SettingsPage() {
                 <h4 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
                   <ClipboardList size={14} style={{ color: 'var(--maroon-600)' }} /> قائمة الصلاحيات المتاحة في النظام
                 </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {ALL_PERMISSIONS.map(p => (
-                    <div key={p.code} className="flex items-center gap-3 text-sm bg-slate-50 px-3 py-2.5 rounded-xl">
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--maroon-400)' }} />
-                      <div>
-                        <p className="font-medium text-xs text-slate-700">{p.label}</p>
-                        <p className="text-xs text-slate-400 font-mono mt-0.5">{p.code}</p>
+                <div className="space-y-4">
+                  {PERMISSION_GROUPS.map(group => (
+                    <div key={group.title}>
+                      <p className="text-xs font-bold text-slate-500 mb-2">{group.title}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.codes.map(code => {
+                          const p = ALL_PERMISSIONS.find(x => x.code === code)
+                          if (!p) return null
+                          return (
+                            <div key={p.code} className="flex items-center gap-3 text-sm bg-slate-50 px-3 py-2.5 rounded-xl">
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--maroon-400)' }} />
+                              <div>
+                                <p className="font-medium text-xs text-slate-700">{p.label}</p>
+                                <p className="text-xs text-slate-400 font-mono mt-0.5">{p.code}</p>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   ))}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { usePermissions } from '@/lib/PermissionsContext'
 import { Users, UserRound, ClipboardList, BarChart3 } from 'lucide-react'
 import WorkloadView from '@/components/WorkloadView'
 
@@ -25,6 +26,9 @@ type Team = {
 
 export default function TeamsPage() {
   const supabase = createClient()
+  const { can } = usePermissions()
+  /* إدارة الفرق (إنشاء/تعديل/حذف/أعضاء) لمن يملك manage_teams — العرض متاح للجميع */
+  const canManage = can('manage_teams')
   const [teams,       setTeams]       = useState<Team[]>([])
   const [profiles,    setProfiles]    = useState<Profile[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -167,7 +171,7 @@ export default function TeamsPage() {
           <h2 className="text-2xl font-bold text-slate-800">الفرق</h2>
           <p className="text-slate-500 text-sm mt-1">تنظيم المستخدمين ومتابعة حِمل العمل</p>
         </div>
-        {view === 'teams' && (
+        {view === 'teams' && canManage && (
           <button onClick={openCreate}
             className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-violet-200">
             <Users size={16} /> فريق جديد
@@ -224,10 +228,12 @@ export default function TeamsPage() {
         <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center">
           <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><Users size={40} /></div>
           <p className="text-slate-500 font-medium mb-4">لا توجد فرق بعد</p>
-          <button onClick={openCreate}
-            className="inline-flex items-center gap-1.5 bg-violet-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
-            <Users size={15} /> أنشئ أول فريق
-          </button>
+          {canManage && (
+            <button onClick={openCreate}
+              className="inline-flex items-center gap-1.5 bg-violet-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
+              <Users size={15} /> أنشئ أول فريق
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4">
@@ -316,12 +322,14 @@ export default function TeamsPage() {
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors text-lg">
                         {isOpen ? '▲' : '▼'}
                       </button>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <button onClick={() => openEdit(team)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors">✏️</button>
-                        <button onClick={() => setConfirmDel(team.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">🗑️</button>
-                      </div>
+                      {canManage && (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                          <button onClick={() => openEdit(team)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors">✏️</button>
+                          <button onClick={() => setConfirmDel(team.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">🗑️</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -348,17 +356,19 @@ export default function TeamsPage() {
                             {m.profile_id === team.leader_id && (
                               <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">👑 قائد</span>
                             )}
-                            <button
-                              onClick={() => removeMember(team.id, m.profile_id)}
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                              title="إزالة من الفريق">✕</button>
+                            {canManage && (
+                              <button
+                                onClick={() => removeMember(team.id, m.profile_id)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                title="إزالة من الفريق">✕</button>
+                            )}
                           </div>
                         ))}
                       </div>
                     )}
 
-                    {/* إضافة عضو */}
-                    {addingTo === team.id ? (
+                    {/* إضافة عضو — لمن يملك manage_teams */}
+                    {!canManage ? null : addingTo === team.id ? (
                       <div className="flex items-center gap-2">
                         <select value={selUser} onChange={e => setSelUser(e.target.value)}
                           className="flex-1 px-3 py-2 rounded-xl border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm">

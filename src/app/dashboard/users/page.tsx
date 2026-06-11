@@ -30,17 +30,8 @@ type Profile = {
 
 type TeamMembership = { team_id: string; is_leader: boolean }
 
-/* ══════════════════════ صلاحيات النظام ══════════════════════ */
-const ALL_PERMISSIONS: { code: string; label: string; icon: string }[] = [
-  { code: 'manage_plans',    label: 'إدارة الخطط',        icon: '🗺️' },
-  { code: 'manage_tasks',    label: 'إدارة المهام',        icon: '✅' },
-  { code: 'manage_users',    label: 'إدارة المستخدمين',   icon: '👥' },
-  { code: 'manage_teams',    label: 'إدارة الفرق',         icon: '🤝' },
-  { code: 'manage_settings', label: 'إدارة الإعدادات',     icon: '⚙️' },
-  { code: 'manage_roles',    label: 'إدارة الأدوار',       icon: '🎭' },
-  { code: 'view_reports',    label: 'عرض التقارير',        icon: '📊' },
-  { code: 'view_tasks',      label: 'عرض المهام فقط',      icon: '👁️' },
-]
+/* ══════════════════════ صلاحيات النظام — من المرجع المركزي ══════════════════════ */
+import { ALL_PERMISSIONS } from '@/lib/permissions'
 
 /* ══════════════════════ بيانات احتياطية ══════════════════════ */
 const FALLBACK_ROLES: RoleItem[] = [
@@ -1127,7 +1118,7 @@ export default function UsersPage() {
                                 ${active
                                   ? 'border-violet-200 bg-violet-50 text-violet-700'
                                   : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
-                              <span>{perm.icon}</span>
+                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? 'bg-violet-500' : 'bg-slate-300'}`} />
                               <span className="flex-1">{perm.label}</span>
                               <span className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold
                                 ${active ? 'bg-violet-500' : 'bg-slate-300'}`}>

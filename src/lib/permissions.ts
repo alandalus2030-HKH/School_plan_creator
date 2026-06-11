@@ -16,6 +16,7 @@ export const ALL_PERMISSIONS = [
   { code: 'grant_badges',          label: 'منح الأوسمة',           icon: 'Gift'           },
   { code: 'receive_notifications', label: 'استقبال الإشعارات',     icon: 'Bell'           },
   { code: 'rate_tasks',            label: 'تقييم المهام',          icon: 'Star'           },
+  { code: 'manage_meetings',       label: 'إدارة الاجتماعات',      icon: 'CalendarDays'   },
 ] as const
 
 export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']
@@ -24,6 +25,7 @@ export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']
 export const PERMISSION_GROUPS: { title: string; codes: string[] }[] = [
   { title: 'المستخدمون والفِرق',   codes: ['manage_users', 'manage_teams'] },
   { title: 'الخطط والمهام',         codes: ['manage_plans', 'manage_tasks', 'view_tasks', 'rate_tasks'] },
+  { title: 'الاجتماعات',            codes: ['manage_meetings'] },
   { title: 'التقارير والإشعارات',   codes: ['view_reports', 'receive_notifications'] },
   { title: 'الأوسمة',               codes: ['manage_badges', 'grant_badges'] },
   { title: 'النظام والصلاحيات',     codes: ['manage_settings', 'manage_roles'] },

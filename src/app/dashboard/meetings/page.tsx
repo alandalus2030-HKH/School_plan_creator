@@ -71,7 +71,8 @@ export default function MeetingsPage() {
   const [showAttendeesDrop, setShowAttendeesDrop] = useState(false)
   const attendeesRef = useRef<HTMLDivElement>(null)
 
-  const canManage = can('manage_plans') || can('manage_tasks')
+  /* صلاحية مخصصة للاجتماعات + توافق رجعي مع الأدوار القديمة (خطط/مهام) */
+  const canManage = can('manage_meetings') || can('manage_plans') || can('manage_tasks')
 
   /* ══ إغلاق قائمة الحضور عند الضغط خارجها ══ */
   useEffect(() => {
