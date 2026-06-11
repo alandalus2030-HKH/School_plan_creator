@@ -167,7 +167,14 @@ export default function TaskPage() {
       .single()
 
     if (!data) { router.push('/dashboard/tasks'); return }
-    setTask(data)
+
+    /* حقول طلب إعادة الفتح — استعلام منفصل متسامح (قد لا يكون الترحيل 025 قد شُغّل بعد) */
+    const { data: reopenReq } = await supabase
+      .from('tasks')
+      .select('reopen_requested_by, reopen_requested_at, reopen_request_note')
+      .eq('id', taskId).maybeSingle()
+
+    setTask({ ...data, ...(reopenReq || {}) })
     setStatus(data.status)
 
     /* سجل تحوّلات المهمة (رفع/إعادة/اعتماد) */
@@ -296,7 +303,6 @@ export default function TaskPage() {
   const [reopenNote,    setReopenNote]    = useState('')
   const [showRequest,   setShowRequest]   = useState(false)
   const [requestNote,   setRequestNote]   = useState('')
-  const [requestSent,   setRequestSent]   = useState(false)
   const [transitions,   setTransitions]   = useState<{ id: string; from_status: string | null; to_status: string; actor_id: string | null; note: string | null; created_at: string }[]>([])
   const doTransition = async (action: string, payload: Record<string, any> = {}) => {
     setTransitioning(true); setWfError('')
@@ -716,6 +722,30 @@ export default function TaskPage() {
                 <span>المهمة منجزة ومعتمدة — جميع التعديلات مقفلة (عدا التعليقات) حفاظاً على مصداقية سجل الاعتماد. أي تعديل يتطلب إعادة فتح المهمة.</span>
               </div>
 
+              {/* بطاقة الطلب المعلّق — للمشرف */}
+              {canManageTasks && task.reopen_requested_by && (() => {
+                const requester = profiles.find((p: any) => p.id === task.reopen_requested_by)
+                const whoLabel = task.reopen_requested_by === task.assigned_to_user_id ? 'المكلّف'
+                              : task.reopen_requested_by === task.reviewer_id        ? 'المقيّم' : 'مستخدم'
+                return (
+                  <div className="border border-amber-200 bg-amber-50 rounded-xl p-3 space-y-1">
+                    <p className="text-sm font-semibold text-amber-800">
+                      📨 طلب إعادة فتح معلّق من {whoLabel}: {requester?.name_ar || '—'}
+                      {task.reopen_requested_at && (
+                        <span className="text-xs font-normal text-amber-600 mr-2">
+                          ({new Date(task.reopen_requested_at).toLocaleString('ar-QA')})
+                        </span>
+                      )}
+                    </p>
+                    {task.reopen_request_note && (
+                      <p className="text-sm text-amber-700 bg-white/60 border border-amber-100 rounded-lg px-3 py-2">
+                        {task.reopen_request_note}
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* إعادة الفتح المباشرة — لصاحب manage_tasks */}
               {canManageTasks && (
                 !showReopen ? (
@@ -742,10 +772,17 @@ export default function TaskPage() {
 
               {/* طلب إعادة الفتح — للمكلّف/المقيّم بلا manage_tasks */}
               {!canManageTasks && canAskReopen && (
-                requestSent ? (
-                  <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-                    ✅ أُرسل طلب إعادة الفتح لمشرف نظام المدرسة.
-                  </p>
+                task.reopen_requested_by ? (
+                  <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2 space-y-1">
+                    <p>
+                      {task.reopen_requested_by === userId
+                        ? '✅ طلبك بإعادة فتح المهمة قيد الانتظار لدى مشرف نظام المدرسة.'
+                        : `📨 يوجد طلب إعادة فتح معلّق من ${profiles.find((p: any) => p.id === task.reopen_requested_by)?.name_ar || 'مستخدم آخر'}.`}
+                    </p>
+                    {task.reopen_requested_by === userId && task.reopen_request_note && (
+                      <p className="text-xs text-green-600">السبب: {task.reopen_request_note}</p>
+                    )}
+                  </div>
                 ) : !showRequest ? (
                   <button onClick={() => setShowRequest(true)} disabled={transitioning}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-sm font-medium hover:bg-violet-100 disabled:opacity-50">
@@ -757,7 +794,7 @@ export default function TaskPage() {
                       placeholder="سبب الطلب (إلزامي — يصل لمشرف نظام المدرسة)..."
                       className="w-full px-3 py-2 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white text-sm" />
                     <div className="flex gap-2">
-                      <button onClick={async () => { if (await doTransition('request_reopen', { note: requestNote })) { setRequestSent(true); setShowRequest(false) } }}
+                      <button onClick={async () => { if (await doTransition('request_reopen', { note: requestNote })) { setShowRequest(false); setRequestNote('') } }}
                         disabled={transitioning || !requestNote.trim()}
                         className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">إرسال الطلب</button>
                       <button onClick={() => { setShowRequest(false); setRequestNote('') }}

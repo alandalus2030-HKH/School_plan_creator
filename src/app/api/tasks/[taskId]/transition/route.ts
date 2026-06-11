@@ -171,12 +171,29 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     if (task.status !== 'completed') {
       return NextResponse.json({ error: 'المهمة ليست منجزة — لا حاجة لإعادة الفتح' }, { status: 400 })
     }
-    /* السبب اختياري للمشرف — سبب الطلب الإلزامي يصله في الإشعار */
-    const note = body.note?.toString().trim() || null
+    /* الطلب المعلّق — استعلام منفصل متسامح (قد لا يكون الترحيل 025 قد شُغّل بعد) */
+    const { data: reqRow } = await admin.from('tasks')
+      .select('reopen_requested_by, reopen_request_note').eq('id', taskId).maybeSingle()
 
-    /* التقييم السابق يبقى محفوظاً في سجل التحوّلات، ويُصفَّر من المهمة لإعادة دورة التقييم */
+    /* السبب: تعليق المشرف الاختياري + عبارة آلية من الطلب المعلّق إن وُجد —
+       فيبقى سجل سير العمل موثِّقاً لسبب إعادة الفتح دائماً */
+    const adminNote = body.note?.toString().trim() || null
+    let autoNote: string | null = null
+    if (reqRow?.reopen_requested_by) {
+      const who = reqRow.reopen_requested_by === task.assigned_to_user_id ? 'المكلّف'
+                : reqRow.reopen_requested_by === task.reviewer_id        ? 'المقيّم'
+                : 'مقدّم الطلب'
+      autoNote = `إعادة فتح بناءً على طلب ${who}${reqRow.reopen_request_note ? ` — سبب الطلب: ${reqRow.reopen_request_note}` : ''}`
+    }
+    const note = [adminNote, autoNote].filter(Boolean).join(' · ') || 'إعادة فتح بقرار إدارة المدرسة'
+
+    /* التقييم السابق يبقى محفوظاً في سجل التحوّلات، ويُصفَّر من المهمة لإعادة دورة التقييم
+       + مسح الطلب المعلّق (إن كانت أعمدته موجودة) */
+    const clearReq = reqRow
+      ? { reopen_requested_by: null, reopen_requested_at: null, reopen_request_note: null }
+      : {}
     const res = await logAndRespond('in_progress',
-      { rating: null, rating_note: null, rated_at: null, submitted_at: null, submitted_by: null, return_note: null },
+      { rating: null, rating_note: null, rated_at: null, submitted_at: null, submitted_by: null, return_note: null, ...clearReq },
       note, task.assigned_to_user_id, `أُعيد فتح المهمة: ${task.name_ar}`, note)
     if (res.status === 200) {
       await notify(admin, task.reviewer_id, userId, `أُعيد فتح المهمة: ${task.name_ar}`, note, `/dashboard/tasks/${taskId}`)
@@ -194,6 +211,17 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     }
     const note = body.note?.toString().trim()
     if (!note) return NextResponse.json({ error: 'سبب طلب إعادة الفتح مطلوب' }, { status: 400 })
+
+    /* تخزين الطلب على المهمة (آخر طلب يحل محل السابق) — لعرضه للمشرف وتوليد عبارة السجل.
+       متسامح إن لم يُشغَّل الترحيل 025 بعد: يكمل بالإشعارات فقط */
+    const { error: reqErr } = await admin.from('tasks').update({
+      reopen_requested_by: userId,
+      reopen_requested_at: new Date().toISOString(),
+      reopen_request_note: note,
+    }).eq('id', taskId)
+    if (reqErr && !/reopen/i.test(reqErr.message)) {
+      return NextResponse.json({ error: 'فشل تسجيل الطلب: ' + reqErr.message }, { status: 500 })
+    }
 
     const { data: schoolAdmins } = await admin.from('profiles').select('id')
       .eq('school_id', ctx.schoolId).in('role', ADMIN_ROLES).eq('is_active', true)
