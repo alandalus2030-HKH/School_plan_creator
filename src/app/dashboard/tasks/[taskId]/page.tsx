@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
-import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2, History } from 'lucide-react'
+import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2, History, ChevronDown } from 'lucide-react'
 import { STATUS_META, OVERDUE_META } from '@/lib/constants/tasks'
 import { toast } from '@/components/Toast'
 
@@ -303,6 +303,26 @@ export default function TaskPage() {
   const [reopenNote,    setReopenNote]    = useState('')
   const [showRequest,   setShowRequest]   = useState(false)
   const [requestNote,   setRequestNote]   = useState('')
+
+  /* ── إعادة التصميم: الشريط اللاصق + طي السجلات الطويلة ── */
+  const [showSticky,      setShowSticky]      = useState(false)
+  const [transOpen,       setTransOpen]       = useState(false)
+  const [transAll,        setTransAll]        = useState(false)
+  const [showAllComments, setShowAllComments] = useState(false)
+  const [showAllEvidence, setShowAllEvidence] = useState(false)
+
+  /* الشريط اللاصق يظهر عندما يخرج رأس المهمة من الشاشة */
+  useEffect(() => {
+    if (loading) return
+    const el = document.getElementById('task-header')
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([e]) => setShowSticky(!e.isIntersecting),
+      { rootMargin: '-8px 0px 0px 0px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [loading])
   const [transitions,   setTransitions]   = useState<{ id: string; from_status: string | null; to_status: string; actor_id: string | null; note: string | null; created_at: string }[]>([])
   const doTransition = async (action: string, payload: Record<string, any> = {}) => {
     setTransitioning(true); setWfError('')
@@ -540,7 +560,8 @@ export default function TaskPage() {
 
   const pInfo     = priorityInfo[task.priority] || priorityInfo.medium
   const isOverdue = task.end_date && status !== 'completed' && new Date(task.end_date) < new Date()
-  const evidence  = task.evidence || []
+  const evidence  = [...(task.evidence || [])].sort((a: any, b: any) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   /* المهمة المنجزة مقفلة: لا تعديلات (عدا التعليقات) إلا بعد إعادة فتحها */
   const isCompleted    = status === 'completed'
@@ -555,8 +576,22 @@ export default function TaskPage() {
   // بيانات التقدير الحالي — من المصفوفة المحلية الثابتة
   const currentRating = task.rating ? RATING_INFO[task.rating as RatingValue] : null
 
+  /* إجراء الشريط اللاصق الأساسي حسب الدور والحالة */
+  const scrollToHeader = () =>
+    document.getElementById('task-header')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const stickyAction =
+    isCompleted && canManageTasks
+      ? { label: 'إعادة فتح', run: () => { setShowReopen(true); scrollToHeader() } } :
+    isCompleted && canAskReopen && !task.reopen_requested_by
+      ? { label: 'طلب إعادة فتح', run: () => { setShowRequest(true); scrollToHeader() } } :
+    status === 'submitted' && canRate
+      ? { label: 'تقييم المهمة', run: () => document.getElementById('rating-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) } :
+    task.assigned_to_user_id === userId && ['not_started', 'in_progress', 'returned'].includes(status)
+      ? { label: 'إجراءات المهمة', run: scrollToHeader } :
+    null
+
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
+    <div className="max-w-6xl mx-auto space-y-5">
 
       {/* Breadcrumb */}
       <Breadcrumb items={[
@@ -565,8 +600,36 @@ export default function TaskPage() {
         { label: task.name_ar },
       ]} />
 
+      {/* ── الشريط اللاصق — يظهر عند التمرير بعد رأس المهمة ── */}
+      <div className={`sticky top-2 z-30 transition-all duration-200 ${showSticky ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
+        <div className="flex items-center gap-2.5 bg-white/95 backdrop-blur border border-slate-200 shadow-md rounded-2xl px-4 py-2.5">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap"
+            style={{ background: STATUS_META[status]?.bg, color: STATUS_META[status]?.fg }}>
+            {STATUS_META[status]?.ar || status}
+          </span>
+          {taskNum && <span className="font-mono text-xs text-slate-400 hidden sm:inline">{taskNum}</span>}
+          <p className="flex-1 min-w-0 text-sm font-semibold text-slate-800 truncate">{task.name_ar}</p>
+          {isOverdue && (
+            <span className="hidden sm:inline-flex text-[11px] px-2 py-0.5 rounded-lg bg-red-50 text-red-600 border border-red-100">متأخرة</span>
+          )}
+          {stickyAction && (
+            <button onClick={stickyAction.run}
+              className="px-3.5 py-1.5 rounded-xl text-white text-xs font-semibold hover:brightness-110 whitespace-nowrap"
+              style={{ background: 'var(--gradient-button)' }}>
+              {stickyAction.label}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ══ شبكة عمودين: المحتوى الرئيسي + الشريط الجانبي ══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+
+      {/* ── العمود الرئيسي ── */}
+      <div className="lg:col-span-2 space-y-5">
+
       {/* ══ Header Card ══ */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div id="task-header" className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white p-5">
           {!editing ? (
             <div className="flex items-start gap-3">
@@ -810,44 +873,284 @@ export default function TaskPage() {
         </div>
       </div>
 
-      {/* ══ سجل سير العمل ══ */}
-      {transitions.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-          <h2 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-            <History size={16} style={{ color: 'var(--maroon-600)' }} /> سجل سير العمل
-            <span className="text-xs font-normal text-slate-400">({transitions.length})</span>
+      {/* ══ Evidence ══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-slate-800">
+            📎 الأدلة والإثباتات
+            <span className="text-xs font-normal text-slate-400 mr-2">({evidence.length})</span>
           </h2>
-          <div className="space-y-3">
-            {transitions.map(tr => {
-              const actor = profiles.find((p: any) => p.id === tr.actor_id)
-              const meta = STATUS_META[tr.to_status]
-              return (
-                <div key={tr.id} className="flex items-start gap-3">
-                  <span className="mt-1.5 w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: meta?.hex || '#94a3b8' }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-slate-700">
-                        {tr.from_status === 'completed' && tr.to_status === 'in_progress'
-                          ? 'إعادة فتح'
-                          : (TRANSITION_LABEL[tr.to_status] || tr.to_status)}
-                      </span>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: meta?.bg, color: meta?.fg }}>{meta?.ar || tr.to_status}</span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {(actor as any)?.name_ar || '—'} · {new Date(tr.created_at).toLocaleString('ar-QA')}
-                    </p>
-                    {tr.note && (
-                      <p className="text-sm text-slate-600 mt-1 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 break-words">
-                        {tr.note}
-                      </p>
-                    )}
+          {!isCompleted && (
+            <Link href={`/dashboard/tasks/${taskId}/evidence/new`}
+              className="text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+              ➕ إضافة دليل
+            </Link>
+          )}
+        </div>
+
+        {evidence.length > 0 ? (
+          <div className="space-y-2">
+            {(showAllEvidence ? evidence : evidence.slice(0, 3)).map((ev: any) => (
+              <div key={ev.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-violet-100 transition-all">
+                <span className="text-2xl flex-shrink-0">
+                  {ev.file_type?.startsWith('image') ? '🖼️' : ev.file_type === 'application/pdf' ? '📄' : '📎'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700 truncate font-latin">{ev.name}</p>
+                  {ev.description && <p className="text-xs text-slate-400 truncate">{ev.description}</p>}
+                  {ev.evidence_number && (
+                    <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full mt-1 inline-block">
+                      {taskNum ? `${taskNum}-${ev.evidence_number.split('-').pop()}` : ev.evidence_number}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <a href={ev.file_url} target="_blank" rel="noopener noreferrer"
+                    className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
+                    📥 فتح
+                  </a>
+                  {!isCompleted && (
+                    <button onClick={() => deleteEvidence(ev.id)}
+                      className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                      🗑️
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {!showAllEvidence && evidence.length > 3 && (
+              <button onClick={() => setShowAllEvidence(true)} className="text-xs text-violet-600 hover:underline">
+                عرض كل الأدلة ({evidence.length})
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <Folder size={36} className="mx-auto mb-2" style={{ color: 'var(--maroon-300)' }} />
+            <p className="text-sm text-slate-400">لا توجد أدلة مرفقة بعد</p>
+          </div>
+        )}
+
+        {/* أدلة الإنجاز المطلوبة */}
+        {task.evidence_required && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+            <p className="text-xs font-semibold text-blue-700 mb-1">📋 أدلة الإنجاز المطلوبة:</p>
+            <p className="text-xs text-blue-600 leading-relaxed">{task.evidence_required}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ══ تقييم جودة التنفيذ ══ */}
+      <div id="rating-panel" className="bg-white rounded-2xl border shadow-sm p-5"
+        style={{ borderColor: currentRating ? currentRating.border : '#e2e8f0' }}>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="font-bold text-slate-800 flex items-center gap-2">
+            <Star size={16} style={{ color: 'var(--maroon-600)' }} /> تقييم جودة التنفيذ
+            {currentRating && (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full border"
+                style={{ background: currentRating.bg, color: currentRating.fg, borderColor: currentRating.border }}>
+                {currentRating.stars} {currentRating.label}
+              </span>
+            )}
+          </h2>
+
+        </div>
+
+        {/* معلومات المقيّم */}
+        <div className="flex items-center gap-2 mb-4 text-xs text-slate-500">
+          <span>المقيّم:</span>
+          {reviewerProfile ? (
+            <span className="font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+              🔍 {reviewerProfile.name_ar}
+            </span>
+          ) : (
+            <span className="text-slate-400 italic">لم يُعيَّن مقيّم</span>
+          )}
+          {task.rated_at && (
+            <span className="mr-auto text-slate-400">
+              آخر تقييم: {new Date(task.rated_at).toLocaleDateString('ar-QA')}
+            </span>
+          )}
+        </div>
+
+        {/* عرض التقييم المحفوظ */}
+        {task.rating && !editingRating && currentRating && (
+          <div className="rounded-xl border p-4"
+            style={{ background: currentRating.bg, borderColor: currentRating.border }}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl font-bold" style={{ color: currentRating.fg }}>{currentRating.stars}</span>
+              <div>
+                <p className="text-lg font-bold" style={{ color: currentRating.fg }}>{currentRating.label}</p>
+                <p className="text-xs text-slate-500 font-mono">{task.rating}/5</p>
+              </div>
+            </div>
+            {task.rating_note && (
+              <p className="text-sm text-slate-600 mt-2 border-t border-slate-200 pt-2 leading-relaxed">
+                {task.rating_note}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* لوحة المقيّم — تظهر عند رفع المهمة للتقييم */}
+        {canRate && status === 'submitted' && (
+          <div className="space-y-4">
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              المهمة مرفوعة للتقييم. راجع الأدلة والتعليقات، ثم <strong>اعتمدها مع تقييم الجودة</strong>، أو <strong>أعدها للتعديل</strong> مع بيان السبب.
+            </p>
+
+            {/* أزرار التقدير الخماسي */}
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-2">تقييم جودة التنفيذ:</p>
+              <div className="grid grid-cols-5 gap-2">
+                {([5,4,3,2,1] as RatingValue[]).map(val => {
+                  const info = RATING_INFO[val]
+                  const isSelected = ratingValue === val
+                  return (
+                    <button key={val} type="button" onClick={() => setRatingValue(val)}
+                      className={`flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-bold transition-all border-2 ${isSelected ? info.btn : ''}`}
+                      style={isSelected
+                        ? { background: info.bg, color: info.fg, borderColor: info.border }
+                        : { background: '#fff', color: '#64748b', borderColor: '#e2e8f0' }}>
+                      <span className="font-mono text-base">{info.stars.slice(0,val)}</span>
+                      <span>{info.label}</span>
+                      <span className="opacity-60 font-mono">{val}/5</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* ملاحظة الاعتماد */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">ملاحظة الاعتماد <span className="text-slate-400 font-normal">(اختياري)</span></label>
+              <textarea value={ratingNote} onChange={e => setRatingNote(e.target.value.slice(0, 500))} rows={2} maxLength={500}
+                placeholder="ملاحظاتك حول جودة التنفيذ..."
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 text-slate-800 resize-none text-sm" />
+            </div>
+
+            {wfError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">{wfError}</div>}
+
+            {/* اعتماد */}
+            <button onClick={() => doTransition('approve', { rating: ratingValue, note: ratingNote })}
+              disabled={transitioning || !ratingValue}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-white font-semibold rounded-xl text-sm disabled:opacity-50 hover:brightness-110"
+              style={{ background: 'var(--gradient-button)' }}>
+              <span className="inline-flex">{transitioning ? <Loader2 size={16} className="animate-spin" /> : <CircleCheckBig size={16} />}</span>
+              اعتماد المهمة (إنجاز)
+            </button>
+
+            {/* إعادة للتعديل */}
+            {!showReturn ? (
+              <button onClick={() => setShowReturn(true)} disabled={transitioning}
+                className="w-full flex items-center justify-center gap-2 py-2.5 border border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl text-sm font-medium disabled:opacity-50">
+                <Undo2 size={16} /> إعادة للتعديل
+              </button>
+            ) : (
+              <div className="space-y-2 border border-orange-200 rounded-xl p-3 bg-orange-50/50">
+                <textarea value={returnNote} onChange={e => setReturnNote(e.target.value.slice(0, 500))} rows={2}
+                  placeholder="سبب الإعادة (إلزامي)..."
+                  className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-sm" />
+                <div className="flex gap-2">
+                  <button onClick={() => doTransition('return', { note: returnNote })} disabled={transitioning || !returnNote.trim()}
+                    className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">إعادة المهمة</button>
+                  <button onClick={() => { setShowReturn(false); setReturnNote('') }} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm">إلغاء</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* حالات أخرى للمقيّم/غيره */}
+        {canRate && status !== 'submitted' && !task.rating && (
+          <div className="text-center py-4 text-slate-400">
+            <Clock size={24} className="mx-auto mb-1" style={{ color: 'var(--maroon-300)' }} />
+            <p className="text-sm">لم تُرفَع المهمة للتقييم بعد.</p>
+          </div>
+        )}
+        {!canRate && !task.rating && (
+          <div className="text-center py-4 text-slate-400">
+            <Lock size={24} className="mx-auto mb-1" style={{ color: 'var(--maroon-300)' }} />
+            <p className="text-sm">لم يتم التقييم بعد — بانتظار المقيّم المعيّن</p>
+          </div>
+        )}
+      </div>
+
+      {/* ══ Comments ══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <MessageCircle size={18} style={{ color: 'var(--maroon-600)' }} /> التعليقات
+          <span className="text-xs font-normal text-slate-400">({comments.length})</span>
+        </h2>
+
+        {(showAllComments ? comments : comments.slice(0, 3)).map((c: any) => (
+          <div key={c.id} className="flex gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+              {(c.profiles?.full_name_ar || '؟')[0]}
+            </div>
+            <div className="flex-1 bg-slate-50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">{c.profiles?.full_name_ar || 'مستخدم'}</span>
+                  <span className="text-xs text-slate-400">{new Date(c.created_at).toLocaleDateString('ar-QA')}</span>
+                </div>
+                {c.profiles?.id === userId && editingCmtId !== c.id && (
+                  <div className="flex gap-1">
+                    <button onClick={() => { setEditingCmtId(c.id); setEditCmtText(c.content) }}
+                      aria-label="تعديل التعليق"
+                      className="text-slate-400 hover:text-violet-600 p-1 rounded transition-colors"><Pencil size={13} /></button>
+                    <button onClick={() => deleteComment(c.id)}
+                      aria-label="حذف التعليق"
+                      className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"><Trash2 size={13} /></button>
+                  </div>
+                )}
+              </div>
+              {editingCmtId === c.id ? (
+                <div className="space-y-2 mt-1">
+                  <textarea value={editCmtText} onChange={e => setEditCmtText(e.target.value)} rows={2}
+                    className="w-full px-3 py-2 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm resize-none bg-white" />
+                  <div className="flex gap-2">
+                    <button onClick={() => saveCommentEdit(c.id)} disabled={savingCmt}
+                      className="px-3 py-1.5 bg-violet-600 text-white text-xs rounded-lg font-medium disabled:opacity-50">
+                      {savingCmt ? '...' : 'حفظ'}
+                    </button>
+                    <button onClick={() => setEditingCmtId(null)}
+                      className="px-3 py-1.5 border border-slate-200 text-slate-500 text-xs rounded-lg">إلغاء</button>
                   </div>
                 </div>
-              )
-            })}
+              ) : (
+                <p className="text-sm text-slate-700 leading-relaxed">{renderWithMentions(c.content)}</p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+
+        {!showAllComments && comments.length > 3 && (
+          <button onClick={() => setShowAllComments(true)} className="text-xs text-violet-600 hover:underline mb-3">
+            عرض كل التعليقات ({comments.length})
+          </button>
+        )}
+
+        <form onSubmit={sendComment} className="space-y-2 mt-2">
+          <MentionInput
+            value={comment}
+            onChange={setComment}
+            users={profiles}
+            rows={3}
+            placeholder="اكتب تعليقاً... استخدم @ لذكر مستخدم"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800 resize-none text-sm"
+          />
+          <button type="submit" disabled={sendingCmt || !comment.trim()}
+            className="inline-flex items-center gap-1.5 px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
+            <MessageCircle size={14} /> {sendingCmt ? 'جارٍ الإرسال...' : 'إرسال التعليق'}
+          </button>
+        </form>
+      </div>
+
+      </div>
+
+      {/* ── الشريط الجانبي ── */}
+      <div className="space-y-5">
 
       {/* ══ التبعية بين المهام ══ */}
       {(task.depends_on_task_id || canManageTasks) && (
@@ -1036,204 +1339,6 @@ export default function TaskPage() {
         )}
       </div>
 
-      {/* ══ Evidence ══ */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-slate-800">
-            📎 الأدلة والإثباتات
-            <span className="text-xs font-normal text-slate-400 mr-2">({evidence.length})</span>
-          </h2>
-          {!isCompleted && (
-            <Link href={`/dashboard/tasks/${taskId}/evidence/new`}
-              className="text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-              ➕ إضافة دليل
-            </Link>
-          )}
-        </div>
-
-        {evidence.length > 0 ? (
-          <div className="space-y-2">
-            {evidence.map((ev: any) => (
-              <div key={ev.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-violet-100 transition-all">
-                <span className="text-2xl flex-shrink-0">
-                  {ev.file_type?.startsWith('image') ? '🖼️' : ev.file_type === 'application/pdf' ? '📄' : '📎'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700 truncate font-latin">{ev.name}</p>
-                  {ev.description && <p className="text-xs text-slate-400 truncate">{ev.description}</p>}
-                  {ev.evidence_number && (
-                    <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full mt-1 inline-block">
-                      {taskNum ? `${taskNum}-${ev.evidence_number.split('-').pop()}` : ev.evidence_number}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <a href={ev.file_url} target="_blank" rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
-                    📥 فتح
-                  </a>
-                  {!isCompleted && (
-                    <button onClick={() => deleteEvidence(ev.id)}
-                      className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
-                      🗑️
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6">
-            <Folder size={36} className="mx-auto mb-2" style={{ color: 'var(--maroon-300)' }} />
-            <p className="text-sm text-slate-400">لا توجد أدلة مرفقة بعد</p>
-          </div>
-        )}
-
-        {/* أدلة الإنجاز المطلوبة */}
-        {task.evidence_required && (
-          <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-            <p className="text-xs font-semibold text-blue-700 mb-1">📋 أدلة الإنجاز المطلوبة:</p>
-            <p className="text-xs text-blue-600 leading-relaxed">{task.evidence_required}</p>
-          </div>
-        )}
-      </div>
-
-      {/* ══ تقييم جودة التنفيذ ══ */}
-      <div className="bg-white rounded-2xl border shadow-sm p-5"
-        style={{ borderColor: currentRating ? currentRating.border : '#e2e8f0' }}>
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h2 className="font-bold text-slate-800 flex items-center gap-2">
-            <Star size={16} style={{ color: 'var(--maroon-600)' }} /> تقييم جودة التنفيذ
-            {currentRating && (
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full border"
-                style={{ background: currentRating.bg, color: currentRating.fg, borderColor: currentRating.border }}>
-                {currentRating.stars} {currentRating.label}
-              </span>
-            )}
-          </h2>
-
-        </div>
-
-        {/* معلومات المقيّم */}
-        <div className="flex items-center gap-2 mb-4 text-xs text-slate-500">
-          <span>المقيّم:</span>
-          {reviewerProfile ? (
-            <span className="font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-              🔍 {reviewerProfile.name_ar}
-            </span>
-          ) : (
-            <span className="text-slate-400 italic">لم يُعيَّن مقيّم</span>
-          )}
-          {task.rated_at && (
-            <span className="mr-auto text-slate-400">
-              آخر تقييم: {new Date(task.rated_at).toLocaleDateString('ar-QA')}
-            </span>
-          )}
-        </div>
-
-        {/* عرض التقييم المحفوظ */}
-        {task.rating && !editingRating && currentRating && (
-          <div className="rounded-xl border p-4"
-            style={{ background: currentRating.bg, borderColor: currentRating.border }}>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl font-bold" style={{ color: currentRating.fg }}>{currentRating.stars}</span>
-              <div>
-                <p className="text-lg font-bold" style={{ color: currentRating.fg }}>{currentRating.label}</p>
-                <p className="text-xs text-slate-500 font-mono">{task.rating}/5</p>
-              </div>
-            </div>
-            {task.rating_note && (
-              <p className="text-sm text-slate-600 mt-2 border-t border-slate-200 pt-2 leading-relaxed">
-                {task.rating_note}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* لوحة المقيّم — تظهر عند رفع المهمة للتقييم */}
-        {canRate && status === 'submitted' && (
-          <div className="space-y-4">
-            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
-              المهمة مرفوعة للتقييم. راجع الأدلة والتعليقات، ثم <strong>اعتمدها مع تقييم الجودة</strong>، أو <strong>أعدها للتعديل</strong> مع بيان السبب.
-            </p>
-
-            {/* أزرار التقدير الخماسي */}
-            <div>
-              <p className="text-xs font-medium text-slate-600 mb-2">تقييم جودة التنفيذ:</p>
-              <div className="grid grid-cols-5 gap-2">
-                {([5,4,3,2,1] as RatingValue[]).map(val => {
-                  const info = RATING_INFO[val]
-                  const isSelected = ratingValue === val
-                  return (
-                    <button key={val} type="button" onClick={() => setRatingValue(val)}
-                      className={`flex flex-col items-center gap-1 py-3 px-1 rounded-xl text-xs font-bold transition-all border-2 ${isSelected ? info.btn : ''}`}
-                      style={isSelected
-                        ? { background: info.bg, color: info.fg, borderColor: info.border }
-                        : { background: '#fff', color: '#64748b', borderColor: '#e2e8f0' }}>
-                      <span className="font-mono text-base">{info.stars.slice(0,val)}</span>
-                      <span>{info.label}</span>
-                      <span className="opacity-60 font-mono">{val}/5</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* ملاحظة الاعتماد */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">ملاحظة الاعتماد <span className="text-slate-400 font-normal">(اختياري)</span></label>
-              <textarea value={ratingNote} onChange={e => setRatingNote(e.target.value.slice(0, 500))} rows={2} maxLength={500}
-                placeholder="ملاحظاتك حول جودة التنفيذ..."
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 text-slate-800 resize-none text-sm" />
-            </div>
-
-            {wfError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">{wfError}</div>}
-
-            {/* اعتماد */}
-            <button onClick={() => doTransition('approve', { rating: ratingValue, note: ratingNote })}
-              disabled={transitioning || !ratingValue}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-white font-semibold rounded-xl text-sm disabled:opacity-50 hover:brightness-110"
-              style={{ background: 'var(--gradient-button)' }}>
-              <span className="inline-flex">{transitioning ? <Loader2 size={16} className="animate-spin" /> : <CircleCheckBig size={16} />}</span>
-              اعتماد المهمة (إنجاز)
-            </button>
-
-            {/* إعادة للتعديل */}
-            {!showReturn ? (
-              <button onClick={() => setShowReturn(true)} disabled={transitioning}
-                className="w-full flex items-center justify-center gap-2 py-2.5 border border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl text-sm font-medium disabled:opacity-50">
-                <Undo2 size={16} /> إعادة للتعديل
-              </button>
-            ) : (
-              <div className="space-y-2 border border-orange-200 rounded-xl p-3 bg-orange-50/50">
-                <textarea value={returnNote} onChange={e => setReturnNote(e.target.value.slice(0, 500))} rows={2}
-                  placeholder="سبب الإعادة (إلزامي)..."
-                  className="w-full px-3 py-2 rounded-lg border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-sm" />
-                <div className="flex gap-2">
-                  <button onClick={() => doTransition('return', { note: returnNote })} disabled={transitioning || !returnNote.trim()}
-                    className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold disabled:opacity-50">إعادة المهمة</button>
-                  <button onClick={() => { setShowReturn(false); setReturnNote('') }} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm">إلغاء</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* حالات أخرى للمقيّم/غيره */}
-        {canRate && status !== 'submitted' && !task.rating && (
-          <div className="text-center py-4 text-slate-400">
-            <Clock size={24} className="mx-auto mb-1" style={{ color: 'var(--maroon-300)' }} />
-            <p className="text-sm">لم تُرفَع المهمة للتقييم بعد.</p>
-          </div>
-        )}
-        {!canRate && !task.rating && (
-          <div className="text-center py-4 text-slate-400">
-            <Lock size={24} className="mx-auto mb-1" style={{ color: 'var(--maroon-300)' }} />
-            <p className="text-sm">لم يتم التقييم بعد — بانتظار المقيّم المعيّن</p>
-          </div>
-        )}
-      </div>
-
       {/* ══ Subtasks ══ */}
       <Subtasks
         taskId={taskId}
@@ -1242,70 +1347,58 @@ export default function TaskPage() {
         canEdit={canManageTasks && !isCompleted}
       />
 
-      {/* ══ Comments ══ */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <MessageCircle size={18} style={{ color: 'var(--maroon-600)' }} /> التعليقات
-          <span className="text-xs font-normal text-slate-400">({comments.length})</span>
-        </h2>
-
-        {comments.map((c: any) => (
-          <div key={c.id} className="flex gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
-              {(c.profiles?.full_name_ar || '؟')[0]}
-            </div>
-            <div className="flex-1 bg-slate-50 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-700">{c.profiles?.full_name_ar || 'مستخدم'}</span>
-                  <span className="text-xs text-slate-400">{new Date(c.created_at).toLocaleDateString('ar-QA')}</span>
-                </div>
-                {c.profiles?.id === userId && editingCmtId !== c.id && (
-                  <div className="flex gap-1">
-                    <button onClick={() => { setEditingCmtId(c.id); setEditCmtText(c.content) }}
-                      aria-label="تعديل التعليق"
-                      className="text-slate-400 hover:text-violet-600 p-1 rounded transition-colors"><Pencil size={13} /></button>
-                    <button onClick={() => deleteComment(c.id)}
-                      aria-label="حذف التعليق"
-                      className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"><Trash2 size={13} /></button>
+      {/* ══ سجل سير العمل (قابل للطي) ══ */}
+      {transitions.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <button onClick={() => setTransOpen(v => !v)} className="w-full flex items-center gap-2 text-right">
+            <History size={16} style={{ color: 'var(--maroon-600)' }} />
+            <span className="font-bold text-slate-800 text-sm">سجل سير العمل</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 font-semibold">{transitions.length}</span>
+            <span className={`mr-auto text-slate-400 transition-transform ${transOpen ? 'rotate-180' : ''}`}><ChevronDown size={16} /></span>
+          </button>
+          {!transOpen && transitions[0] && (
+            <p className="text-xs text-slate-400 mt-2">
+              آخر حدث: {transitions[0].from_status === 'completed' && transitions[0].to_status === 'in_progress' ? 'إعادة فتح' : (TRANSITION_LABEL[transitions[0].to_status] || transitions[0].to_status)} · {new Date(transitions[0].created_at).toLocaleDateString('ar-QA')}
+            </p>
+          )}
+          {transOpen && (
+            <div className="space-y-3 mt-4">
+              {(transAll ? transitions : transitions.slice(0, 3)).map(tr => {
+                const actor = profiles.find((p: any) => p.id === tr.actor_id)
+                const meta = STATUS_META[tr.to_status]
+                return (
+                  <div key={tr.id} className="flex items-start gap-3">
+                    <span className="mt-1.5 w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: meta?.hex || '#94a3b8' }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-slate-700">
+                          {tr.from_status === 'completed' && tr.to_status === 'in_progress'
+                            ? 'إعادة فتح'
+                            : (TRANSITION_LABEL[tr.to_status] || tr.to_status)}
+                        </span>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: meta?.bg, color: meta?.fg }}>{meta?.ar || tr.to_status}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {(actor as any)?.name_ar || '—'} · {new Date(tr.created_at).toLocaleString('ar-QA')}
+                      </p>
+                      {tr.note && (
+                        <p className="text-sm text-slate-600 mt-1 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 break-words">
+                          {tr.note}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-              {editingCmtId === c.id ? (
-                <div className="space-y-2 mt-1">
-                  <textarea value={editCmtText} onChange={e => setEditCmtText(e.target.value)} rows={2}
-                    className="w-full px-3 py-2 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm resize-none bg-white" />
-                  <div className="flex gap-2">
-                    <button onClick={() => saveCommentEdit(c.id)} disabled={savingCmt}
-                      className="px-3 py-1.5 bg-violet-600 text-white text-xs rounded-lg font-medium disabled:opacity-50">
-                      {savingCmt ? '...' : 'حفظ'}
-                    </button>
-                    <button onClick={() => setEditingCmtId(null)}
-                      className="px-3 py-1.5 border border-slate-200 text-slate-500 text-xs rounded-lg">إلغاء</button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-700 leading-relaxed">{renderWithMentions(c.content)}</p>
+                )
+              })}
+              {!transAll && transitions.length > 3 && (
+                <button onClick={() => setTransAll(true)} className="text-xs text-violet-600 hover:underline">
+                  عرض كل الأحداث ({transitions.length})
+                </button>
               )}
             </div>
-          </div>
-        ))}
-
-        <form onSubmit={sendComment} className="space-y-2 mt-2">
-          <MentionInput
-            value={comment}
-            onChange={setComment}
-            users={profiles}
-            rows={3}
-            placeholder="اكتب تعليقاً... استخدم @ لذكر مستخدم"
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800 resize-none text-sm"
-          />
-          <button type="submit" disabled={sendingCmt || !comment.trim()}
-            className="inline-flex items-center gap-1.5 px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50">
-            <MessageCircle size={14} /> {sendingCmt ? 'جارٍ الإرسال...' : 'إرسال التعليق'}
-          </button>
-        </form>
-      </div>
+          )}
+        </div>
+      )}
 
       {/* ══ Danger Zone — للمدير أو منشئ المهمة فقط (لا المكلّف)، وتُخفى للمهمة المنجزة (أعد فتحها أولاً) ══ */}
       {(canManageTasks || task.created_by === userId) && !isCompleted && (
@@ -1333,6 +1426,9 @@ export default function TaskPage() {
       </div>
       )}
 
+      </div>
+
+      </div>
     </div>
   )
 }
