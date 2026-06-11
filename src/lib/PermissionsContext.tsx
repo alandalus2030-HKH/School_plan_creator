@@ -52,6 +52,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [userEmail,   setUserEmail]   = useState('')
   const [userAvatar,  setUserAvatar]  = useState('')
   const [role,        setRole]        = useState('')
+  const [roleName,    setRoleName]    = useState('')   // اسم الدور من جدول roles (المصدر الموحّد)
   const [permissions, setPermissions] = useState<string[]>([])
   const [loading,     setLoading]     = useState(true)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
@@ -105,7 +106,9 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       /* ── الصلاحيات ── */
       if (profile.role) {
         const { data: roleData } = await supabase
-          .from('roles').select('permissions').eq('code', profile.role).single()
+          .from('roles').select('permissions, name_ar').eq('code', profile.role).single()
+
+        if (roleData?.name_ar) setRoleName(roleData.name_ar)
 
         if (roleData && Array.isArray(roleData.permissions)) {
           setPermissions(roleData.permissions)
@@ -144,15 +147,18 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
   const isFullAdmin = can('all')
 
-  /* وصف الدور للعرض */
+  /* وصف الدور للعرض — المصدر الموحّد: اسم الدور من جدول roles
+     (كما يُحرَّر في الإعدادات ← الأدوار)؛ الثوابت أدناه احتياط فقط
+     عند غياب الدور من الجدول */
   const ROLE_NAMES: Record<string, string> = {
     super_admin: 'مشرف النظام', school_admin: 'مدير المدرسة', admin: 'مدير',
     coordinator: 'منسق الخطة', team_leader: 'قائد فريق', teacher: 'معلم', staff: 'موظف',
   }
   const roleLabel =
-    isSuperAdmin ? 'مشرف النظام' :
     isGroupOwner ? 'مالك المجموعة' :
-    (ROLE_NAMES[role] || (can('all') ? 'مدير' : 'مستخدم'))
+    roleName ||
+    ROLE_NAMES[role] ||
+    (isSuperAdmin ? 'مشرف النظام' : can('all') ? 'مدير' : 'مستخدم')
 
   return (
     <PermCtx.Provider value={{

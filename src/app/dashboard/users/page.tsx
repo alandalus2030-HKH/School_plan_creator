@@ -44,8 +44,8 @@ const ALL_PERMISSIONS: { code: string; label: string; icon: string }[] = [
 
 /* ══════════════════════ بيانات احتياطية ══════════════════════ */
 const FALLBACK_ROLES: RoleItem[] = [
-  { code: 'super_admin',  name_ar: 'مدير النظام',  color: '#7c3aed' },
-  { code: 'school_admin', name_ar: 'مدير المدرسة', color: '#2563eb' },
+  { code: 'super_admin',  name_ar: 'مشرف عام المنصة',    color: '#7c3aed' },
+  { code: 'school_admin', name_ar: 'مشرف نظام المدرسة', color: '#2563eb' },
   { code: 'supervisor',   name_ar: 'مشرف',          color: '#0891b2' },
   { code: 'teacher',      name_ar: 'معلم',          color: '#059669' },
   { code: 'staff',        name_ar: 'موظف إداري',    color: '#6b7280' },
