@@ -69,6 +69,13 @@ export default function TasksPage() {
   const [teamF,     setTeamF]     = useState(savedFilters.teamF     || '')
   const [onlyMine,  setOnlyMine]  = useState(savedFilters.onlyMine  || false)
   const [ratingF,   setRatingF]   = useState(savedFilters.ratingF   || '')
+  /* فلتر طلبات إعادة الفتح — لا يُحفظ (فلتر إجرائي مؤقت)، ويُفعَّل من ?filter=reopen */
+  const [reopenF,   setReopenF]   = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (new URLSearchParams(window.location.search).get('filter') === 'reopen') setReopenF(true)
+  }, [])
 
   /* حفظ الفلاتر عند كل تغيير */
   useEffect(() => {
@@ -103,11 +110,11 @@ export default function TasksPage() {
         supabase.from('teams').select('id, name_ar, color').limit(100),
       ])
 
-      // جلب حقول التكليف إذا كانت موجودة
+      // جلب حقول التكليف وطلب إعادة الفتح إذا كانت موجودة
       let tasksWithAssign = tasksData || []
       try {
         const { data: ta } = await supabase
-          .from('tasks').select('id, assigned_to_user_id, assigned_to_team_id')
+          .from('tasks').select('id, assigned_to_user_id, assigned_to_team_id, reviewer_id, reopen_requested_by')
           .order('created_at', { ascending: false }).limit(1000)
         if (ta) {
           const map = Object.fromEntries(ta.map(x => [x.id, x]))
@@ -155,6 +162,7 @@ export default function TasksPage() {
       const node = nodes.find(n => n.id === t.node_id)
       if (!node || node.plan_id !== planF) return false
     }
+    if (reopenF   && !(t as any).reopen_requested_by) return false
     if (ratingF === 'rated')   return t.rating != null
     if (ratingF === 'unrated') return t.rating == null
     if (ratingF && ['1','2','3','4','5'].includes(ratingF)) {
@@ -322,6 +330,21 @@ export default function TasksPage() {
           <UserRound size={14} /> المكلّفة لي
         </button>
 
+        {/* طلبات إعادة الفتح المعلّقة — لمن يملك manage_tasks */}
+        {canManage && (() => {
+          const reopenCount = tasks.filter(t => (t as any).reopen_requested_by).length
+          return (
+            <button onClick={() => setReopenF(!reopenF)}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors
+                ${reopenF ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'}`}>
+              <Unlock size={14} /> بانتظار إعادة فتح
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${reopenF ? 'bg-white/25' : 'bg-amber-100'}`}>
+                {reopenCount}
+              </span>
+            </button>
+          )
+        })()}
+
         <select value={ratingF} onChange={e => setRatingF(e.target.value)}
           className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
           <option value="">كل التقييمات</option>
@@ -401,8 +424,8 @@ export default function TasksPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
           <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><CheckCircle2 size={48} /></div>
           <p className="text-slate-500 font-medium">لا توجد مهام</p>
-          {(search || statusF || priorityF || planF || teamF || onlyMine || ratingF) && (
-            <button onClick={() => { setSearch(''); setStatusF(''); setPriorityF(''); setPlanF(''); setTeamF(''); setOnlyMine(false); setRatingF('') }}
+          {(search || statusF || priorityF || planF || teamF || onlyMine || ratingF || reopenF) && (
+            <button onClick={() => { setSearch(''); setStatusF(''); setPriorityF(''); setPlanF(''); setTeamF(''); setOnlyMine(false); setRatingF(''); setReopenF(false) }}
               className="mt-3 text-sm text-violet-600 hover:underline">مسح الفلاتر</button>
           )}
         </div>

@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import {
   Map, CheckCircle2, Trophy, TrendingUp,
-  AlertTriangle, Zap, Clock, BookOpen, Archive, Pin, Inbox,
+  AlertTriangle, Zap, Clock, BookOpen, Archive, Pin, Inbox, Unlock,
 } from 'lucide-react'
 import ActivityFeed from '@/components/ActivityFeed'
 import RecognitionPodium from '@/components/RecognitionPodium'
+import { usePermissions } from '@/lib/PermissionsContext'
 
 type Task = {
   id: string
@@ -22,6 +23,7 @@ type Props = {
   completedCount:  number
   delayedCount:    number
   completionRate:  number
+  reopenRequestsCount: number
   recentTasks:     Task[]
 }
 
@@ -53,11 +55,30 @@ function TaskIcon({ type }: { type: string }) {
 }
 
 export default function DashboardClient(props: Props) {
+  const { can } = usePermissions()
+
   return (
     <div className="space-y-6">
 
       {/* ── صدارة الشهر ── */}
       <RecognitionPodium />
+
+      {/* ── طلبات إعادة فتح معلّقة (Action Items) — لمن يملك manage_tasks وعند وجود طلبات فقط ── */}
+      {can('manage_tasks') && props.reopenRequestsCount > 0 && (
+        <Link href="/dashboard/tasks?filter=reopen"
+          className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 hover:bg-amber-100 transition-colors shadow-sm">
+          <span className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0">
+            <Unlock size={20} />
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-amber-800">
+              طلبات إعادة فتح معلّقة: {props.reopenRequestsCount}
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">مهام منجزة طلب المكلّفون/المقيّمون إعادة فتحها — بانتظار قرارك</p>
+          </div>
+          <span className="text-amber-600 text-sm font-medium flex-shrink-0">عرض الطلبات ←</span>
+        </Link>
+      )}
 
       {/* ── إحصائيات رئيسية ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -64,6 +64,15 @@ export default async function DashboardPage() {
   const completionRate = tasksCount && tasksCount > 0
     ? Math.round(((completedCount || 0) / tasksCount) * 100) : 0
 
+  /* طلبات إعادة فتح معلّقة — متسامح إن لم يُشغَّل الترحيل 025 */
+  let reopenRequestsCount = 0
+  try {
+    const { count, error } = await supabase
+      .from('tasks').select('*', { count: 'exact', head: true })
+      .not('reopen_requested_by', 'is', null)
+    if (!error) reopenRequestsCount = count || 0
+  } catch { /* العمود غير موجود بعد */ }
+
   return (
     <DashboardClient
       plansCount={plansCount      || 0}
@@ -71,6 +80,7 @@ export default async function DashboardPage() {
       completedCount={completedCount || 0}
       delayedCount={delayedCount  || 0}
       completionRate={completionRate}
+      reopenRequestsCount={reopenRequestsCount}
       recentTasks={(recentTasks   || []) as any}
     />
   )
