@@ -55,7 +55,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <PermissionsProvider>
-      <div className="flex min-h-screen" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      {/* App Shell: ارتفاع ثابت — التمرير داخل main فقط (يثبّت الشريط الجانبي/العلوي ويُفعّل sticky) */}
+      <div className="flex h-screen overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         <Sidebar lang={lang} collapsed={collapsed} onToggle={toggleSidebar} />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <ImpersonationBanner />

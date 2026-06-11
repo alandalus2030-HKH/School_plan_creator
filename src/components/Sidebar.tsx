@@ -98,7 +98,7 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
 
   return (
     <aside className={`
-      flex flex-col text-white min-h-screen
+      flex flex-col text-white h-full
       transition-all duration-300 ease-in-out flex-shrink-0 relative
       ${collapsed ? 'w-16' : 'w-64'}
     `}
