@@ -266,17 +266,29 @@ export default function TaskPage() {
     const { data: node } = await supabase.from('plan_nodes').select('plan_id').eq('id', nodeId).single()
     if (!node) return null
     const [{ data: allNodes }, { data: plan }] = await Promise.all([
-      supabase.from('plan_nodes').select('id, parent_id, order_num, name_ar').eq('plan_id', node.plan_id),
+      supabase.from('plan_nodes').select('id, parent_id, order_num, name_ar, standard_code').eq('plan_id', node.plan_id),
       supabase.from('plans').select('id, name_ar').eq('id', node.plan_id).single(),
     ])
     if (!allNodes) return null
-    const path: number[] = []
-    const chain: { id: string; name_ar: string }[] = []
+    const chain: { id: string; name_ar: string; order_num: number; standard_code: string | null }[] = []
     let current = allNodes.find(n => n.id === nodeId)
     while (current) {
-      path.unshift(current.order_num)
-      chain.unshift({ id: current.id, name_ar: current.name_ar })
+      chain.unshift({ id: current.id, name_ar: current.name_ar, order_num: current.order_num, standard_code: (current as any).standard_code || null })
       current = allNodes.find(n => n.id === current!.parent_id)
+    }
+
+    /* الترقيم: أعمق سلف له كود معيار رسمي يؤسس البادئة (مثل 1.2.3)،
+       وما بعده يُرقَّم آلياً بترتيب العقد ثم المهمة — وإلا فالترقيم المحسوب كاملاً */
+    let baseIdx = -1
+    for (let i = chain.length - 1; i >= 0; i--) {
+      if (chain[i].standard_code) { baseIdx = i; break }
+    }
+    const path: (string | number)[] = []
+    if (baseIdx >= 0) {
+      path.push(chain[baseIdx].standard_code as string)
+      for (let i = baseIdx + 1; i < chain.length; i++) path.push(chain[i].order_num)
+    } else {
+      for (const n of chain) path.push(n.order_num)
     }
     path.push(taskOrderNum)
 

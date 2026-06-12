@@ -7,6 +7,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { calcNodeRating } from '@/lib/rating'
 import { FolderOpen } from 'lucide-react'
+import StandardPicker from '@/components/StandardPicker'
 
 /* كلاسات التقييم كنصوص ثابتة لضمان إدراجها في CSS */
 function ratingBadgeClass(avg: number): { label: string; icon: string; cls: string } {
@@ -706,7 +707,6 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
   const supabase = createClient()
   const [isOpen,    setIsOpen]    = useState(true)
   const [adding,    setAdding]    = useState(false)
-  const [newName,   setNewName]   = useState('')
   const [editing,   setEditing]   = useState(false)
   const [editName,  setEditName]  = useState(node.name_ar)
   const [saving,    setSaving]    = useState(false)
@@ -718,16 +718,16 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
   // هل هذا المستوى مُفعَّل للـ KPI؟
   const kpiConf = kpiLevelConfigs.find(k => k.levelIndex === node.level_num - 1) || null
 
-  const addChild = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!newName.trim()) return
+  const addChild = async (choice: { name: string; standardCode: string | null }) => {
     setSaving(true)
     const maxOrder = node.children.length > 0 ? Math.max(...node.children.map((c:any) => c.order_num)) + 1 : 1
     await supabase.from('plan_nodes').insert({
       plan_id: planId, parent_id: node.id,
       level_num: node.level_num + 1,
-      name_ar: newName.trim(), order_num: maxOrder
+      name_ar: choice.name, order_num: maxOrder,
+      standard_code: choice.standardCode,
     })
-    setNewName(''); setAdding(false); setSaving(false); onRefresh()
+    setAdding(false); setSaving(false); onRefresh()
   }
 
   const saveEdit = async () => {
@@ -772,6 +772,9 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
           </div>
         ) : (
           <div className="flex items-center gap-2 flex-1 min-w-0">
+            {node.standard_code && (
+              <span className="font-mono text-[11px] bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded flex-shrink-0">{node.standard_code}</span>
+            )}
             <span className="text-sm font-semibold text-slate-700 flex-1">{node.name_ar}</span>
             {kpiConf && (
               <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
@@ -890,19 +893,16 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
               className="px-3 py-2 border border-slate-200 text-slate-500 text-xs rounded-xl">إلغاء</button>
           </div>
         ) : (
-          <form onSubmit={addChild} className="flex items-center gap-2 p-2">
-            <input autoFocus value={newName} onChange={e => setNewName(e.target.value)}
-              placeholder={`اسم ${nextLevelName}...`}
-              className="flex-1 px-3 py-2 text-sm rounded-xl border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white" />
-            <button type="submit" disabled={saving||!newName.trim()}
-              className="px-3 py-2 bg-violet-600 text-white text-xs rounded-xl disabled:opacity-50 font-medium">
-              {saving?'...':'إضافة'}
-            </button>
-            <button type="button" onClick={()=>{setAdding(false);setNewName('')}}
-              className="px-3 py-2 border border-slate-200 text-slate-500 text-xs rounded-xl hover:bg-slate-50">
-              إلغاء
-            </button>
-          </form>
+          <StandardPicker
+            levelNum={node.level_num + 1}
+            parentStandardCode={node.standard_code || null}
+            excludeCodes={node.children.map((c: any) => c.standard_code).filter(Boolean)}
+            placeholder={`اسم ${nextLevelName}...`}
+            saving={saving}
+            compact
+            onSubmit={addChild}
+            onCancel={() => setAdding(false)}
+          />
         )}
       </div>
       )}
@@ -986,7 +986,7 @@ export default function NodePage() {
       <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white rounded-2xl p-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-lg">
-            {rootNode.order_num}
+            {rootNode.standard_code || rootNode.order_num}
           </div>
           <div>
             <p className="text-violet-200 text-xs">{levelNames[rootNode.level_num - 1] || `المستوى ${rootNode.level_num}`}</p>
@@ -1039,28 +1039,32 @@ export default function NodePage() {
         {/* إضافة على المستوى الأول */}
         <AddChildToRoot planId={planId} parentId={nodeId} levelNum={rootNode.level_num + 1}
           levelName={levelNames[rootNode.level_num] || `المستوى ${rootNode.level_num + 1}`}
+          parentStandardCode={rootNode.standard_code || null}
+          excludeCodes={tree.map((n: any) => n.standard_code).filter(Boolean)}
           onRefresh={load} />
       </div>
     </div>
   )
 }
 
-function AddChildToRoot({ planId, parentId, levelNum, levelName, onRefresh }: {
-  planId:string; parentId:string; levelNum:number; levelName:string; onRefresh:()=>void
+function AddChildToRoot({ planId, parentId, levelNum, levelName, parentStandardCode, excludeCodes, onRefresh }: {
+  planId:string; parentId:string; levelNum:number; levelName:string
+  parentStandardCode: string | null; excludeCodes: string[]; onRefresh:()=>void
 }) {
   const supabase = createClient()
   const [open,    setOpen]    = useState(false)
-  const [name,    setName]    = useState('')
   const [saving,  setSaving]  = useState(false)
 
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!name.trim()) return
+  const add = async (choice: { name: string; standardCode: string | null }) => {
     setSaving(true)
     const { data: ex } = await supabase.from('plan_nodes').select('order_num')
       .eq('parent_id', parentId).order('order_num', { ascending: false }).limit(1)
     const orderNum = ex?.length ? ex[0].order_num + 1 : 1
-    await supabase.from('plan_nodes').insert({ plan_id: planId, parent_id: parentId, level_num: levelNum, name_ar: name.trim(), order_num: orderNum })
-    setName(''); setOpen(false); setSaving(false); onRefresh()
+    await supabase.from('plan_nodes').insert({
+      plan_id: planId, parent_id: parentId, level_num: levelNum,
+      name_ar: choice.name, order_num: orderNum, standard_code: choice.standardCode,
+    })
+    setOpen(false); setSaving(false); onRefresh()
   }
 
   if (!open) return (
@@ -1071,11 +1075,17 @@ function AddChildToRoot({ planId, parentId, levelNum, levelName, onRefresh }: {
   )
 
   return (
-    <form onSubmit={add} className="flex items-center gap-2 p-2 mt-2">
-      <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder={`اسم ${levelName}...`}
-        className="flex-1 px-3 py-2 text-sm rounded-xl border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white" />
-      <button type="submit" disabled={saving||!name.trim()} className="px-3 py-2 bg-violet-600 text-white text-xs rounded-xl disabled:opacity-50">{saving?'...':'إضافة'}</button>
-      <button type="button" onClick={()=>{setOpen(false);setName('')}} className="px-3 py-2 border border-slate-200 text-slate-500 text-xs rounded-xl">إلغاء</button>
-    </form>
+    <div className="mt-2">
+      <StandardPicker
+        levelNum={levelNum}
+        parentStandardCode={parentStandardCode}
+        excludeCodes={excludeCodes}
+        placeholder={`اسم ${levelName}...`}
+        saving={saving}
+        compact
+        onSubmit={add}
+        onCancel={() => setOpen(false)}
+      />
+    </div>
   )
 }

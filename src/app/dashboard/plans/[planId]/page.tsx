@@ -9,6 +9,7 @@ import { calcAvgRating } from '@/lib/rating'
 import { ClipboardList, AlertTriangle, Target, TrendingUp, Package, BarChart3, Star,
   Settings, Pencil, Trash2, Award } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
+import StandardPicker from '@/components/StandardPicker'
 
 /* خريطة أيقونات KPI */
 const KPI_ICON_MAP: Record<string, React.ElementType> = {
@@ -78,7 +79,7 @@ export default function PlanOverviewPage() {
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
       supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels').eq('id', planId).single(),
-      supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num').eq('plan_id', planId).order('order_num'),
+      supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
     if (!planData) { router.push('/dashboard/plans'); return }
     setPlan(planData)
@@ -98,17 +99,16 @@ export default function PlanOverviewPage() {
 
   useEffect(() => { load() }, [load])
 
-  /* ── إضافة محور ── */
-  const addTopNode = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newName.trim()) return
+  /* ── إضافة محور (من كتالوج معايير الاعتماد أو بند مخصص) ── */
+  const addTopNode = async (choice: { name: string; standardCode: string | null }) => {
     setSaving(true)
     const existing = nodes.filter(n => n.parent_id === null && n.level_num === 1)
     const orderNum = existing.length > 0 ? Math.max(...existing.map((n:any) => n.order_num)) + 1 : 1
     await supabase.from('plan_nodes').insert({
-      plan_id: planId, parent_id: null, level_num: 1, name_ar: newName.trim(), order_num: orderNum
+      plan_id: planId, parent_id: null, level_num: 1, name_ar: choice.name,
+      order_num: orderNum, standard_code: choice.standardCode,
     })
-    setNewName(''); setAdding(false); setSaving(false)
+    setAdding(false); setSaving(false)
     await load()
   }
 
@@ -646,19 +646,19 @@ export default function PlanOverviewPage() {
           </div>
         </div>
 
-        {/* نموذج إضافة */}
+        {/* نموذج إضافة — قائمة متسلسلة من معايير الاعتماد */}
         {adding && (
-          <form onSubmit={addTopNode} className="flex items-center gap-2 p-3 bg-violet-50 rounded-xl border border-violet-200">
-            <input autoFocus value={newName} onChange={e => setNewName(e.target.value)}
+          <div className="p-2 bg-violet-50 rounded-xl border border-violet-200">
+            <StandardPicker
+              levelNum={1}
+              parentStandardCode={null}
+              excludeCodes={topNodes.map((n: any) => n.standard_code).filter(Boolean)}
               placeholder={`اسم ${level1Name}...`}
-              className="flex-1 px-3 py-2 rounded-xl border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm" />
-            <button type="submit" disabled={saving || !newName.trim()}
-              className="px-4 py-2 bg-violet-600 text-white text-sm rounded-xl font-medium disabled:opacity-50">
-              {saving ? '...' : 'إضافة'}
-            </button>
-            <button type="button" onClick={() => { setAdding(false); setNewName('') }}
-              className="px-3 py-2 border border-slate-200 text-slate-500 text-sm rounded-xl">إلغاء</button>
-          </form>
+              saving={saving}
+              onSubmit={addTopNode}
+              onCancel={() => setAdding(false)}
+            />
+          </div>
         )}
 
         {topNodes.length > 0 ? (
@@ -704,7 +704,7 @@ export default function PlanOverviewPage() {
                     <div className="flex items-center gap-3 p-4 group">
                       <Link href={`/dashboard/plans/${planId}/nodes/${node.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                          {idx + 1}
+                          {node.standard_code || idx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-slate-700 group-hover:text-violet-700 transition-colors">{node.name_ar}</p>
