@@ -142,18 +142,13 @@ export default function PlanOverviewPage() {
     await load()
   }
 
-  /* ── حذف الخطة (Soft Delete) — مغادرة الصفحة بعد نجاح فعلي فقط ── */
+  /* ── حذف الخطة — عبر API خادمي (الحذف الناعم من العميل ترفضه سياسة القراءة) ── */
   const deletePlan = async () => {
     setDeletingPlan(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('plans').update({
-      deleted_at: new Date().toISOString(),
-      updated_by: user?.id ?? null,
-    }).eq('id', planId)
-    /* تحقق فعلي: الخطة المحذوفة ناعماً تختفي عن سياسة القراءة */
-    const { data: still } = await supabase.from('plans').select('id').eq('id', planId).maybeSingle()
-    if (error || still) {
-      alert(`تعذّر حذف الخطة: ${error?.message || 'لم يُحذف أي صف — تحقّق من الصلاحيات'}`)
+    const res  = await fetch(`/api/plans/${planId}`, { method: 'DELETE' })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(`تعذّر حذف الخطة: ${json.error || res.status}`)
       setDeletingPlan(false)
       setConfirmDelPlan(false)
       return
@@ -246,14 +241,12 @@ export default function PlanOverviewPage() {
     setEditNodeId(null); setSaving(false); await load()
   }
 
-  /* ── حذف عقدة (Soft Delete) — تحقق فعلي قبل اعتبارها محذوفة ── */
+  /* ── حذف عقدة — عبر API خادمي (الحذف الناعم من العميل ترفضه سياسة القراءة) ── */
   const deleteNode = async (nodeId: string) => {
-    const { error } = await supabase.from('plan_nodes').update({
-      deleted_at: new Date().toISOString(),
-    }).eq('id', nodeId)
-    const { data: still } = await supabase.from('plan_nodes').select('id').eq('id', nodeId).maybeSingle()
-    if (error || still) {
-      alert(`تعذّر الحذف: ${error?.message || 'لم يُحذف أي صف — تحقّق من الصلاحيات'}`)
+    const res  = await fetch(`/api/plans/${planId}/nodes/${nodeId}`, { method: 'DELETE' })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(`تعذّر الحذف: ${json.error || res.status}`)
       setConfirmDelId(null)
       return
     }

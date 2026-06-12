@@ -739,12 +739,10 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
 
   const deleteNode = async () => {
     setSaving(true)
-    const { error } = await supabase.from('plan_nodes').update({
-      deleted_at: new Date().toISOString(),
-    }).eq('id', node.id)
-    const { data: still } = await supabase.from('plan_nodes').select('id').eq('id', node.id).maybeSingle()
-    if (error || still) {
-      alert(`تعذّر الحذف: ${error?.message || 'لم يُحذف أي صف — تحقّق من الصلاحيات'}`)
+    const res  = await fetch(`/api/plans/${planId}/nodes/${node.id}`, { method: 'DELETE' })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(`تعذّر الحذف: ${json.error || res.status}`)
       setSaving(false); setConfirming(false)
       return
     }

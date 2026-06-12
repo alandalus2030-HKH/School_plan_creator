@@ -56,23 +56,24 @@ export default function PlansPage() {
     setMenuOpen(null)
   }
 
-  /* ─── حذف خطة (Soft Delete) — لا إزالة من الواجهة إلا بعد نجاح فعلي ─── */
+  /* ─── حذف خطة — عبر API خادمي (الحذف الناعم من العميل ترفضه سياسة القراءة) ─── */
   const deletePlan = async (id: string) => {
     setDeleting(true)
-    const { error } = await supabase.from('plans').update({
-      deleted_at: new Date().toISOString(),
-      updated_by: userId || null,
-    }).eq('id', id)
-    /* تحقق فعلي: الخطة المحذوفة ناعماً تختفي عن سياسة القراءة */
-    const { data: still } = await supabase.from('plans').select('id').eq('id', id).maybeSingle()
-    if (error || still) {
-      toast(`تعذّر حذف الخطة: ${error?.message || 'لم يُحذف أي صف — تحقّق من الصلاحيات'}`, 'error')
+    try {
+      const res  = await fetch(`/api/plans/${id}`, { method: 'DELETE' })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast(`تعذّر حذف الخطة: ${json.error || res.status}`, 'error')
+        setDeleting(false)
+        return
+      }
+      setPlans(prev => prev.filter(p => p.id !== id))
+      setConfirmDel(null)
+    } catch {
+      toast('تعذّر الاتصال بالخادم', 'error')
+    } finally {
       setDeleting(false)
-      return
     }
-    setPlans(prev => prev.filter(p => p.id !== id))
-    setConfirmDel(null)
-    setDeleting(false)
   }
 
   /* ─── إحصائيات بسيطة (بدون axes) ─── */
