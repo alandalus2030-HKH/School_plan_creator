@@ -38,10 +38,13 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ plan
   }
 
   const { data: plan } = await ctx.admin
-    .from('plans').select('id, school_id, deleted_at').eq('id', planId).maybeSingle()
+    .from('plans').select('id, school_id, deleted_at, approved_at').eq('id', planId).maybeSingle()
   if (!plan || plan.deleted_at) return NextResponse.json({ error: 'الخطة غير موجودة' }, { status: 404 })
   if (plan.school_id !== ctx.schoolId) {
     return NextResponse.json({ error: 'الخطة خارج نطاق مدرستك' }, { status: 403 })
+  }
+  if (plan.approved_at) {
+    return NextResponse.json({ error: 'الخطة معتمدة ولا يمكن حذفها — أرشفها بدلاً من ذلك' }, { status: 403 })
   }
 
   const { data: rows, error } = await ctx.admin.from('plans')

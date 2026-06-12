@@ -7,9 +7,10 @@ import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
 import { ClipboardList, AlertTriangle, Target, TrendingUp, Package, BarChart3, Star,
-  Settings, Pencil, Trash2, Award } from 'lucide-react'
+  Settings, Pencil, Trash2, Award, BadgeCheck, ShieldOff } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
 import StandardPicker from '@/components/StandardPicker'
+import { usePermissions } from '@/lib/PermissionsContext'
 
 /* خريطة أيقونات KPI */
 const KPI_ICON_MAP: Record<string, React.ElementType> = {
@@ -32,6 +33,7 @@ export default function PlanOverviewPage() {
   const planId   = params.planId as string
   const router   = useRouter()
   const supabase = createClient()
+  const { isSuperAdmin } = usePermissions()
 
   const [plan,         setPlan]         = useState<any>(null)
   const [nodes,        setNodes]        = useState<any[]>([])
@@ -75,10 +77,11 @@ export default function PlanOverviewPage() {
   const [confirmDelId, setConfirmDelId] = useState<string|null>(null)
   const [confirmDelPlan, setConfirmDelPlan] = useState(false)
   const [deletingPlan, setDeletingPlan] = useState(false)
+  const [certifying, setCertifying] = useState(false)
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, approved_by').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
     if (!planData) { router.push('/dashboard/plans'); return }
@@ -154,6 +157,23 @@ export default function PlanOverviewPage() {
       return
     }
     router.push('/dashboard/plans')
+  }
+
+  /* ── اعتماد / إلغاء اعتماد الخطة (مشرف النظام فقط) ── */
+  const certifyPlan = async (approve: boolean) => {
+    setCertifying(true)
+    const res  = await fetch(`/api/plans/${planId}/certify`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approve }),
+    })
+    const json = await res.json().catch(() => ({}))
+    setCertifying(false)
+    if (!res.ok) {
+      alert(`تعذّر ${approve ? 'اعتماد' : 'إلغاء اعتماد'} الخطة: ${json.error || res.status}`)
+      return
+    }
+    await load()
   }
 
   /* ── إعدادات KPI ── */
@@ -477,7 +497,16 @@ export default function PlanOverviewPage() {
         <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white rounded-2xl p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold">{plan.name_ar}</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-2xl font-bold">{plan.name_ar}</h2>
+                {/* شارة الاعتماد */}
+                {plan.approved_at && (
+                  <span className="inline-flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full text-sm font-medium border border-white/30">
+                    <BadgeCheck size={14} />
+                    معتمدة
+                  </span>
+                )}
+              </div>
               <p className="text-violet-200 text-sm mt-1">العام الدراسي: <span className="font-latin">{plan.academic_year}</span></p>
               <div className="flex items-center gap-4 mt-3 text-sm text-violet-200">
                 <span>{topNodes.length} {level1Name}</span>
@@ -520,14 +549,29 @@ export default function PlanOverviewPage() {
                   className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                   <Settings size={14} /> إعدادات KPI
                 </button>
+                {/* اعتماد / إلغاء الاعتماد — للمشرف العام فقط */}
+                {isSuperAdmin && (
+                  <button onClick={() => certifyPlan(!plan.approved_at)} disabled={certifying}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60
+                      ${plan.approved_at
+                        ? 'bg-amber-400/25 hover:bg-amber-400/40 text-white'
+                        : 'bg-emerald-500/20 hover:bg-emerald-500/35 text-white'}`}>
+                    {plan.approved_at
+                      ? <><ShieldOff size={14} /> إلغاء الاعتماد</>
+                      : <><BadgeCheck size={14} /> اعتماد الخطة</>}
+                  </button>
+                )}
                 <button onClick={openEditPlan}
                   className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                   <Pencil size={14} /> تعديل
                 </button>
-                <button onClick={() => setConfirmDelPlan(true)}
-                  className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <Trash2 size={14} /> حذف
-                </button>
+                {/* حذف — مخفي للخطط المعتمدة */}
+                {!plan.approved_at && (
+                  <button onClick={() => setConfirmDelPlan(true)}
+                    className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
+                    <Trash2 size={14} /> حذف
+                  </button>
+                )}
               </div>
             </div>
           </div>

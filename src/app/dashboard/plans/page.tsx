@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle } from 'lucide-react'
+import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle, BadgeCheck, ShieldOff } from 'lucide-react'
 import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
@@ -23,6 +23,7 @@ type Plan = {
   start_date: string | null
   end_date: string | null
   is_archived: boolean
+  approved_at: string | null
   level_count?: number
   level_names?: string[]
 }
@@ -37,7 +38,7 @@ export default function PlansPage() {
 }
 
 function PlansPageInner() {
-  const { can, loading: permsLoading, userId } = usePermissions()
+  const { can, loading: permsLoading, isSuperAdmin } = usePermissions()
   if (!permsLoading && !can('manage_plans')) return <NoAccess message="إدارة الخطط متاحة للمديرين فقط. للاطلاع على مهامك انتقل إلى صفحة مهامي." />
   const supabase = createClient()
   const router       = useRouter()
@@ -56,7 +57,7 @@ function PlansPageInner() {
   const loadPlans = async () => {
     const { data } = await supabase
       .from('plans')
-      .select('id, name_ar, academic_year, start_date, end_date, is_archived, level_count, level_names')
+      .select('id, name_ar, academic_year, start_date, end_date, is_archived, approved_at, level_count, level_names')
       .order('created_at', { ascending: false })
     setPlans((data || []) as unknown as Plan[])
     setLoading(false)
@@ -74,6 +75,25 @@ function PlansPageInner() {
     }
     setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_archived: !p.is_archived } : p))
     setMenuOpen(null)
+  }
+
+  /* ─── اعتماد / إلغاء اعتماد خطة (مشرف النظام فقط) ─── */
+  const certifyPlan = async (plan: Plan, approve: boolean) => {
+    setMenuOpen(null)
+    const res = await fetch(`/api/plans/${plan.id}/certify`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approve }),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      toast(`تعذّر ${approve ? 'اعتماد' : 'إلغاء اعتماد'} الخطة: ${json.error || res.status}`, 'error')
+      return
+    }
+    setPlans(prev => prev.map(p =>
+      p.id === plan.id ? { ...p, approved_at: json.approved_at } : p
+    ))
+    toast(approve ? '✓ تم اعتماد الخطة بنجاح' : 'تم إلغاء الاعتماد', 'success')
   }
 
   /* ─── حذف خطة — عبر API خادمي (الحذف الناعم من العميل ترفضه سياسة القراءة) ─── */
@@ -179,6 +199,12 @@ function PlansPageInner() {
             {yearPlans.filter(p => p.is_archived).length > 0 && (
               <span>📦 {yearPlans.filter(p => p.is_archived).length} مؤرشفة</span>
             )}
+            {yearPlans.filter(p => p.approved_at).length > 0 && (
+              <span className="flex items-center gap-1 text-emerald-600">
+                <BadgeCheck size={14} />
+                {yearPlans.filter(p => p.approved_at).length} معتمدة
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -188,17 +214,32 @@ function PlansPageInner() {
         <div className="space-y-4">
           {visible.map(plan => {
             const { total, done, progress } = calcStats(plan)
+            const isCertified = !!plan.approved_at
 
             return (
-              <div key={plan.id} className={`rounded-2xl border shadow-sm overflow-hidden transition-opacity
+              /*
+               * تصحيح إصلاح قائمة ⋮ المقصوصة:
+               * overflow-hidden على البطاقة الخارجية يقصّ القائمة المطلقة.
+               * الحل: نزيله من البطاقة ونُضيف rounded-t-2xl/rounded-b-2xl
+               * على العناصر الداخلية لاحتواء الخلفيات ضمن زوايا البطاقة.
+               */
+              <div key={plan.id} className={`rounded-2xl border shadow-sm transition-opacity
                 ${plan.is_archived ? 'opacity-70 border-slate-200' : 'border-slate-200'}`}>
 
-                {/* Plan Header */}
-                <div className={`text-white p-5 ${plan.is_archived ? 'bg-slate-500' : 'bg-gradient-to-l from-violet-600 to-indigo-700'}`}>
+                {/* Plan Header — rounded-t-2xl دائماً + rounded-b-2xl للمؤرشفة (لا قسم أبيض تحتها) */}
+                <div className={`text-white p-5 rounded-t-2xl
+                  ${plan.is_archived ? 'rounded-b-2xl bg-slate-500' : 'bg-gradient-to-l from-violet-600 to-indigo-700'}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-xl font-bold">{plan.name_ar}</h3>
+                        {/* شارة الاعتماد */}
+                        {isCertified && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2.5 py-0.5 rounded-full font-medium border border-white/30">
+                            <BadgeCheck size={12} />
+                            معتمدة
+                          </span>
+                        )}
                         {plan.is_archived && (
                           <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">مؤرشفة</span>
                         )}
@@ -214,7 +255,7 @@ function PlansPageInner() {
                         <div className={`text-xs ${plan.is_archived ? 'text-slate-300' : 'text-violet-200'}`}>نسبة الإنجاز</div>
                       </div>
 
-                      {/* قائمة الخيارات ⋮ */}
+                      {/* قائمة الخيارات ⋮ — خارج overflow-hidden بعد إصلاح البطاقة */}
                       <div className="relative" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => setMenuOpen(menuOpen === plan.id ? null : plan.id)}
@@ -222,26 +263,47 @@ function PlansPageInner() {
                           ⋮
                         </button>
                         {menuOpen === plan.id && (
-                          <div className="absolute left-0 top-10 bg-white rounded-xl shadow-xl border border-slate-200 py-1 w-44 z-50">
+                          <div className="absolute left-0 top-10 bg-white rounded-xl shadow-xl border border-slate-200 py-1 w-52 z-50">
+
+                            {/* اعتماد / إلغاء اعتماد — للمشرف العام فقط */}
+                            {isSuperAdmin && (
+                              <button
+                                onClick={() => certifyPlan(plan, !isCertified)}
+                                className={`w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-slate-50
+                                  ${isCertified ? 'text-amber-600' : 'text-emerald-700'}`}>
+                                <span className="inline-flex">
+                                  {isCertified ? <ShieldOff size={14} /> : <BadgeCheck size={14} />}
+                                </span>
+                                <span>{isCertified ? 'إلغاء الاعتماد' : 'اعتماد الخطة'}</span>
+                              </button>
+                            )}
+
+                            {/* أرشفة / إلغاء أرشفة */}
                             <button
                               onClick={() => toggleArchive(plan)}
                               className="w-full text-right px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                               <span className="inline-flex">{plan.is_archived ? <Eye size={14} /> : <Archive size={14} />}</span>
                               <span>{plan.is_archived ? 'إلغاء الأرشفة' : 'أرشفة الخطة'}</span>
                             </button>
-                            <div className="border-t border-slate-100 my-1" />
-                            <button
-                              onClick={() => { setConfirmDel(plan.id); setMenuOpen(null) }}
-                              className="w-full text-right px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                              🗑️ حذف الخطة
-                            </button>
+
+                            {/* حذف — مخفي للخطط المعتمدة */}
+                            {!isCertified && (
+                              <>
+                                <div className="border-t border-slate-100 my-1" />
+                                <button
+                                  onClick={() => { setConfirmDel(plan.id); setMenuOpen(null) }}
+                                  className="w-full text-right px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                  🗑️ حذف الخطة
+                                </button>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Progress bar */}
+                  {/* Progress bar — overflow-hidden هنا فقط للشريط */}
                   <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
                     <div className="h-full bg-white rounded-full transition-all" style={{ width: `${progress}%` }} />
                   </div>
@@ -251,9 +313,9 @@ function PlansPageInner() {
                   </div>
                 </div>
 
-                {/* فتح الخطة */}
+                {/* فتح الخطة — القسم الأبيض، rounded-b-2xl */}
                 {!plan.is_archived && (
-                  <div className="p-4 bg-white">
+                  <div className="p-4 bg-white rounded-b-2xl">
                     <Link href={`/dashboard/plans/${plan.id}`}
                       className="flex items-center justify-between p-4 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 transition-colors group">
                       <div className="flex items-center gap-3">
