@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle } from 'lucide-react'
 import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
@@ -26,14 +27,28 @@ type Plan = {
   level_names?: string[]
 }
 
+/* الغلاف: useSearchParams يتطلب Suspense في الصفحات المُولّدة سلفاً */
 export default function PlansPage() {
+  return (
+    <Suspense fallback={<div className="space-y-4"><SkeletonCards count={3} /><SkeletonTable rows={4} cols={3} /></div>}>
+      <PlansPageInner />
+    </Suspense>
+  )
+}
+
+function PlansPageInner() {
   const { can, loading: permsLoading, userId } = usePermissions()
   if (!permsLoading && !can('manage_plans')) return <NoAccess message="إدارة الخطط متاحة للمديرين فقط. للاطلاع على مهامك انتقل إلى صفحة مهامي." />
   const supabase = createClient()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  /* وضع العرض مربوط بالرابط: النقر على "الخطط" في الشريط الجانبي يعيد دائماً للنشطة */
+  const showArchived = searchParams.get('view') === 'archived'
+  const setView = (archived: boolean) =>
+    router.push(archived ? '/dashboard/plans?view=archived' : '/dashboard/plans')
   const [plans,        setPlans]        = useState<Plan[]>([])
   const [loading,      setLoading]      = useState(true)
   const [selectedYear, setSelectedYear] = useState('2025-2026')
-  const [showArchived, setShowArchived] = useState(false)
   const [menuOpen,     setMenuOpen]     = useState<string | null>(null)
   const [confirmDel,   setConfirmDel]   = useState<string | null>(null)
   const [deleting,     setDeleting]     = useState(false)
@@ -49,9 +64,14 @@ export default function PlansPage() {
 
   useEffect(() => { loadPlans() }, [])
 
-  /* ─── إخفاء / إظهار خطة ─── */
+  /* ─── أرشفة / إلغاء أرشفة خطة ─── */
   const toggleArchive = async (plan: Plan) => {
-    await supabase.from('plans').update({ is_archived: !plan.is_archived }).eq('id', plan.id)
+    const { error } = await supabase.from('plans').update({ is_archived: !plan.is_archived }).eq('id', plan.id)
+    if (error) {
+      toast(`تعذّر ${plan.is_archived ? 'إلغاء أرشفة' : 'أرشفة'} الخطة: ${error.message}`, 'error')
+      setMenuOpen(null)
+      return
+    }
     setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_archived: !p.is_archived } : p))
     setMenuOpen(null)
   }
@@ -124,7 +144,7 @@ export default function PlansPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <select
               value={selectedYear}
-              onChange={e => { setSelectedYear(e.target.value); setShowArchived(false) }}
+              onChange={e => { setSelectedYear(e.target.value); if (showArchived) setView(false) }}
               className="px-4 py-2.5 rounded-xl border-2 border-violet-200 focus:outline-none focus:border-violet-500 bg-violet-50 text-violet-800 font-bold text-sm min-w-[160px]"
               onClick={e => e.stopPropagation()}>
               {ACADEMIC_YEARS.map(y => (
@@ -134,19 +154,20 @@ export default function PlansPage() {
               ))}
             </select>
 
-            {/* زر المؤرشفة */}
+            {/* زر التبديل بين النشطة والمؤرشفة —
+                أيقونة معزولة + نص في span منفصل + شارة دائمة الوجود (درس مستفاد 2: insertBefore) */}
             <button
-              onClick={e => { e.stopPropagation(); setShowArchived(!showArchived) }}
+              onClick={e => { e.stopPropagation(); setView(!showArchived) }}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-colors
                 ${showArchived
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'}`}>
-              {showArchived ? <><Eye size={14} className="inline ml-1" />النشطة</> : <><Archive size={14} className="inline ml-1" />المؤرشفة</>}
-              {yearPlans.filter(p => p.is_archived).length > 0 && !showArchived && (
-                <span className="bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full">
-                  {yearPlans.filter(p => p.is_archived).length}
-                </span>
-              )}
+              <span className="inline-flex">{showArchived ? <Eye size={14} /> : <Archive size={14} />}</span>
+              <span>{showArchived ? 'النشطة' : 'المؤرشفة'}</span>
+              <span className={`bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full
+                ${yearPlans.filter(p => p.is_archived).length > 0 && !showArchived ? '' : 'hidden'}`}>
+                {yearPlans.filter(p => p.is_archived).length}
+              </span>
             </button>
           </div>
         </div>
@@ -205,9 +226,8 @@ export default function PlansPage() {
                             <button
                               onClick={() => toggleArchive(plan)}
                               className="w-full text-right px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                              {plan.is_archived
-                                ? <><Eye size={14} className="inline ml-1" />إظهار الخطة</>
-                                : <><Archive size={14} className="inline ml-1" />إخفاء الخطة</>}
+                              <span className="inline-flex">{plan.is_archived ? <Eye size={14} /> : <Archive size={14} />}</span>
+                              <span>{plan.is_archived ? 'إلغاء الأرشفة' : 'أرشفة الخطة'}</span>
                             </button>
                             <div className="border-t border-slate-100 my-1" />
                             <button
