@@ -43,9 +43,12 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ plan
     return NextResponse.json({ error: 'العقدة غير موجودة' }, { status: 404 })
   }
   const { data: plan } = await ctx.admin
-    .from('plans').select('school_id').eq('id', planId).maybeSingle()
+    .from('plans').select('school_id, approved_at').eq('id', planId).maybeSingle()
   if (!plan || plan.school_id !== ctx.schoolId) {
     return NextResponse.json({ error: 'الخطة خارج نطاق مدرستك' }, { status: 403 })
+  }
+  if (plan.approved_at) {
+    return NextResponse.json({ error: 'الخطة معتمدة — لا يمكن حذف عناصرها' }, { status: 403 })
   }
 
   const { data: rows, error } = await ctx.admin.from('plan_nodes')

@@ -742,8 +742,8 @@ export default function PlanOverviewPage() {
                         className="px-3 py-2 border border-slate-200 text-slate-500 text-sm rounded-xl">إلغاء</button>
                     </div>
 
-                  /* ── وضع تأكيد الحذف ── */
-                  ) : confirmDelId === node.id ? (
+                  /* ── وضع تأكيد الحذف (مخفي للخطط المعتمدة) ── */
+                  ) : confirmDelId === node.id && !plan.approved_at ? (
                     <div className="flex items-center gap-3 p-4 bg-red-50 rounded-2xl border border-red-200">
                       <span className="text-sm text-red-700 flex-1">حذف "{node.name_ar}" وكل محتوياته؟</span>
                       <button onClick={() => deleteNode(node.id)}
@@ -781,16 +781,18 @@ export default function PlanOverviewPage() {
                         <span className="text-slate-300 group-hover:text-violet-400 text-xl flex-shrink-0">←</span>
                       </Link>
 
-                      {/* أزرار التعديل والحذف */}
+                      {/* أزرار التعديل والحذف — زر الحذف مخفي للخطط المعتمدة */}
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                         <button
                           onClick={() => { setEditNodeId(node.id); setEditNodeName(node.name_ar) }}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
                           title="تعديل">✏️</button>
-                        <button
-                          onClick={() => setConfirmDelId(node.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                          title="حذف">🗑️</button>
+                        {!plan.approved_at && (
+                          <button
+                            onClick={() => setConfirmDelId(node.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="حذف">🗑️</button>
+                        )}
                       </div>
                     </div>
                   )}

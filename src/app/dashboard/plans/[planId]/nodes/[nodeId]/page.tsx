@@ -698,10 +698,11 @@ function buildTree(nodes: PlanNode[], tasks: Task[], parentId: string|null, leve
 }
 
 /* ── مكوّن العقدة القابلة للتوسع ── */
-function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, kpiLevelConfigs, depth=0 }: {
+function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, kpiLevelConfigs, planApproved=false, depth=0 }: {
   node: any; levelNames: string[]; levelCount: number
   planId: string; planName: string; onRefresh: ()=>void
   kpiLevelConfigs: KpiLevelConf[]
+  planApproved?: boolean
   depth?: number
 }) {
   const supabase = createClient()
@@ -814,7 +815,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
               <span className="text-xs text-slate-400">{totalTasks} مهمة</span>
               <button onClick={() => { setEditing(true); setEditName(node.name_ar) }}
                 className="w-6 h-6 flex items-center justify-center hover:text-amber-500 text-slate-300 rounded transition-colors text-xs">✏️</button>
-              {!confirming ? (
+              {!planApproved && (!confirming ? (
                 <button onClick={() => setConfirming(true)}
                   className="w-6 h-6 flex items-center justify-center hover:text-red-500 text-slate-300 rounded transition-colors text-xs">🗑️</button>
               ) : (
@@ -824,7 +825,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
                   <button onClick={() => setConfirming(false)}
                     className="px-2 py-0.5 border text-slate-500 text-xs rounded">إلغاء</button>
                 </div>
-              )}
+              ))}
             </div>
           </div>
         )}
@@ -847,7 +848,8 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
         {/* عقد أبناء */}
         {node.children.map((child: any) => (
           <NodeItem key={child.id} node={child} levelNames={levelNames} levelCount={levelCount}
-            planId={planId} planName={planName} onRefresh={onRefresh} kpiLevelConfigs={kpiLevelConfigs} depth={depth + 1} />
+            planId={planId} planName={planName} onRefresh={onRefresh} kpiLevelConfigs={kpiLevelConfigs}
+            planApproved={planApproved} depth={depth + 1} />
         ))}
 
         {/* المهام (في المستوى الأخير) */}
@@ -940,7 +942,7 @@ export default function NodePage() {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: allNodes }, { data: allTasks }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, level_count, level_names, kpi_levels').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, level_count, level_names, kpi_levels, approved_at').eq('id', planId).single(),
       supabase.from('plan_nodes').select('*').eq('plan_id', planId).order('order_num'),
       supabase.from('tasks').select('id, name_ar, status, priority, end_date, task_type, node_id, rating')
         .in('node_id', (await supabase.from('plan_nodes').select('id').eq('plan_id', planId)).data?.map(n=>n.id) || []),
@@ -1031,6 +1033,7 @@ export default function NodePage() {
               planName={plan.name_ar}
               onRefresh={load}
               kpiLevelConfigs={kpiLevelConfigs}
+              planApproved={!!plan.approved_at}
             />
           ))
         ) : (
