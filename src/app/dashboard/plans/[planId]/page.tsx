@@ -142,14 +142,22 @@ export default function PlanOverviewPage() {
     await load()
   }
 
-  /* ── حذف الخطة (Soft Delete) ── */
+  /* ── حذف الخطة (Soft Delete) — مغادرة الصفحة بعد نجاح فعلي فقط ── */
   const deletePlan = async () => {
     setDeletingPlan(true)
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('plans').update({
+    const { error } = await supabase.from('plans').update({
       deleted_at: new Date().toISOString(),
       updated_by: user?.id ?? null,
     }).eq('id', planId)
+    /* تحقق فعلي: الخطة المحذوفة ناعماً تختفي عن سياسة القراءة */
+    const { data: still } = await supabase.from('plans').select('id').eq('id', planId).maybeSingle()
+    if (error || still) {
+      alert(`تعذّر حذف الخطة: ${error?.message || 'لم يُحذف أي صف — تحقّق من الصلاحيات'}`)
+      setDeletingPlan(false)
+      setConfirmDelPlan(false)
+      return
+    }
     router.push('/dashboard/plans')
   }
 
@@ -238,11 +246,17 @@ export default function PlanOverviewPage() {
     setEditNodeId(null); setSaving(false); await load()
   }
 
-  /* ── حذف عقدة (Soft Delete) ── */
+  /* ── حذف عقدة (Soft Delete) — تحقق فعلي قبل اعتبارها محذوفة ── */
   const deleteNode = async (nodeId: string) => {
-    await supabase.from('plan_nodes').update({
+    const { error } = await supabase.from('plan_nodes').update({
       deleted_at: new Date().toISOString(),
     }).eq('id', nodeId)
+    const { data: still } = await supabase.from('plan_nodes').select('id').eq('id', nodeId).maybeSingle()
+    if (error || still) {
+      alert(`تعذّر الحذف: ${error?.message || 'لم يُحذف أي صف — تحقّق من الصلاحيات'}`)
+      setConfirmDelId(null)
+      return
+    }
     setConfirmDelId(null); await load()
   }
 

@@ -7,6 +7,7 @@ import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle } from 'luc
 import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
+import { toast } from '@/components/Toast'
 
 /* ── قائمة الأعوام الدراسية 2024-2025 حتى 2039-2040 ── */
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => {
@@ -55,13 +56,20 @@ export default function PlansPage() {
     setMenuOpen(null)
   }
 
-  /* ─── حذف خطة (Soft Delete) ─── */
+  /* ─── حذف خطة (Soft Delete) — لا إزالة من الواجهة إلا بعد نجاح فعلي ─── */
   const deletePlan = async (id: string) => {
     setDeleting(true)
-    await supabase.from('plans').update({
+    const { error } = await supabase.from('plans').update({
       deleted_at: new Date().toISOString(),
       updated_by: userId || null,
     }).eq('id', id)
+    /* تحقق فعلي: الخطة المحذوفة ناعماً تختفي عن سياسة القراءة */
+    const { data: still } = await supabase.from('plans').select('id').eq('id', id).maybeSingle()
+    if (error || still) {
+      toast(`تعذّر حذف الخطة: ${error?.message || 'لم يُحذف أي صف — تحقّق من الصلاحيات'}`, 'error')
+      setDeleting(false)
+      return
+    }
     setPlans(prev => prev.filter(p => p.id !== id))
     setConfirmDel(null)
     setDeleting(false)
