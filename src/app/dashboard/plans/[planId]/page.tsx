@@ -556,9 +556,11 @@ export default function PlanOverviewPage() {
                       ${plan.approved_at
                         ? 'bg-amber-400/25 hover:bg-amber-400/40 text-white'
                         : 'bg-emerald-500/20 hover:bg-emerald-500/35 text-white'}`}>
-                    {plan.approved_at
-                      ? <><ShieldOff size={14} /> إلغاء الاعتماد</>
-                      : <><BadgeCheck size={14} /> اعتماد الخطة</>}
+                    {/* درس مستفاد 2: أيقونة شرطية بجوار نص شرطي → insertBefore — عزّل كلاً منهما في span */}
+                    <span className="inline-flex">
+                      {plan.approved_at ? <ShieldOff size={14} /> : <BadgeCheck size={14} />}
+                    </span>
+                    <span>{plan.approved_at ? 'إلغاء الاعتماد' : 'اعتماد الخطة'}</span>
                   </button>
                 )}
                 <button onClick={openEditPlan}
