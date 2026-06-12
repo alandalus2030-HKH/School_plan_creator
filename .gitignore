@@ -46,3 +46,7 @@ next-env.d.ts
 *.xls
 *.pptx
 ~$*
+
+# وثائق الدليل الضخمة (محلية فقط)
+docs/qnsa_guide.pdf
+docs/qnsa_guide.docx
