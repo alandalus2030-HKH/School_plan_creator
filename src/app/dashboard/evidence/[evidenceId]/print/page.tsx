@@ -282,29 +282,23 @@ export default function EvidencePrintPage() {
 
       </div>{/* /print-root */}
 
-      {/* CSS طباعة ذكية: يخفي واجهة التطبيق + اتجاه تلقائي للصفحات */}
+      {/* CSS طباعة ذكية: المحتوى في التدفق الطبيعي (تجزئة صحيحة) + اتجاه تلقائي */}
       <style>{`
         .att-img { max-height: 72vh; max-width: 100%; object-fit: contain; }
 
-        @page          { size: A4 portrait;  margin: 1.2cm; }
-        @page landscape { size: A4 landscape; margin: 1.2cm; }
+        @page         { size: A4 portrait;  margin: 1.2cm; }
+        @page landAtt { size: A4 landscape; margin: 1.2cm; }
 
         @media print {
-          /* إلغاء قيود قشرة التطبيق (h-screen / overflow-hidden) */
           html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
-
-          /* إخفاء كل الواجهة وإظهار محتوى الطباعة فقط */
-          body * { visibility: hidden !important; }
-          #print-root, #print-root * { visibility: visible !important; }
-          #print-root { position: absolute; top: 0; left: 0; right: 0; width: 100%; margin: 0; padding: 0; }
 
           #cover { page-break-after: always; }
           .attachment-page { page-break-before: always; break-inside: avoid; }
 
-          /* اتجاه ذكي: الصفحات الأفقية تأخذ وضعاً أفقياً */
-          .att-landscape { page: landscape; }
+          /* اتجاه ذكي: الصور العريضة تُطبع في صفحة أفقية */
+          .att-landscape { page: landAtt; }
 
-          .att-img { max-height: 100%; }
+          .att-img { max-height: 96%; }
         }
       `}</style>
     </div>

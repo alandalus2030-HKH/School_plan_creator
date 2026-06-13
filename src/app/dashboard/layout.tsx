@@ -56,23 +56,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <PermissionsProvider>
       {/* App Shell: ارتفاع ثابت — التمرير داخل main فقط (يثبّت الشريط الجانبي/العلوي ويُفعّل sticky) */}
-      <div className="flex h-screen overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-        <Sidebar lang={lang} collapsed={collapsed} onToggle={toggleSidebar} />
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <ImpersonationBanner />
-          <TopBar
-            lang={lang}
-            onLangChange={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-            title={pageTitle}
-          />
-          <main className="flex-1 overflow-auto bg-slate-50 p-6">
+      <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="print:hidden flex-shrink-0">
+          <Sidebar lang={lang} collapsed={collapsed} onToggle={toggleSidebar} />
+        </div>
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0 print:overflow-visible">
+          <div className="print:hidden">
+            <ImpersonationBanner />
+            <TopBar
+              lang={lang}
+              onLangChange={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+              title={pageTitle}
+            />
+          </div>
+          <main className="flex-1 overflow-auto bg-slate-50 p-6 print:overflow-visible print:p-0 print:bg-white">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
           </main>
         </div>
       </div>
-      <QuickAddTask />
+      <div className="print:hidden">
+        <QuickAddTask />
+      </div>
       <ToastContainer />
     </PermissionsProvider>
   )
