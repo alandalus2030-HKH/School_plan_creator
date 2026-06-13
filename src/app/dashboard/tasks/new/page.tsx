@@ -38,6 +38,8 @@ function NewTaskForm() {
   const [dependsOnTaskId,  setDependsOnTaskId]  = useState('')
   const [profiles,         setProfiles]         = useState<any[]>([])
   const [planTasksList,    setPlanTasksList]     = useState<any[]>([])
+  const [locations,        setLocations]        = useState<any[]>([])   // أماكن المدرسة النشطة
+  const [selLocationIds,   setSelLocationIds]   = useState<string[]>([])
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState('')
 
@@ -51,6 +53,11 @@ function NewTaskForm() {
       setProfiles(profsData || [])
       setFetching(false)
     })
+    /* أماكن المدرسة النشطة (لاختيار مكان المهمة) */
+    fetch('/api/locations?active=1')
+      .then(r => r.ok ? r.json() : { locations: [] })
+      .then(j => setLocations(j.locations || []))
+      .catch(() => {})
   }, [])
 
   /* ════ تحميل مهام الخطة (للتبعية) عند اختيار الخطة ════ */
@@ -147,6 +154,12 @@ function NewTaskForm() {
       }).select('id').single()
 
       if (err) throw err
+
+      /* ربط الأماكن المختارة بالمهمة */
+      if (selLocationIds.length > 0) {
+        await supabase.from('task_locations')
+          .insert(selLocationIds.map(id => ({ task_id: task.id, location_id: id })))
+      }
 
       const { data: { user } } = await supabase.auth.getUser()
 
@@ -377,6 +390,30 @@ function NewTaskForm() {
             />
             <p className="text-xs text-slate-400 mt-1 text-left">{otherResources.length} / 300</p>
           </div>
+
+          {/* الأماكن المطلوبة */}
+          {locations.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                📍 الأماكن المطلوبة
+                <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — لمنع التعارض)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {locations.map((loc: any) => {
+                  const on = selLocationIds.includes(loc.id)
+                  return (
+                    <button key={loc.id} type="button"
+                      onClick={() => setSelLocationIds(prev => on ? prev.filter(x => x !== loc.id) : [...prev, loc.id])}
+                      className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
+                        on ? 'bg-violet-600 text-white border-violet-600'
+                           : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                      📍 {loc.name_ar}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* أدلة الإنجاز */}
           <div>

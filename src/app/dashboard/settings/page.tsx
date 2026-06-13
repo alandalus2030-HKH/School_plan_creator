@@ -9,6 +9,8 @@ import {
   Unlock, AlertTriangle, Save, CircleCheckBig, Building2, Loader2,
 } from 'lucide-react'
 import SchoolProfile from '@/components/SchoolProfile'
+import LocationsManager from '@/components/LocationsManager'
+import { MapPin } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -178,6 +180,7 @@ export default function SettingsPage() {
   const isRoles  = activeCat === '__roles__'
   const isNotifs = activeCat === '__notifications__'
   const isSchool = activeCat === '__school__'
+  const isLocations = activeCat === '__locations__'
 
   const sendNotif = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -239,6 +242,20 @@ export default function SettingsPage() {
             <Building2 size={18} className="flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-semibold truncate ${isSchool ? 'text-white' : 'text-slate-700'}`}>بيانات المدرسة</p>
+            </div>
+          </button>
+
+          {/* الأماكن والموارد المكانية */}
+          <button
+            onClick={() => { setActiveCat('__locations__'); setEditId(null); setConfirmDel(null) }}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
+              ${isLocations
+                ? 'text-white shadow-lg'
+                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
+            style={isLocations ? { background: 'var(--gradient-button)' } : undefined}>
+            <MapPin size={18} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold truncate ${isLocations ? 'text-white' : 'text-slate-700'}`}>الأماكن</p>
             </div>
           </button>
 
@@ -313,6 +330,9 @@ export default function SettingsPage() {
           {isSchool ? (
             /* ════ قسم بيانات المدرسة ════ */
             <SchoolProfile />
+          ) : isLocations ? (
+            /* ════ قسم الأماكن ════ */
+            <LocationsManager />
           ) : isNotifs ? (
             /* ════ قسم إرسال الإشعارات ════ */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

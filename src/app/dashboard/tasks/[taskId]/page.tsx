@@ -113,6 +113,12 @@ export default function TaskPage() {
   const [savingAssign,   setSavingAssign]   = useState(false)
   const [showAssign,     setShowAssign]     = useState(false)
 
+  /* ── الأماكن المطلوبة ── */
+  const [availLocations, setAvailLocations] = useState<any[]>([])
+  const [selLocs,        setSelLocs]        = useState<string[]>([])
+  const [editingLoc,     setEditingLoc]     = useState(false)
+  const [savingLoc,      setSavingLoc]      = useState(false)
+
   /* ── وضع التعديل للمهمة ── */
   const [editing,      setEditing]      = useState(false)
   const [editName,     setEditName]     = useState('')
@@ -157,6 +163,7 @@ export default function TaskPage() {
         return_note, submitted_at, created_by,
         budget_qar, other_resources, evidence_required,
         depends_on_task_id,
+        task_locations ( location_id, school_locations ( id, name_ar ) ),
         evidence ( id, name, description, evidence_number, file_url, video_url, file_type, created_at,
           evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) ),
         task_comments (
@@ -474,6 +481,27 @@ export default function TaskPage() {
     } finally {
       setDeletingEvId(null)
     }
+  }
+
+  /* ── الأماكن: فتح المحرّر + الحفظ ── */
+  const openLocEditor = async () => {
+    try {
+      const res = await fetch('/api/locations?active=1')
+      const j = await res.json().catch(() => ({}))
+      setAvailLocations(j.locations || [])
+    } catch { setAvailLocations([]) }
+    setSelLocs((task?.task_locations || []).map((tl: any) => tl.location_id))
+    setEditingLoc(true)
+  }
+
+  const saveLocations = async () => {
+    setSavingLoc(true)
+    await supabase.from('task_locations').delete().eq('task_id', taskId)
+    if (selLocs.length > 0) {
+      await supabase.from('task_locations').insert(selLocs.map(id => ({ task_id: taskId, location_id: id })))
+    }
+    setEditingLoc(false); setSavingLoc(false)
+    await loadTask()
   }
 
   const saveAssignment = async () => {
@@ -1444,6 +1472,63 @@ export default function TaskPage() {
           </div>
         )}
       </div>
+
+      {/* ══ الأماكن المطلوبة ══ */}
+      {(() => {
+        const taskLocs = (task.task_locations || [])
+        if (taskLocs.length === 0 && (!canManageTasks || isCompleted)) return null
+        return (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold text-slate-800">📍 الأماكن المطلوبة</h2>
+              {canManageTasks && !isCompleted && (
+                <button onClick={() => editingLoc ? setEditingLoc(false) : openLocEditor()}
+                  className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+                  {editingLoc ? '✕ إلغاء' : '✏️ تعديل'}
+                </button>
+              )}
+            </div>
+
+            {!editingLoc ? (
+              taskLocs.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {taskLocs.map((tl: any) => (
+                    <span key={tl.location_id} className="px-3 py-1.5 rounded-xl text-sm bg-violet-50 text-violet-700 border border-violet-200">
+                      📍 {tl.school_locations?.name_ar || '—'}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">لا مكان محدد لهذه المهمة</p>
+              )
+            ) : (
+              <div className="space-y-3">
+                {availLocations.length === 0 ? (
+                  <p className="text-sm text-slate-400">لا توجد أماكن مُعرّفة — أضفها من الإعدادات ← الأماكن</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {availLocations.map((loc: any) => {
+                      const on = selLocs.includes(loc.id)
+                      return (
+                        <button key={loc.id} type="button"
+                          onClick={() => setSelLocs(prev => on ? prev.filter(x => x !== loc.id) : [...prev, loc.id])}
+                          className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
+                            on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                          📍 {loc.name_ar}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                <button onClick={saveLocations} disabled={savingLoc}
+                  className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60">
+                  {savingLoc ? 'جارٍ الحفظ...' : '💾 حفظ الأماكن'}
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ══ Subtasks ══ */}
       <Subtasks
