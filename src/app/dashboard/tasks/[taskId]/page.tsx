@@ -451,27 +451,34 @@ export default function TaskPage() {
   }
 
   const deleteEvidence = async (evId: string) => {
-    await supabase.from('evidence').update({
+    const { error: delError } = await supabase.from('evidence').update({
       deleted_at: new Date().toISOString(),
     }).eq('id', evId)
 
-    /* إعادة الترقيم: الأدلة المتبقية تُرقَّم من جديد بعد كل حذف */
-    const { data: remaining } = await supabase
-      .from('evidence')
-      .select('id')
-      .eq('task_id', taskId)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: true })
-
-    if (remaining && remaining.length > 0) {
-      await Promise.all(
-        remaining.map((ev: any, idx: number) =>
-          supabase.from('evidence')
-            .update({ evidence_number: taskNum ? `${taskNum}.${idx + 1}` : `دليل-${idx + 1}` })
-            .eq('id', ev.id)
-        )
-      )
+    if (delError) {
+      toast(delError.message || 'تعذّر حذف الدليل', 'error')
+      return
     }
+
+    /* إعادة الترقيم — اختيارية، لا توقف الحذف عند فشلها */
+    try {
+      const { data: remaining } = await supabase
+        .from('evidence')
+        .select('id')
+        .eq('task_id', taskId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+
+      if (remaining && remaining.length > 0) {
+        await Promise.all(
+          remaining.map((ev: any, idx: number) =>
+            supabase.from('evidence')
+              .update({ evidence_number: taskNum ? `${taskNum}.${idx + 1}` : `دليل-${idx + 1}` })
+              .eq('id', ev.id)
+          )
+        )
+      }
+    } catch { /* إعادة الترقيم فشلت — الحذف محفوظ */ }
 
     await loadTask()
   }
