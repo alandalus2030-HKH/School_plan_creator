@@ -38,8 +38,13 @@ export async function DELETE(
 
   /* تحقق من أن الدليل يتبع المهمة، والمهمة تتبع مدرسة المستخدم */
   const { data: ev } = await admin
-    .from('evidence').select('id, task_id').eq('id', evidenceId).eq('task_id', taskId).maybeSingle()
+    .from('evidence').select('id, task_id, status').eq('id', evidenceId).eq('task_id', taskId).maybeSingle()
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
+
+  /* الدليل المعتمد سجلّ موثّق — يلزم إلغاء اعتماده أولاً (بصلاحية المراجعة) قبل الحذف */
+  if (ev.status === 'accepted') {
+    return NextResponse.json({ error: 'الدليل معتمد — يلزم إلغاء اعتماده أولاً قبل الحذف' }, { status: 409 })
+  }
 
   const { data: task } = await admin
     .from('tasks').select('node_id').eq('id', taskId).maybeSingle()

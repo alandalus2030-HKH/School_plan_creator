@@ -1149,8 +1149,8 @@ export default function TaskPage() {
                           </button>
                         </span>
                       )}
-                      {/* المملوك: تعديل؛ المشترك: لا تعديل (يُحرَّر من مهمته الأصلية) */}
-                      {!isCompleted && !ev._shared && canManageEvidence && (
+                      {/* المملوك غير المعتمد: تعديل (المعتمد سجلّ موثّق يلزم إلغاء اعتماده أولاً) */}
+                      {!isCompleted && !ev._shared && canManageEvidence && ev.status !== 'accepted' && (
                         <Link href={`/dashboard/tasks/${taskId}/evidence/${ev.id}/edit`}
                           className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
                           ✏️
@@ -1167,8 +1167,8 @@ export default function TaskPage() {
                           🔗✕
                         </button>
                       )}
-                      {/* المملوك: حذف نهائي */}
-                      {!isCompleted && !ev._shared && canManageEvidence && (
+                      {/* المملوك غير المعتمد: حذف (المعتمد محميّ — يلزم إلغاء اعتماده أولاً) */}
+                      {!isCompleted && !ev._shared && canManageEvidence && ev.status !== 'accepted' && (
                         deletingEvId === ev.id ? (
                           <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
                         ) : confirmEvId === ev.id ? (
