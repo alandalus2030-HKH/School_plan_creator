@@ -15,7 +15,7 @@ const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
 async function getContext(userId: string) {
   const admin = createAdminClient()
   const { data: me } = await admin
-    .from('profiles').select('school_id, active_school_id, is_super_admin, role').eq('id', userId).single()
+    .from('profiles').select('school_id, active_school_id, is_super_admin, role, department').eq('id', userId).single()
   if (!me) return null
   const schoolId = (me.is_super_admin && me.active_school_id) ? me.active_school_id : me.school_id
   return { admin, me, schoolId }
@@ -36,12 +36,15 @@ export async function GET() {
   const canView = isAdmin || perms.includes('all') || perms.includes('view_aggregate')
   if (!canView) return NextResponse.json({ error: 'لا تملك صلاحية عرض لوحة التجميع' }, { status: 403 })
 
-  /* نطاق الأقسام المسموح بها */
+  /* نطاق الأقسام المسموح بها:
+     غير المشرف يرى قسمه (profile.department) + الأقسام المُسندة له في إشراف الأقسام */
   let allowedDepts: string[] | null = null   // null = كل الأقسام
   if (!isAdmin && !perms.includes('all')) {
     const { data: sup } = await admin.from('department_supervisors')
       .select('department').eq('school_id', schoolId).eq('user_id', auth.user.id)
-    allowedDepts = [...new Set((sup || []).map((s: any) => s.department))]
+    const depts = (sup || []).map((s: any) => s.department)
+    if (me.department) depts.push(me.department)
+    allowedDepts = [...new Set(depts)]
   }
 
   /* الخطط (غير المؤرشفة) */
