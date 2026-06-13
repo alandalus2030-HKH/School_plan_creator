@@ -186,6 +186,13 @@ export default function TaskPage() {
       .eq('id', taskId).maybeSingle()
 
     setTask({ ...data, ...(reopenReq || {}) })
+
+    /* الأدلة المشتركة (المرتبطة من مهام أخرى عبر evidence_links) — استعلام متسامح */
+    const { data: links } = await supabase
+      .from('evidence_links')
+      .select('evidence:evidence_id ( id, name, description, evidence_number, file_url, video_url, file_type, created_at, task_id, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) )')
+      .eq('task_id', taskId)
+    setLinkedEvidence((links || []).map((l: any) => l.evidence).filter(Boolean))
     setStatus(data.status)
 
     /* سجل تحوّلات المهمة (رفع/إعادة/اعتماد) */
@@ -367,6 +374,14 @@ export default function TaskPage() {
   const [confirmEvId,  setConfirmEvId]  = useState<string | null>(null)
   const [deletingEvId, setDeletingEvId] = useState<string | null>(null)
 
+  /* الدليل المشترك: أدلة مرتبطة من مهام أخرى + أداة الإرفاق */
+  const [linkedEvidence, setLinkedEvidence] = useState<any[]>([])
+  const [showEvPicker,   setShowEvPicker]   = useState(false)
+  const [evSearch,       setEvSearch]       = useState('')
+  const [evResults,      setEvResults]      = useState<any[]>([])
+  const [searchingEv,    setSearchingEv]    = useState(false)
+  const [linkingEvId,    setLinkingEvId]    = useState<string | null>(null)
+
   /* الشريط اللاصق يظهر عندما يخرج رأس المهمة من الشاشة */
   useEffect(() => {
     if (loading) return
@@ -499,6 +514,39 @@ export default function TaskPage() {
     } finally {
       setDeletingEvId(null)
     }
+  }
+
+  /* ── الدليل المشترك: بحث/إرفاق/فك الارتباط ── */
+  const searchEvidence = async (q: string) => {
+    setEvSearch(q)
+    if (!q.trim()) { setEvResults([]); return }
+    setSearchingEv(true)
+    /* أدلة المدرسة (RLS) عدا أدلة هذه المهمة؛ والمرتبطة تُستبعد لاحقاً في العرض */
+    const { data } = await supabase
+      .from('evidence')
+      .select('id, name, evidence_number, task_id, file_type')
+      .neq('task_id', taskId)
+      .is('deleted_at', null)
+      .or(`name.ilike.%${q}%,evidence_number.ilike.%${q}%`)
+      .limit(20)
+    const linkedIds = new Set(linkedEvidence.map((e: any) => e.id))
+    setEvResults((data || []).filter((e: any) => !linkedIds.has(e.id)))
+    setSearchingEv(false)
+  }
+
+  const linkEvidence = async (evId: string) => {
+    setLinkingEvId(evId)
+    const { error } = await supabase.from('evidence_links').insert({ evidence_id: evId, task_id: taskId })
+    setLinkingEvId(null)
+    if (error) { toast(error.message || 'تعذّر إرفاق الدليل', 'error'); return }
+    setShowEvPicker(false); setEvSearch(''); setEvResults([])
+    await loadTask()
+  }
+
+  const unlinkEvidence = async (evId: string) => {
+    const { error } = await supabase.from('evidence_links').delete().eq('evidence_id', evId).eq('task_id', taskId)
+    if (error) { toast(error.message || 'تعذّر فك الارتباط', 'error'); return }
+    await loadTask()
   }
 
   /* ── الأماكن: فتح المحرّر + الحفظ ── */
@@ -652,9 +700,11 @@ export default function TaskPage() {
 
   const pInfo     = priorityInfo[task.priority] || priorityInfo.medium
   const isOverdue = task.end_date && status !== 'completed' && new Date(task.end_date) < new Date()
-  /* ترتيب تصاعدي: الأقدم/الأصغر رقماً أولاً (مطابق لترتيب الترقيم) */
-  const evidence  = [...(task.evidence || [])].sort((a: any, b: any) =>
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  /* الأدلة المملوكة + المشتركة (مرتبطة من مهام أخرى)؛ ترتيب تصاعدي */
+  const evidence  = [
+    ...[...(task.evidence || [])].map((e: any) => ({ ...e, _shared: false })),
+    ...linkedEvidence.map((e: any) => ({ ...e, _shared: true })),
+  ].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   /* المهمة المنجزة مقفلة: لا تعديلات (عدا التعليقات) إلا بعد إعادة فتحها */
   const isCompleted    = status === 'completed'
@@ -982,21 +1032,57 @@ export default function TaskPage() {
             <span className="text-xs font-normal text-slate-400 mr-2">({evidence.length})</span>
           </h2>
           {!isCompleted && (
-            <Link href={`/dashboard/tasks/${taskId}/evidence/new`}
-              className="text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-              ➕ إضافة دليل
-            </Link>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowEvPicker(v => !v)}
+                className="text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors">
+                🔗 إرفاق دليل موجود
+              </button>
+              <Link href={`/dashboard/tasks/${taskId}/evidence/new`}
+                className="text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+                ➕ إضافة دليل
+              </Link>
+            </div>
           )}
         </div>
+
+        {/* أداة إرفاق دليل موجود (مشترك) */}
+        {showEvPicker && !isCompleted && (
+          <div className="mb-4 border border-slate-200 rounded-xl p-3 bg-slate-50/60">
+            <input value={evSearch} onChange={e => searchEvidence(e.target.value)}
+              placeholder="ابحث عن دليل بالاسم أو الرقم لإرفاقه..."
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm" />
+            {searchingEv ? (
+              <p className="text-xs text-slate-400 mt-2 px-1">جارٍ البحث...</p>
+            ) : evSearch && evResults.length === 0 ? (
+              <p className="text-xs text-slate-400 mt-2 px-1">لا نتائج مطابقة</p>
+            ) : evResults.length > 0 ? (
+              <div className="mt-2 space-y-1.5 max-h-60 overflow-auto">
+                {evResults.map((r: any) => (
+                  <div key={r.id} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100">
+                    {r.evidence_number && <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full flex-shrink-0">{r.evidence_number}</span>}
+                    <span className="text-sm text-slate-700 flex-1 truncate">{r.name}</span>
+                    <button onClick={() => linkEvidence(r.id)} disabled={linkingEvId === r.id}
+                      className="px-2.5 py-1 text-xs bg-violet-600 text-white rounded-lg font-medium disabled:opacity-50 flex-shrink-0">
+                      {linkingEvId === r.id ? '...' : 'إرفاق'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {evidence.length > 0 ? (
           <div className="space-y-2">
             {(showAllEvidence ? evidence : evidence.slice(0, 3)).map((ev: any) => {
-              const evNumDisplay = /^\d/.test(ev.evidence_number)
+              /* الدليل المشترك يحتفظ برقمه الأصلي؛ المملوك يتبع ترقيم هذه المهمة */
+              const evNumDisplay = ev._shared
                 ? ev.evidence_number
-                : taskNum
-                  ? `${taskNum}.${ev.evidence_number.split('-').pop()}`
-                  : ev.evidence_number
+                : /^\d/.test(ev.evidence_number)
+                  ? ev.evidence_number
+                  : taskNum
+                    ? `${taskNum}.${ev.evidence_number.split('-').pop()}`
+                    : ev.evidence_number
               /* ملفات الدليل — من evidence_files، مع احتياط لصف الدليل القديم */
               const files: any[] = (ev.evidence_files && ev.evidence_files.length > 0)
                 ? [...ev.evidence_files].sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
@@ -1013,11 +1099,13 @@ export default function TaskPage() {
                         )}
                         <p className="text-sm font-semibold text-slate-700 truncate">{ev.name}</p>
                         <span className="text-xs text-slate-400">📎 {files.length} {files.length === 1 ? 'ملف' : 'ملفات'}</span>
+                        {ev._shared && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1">🔗 مشترك</span>}
                       </div>
                       {ev.description && <p className="text-xs text-slate-400 truncate mt-0.5">{ev.description}</p>}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      {!isCompleted && (
+                      {/* المملوك: تعديل؛ المشترك: لا تعديل (يُحرَّر من مهمته الأصلية) */}
+                      {!isCompleted && !ev._shared && (
                         <Link href={`/dashboard/tasks/${taskId}/evidence/${ev.id}/edit`}
                           className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
                           ✏️
@@ -1027,7 +1115,15 @@ export default function TaskPage() {
                         className="px-2.5 py-1.5 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors">
                         🖨️
                       </a>
-                      {!isCompleted && (
+                      {/* المشترك: فك الارتباط فقط (لا يُحذف الدليل الأصلي) */}
+                      {!isCompleted && ev._shared && (
+                        <button onClick={() => unlinkEvidence(ev.id)}
+                          className="px-2.5 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors" title="فك الارتباط">
+                          🔗✕
+                        </button>
+                      )}
+                      {/* المملوك: حذف نهائي */}
+                      {!isCompleted && !ev._shared && (
                         deletingEvId === ev.id ? (
                           <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
                         ) : confirmEvId === ev.id ? (
