@@ -21,6 +21,8 @@ export default function EvidencePrintPage() {
   const [school,   setSchool]   = useState<{ name_ar: string; logo_url: string | null } | null>(null)
   const [crumbs,   setCrumbs]   = useState<CrumbEntry[]>([])
   const [loading,  setLoading]  = useState(true)
+  /* اتجاه كل مرفق صورة: 'l' أفقي | 'p' رأسي (يُكتشف عند تحميل الصورة) */
+  const [orient,   setOrient]   = useState<Record<string, 'l' | 'p'>>({})
 
   useEffect(() => {
     ;(async () => {
@@ -143,6 +145,8 @@ export default function EvidencePrintPage() {
         </button>
       </div>
 
+      <div id="print-root">
+
       {/* ════════ صفحة الغلاف ════════ */}
       <div id="cover" className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm print:rounded-none print:border-0 print:shadow-none">
 
@@ -202,7 +206,7 @@ export default function EvidencePrintPage() {
         const isImg = f.file_type?.startsWith('image')
         const isPdf = f.file_type === 'application/pdf'
         return (
-          <div key={f.id} className="attachment-page bg-white border border-slate-200 rounded-2xl p-6 mt-6 shadow-sm print:rounded-none print:border-0 print:shadow-none print:mt-0">
+          <div key={f.id} className={`attachment-page bg-white border border-slate-200 rounded-2xl p-6 mt-6 shadow-sm print:rounded-none print:border-0 print:shadow-none print:mt-0 ${orient[f.id] === 'l' ? 'att-landscape' : ''}`}>
             {/* ترويسة المرفق */}
             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
               <span className="font-mono text-sm font-bold text-violet-700 bg-violet-100 px-2 py-0.5 rounded-lg">
@@ -230,15 +234,33 @@ export default function EvidencePrintPage() {
                 )}
               </div>
             ) : isImg ? (
-              <img src={f.file_url} alt={f.name} className="max-h-[60vh] mx-auto rounded-xl" />
+              <img src={f.file_url} alt={f.name}
+                onLoad={e => {
+                  const im = e.currentTarget
+                  setOrient(o => ({ ...o, [f.id]: im.naturalWidth > im.naturalHeight ? 'l' : 'p' }))
+                }}
+                className="att-img mx-auto rounded-xl" />
             ) : isPdf ? (
-              <object data={f.file_url} type="application/pdf" className="w-full rounded-xl border border-slate-200" style={{ height: '70vh' }}>
-                <div className="flex flex-col items-center gap-3 p-8 text-center">
-                  <span className="text-5xl">📄</span>
-                  <p className="text-sm text-slate-600">تعذّرت المعاينة المدمجة</p>
-                  <a href={f.file_url} target="_blank" rel="noopener noreferrer" className="text-violet-600 underline text-sm">فتح ملف PDF</a>
+              <>
+                {/* معاينة على الشاشة — لا تظهر في الطباعة، لذا نوفّر بطاقة طباعة بديلة */}
+                <object data={f.file_url} type="application/pdf" className="att-pdf w-full rounded-xl border border-slate-200 print:hidden" style={{ height: '70vh' }}>
+                  <div className="flex flex-col items-center gap-3 p-8 text-center">
+                    <span className="text-5xl">📄</span>
+                    <p className="text-sm text-slate-600">تعذّرت المعاينة المدمجة</p>
+                    <a href={f.file_url} target="_blank" rel="noopener noreferrer" className="text-violet-600 underline text-sm">فتح ملف PDF</a>
+                  </div>
+                </object>
+                {/* بطاقة بديلة للطباعة (PDF لا يُطبع من داخل object) */}
+                <div className="hidden print:flex items-center gap-5 bg-slate-50 rounded-xl p-5 border border-slate-200">
+                  <span className="text-5xl flex-shrink-0">📄</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-semibold text-slate-700 truncate">{f.name}</p>
+                    <p className="text-xs text-slate-400 mb-1">ملف PDF — يُطبع من ملفه الأصلي. امسح الرمز لفتحه.</p>
+                    <span className="text-xs text-slate-500 font-latin break-all">{f.file_url}</span>
+                  </div>
+                  <img src={qrFor(f.file_url)} alt="QR" className="w-28 h-28 rounded-xl border border-slate-200 flex-shrink-0" />
                 </div>
-              </object>
+              </>
             ) : (
               /* وورد/إكسل/غيره — بطاقة + QR للفتح (لا يدعمها المتصفح للمعاينة المباشرة) */
               <div className="flex items-center gap-5 bg-slate-50 rounded-xl p-5 border border-slate-200">
@@ -258,12 +280,31 @@ export default function EvidencePrintPage() {
         )
       })}
 
-      {/* CSS طباعة: كل قسم في صفحة */}
+      </div>{/* /print-root */}
+
+      {/* CSS طباعة ذكية: يخفي واجهة التطبيق + اتجاه تلقائي للصفحات */}
       <style>{`
+        .att-img { max-height: 72vh; max-width: 100%; object-fit: contain; }
+
+        @page          { size: A4 portrait;  margin: 1.2cm; }
+        @page landscape { size: A4 landscape; margin: 1.2cm; }
+
         @media print {
-          @page { margin: 1.2cm; }
+          /* إلغاء قيود قشرة التطبيق (h-screen / overflow-hidden) */
+          html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+
+          /* إخفاء كل الواجهة وإظهار محتوى الطباعة فقط */
+          body * { visibility: hidden !important; }
+          #print-root, #print-root * { visibility: visible !important; }
+          #print-root { position: absolute; top: 0; left: 0; right: 0; width: 100%; margin: 0; padding: 0; }
+
           #cover { page-break-after: always; }
           .attachment-page { page-break-before: always; break-inside: avoid; }
+
+          /* اتجاه ذكي: الصفحات الأفقية تأخذ وضعاً أفقياً */
+          .att-landscape { page: landscape; }
+
+          .att-img { max-height: 100%; }
         }
       `}</style>
     </div>
