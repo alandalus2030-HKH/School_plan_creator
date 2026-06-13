@@ -337,6 +337,9 @@ export default function TaskPage() {
   const [transAll,        setTransAll]        = useState(false)
   const [showAllComments, setShowAllComments] = useState(false)
   const [showAllEvidence, setShowAllEvidence] = useState(false)
+  /* حذف الأدلة: تأكيد + قفل أثناء التنفيذ (يمنع الضغط المتكرر) */
+  const [confirmEvId,  setConfirmEvId]  = useState<string | null>(null)
+  const [deletingEvId, setDeletingEvId] = useState<string | null>(null)
 
   /* الشريط اللاصق يظهر عندما يخرج رأس المهمة من الشاشة */
   useEffect(() => {
@@ -451,13 +454,25 @@ export default function TaskPage() {
   }
 
   const deleteEvidence = async (evId: string) => {
-    const res = await fetch(`/api/tasks/${taskId}/evidence/${evId}`, { method: 'DELETE' })
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}))
-      toast(j.error || 'تعذّر حذف الدليل', 'error')
-      return
+    if (deletingEvId) return            // قفل: عملية حذف جارية بالفعل
+    setDeletingEvId(evId)
+    setConfirmEvId(null)
+    try {
+      /* نمرّر taskNum المحسوب مسبقاً ليتفادى الخادم إعادة حسابه (أسرع) */
+      const res = await fetch(`/api/tasks/${taskId}/evidence/${evId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskNum }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        /* 404 = الدليل محذوف مسبقاً (ضغط مكرر) — نتجاهله بهدوء ونحدّث القائمة */
+        if (res.status !== 404) toast(j.error || 'تعذّر حذف الدليل', 'error')
+      }
+      await loadTask()
+    } finally {
+      setDeletingEvId(null)
     }
-    await loadTask()
   }
 
   const saveAssignment = async () => {
@@ -590,8 +605,9 @@ export default function TaskPage() {
 
   const pInfo     = priorityInfo[task.priority] || priorityInfo.medium
   const isOverdue = task.end_date && status !== 'completed' && new Date(task.end_date) < new Date()
+  /* ترتيب تصاعدي: الأقدم/الأصغر رقماً أولاً (مطابق لترتيب الترقيم) */
   const evidence  = [...(task.evidence || [])].sort((a: any, b: any) =>
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   /* المهمة المنجزة مقفلة: لا تعديلات (عدا التعليقات) إلا بعد إعادة فتحها */
   const isCompleted    = status === 'completed'
@@ -974,10 +990,25 @@ export default function TaskPage() {
                       </a>
                     )}
                     {!isCompleted && (
-                      <button onClick={() => deleteEvidence(ev.id)}
-                        className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
-                        🗑️
-                      </button>
+                      deletingEvId === ev.id ? (
+                        <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
+                      ) : confirmEvId === ev.id ? (
+                        <span className="flex items-center gap-1">
+                          <button onClick={() => deleteEvidence(ev.id)} disabled={!!deletingEvId}
+                            className="px-2.5 py-1.5 text-xs bg-red-600 text-white rounded-lg font-medium disabled:opacity-50">
+                            تأكيد
+                          </button>
+                          <button onClick={() => setConfirmEvId(null)}
+                            className="px-2.5 py-1.5 text-xs border border-slate-200 text-slate-500 rounded-lg">
+                            إلغاء
+                          </button>
+                        </span>
+                      ) : (
+                        <button onClick={() => setConfirmEvId(ev.id)} disabled={!!deletingEvId}
+                          className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50">
+                          🗑️
+                        </button>
+                      )
                     )}
                   </div>
                 </div>

@@ -14,6 +14,13 @@ export async function DELETE(
   const { taskId, evidenceId } = await context.params
   const admin = createAdminClient()
 
+  /* رقم المهمة المحسوب من العميل (اختياري) — لتسريع إعادة الترقيم */
+  let clientTaskNum: string | null = null
+  try {
+    const body = await req.json()
+    if (typeof body?.taskNum === 'string') clientTaskNum = body.taskNum
+  } catch { /* لا جسم للطلب */ }
+
   /* تحقّق من المستخدم وصلاحياته */
   const { data: me } = await admin
     .from('profiles').select('role, school_id, active_school_id, is_super_admin').eq('id', auth.user.id).single()
@@ -50,9 +57,9 @@ export async function DELETE(
     .order('created_at', { ascending: true })
 
   if (remaining && remaining.length > 0) {
-    /* حساب رقم المهمة لاشتقاق أرقام الأدلة */
-    let taskNum: string | null = null
-    if (task.node_id) {
+    /* حساب رقم المهمة لاشتقاق أرقام الأدلة — نستخدم قيمة العميل إن وُجدت */
+    let taskNum: string | null = clientTaskNum
+    if (!taskNum && task.node_id) {
       const { data: node } = await admin
         .from('plan_nodes').select('plan_id').eq('id', task.node_id).single()
       if (node?.plan_id) {
