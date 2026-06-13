@@ -296,7 +296,17 @@ export default function NewEvidencePage() {
 
   const linkExisting = async (evId: string) => {
     setLinkingId(evId)
-    const { error: linkErr } = await supabase.from('evidence_links').insert({ evidence_id: evId, task_id: taskId })
+    /* رقم تسلسلي خاص بهذه المهمة (يتبع المملوكة ثم المشتركة) */
+    const [{ count: ownedCount }, { count: linkedCount }] = await Promise.all([
+      supabase.from('evidence').select('id', { count: 'exact', head: true }).eq('task_id', taskId).is('deleted_at', null),
+      supabase.from('evidence_links').select('evidence_id', { count: 'exact', head: true }).eq('task_id', taskId),
+    ])
+    let taskNum: string | null = null
+    if (taskNodeId) taskNum = await computeTaskNumber(supabase, taskNodeId, taskOrderNum)
+    const seq = (ownedCount || 0) + (linkedCount || 0) + 1
+    const number = taskNum ? `${taskNum}.${seq}` : `دليل-${seq}`
+    const { error: linkErr } = await supabase.from('evidence_links')
+      .insert({ evidence_id: evId, task_id: taskId, evidence_number: number })
     setLinkingId(null)
     if (linkErr) { setError(linkErr.message || 'تعذّر إرفاق الدليل'); return }
     router.push(`/dashboard/tasks/${taskId}`)

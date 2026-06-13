@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Printer, ArrowRight } from 'lucide-react'
 
@@ -10,13 +10,16 @@ import { Printer, ArrowRight } from 'lucide-react'
 type CrumbEntry = { label: string; number: string; name: string }
 
 export default function EvidencePrintPage() {
-  const params     = useParams()
-  const evidenceId = params.evidenceId as string
-  const supabase   = createClient()
+  const params      = useParams()
+  const searchParams = useSearchParams()
+  const evidenceId  = params.evidenceId as string
+  const ctxTaskParam = searchParams.get('task')   // مهمة السياق للدليل المشترك
+  const supabase    = createClient()
 
-  const [ev,       setEv]       = useState<any>(null)
-  const [task,     setTask]     = useState<any>(null)
-  const [taskNum,  setTaskNum]  = useState<string | null>(null)
+  const [ev,        setEv]        = useState<any>(null)
+  const [task,      setTask]      = useState<any>(null)
+  const [displayNum, setDisplayNum] = useState<string | null>(null)
+  const [taskNum,   setTaskNum]   = useState<string | null>(null)
   const [planName, setPlanName] = useState<string | null>(null)
   const [school,   setSchool]   = useState<{ name_ar: string; logo_url: string | null } | null>(null)
   const [crumbs,   setCrumbs]   = useState<CrumbEntry[]>([])
@@ -38,8 +41,20 @@ export default function EvidencePrintPage() {
 
       if (!data) { setLoading(false); return }
       setEv(data)
-      const t = data.task as any
+
+      /* مهمة السياق: للدليل المشترك نستخدم المهمة المستعيرة (?task=) ورقمها الخاص */
+      let t = data.task as any
+      let dnum: string | null = data.evidence_number
+      if (ctxTaskParam && ctxTaskParam !== t?.id) {
+        const [{ data: ctxTask }, { data: link }] = await Promise.all([
+          supabase.from('tasks').select('id, name_ar, order_num, node_id').eq('id', ctxTaskParam).single(),
+          supabase.from('evidence_links').select('evidence_number').eq('evidence_id', evidenceId).eq('task_id', ctxTaskParam).maybeSingle(),
+        ])
+        if (ctxTask) t = ctxTask
+        if (link?.evidence_number) dnum = link.evidence_number
+      }
       setTask(t)
+      setDisplayNum(dnum)
 
       if (t?.node_id) {
         const { data: node } = await supabase
@@ -111,7 +126,7 @@ export default function EvidencePrintPage() {
       }
       setLoading(false)
     })()
-  }, [evidenceId])
+  }, [evidenceId, ctxTaskParam])
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -190,7 +205,7 @@ export default function EvidencePrintPage() {
           style={{ borderColor: 'var(--maroon-600, #8a1538)', background: '#fbf2f4' }}>
           <p className="text-xs font-semibold text-slate-400 mb-2">الدليل</p>
           <p className="text-5xl font-mono font-bold tracking-wider mb-3" style={{ color: 'var(--maroon-700, #6f1029)' }}>
-            {ev.evidence_number}
+            {displayNum || ev.evidence_number}
           </p>
           <p className="text-lg font-bold text-slate-800">{ev.name}</p>
           {files.length > 1 && (
@@ -210,7 +225,7 @@ export default function EvidencePrintPage() {
             {/* ترويسة المرفق */}
             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
               <span className="font-mono text-sm font-bold text-violet-700 bg-violet-100 px-2 py-0.5 rounded-lg">
-                {ev.evidence_number}{files.length > 1 ? `.${i + 1}` : ''}
+                {(displayNum || ev.evidence_number)}{files.length > 1 ? `.${i + 1}` : ''}
               </span>
               <span className="text-sm font-semibold text-slate-700 truncate">{f.name || (isVid ? 'فيديو' : 'مرفق')}</span>
             </div>

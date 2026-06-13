@@ -190,9 +190,11 @@ export default function TaskPage() {
     /* الأدلة المشتركة (المرتبطة من مهام أخرى عبر evidence_links) — استعلام متسامح */
     const { data: links } = await supabase
       .from('evidence_links')
-      .select('evidence:evidence_id ( id, name, description, evidence_number, file_url, video_url, file_type, created_at, task_id, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) )')
+      .select('evidence_number, evidence:evidence_id ( id, name, description, evidence_number, file_url, video_url, file_type, created_at, task_id, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) )')
       .eq('task_id', taskId)
-    setLinkedEvidence((links || []).map((l: any) => l.evidence).filter(Boolean))
+    setLinkedEvidence((links || [])
+      .map((l: any) => l.evidence ? { ...l.evidence, _linkNumber: l.evidence_number } : null)
+      .filter(Boolean))
     setStatus(data.status)
 
     /* سجل تحوّلات المهمة (رفع/إعادة/اعتماد) */
@@ -536,7 +538,13 @@ export default function TaskPage() {
 
   const linkEvidence = async (evId: string) => {
     setLinkingEvId(evId)
-    const { error } = await supabase.from('evidence_links').insert({ evidence_id: evId, task_id: taskId })
+    /* رقم تسلسلي خاص بهذه المهمة (يتبع المملوكة ثم المشتركة) */
+    const { count } = await supabase.from('evidence')
+      .select('id', { count: 'exact', head: true }).eq('task_id', taskId).is('deleted_at', null)
+    const seq = (count || 0) + linkedEvidence.length + 1
+    const number = taskNum ? `${taskNum}.${seq}` : `دليل-${seq}`
+    const { error } = await supabase.from('evidence_links')
+      .insert({ evidence_id: evId, task_id: taskId, evidence_number: number })
     setLinkingEvId(null)
     if (error) { toast(error.message || 'تعذّر إرفاق الدليل', 'error'); return }
     setShowEvPicker(false); setEvSearch(''); setEvResults([])
@@ -1075,9 +1083,9 @@ export default function TaskPage() {
         {evidence.length > 0 ? (
           <div className="space-y-2">
             {(showAllEvidence ? evidence : evidence.slice(0, 3)).map((ev: any) => {
-              /* الدليل المشترك يحتفظ برقمه الأصلي؛ المملوك يتبع ترقيم هذه المهمة */
+              /* الدليل المشترك يأخذ رقمه الخاص بهذه المهمة (_linkNumber)؛ المملوك يتبع ترقيمها */
               const evNumDisplay = ev._shared
-                ? ev.evidence_number
+                ? (ev._linkNumber || ev.evidence_number)
                 : /^\d/.test(ev.evidence_number)
                   ? ev.evidence_number
                   : taskNum
@@ -1111,7 +1119,7 @@ export default function TaskPage() {
                           ✏️
                         </Link>
                       )}
-                      <a href={`/dashboard/evidence/${ev.id}/print`} target="_blank"
+                      <a href={ev._shared ? `/dashboard/evidence/${ev.id}/print?task=${taskId}` : `/dashboard/evidence/${ev.id}/print`} target="_blank"
                         className="px-2.5 py-1.5 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors">
                         🖨️
                       </a>
