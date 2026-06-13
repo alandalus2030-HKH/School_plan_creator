@@ -4,21 +4,32 @@
 
 // icon = اسم مكوّن Lucide المقابل (يُستورد حسب الحاجة)
 export const ALL_PERMISSIONS = [
-  { code: 'manage_users',          label: 'إدارة المستخدمين',      icon: 'Users'          },
-  { code: 'manage_teams',          label: 'إدارة الفرق',           icon: 'UsersRound'     },
-  { code: 'manage_plans',          label: 'إدارة الخطط والمحاور',  icon: 'ClipboardList'  },
-  { code: 'manage_tasks',          label: 'إدارة المهام',          icon: 'CircleCheckBig' },
-  { code: 'view_tasks',            label: 'عرض المهام',            icon: 'Eye'            },
-  { code: 'view_reports',          label: 'عرض التقارير',          icon: 'ChartNoAxesColumn' },
-  { code: 'view_aggregate',        label: 'عرض لوحة التجميع',      icon: 'Layers'         },
-  { code: 'view_evidence',         label: 'خزانة الأدلة',          icon: 'FolderOpen'     },
-  { code: 'manage_settings',       label: 'إدارة الإعدادات',       icon: 'Settings'       },
-  { code: 'manage_roles',          label: 'إدارة الأدوار',         icon: 'Crown'          },
-  { code: 'manage_badges',         label: 'إنشاء وإدارة الأوسمة',  icon: 'Award'          },
-  { code: 'grant_badges',          label: 'منح الأوسمة',           icon: 'Gift'           },
-  { code: 'receive_notifications', label: 'استقبال الإشعارات',     icon: 'Bell'           },
-  { code: 'rate_tasks',            label: 'تقييم المهام',          icon: 'Star'           },
-  { code: 'manage_meetings',       label: 'إدارة الاجتماعات',      icon: 'CalendarDays'   },
+  // المستخدمون والفِرق
+  { code: 'manage_users',          label: 'إدارة المستخدمين',          icon: 'Users'          },
+  { code: 'manage_teams',          label: 'إدارة الفرق',               icon: 'UsersRound'     },
+  // الخطط
+  { code: 'manage_plans',          label: 'إدارة الخطط والمحاور',      icon: 'ClipboardList'  },
+  // المهام
+  { code: 'manage_tasks',          label: 'إدارة المهام',              icon: 'CircleCheckBig' },
+  { code: 'view_tasks',            label: 'عرض المهام',                icon: 'Eye'            },
+  { code: 'rate_tasks',            label: 'تقييم جودة المهام',         icon: 'Star'           },
+  // الأدلة
+  { code: 'manage_evidence',       label: 'إضافة/تعديل/حذف الأدلة',    icon: 'Paperclip'      },
+  { code: 'review_evidence',       label: 'اعتماد/رفض الأدلة',         icon: 'BadgeCheck'     },
+  { code: 'view_evidence',         label: 'خزانة الأدلة',              icon: 'FolderOpen'     },
+  // المتابعة والتقارير
+  { code: 'view_reports',          label: 'عرض التقارير',              icon: 'ChartNoAxesColumn' },
+  { code: 'view_aggregate',        label: 'عرض لوحة التجميع',          icon: 'Layers'         },
+  // الاجتماعات
+  { code: 'manage_meetings',       label: 'إدارة الاجتماعات',          icon: 'CalendarDays'   },
+  // الأوسمة
+  { code: 'manage_badges',         label: 'إنشاء وإدارة الأوسمة',      icon: 'Award'          },
+  { code: 'grant_badges',          label: 'منح الأوسمة',               icon: 'Gift'           },
+  // النظام
+  { code: 'manage_settings',       label: 'إدارة الإعدادات',           icon: 'Settings'       },
+  { code: 'manage_roles',          label: 'إدارة الأدوار',             icon: 'Crown'          },
+  // عام
+  { code: 'receive_notifications', label: 'استقبال الإشعارات',         icon: 'Bell'           },
 ] as const
 
 export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']
@@ -26,11 +37,14 @@ export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']
 /** تجميع الصلاحيات تحت عناوين رئيسية (لتنظيم واجهة الأدوار) */
 export const PERMISSION_GROUPS: { title: string; codes: string[] }[] = [
   { title: 'المستخدمون والفِرق',   codes: ['manage_users', 'manage_teams'] },
-  { title: 'الخطط والمهام',         codes: ['manage_plans', 'manage_tasks', 'view_tasks', 'rate_tasks'] },
+  { title: 'الخطط',                 codes: ['manage_plans'] },
+  { title: 'المهام',                codes: ['manage_tasks', 'view_tasks', 'rate_tasks'] },
+  { title: 'الأدلة',                codes: ['manage_evidence', 'review_evidence', 'view_evidence'] },
+  { title: 'المتابعة والتقارير',    codes: ['view_reports', 'view_aggregate'] },
   { title: 'الاجتماعات',            codes: ['manage_meetings'] },
-  { title: 'التقارير والإشعارات',   codes: ['view_reports', 'view_aggregate', 'view_evidence', 'receive_notifications'] },
   { title: 'الأوسمة',               codes: ['manage_badges', 'grant_badges'] },
   { title: 'النظام والصلاحيات',     codes: ['manage_settings', 'manage_roles'] },
+  { title: 'عام',                   codes: ['receive_notifications'] },
 ]
 
 /** هل يملك الدور صلاحية معينة؟ */

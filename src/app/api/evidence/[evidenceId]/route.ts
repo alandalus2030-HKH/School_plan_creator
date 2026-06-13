@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   const { data: roleData } = await admin.from('roles').select('permissions').eq('code', me.role).maybeSingle()
   const perms: string[] = Array.isArray(roleData?.permissions) ? roleData!.permissions : []
   const canReview = me.is_super_admin || ADMIN_ROLES.includes(me.role)
-    || perms.includes('all') || perms.includes('manage_tasks') || perms.includes('rate_tasks')
+    || perms.includes('all') || perms.includes('review_evidence')
   if (!canReview) return NextResponse.json({ error: 'لا تملك صلاحية مراجعة الأدلة' }, { status: 403 })
 
   const { status, note } = await req.json()

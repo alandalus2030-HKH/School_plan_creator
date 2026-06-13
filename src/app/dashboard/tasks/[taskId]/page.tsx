@@ -105,6 +105,8 @@ export default function TaskPage() {
   const [confirmDel,   setConfirmDel]   = useState(false)
   const [deleting,     setDeleting]     = useState(false)
   const [canManageTasks, setCanManageTasks] = useState(false)
+  const [canManageEvidence, setCanManageEvidence] = useState(false)
+  const [canReviewEvidence, setCanReviewEvidence] = useState(false)
 
   /* ── التكليف والمقيّم ── */
   const [profiles,       setProfiles]       = useState<any[]>([])
@@ -269,12 +271,15 @@ export default function TaskPage() {
       setProfiles(profs || [])
       setTeams(tms || [])
 
-      // التحقق من صلاحية manage_tasks
+      // التحقق من الصلاحيات (المهام + الأدلة)
       if (profile?.role) {
         const { data: roleData } = await supabase
           .from('roles').select('permissions').eq('code', profile.role).single()
         const perms: string[] = roleData?.permissions || []
-        setCanManageTasks(perms.includes('all') || perms.includes('manage_tasks'))
+        const all = perms.includes('all')
+        setCanManageTasks(all || perms.includes('manage_tasks'))
+        setCanManageEvidence(all || perms.includes('manage_evidence'))
+        setCanReviewEvidence(all || perms.includes('review_evidence'))
       }
 
       await loadTask()
@@ -1052,7 +1057,7 @@ export default function TaskPage() {
             📎 الأدلة والإثباتات
             <span className="text-xs font-normal text-slate-400 mr-2">({evidence.length})</span>
           </h2>
-          {!isCompleted && (
+          {!isCompleted && canManageEvidence && (
             <div className="flex items-center gap-2">
               <button onClick={() => setShowEvPicker(v => !v)}
                 className="text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors">
@@ -1067,7 +1072,7 @@ export default function TaskPage() {
         </div>
 
         {/* أداة إرفاق دليل موجود (مشترك) */}
-        {showEvPicker && !isCompleted && (
+        {showEvPicker && !isCompleted && canManageEvidence && (
           <div className="mb-4 border border-slate-200 rounded-xl p-3 bg-slate-50/60">
             <input value={evSearch} onChange={e => searchEvidence(e.target.value)}
               placeholder="ابحث عن دليل بالاسم أو الرقم لإرفاقه..."
@@ -1129,8 +1134,8 @@ export default function TaskPage() {
                       {ev.description && <p className="text-xs text-slate-400 truncate mt-0.5">{ev.description}</p>}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      {/* اعتماد/رفض الدليل — للمقيّم/المدير على الأدلة المملوكة (مرتبط ببوابة الإنجاز) */}
-                      {canRate && !ev._shared && (
+                      {/* اعتماد/رفض الدليل — لمن يملك review_evidence على الأدلة المملوكة */}
+                      {canReviewEvidence && !ev._shared && (
                         <span className="flex items-center gap-1 ml-1">
                           <button onClick={() => setEvidenceStatus(ev.id, ev.status === 'accepted' ? 'pending' : 'accepted')}
                             title="اعتماد الدليل"
@@ -1145,7 +1150,7 @@ export default function TaskPage() {
                         </span>
                       )}
                       {/* المملوك: تعديل؛ المشترك: لا تعديل (يُحرَّر من مهمته الأصلية) */}
-                      {!isCompleted && !ev._shared && (
+                      {!isCompleted && !ev._shared && canManageEvidence && (
                         <Link href={`/dashboard/tasks/${taskId}/evidence/${ev.id}/edit`}
                           className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
                           ✏️
@@ -1156,14 +1161,14 @@ export default function TaskPage() {
                         🖨️
                       </a>
                       {/* المشترك: فك الارتباط فقط (لا يُحذف الدليل الأصلي) */}
-                      {!isCompleted && ev._shared && (
+                      {!isCompleted && ev._shared && canManageEvidence && (
                         <button onClick={() => unlinkEvidence(ev.id)}
                           className="px-2.5 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors" title="فك الارتباط">
                           🔗✕
                         </button>
                       )}
                       {/* المملوك: حذف نهائي */}
-                      {!isCompleted && !ev._shared && (
+                      {!isCompleted && !ev._shared && canManageEvidence && (
                         deletingEvId === ev.id ? (
                           <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
                         ) : confirmEvId === ev.id ? (

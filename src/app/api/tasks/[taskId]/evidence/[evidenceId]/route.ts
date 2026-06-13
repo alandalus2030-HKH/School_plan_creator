@@ -31,7 +31,7 @@ export async function DELETE(
   /* التحقق من صلاحية manage_tasks أو manage_plans أو is_super_admin */
   const { data: roleData } = await admin.from('roles').select('permissions').eq('code', me.role).maybeSingle()
   const perms: string[] = Array.isArray(roleData?.permissions) ? roleData!.permissions : []
-  const canDelete = perms.includes('all') || perms.includes('manage_tasks') || perms.includes('manage_plans')
+  const canDelete = perms.includes('all') || perms.includes('manage_evidence')
     || ADMIN_ROLES.includes(me.role) || me.is_super_admin
 
   if (!canDelete) return NextResponse.json({ error: 'لا تملك صلاحية حذف الأدلة' }, { status: 403 })

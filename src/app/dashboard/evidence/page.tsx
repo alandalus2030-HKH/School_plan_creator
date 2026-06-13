@@ -30,7 +30,7 @@ const fmtSize = (b: number) => b === 0 ? '—' : b < 1024 * 1024 ? `${(b / 1024)
 
 export default function EvidenceLockerPage() {
   const { can, isSuperAdmin } = usePermissions()
-  const canReview = isSuperAdmin || can('manage_tasks') || can('rate_tasks')
+  const canReview = isSuperAdmin || can('review_evidence')
 
   const [evidence, setEvidence] = useState<Ev[]>([])
   const [standards, setStandards] = useState<Std[]>([])
