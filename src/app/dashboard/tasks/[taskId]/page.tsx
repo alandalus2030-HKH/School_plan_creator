@@ -968,6 +968,12 @@ export default function TaskPage() {
                       {ev.description && <p className="text-xs text-slate-400 truncate mt-0.5">{ev.description}</p>}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
+                      {!isCompleted && (
+                        <Link href={`/dashboard/tasks/${taskId}/evidence/${ev.id}/edit`}
+                          className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
+                          ✏️
+                        </Link>
+                      )}
                       <a href={`/dashboard/evidence/${ev.id}/print`} target="_blank"
                         className="px-2.5 py-1.5 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors">
                         🖨️
