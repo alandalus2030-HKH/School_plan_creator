@@ -121,6 +121,9 @@ export default function TaskPage() {
   const [editingLoc,     setEditingLoc]     = useState(false)
   const [savingLoc,      setSavingLoc]      = useState(false)
   const [conflicts,      setConflicts]      = useState<ConflictResult>({ location: [], assignee: [] })
+  /* رفض الدليل مع سبب اختياري */
+  const [rejectingEvId,  setRejectingEvId]  = useState<string | null>(null)
+  const [rejectNote,     setRejectNote]     = useState('')
 
   /* ── وضع التعديل للمهمة ── */
   const [editing,      setEditing]      = useState(false)
@@ -557,12 +560,13 @@ export default function TaskPage() {
     await loadTask()
   }
 
-  /* اعتماد/رفض الدليل (للمقيّم/المدير) — عبر API محروس */
-  const setEvidenceStatus = async (evId: string, status: 'accepted' | 'rejected' | 'pending') => {
+  /* اعتماد/رفض الدليل (للمقيّم/المدير) — عبر API محروس؛ note سبب رفض اختياري */
+  const setEvidenceStatus = async (evId: string, status: 'accepted' | 'rejected' | 'pending', note?: string) => {
     const res = await fetch(`/api/evidence/${evId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, note }),
     })
     if (!res.ok) { const j = await res.json().catch(() => ({})); toast(j.error || 'تعذّر تغيير حالة الدليل', 'error'); return }
+    setRejectingEvId(null); setRejectNote('')
     await loadTask()
   }
 
@@ -1133,8 +1137,8 @@ export default function TaskPage() {
                             className={`px-2 py-1.5 text-xs rounded-lg transition-colors ${ev.status === 'accepted' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
                             ✓
                           </button>
-                          <button onClick={() => setEvidenceStatus(ev.id, ev.status === 'rejected' ? 'pending' : 'rejected')}
-                            title="رفض الدليل"
+                          <button onClick={() => ev.status === 'rejected' ? setEvidenceStatus(ev.id, 'pending') : (setRejectingEvId(ev.id), setRejectNote(''))}
+                            title={ev.status === 'rejected' ? 'إلغاء الرفض' : 'رفض الدليل'}
                             className={`px-2 py-1.5 text-xs rounded-lg transition-colors ${ev.status === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
                             ✕
                           </button>
@@ -1202,6 +1206,19 @@ export default function TaskPage() {
                       )
                     })}
                   </div>
+
+                  {/* رفض الدليل مع سبب اختياري */}
+                  {rejectingEvId === ev.id && (
+                    <div className="mt-2 flex items-center gap-2 bg-red-50/60 border border-red-100 rounded-lg p-2">
+                      <input value={rejectNote} onChange={e => setRejectNote(e.target.value)}
+                        placeholder="سبب الرفض (اختياري) — يصل لصاحب المهمة"
+                        className="flex-1 px-3 py-1.5 rounded-lg border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-300 bg-white text-sm" />
+                      <button onClick={() => setEvidenceStatus(ev.id, 'rejected', rejectNote)}
+                        className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg font-medium">تأكيد الرفض</button>
+                      <button onClick={() => { setRejectingEvId(null); setRejectNote('') }}
+                        className="px-3 py-1.5 text-xs border border-slate-200 text-slate-500 rounded-lg">إلغاء</button>
+                    </div>
+                  )}
                 </div>
               )
             })}

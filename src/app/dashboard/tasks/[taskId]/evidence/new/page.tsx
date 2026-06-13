@@ -100,16 +100,22 @@ export default function NewEvidencePage() {
   const [taskNodeId,   setTaskNodeId]   = useState<string | null>(null)
   const [taskOrderNum, setTaskOrderNum] = useState<number>(1)
 
+  /* نوع الدليل (تصنيف) + الأنواع المطلوبة للمهمة */
+  const [evidenceType,  setEvidenceType]  = useState('')
+  const [typeOptions,   setTypeOptions]   = useState<string[]>([])
+  const [requiredTypes, setRequiredTypes] = useState<string[]>([])
+
   useEffect(() => {
     ;(async () => {
-      const { data } = await supabase
-        .from('tasks')
-        .select('status, node_id, order_num')
-        .eq('id', taskId)
-        .single()
+      const [{ data }, { data: opts }] = await Promise.all([
+        supabase.from('tasks').select('status, node_id, order_num, required_evidence_types').eq('id', taskId).single(),
+        supabase.from('dropdown_options').select('value').eq('category', 'evidence_type').eq('is_active', true).order('sort_order'),
+      ])
       if (data?.status === 'completed') setTaskLocked(true)
       if (data?.node_id)   setTaskNodeId(data.node_id)
       if (data?.order_num) setTaskOrderNum(data.order_num)
+      if (Array.isArray(data?.required_evidence_types)) setRequiredTypes(data.required_evidence_types)
+      setTypeOptions((opts || []).map((o: any) => o.value))
     })()
   }, [taskId])
 
@@ -259,6 +265,7 @@ export default function NewEvidencePage() {
           file_size:       primary.file_size,
           video_url:       primary.video_url,
           evidence_number: evNum,
+          evidence_type:   evidenceType || null,
         })
         .select('id')
         .single()
@@ -497,6 +504,20 @@ export default function NewEvidencePage() {
                 placeholder="مثال: تقرير نتائج الاختبار الشهري"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800" />
             </div>
+
+            {/* نوع الدليل (تصنيف) */}
+            {typeOptions.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  نوع الدليل {requiredTypes.length > 0 && <span className="text-slate-400 font-normal text-xs">(مطلوب لهذه المهمة: {requiredTypes.join('، ')})</span>}
+                </label>
+                <select value={evidenceType} onChange={e => setEvidenceType(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800">
+                  <option value="">— بدون تصنيف —</option>
+                  {typeOptions.map(t => <option key={t} value={t}>{t}{requiredTypes.includes(t) ? ' ⭐' : ''}</option>)}
+                </select>
+              </div>
+            )}
 
             <div>
               <div className="flex items-center justify-between mb-1.5">

@@ -91,15 +91,18 @@ export async function GET() {
     }
   }
 
-  /* الارتباطات المشتركة: عدد المهام المرتبطة لكل دليل + المهام التي لها دليل مشترك */
+  /* حالة كل دليل (لاحتساب التغطية بالأدلة المعتمدة فقط) */
+  const evStatusById = new Map((evidence as any[]).map((e: any) => [e.id, e.status]))
+
+  /* الارتباطات المشتركة: عدد المهام المرتبطة + المهام التي لها دليل مشترك معتمد */
   const linkedCount: Record<string, number> = {}
-  const tasksWithLink = new Set<string>()
+  const acceptedLinkTasks = new Set<string>()
   if (taskIds.length) {
     const { data: links } = await admin.from('evidence_links')
       .select('evidence_id, task_id').in('task_id', taskIds)
     for (const l of links || []) {
       linkedCount[l.evidence_id] = (linkedCount[l.evidence_id] || 0) + 1
-      tasksWithLink.add(l.task_id)
+      if (evStatusById.get(l.evidence_id) === 'accepted') acceptedLinkTasks.add(l.task_id)
     }
   }
 
@@ -120,8 +123,12 @@ export async function GET() {
     }
   })
 
-  /* التغطية: المهام التي لها دليل (مملوك أو مشترك) مجمّعة بالمعيار */
-  const tasksWithOwned = new Set(evidence.map((e: any) => e.task_id))
+  /* التغطية: مهمة "مغطّاة" = لها دليل واحد على الأقل حالته 'accepted'
+     (مملوك أو مشترك) — الأدلة المرفوضة/قيد المراجعة لا تُحتسب تغطيةً. */
+  const acceptedOwnedTasks = new Set(
+    (evidence as any[]).filter((e: any) => e.status === 'accepted').map((e: any) => e.task_id))
+  const isCovered = (taskId: string) => acceptedOwnedTasks.has(taskId) || acceptedLinkTasks.has(taskId)
+
   const stdMap = new Map<string, any>()
   for (const t of tasks) {
     const std = standardFor(t.node_id)
@@ -136,8 +143,7 @@ export async function GET() {
     }
     const g = stdMap.get(key)
     g.total++
-    const has = tasksWithOwned.has(t.id) || tasksWithLink.has(t.id)
-    if (has) g.covered++
+    if (isCovered(t.id)) g.covered++
     else g.without.push({ id: t.id, name_ar: t.name_ar })
   }
   const standards = [...stdMap.values()].sort((a, b) => (a.code || '').localeCompare(b.code || '', 'ar'))
@@ -159,7 +165,7 @@ export async function GET() {
     else pending++
   }
   const totalTasks = tasks.length
-  const coveredTasks = tasks.filter((t: any) => tasksWithOwned.has(t.id) || tasksWithLink.has(t.id)).length
+  const coveredTasks = tasks.filter((t: any) => isCovered(t.id)).length
 
   return NextResponse.json({
     evidence: evList,

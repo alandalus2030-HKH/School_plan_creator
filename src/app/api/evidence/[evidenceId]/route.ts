@@ -33,13 +33,13 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
     || perms.includes('all') || perms.includes('manage_tasks') || perms.includes('rate_tasks')
   if (!canReview) return NextResponse.json({ error: 'لا تملك صلاحية مراجعة الأدلة' }, { status: 403 })
 
-  const { status } = await req.json()
+  const { status, note } = await req.json()
   if (!VALID.includes(status)) return NextResponse.json({ error: 'حالة غير صالحة' }, { status: 400 })
 
   /* تأكيد أن الدليل ضمن مدرسة المستخدم (الدليل → المهمة → العقدة → الخطة) */
-  const { data: ev } = await admin.from('evidence').select('id, task_id').eq('id', evidenceId).maybeSingle()
+  const { data: ev } = await admin.from('evidence').select('id, name, task_id').eq('id', evidenceId).maybeSingle()
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
-  const { data: t } = await admin.from('tasks').select('node_id').eq('id', ev.task_id).maybeSingle()
+  const { data: t } = await admin.from('tasks').select('node_id, name_ar, assigned_to_user_id').eq('id', ev.task_id).maybeSingle()
   const { data: n } = t?.node_id ? await admin.from('plan_nodes').select('plan_id').eq('id', t.node_id).maybeSingle() : { data: null }
   const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id').eq('id', n.plan_id).maybeSingle() : { data: null }
   if (!p || p.school_id !== schoolId) return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
@@ -50,6 +50,20 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
     reviewed_at: status === 'pending' ? null : new Date().toISOString(),
   }).eq('id', evidenceId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  /* إشعار صاحب المهمة عند الرفض (مع سبب اختياري) */
+  if (status === 'rejected' && t?.assigned_to_user_id && t.assigned_to_user_id !== auth.user.id) {
+    const { data: rp } = await admin.from('profiles')
+      .select('notif_enabled, notif_inapp').eq('id', t.assigned_to_user_id).maybeSingle()
+    if (!(rp?.notif_enabled === false || rp?.notif_inapp === false)) {
+      await admin.from('notifications').insert({
+        recipient_id: t.assigned_to_user_id, sender_id: auth.user.id, type: 'task_status_changed',
+        title: `↩️ رُفض دليل على مهمة: ${t.name_ar}`,
+        body: note?.trim() ? `الدليل: ${ev.name} — السبب: ${note.trim()}` : `الدليل: ${ev.name} — يُرجى مراجعته ورفع بديل إن لزم.`,
+        link: `/dashboard/tasks/${ev.task_id}`, is_read: false, send_email: false,
+      })
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

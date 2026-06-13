@@ -183,7 +183,7 @@ export default function EvidenceLockerPage() {
             </div>
             <div className="text-left">
               <p className="text-2xl font-bold text-violet-700">{stats?.coverage || 0}%</p>
-              <p className="text-xs text-slate-400">{stats?.coveredTasks || 0} / {stats?.totalTasks || 0} مهمة لها دليل</p>
+              <p className="text-xs text-slate-400">{stats?.coveredTasks || 0} / {stats?.totalTasks || 0} مهمة لها دليل معتمد</p>
             </div>
           </div>
 
@@ -209,7 +209,7 @@ export default function EvidenceLockerPage() {
                 </div>
                 {s.without.length > 0 ? (
                   <div className="p-4">
-                    <p className="text-xs font-semibold text-red-600 mb-2 flex items-center gap-1"><AlertTriangle size={13} /> مهام بلا دليل ({s.without.length}):</p>
+                    <p className="text-xs font-semibold text-red-600 mb-2 flex items-center gap-1"><AlertTriangle size={13} /> مهام بلا دليل معتمد ({s.without.length}):</p>
                     <div className="flex flex-wrap gap-2">
                       {s.without.map(t => (
                         <Link key={t.id} href={`/dashboard/tasks/${t.id}`}
@@ -220,7 +220,7 @@ export default function EvidenceLockerPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="p-4 text-xs text-emerald-600 flex items-center gap-1"><BadgeCheck size={14} /> كل المهام مغطّاة بأدلة</p>
+                  <p className="p-4 text-xs text-emerald-600 flex items-center gap-1"><BadgeCheck size={14} /> كل المهام لها دليل معتمد</p>
                 )}
               </div>
             )
