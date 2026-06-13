@@ -157,7 +157,7 @@ export default function TaskPage() {
         return_note, submitted_at, created_by,
         budget_qar, other_resources, evidence_required,
         depends_on_task_id,
-        evidence ( id, name, description, evidence_number, file_url, file_type, created_at ),
+        evidence ( id, name, description, evidence_number, file_url, video_url, file_type, created_at ),
         task_comments (
           id, content, created_at,
           profiles:author_id ( id, full_name_ar )
@@ -922,40 +922,64 @@ export default function TaskPage() {
 
         {evidence.length > 0 ? (
           <div className="space-y-2">
-            {(showAllEvidence ? evidence : evidence.slice(0, 3)).map((ev: any) => (
-              <div key={ev.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-violet-100 transition-all">
-                <span className="text-2xl flex-shrink-0">
-                  {ev.file_type?.startsWith('image') ? '🖼️' : ev.file_type === 'application/pdf' ? '📄' : '📎'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700 truncate font-latin">{ev.name}</p>
-                  {ev.description && <p className="text-xs text-slate-400 truncate">{ev.description}</p>}
-                  {ev.evidence_number && (
-                    <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full mt-1 inline-block">
-                      {/* صيغة جديدة (تبدأ برقم): مخزّنة كاملةً مثل 1.1.3.1.3.1 — تُعرض مباشرةً.
-                          صيغة قديمة (دليل-N): يُضاف رقم المهمة كبادئة للتوافق مع السجلات السابقة. */}
-                      {/^\d/.test(ev.evidence_number)
-                        ? ev.evidence_number
-                        : taskNum
-                          ? `${taskNum}.${ev.evidence_number.split('-').pop()}`
-                          : ev.evidence_number}
+            {(showAllEvidence ? evidence : evidence.slice(0, 3)).map((ev: any) => {
+              const isVideoEv = ev.file_type === 'video/youtube'
+              const evNumDisplay = /^\d/.test(ev.evidence_number)
+                ? ev.evidence_number
+                : taskNum
+                  ? `${taskNum}.${ev.evidence_number.split('-').pop()}`
+                  : ev.evidence_number
+              return (
+                <div key={ev.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                  isVideoEv ? 'border-red-100 hover:border-red-200 bg-red-50/30' : 'border-slate-100 hover:border-violet-100'
+                }`}>
+                  {/* أيقونة/صورة مصغّرة */}
+                  {isVideoEv && ev.file_url ? (
+                    <div className="relative w-14 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+                      <img src={ev.file_url} alt={ev.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <span className="text-white text-xs">▶</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-2xl flex-shrink-0">
+                      {ev.file_type?.startsWith('image') ? '🖼️' : ev.file_type === 'application/pdf' ? '📄' : '📎'}
                     </span>
                   )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-700 truncate">{ev.name}</p>
+                    {ev.description && <p className="text-xs text-slate-400 truncate">{ev.description}</p>}
+                    {ev.evidence_number && (
+                      <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full mt-1 inline-block">
+                        {evNumDisplay}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <a href={isVideoEv ? ev.video_url : ev.file_url} target="_blank" rel="noopener noreferrer"
+                      className={`px-2.5 py-1.5 text-xs rounded-lg transition-colors ${
+                        isVideoEv
+                          ? 'bg-red-50 hover:bg-red-100 text-red-600'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      }`}>
+                      {isVideoEv ? '▶ فتح' : '📥 فتح'}
+                    </a>
+                    {isVideoEv && (
+                      <a href={`/dashboard/evidence/${ev.id}/print`} target="_blank"
+                        className="px-2.5 py-1.5 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors">
+                        🖨️
+                      </a>
+                    )}
+                    {!isCompleted && (
+                      <button onClick={() => deleteEvidence(ev.id)}
+                        className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                        🗑️
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <a href={ev.file_url} target="_blank" rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
-                    📥 فتح
-                  </a>
-                  {!isCompleted && (
-                    <button onClick={() => deleteEvidence(ev.id)}
-                      className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
-                      🗑️
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
             {!showAllEvidence && evidence.length > 3 && (
               <button onClick={() => setShowAllEvidence(true)} className="text-xs text-violet-600 hover:underline">
                 عرض كل الأدلة ({evidence.length})
