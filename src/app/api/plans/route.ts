@@ -42,6 +42,9 @@ export async function POST(req: NextRequest) {
     level_count:   body.level_count ?? 3,
     level_names:   Array.isArray(body.level_names) ? body.level_names : [],
     kpi_levels:    Array.isArray(body.kpi_levels) ? body.kpi_levels : [],
+    department:    body.department?.toString().trim()    || null,
+    plan_category: body.plan_category?.toString().trim() || null,
+    owner_id:      body.owner_id || null,
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true, id: data.id })

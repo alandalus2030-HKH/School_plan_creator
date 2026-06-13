@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -88,6 +88,26 @@ export default function NewPlanPage() {
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState('')
 
+  /* ── أبعاد التجميع: قسم / نوع / مالك ── */
+  const [department,   setDepartment]   = useState('')
+  const [planCategory, setPlanCategory] = useState('')
+  const [ownerId,      setOwnerId]      = useState('')
+  const [departments,  setDepartments]  = useState<string[]>([])
+  const [planTypes,    setPlanTypes]    = useState<string[]>([])
+  const [owners,       setOwners]       = useState<any[]>([])
+
+  useEffect(() => {
+    ;(async () => {
+      const [{ data: opts }, { data: profs }] = await Promise.all([
+        supabase.from('dropdown_options').select('category, value').in('category', ['department', 'plan_type']).eq('is_active', true).order('sort_order'),
+        supabase.from('profiles').select('id, name_ar, job_title').eq('is_active', true).order('name_ar'),
+      ])
+      setDepartments((opts || []).filter((o: any) => o.category === 'department').map((o: any) => o.value))
+      setPlanTypes((opts || []).filter((o: any) => o.category === 'plan_type').map((o: any) => o.value))
+      setOwners(profs || [])
+    })()
+  }, [])
+
   /* ── تغيير عدد المستويات ── */
   const handleLevelCount = (n: number) => {
     setLevelCount(n)
@@ -142,6 +162,9 @@ export default function NewPlanPage() {
           level_count:   levelCount,
           level_names:   levelNames,
           kpi_levels:    kpiLevelsToSave,
+          department:    department   || null,
+          plan_category: planCategory || null,
+          owner_id:      ownerId      || null,
         }),
       })
       const json = await res.json()
@@ -230,6 +253,37 @@ export default function NewPlanPage() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">تاريخ الانتهاء</label>
                 <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
                   dir="ltr" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50" />
+              </div>
+            </div>
+
+            {/* أبعاد التجميع — للوحات متابعة الأقسام */}
+            <div className="border-t border-slate-100 pt-4 space-y-4">
+              <p className="text-xs font-bold text-slate-400">تصنيف الخطة (للوحات التجميع)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">القسم</label>
+                  <select value={department} onChange={e => setDepartment(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50">
+                    <option value="">— بدون قسم —</option>
+                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">نوع الخطة</label>
+                  <select value={planCategory} onChange={e => setPlanCategory(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50">
+                    <option value="">— بدون نوع —</option>
+                    {planTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">مالك الخطة (المسؤول)</label>
+                <select value={ownerId} onChange={e => setOwnerId(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50">
+                  <option value="">— بدون مالك —</option>
+                  {owners.map((o: any) => <option key={o.id} value={o.id}>{o.name_ar}{o.job_title ? ` — ${o.job_title}` : ''}</option>)}
+                </select>
               </div>
             </div>
 

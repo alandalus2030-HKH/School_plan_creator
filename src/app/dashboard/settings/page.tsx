@@ -10,7 +10,8 @@ import {
 } from 'lucide-react'
 import SchoolProfile from '@/components/SchoolProfile'
 import LocationsManager from '@/components/LocationsManager'
-import { MapPin } from 'lucide-react'
+import DeptSupervisorsManager from '@/components/DeptSupervisorsManager'
+import { MapPin, UserCog } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -21,6 +22,7 @@ const CATEGORIES = [
   { key: 'education_level', label: 'المؤهل العلمي',      Icon: GraduationCap,  desc: 'مستويات التأهيل الأكاديمي' },
   { key: 'nationality',     label: 'الجنسية',            Icon: Globe,          desc: 'قائمة الجنسيات'             },
   { key: 'marital_status',  label: 'الحالة الاجتماعية', Icon: Heart,          desc: 'الحالات الاجتماعية'         },
+  { key: 'plan_type',       label: 'نوع الخطة',          Icon: ClipboardList,  desc: 'أنواع الخطط (أنشطة، دعم، تطوير مهني...)' },
 ]
 
 type Option = { id: string; category: string; value: string; sort_order: number; is_active: boolean }
@@ -181,6 +183,7 @@ export default function SettingsPage() {
   const isNotifs = activeCat === '__notifications__'
   const isSchool = activeCat === '__school__'
   const isLocations = activeCat === '__locations__'
+  const isSupervisors = activeCat === '__supervisors__'
 
   const sendNotif = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -259,6 +262,20 @@ export default function SettingsPage() {
             </div>
           </button>
 
+          {/* إشراف الأقسام */}
+          <button
+            onClick={() => { setActiveCat('__supervisors__'); setEditId(null); setConfirmDel(null) }}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
+              ${isSupervisors
+                ? 'text-white shadow-lg'
+                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
+            style={isSupervisors ? { background: 'var(--gradient-button)' } : undefined}>
+            <UserCog size={18} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold truncate ${isSupervisors ? 'text-white' : 'text-slate-700'}`}>إشراف الأقسام</p>
+            </div>
+          </button>
+
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1 mb-3">القوائم المنسدلة</p>
 
           {CATEGORIES.map(cat => {
@@ -333,6 +350,9 @@ export default function SettingsPage() {
           ) : isLocations ? (
             /* ════ قسم الأماكن ════ */
             <LocationsManager />
+          ) : isSupervisors ? (
+            /* ════ قسم إشراف الأقسام ════ */
+            <DeptSupervisorsManager />
           ) : isNotifs ? (
             /* ════ قسم إرسال الإشعارات ════ */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

@@ -40,6 +40,26 @@ export default function PlanOverviewPage() {
   const [tasks,        setTasks]        = useState<any[]>([])
   const [loading,      setLoading]      = useState(true)
 
+  /* ── أبعاد التجميع (تصنيف الخطة) ── */
+  const [editDept,     setEditDept]     = useState('')
+  const [editCategory, setEditCategory] = useState('')
+  const [editOwner,    setEditOwner]    = useState('')
+  const [dimDepartments, setDimDepartments] = useState<string[]>([])
+  const [dimPlanTypes,   setDimPlanTypes]   = useState<string[]>([])
+  const [dimOwners,      setDimOwners]      = useState<any[]>([])
+
+  useEffect(() => {
+    ;(async () => {
+      const [{ data: opts }, { data: profs }] = await Promise.all([
+        supabase.from('dropdown_options').select('category, value').in('category', ['department', 'plan_type']).eq('is_active', true).order('sort_order'),
+        supabase.from('profiles').select('id, name_ar, job_title').eq('is_active', true).order('name_ar'),
+      ])
+      setDimDepartments((opts || []).filter((o: any) => o.category === 'department').map((o: any) => o.value))
+      setDimPlanTypes((opts || []).filter((o: any) => o.category === 'plan_type').map((o: any) => o.value))
+      setDimOwners(profs || [])
+    })()
+  }, [])
+
   /* ── إعدادات KPI ── */
   type KpiLevelConfig = {
     levelIndex: number
@@ -81,7 +101,7 @@ export default function PlanOverviewPage() {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, approved_by').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, approved_by, department, plan_category, owner_id').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
     if (!planData) { router.push('/dashboard/plans'); return }
@@ -123,6 +143,9 @@ export default function PlanOverviewPage() {
     const ln: string[] = plan.level_names || []
     setEditLevelCount(lc)
     setEditLevelNames(Array.from({ length: lc }, (_, i) => ln[i] || `المستوى ${i + 1}`))
+    setEditDept(plan.department || '')
+    setEditCategory(plan.plan_category || '')
+    setEditOwner(plan.owner_id || '')
     setEditingPlan(true)
   }
 
@@ -140,6 +163,9 @@ export default function PlanOverviewPage() {
       academic_year: editPlanYear,
       level_count: editLevelCount,
       level_names: editLevelNames,
+      department:    editDept     || null,
+      plan_category: editCategory || null,
+      owner_id:      editOwner    || null,
     }).eq('id', planId)
     setSavingPlan(false); setEditingPlan(false)
     await load()
@@ -665,6 +691,28 @@ export default function PlanOverviewPage() {
                 ))}
                 <span className="bg-green-300/30 text-green-100 text-xs px-2 py-0.5 rounded-full">✅ المهمة</span>
               </div>
+            </div>
+
+            {/* تصنيف الخطة (للوحات التجميع) */}
+            <div className="bg-white/10 rounded-xl p-4 space-y-3">
+              <p className="text-white text-sm font-bold">🗂️ تصنيف الخطة (للوحات التجميع)</p>
+              <div className="grid grid-cols-2 gap-2">
+                <select value={editDept} onChange={e => setEditDept(e.target.value)}
+                  className="px-3 py-2 rounded-lg bg-white/15 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
+                  <option value="" className="text-slate-800">— القسم —</option>
+                  {dimDepartments.map(d => <option key={d} value={d} className="text-slate-800">{d}</option>)}
+                </select>
+                <select value={editCategory} onChange={e => setEditCategory(e.target.value)}
+                  className="px-3 py-2 rounded-lg bg-white/15 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
+                  <option value="" className="text-slate-800">— نوع الخطة —</option>
+                  {dimPlanTypes.map(t => <option key={t} value={t} className="text-slate-800">{t}</option>)}
+                </select>
+              </div>
+              <select value={editOwner} onChange={e => setEditOwner(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-white/15 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
+                <option value="" className="text-slate-800">— مالك الخطة —</option>
+                {dimOwners.map((o: any) => <option key={o.id} value={o.id} className="text-slate-800">{o.name_ar}{o.job_title ? ` — ${o.job_title}` : ''}</option>)}
+              </select>
             </div>
 
             <button type="submit" disabled={savingPlan}
