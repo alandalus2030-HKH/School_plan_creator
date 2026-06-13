@@ -1134,8 +1134,8 @@ export default function TaskPage() {
                       {ev.description && <p className="text-xs text-slate-400 truncate mt-0.5">{ev.description}</p>}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      {/* اعتماد/رفض الدليل — لمن يملك review_evidence على الأدلة المملوكة */}
-                      {canReviewEvidence && !ev._shared && (
+                      {/* اعتماد/رفض الدليل — review_evidence على الأدلة المملوكة، والمهمة غير منجزة (المنجزة مقفلة) */}
+                      {canReviewEvidence && !ev._shared && !isCompleted && (
                         <span className="flex items-center gap-1 ml-1">
                           <button onClick={() => setEvidenceStatus(ev.id, ev.status === 'accepted' ? 'pending' : 'accepted')}
                             title="اعتماد الدليل"

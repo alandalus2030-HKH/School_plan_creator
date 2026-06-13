@@ -157,7 +157,9 @@ export default function EvidenceLockerPage() {
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {canReview && (
                       <select value={e.status} onChange={ev => changeStatus(e.id, ev.target.value)}
-                        className="text-xs px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400">
+                        disabled={e.task?.status === 'completed'}
+                        title={e.task?.status === 'completed' ? 'المهمة منجزة — أعد فتحها لتغيير الحالة' : ''}
+                        className="text-xs px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-50 disabled:cursor-not-allowed">
                         <option value="pending">قيد المراجعة</option>
                         <option value="accepted">معتمد</option>
                         <option value="rejected">مرفوض</option>

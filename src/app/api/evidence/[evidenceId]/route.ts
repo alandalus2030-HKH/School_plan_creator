@@ -39,10 +39,15 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   /* تأكيد أن الدليل ضمن مدرسة المستخدم (الدليل → المهمة → العقدة → الخطة) */
   const { data: ev } = await admin.from('evidence').select('id, name, task_id').eq('id', evidenceId).maybeSingle()
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
-  const { data: t } = await admin.from('tasks').select('node_id, name_ar, assigned_to_user_id').eq('id', ev.task_id).maybeSingle()
+  const { data: t } = await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id').eq('id', ev.task_id).maybeSingle()
   const { data: n } = t?.node_id ? await admin.from('plan_nodes').select('plan_id').eq('id', t.node_id).maybeSingle() : { data: null }
   const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id').eq('id', n.plan_id).maybeSingle() : { data: null }
   if (!p || p.school_id !== schoolId) return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
+
+  /* المهمة المنجزة مقفلة — لا تُغيَّر حالة أدلتها إلا بعد إعادة فتحها */
+  if (t?.status === 'completed') {
+    return NextResponse.json({ error: 'المهمة منجزة — أعد فتحها أولاً لتغيير حالة الأدلة' }, { status: 409 })
+  }
 
   const { error } = await admin.from('evidence').update({
     status,
