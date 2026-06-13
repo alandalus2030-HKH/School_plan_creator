@@ -74,7 +74,13 @@ export default function NewEvidencePage() {
   const [attachments, setAttachments] = useState<Attachment[]>([])
 
   /* النمط النشط في أداة الإضافة */
-  const [mode, setMode] = useState<'file' | 'video'>('file')
+  const [mode, setMode] = useState<'file' | 'video' | 'link'>('file')
+
+  /* وضع «إرفاق موجود» — الدليل المشترك */
+  const [linkSearch,   setLinkSearch]   = useState('')
+  const [linkResults,  setLinkResults]  = useState<any[]>([])
+  const [searchingLink, setSearchingLink] = useState(false)
+  const [linkingId,    setLinkingId]    = useState<string | null>(null)
 
   /* بيانات الدليل */
   const [name,        setName]        = useState('')
@@ -272,6 +278,30 @@ export default function NewEvidencePage() {
     }
   }
 
+  /* بحث وربط دليل موجود (مشترك) */
+  const searchExisting = async (q: string) => {
+    setLinkSearch(q)
+    if (!q.trim()) { setLinkResults([]); return }
+    setSearchingLink(true)
+    const { data } = await supabase
+      .from('evidence')
+      .select('id, name, evidence_number, task_id, file_type')
+      .neq('task_id', taskId)
+      .is('deleted_at', null)
+      .or(`name.ilike.%${q}%,evidence_number.ilike.%${q}%`)
+      .limit(20)
+    setLinkResults(data || [])
+    setSearchingLink(false)
+  }
+
+  const linkExisting = async (evId: string) => {
+    setLinkingId(evId)
+    const { error: linkErr } = await supabase.from('evidence_links').insert({ evidence_id: evId, task_id: taskId })
+    setLinkingId(null)
+    if (linkErr) { setError(linkErr.message || 'تعذّر إرفاق الدليل'); return }
+    router.push(`/dashboard/tasks/${taskId}`)
+  }
+
   const hasVideo = attachments.some(a => a.kind === 'video')
 
   return (
@@ -302,7 +332,7 @@ export default function NewEvidencePage() {
         <form onSubmit={handleSubmit} className="space-y-5">
 
           {/* ══ قائمة المرفقات المضافة ══ */}
-          {attachments.length > 0 && (
+          {mode !== 'link' && attachments.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
               <p className="text-sm font-semibold text-slate-700 mb-3">
                 المرفقات <span className="text-xs font-normal text-slate-400">({attachments.length})</span>
@@ -360,6 +390,12 @@ export default function NewEvidencePage() {
                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
                 <PlayCircle size={16} /> فيديو يوتيوب
               </button>
+              <button type="button" onClick={() => setMode('link')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors ${
+                  mode === 'link' ? 'bg-amber-50 text-amber-700 border-b-2 border-amber-500'
+                                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
+                🔗 إرفاق موجود
+              </button>
             </div>
 
             <div className="p-5">
@@ -408,10 +444,40 @@ export default function NewEvidencePage() {
                   </button>
                 </div>
               )}
+
+              {/* وضع الإرفاق (دليل مشترك) */}
+              {mode === 'link' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500">ابحث عن دليل مرفوع مسبقاً وأرفقه بهذه المهمة دون إعادة رفعه. يبقى الدليل محتفظاً برقمه ومالكه الأصلي.</p>
+                  <input value={linkSearch} onChange={e => searchExisting(e.target.value)}
+                    placeholder="ابحث بالاسم أو رقم الدليل..."
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 text-slate-800 text-sm" />
+                  {searchingLink ? (
+                    <p className="text-xs text-slate-400 px-1">جارٍ البحث...</p>
+                  ) : linkSearch && linkResults.length === 0 ? (
+                    <p className="text-xs text-slate-400 px-1">لا نتائج مطابقة</p>
+                  ) : linkResults.length > 0 ? (
+                    <div className="space-y-1.5 max-h-72 overflow-auto">
+                      {linkResults.map((r: any) => (
+                        <div key={r.id} className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                          {r.evidence_number && <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full flex-shrink-0">{r.evidence_number}</span>}
+                          <span className="text-sm text-slate-700 flex-1 truncate">{r.name}</span>
+                          <button type="button" onClick={() => linkExisting(r.id)} disabled={linkingId === r.id}
+                            className="px-3 py-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium disabled:opacity-50 flex-shrink-0">
+                            {linkingId === r.id ? '...' : '🔗 إرفاق'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">{error}</div>}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* ══ بيانات الدليل ══ */}
+          {/* ══ بيانات الدليل (تُخفى في وضع الإرفاق) ══ */}
+          {mode !== 'link' && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-5">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -453,6 +519,7 @@ export default function NewEvidencePage() {
               </button>
             </div>
           </div>
+          )}
         </form>
       )}
     </div>
