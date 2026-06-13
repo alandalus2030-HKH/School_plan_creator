@@ -19,6 +19,8 @@ const TRANSITION_LABEL: Record<string, string> = {
   not_started: 'إعادة فتح',
 }
 import Breadcrumb from '@/components/Breadcrumb'
+import ConflictWarning from '@/components/ConflictWarning'
+import { findConflicts, type ConflictResult } from '@/lib/conflicts'
 import MentionInput, { extractMentions } from '@/components/MentionInput'
 import Subtasks from '@/components/Subtasks'
 
@@ -118,6 +120,7 @@ export default function TaskPage() {
   const [selLocs,        setSelLocs]        = useState<string[]>([])
   const [editingLoc,     setEditingLoc]     = useState(false)
   const [savingLoc,      setSavingLoc]      = useState(false)
+  const [conflicts,      setConflicts]      = useState<ConflictResult>({ location: [], assignee: [] })
 
   /* ── وضع التعديل للمهمة ── */
   const [editing,      setEditing]      = useState(false)
@@ -265,6 +268,21 @@ export default function TaskPage() {
       await loadTask()
     })()
   }, [loadTask])
+
+  /* كشف التعارض (تحذير ناعم) — يُعاد حسابه عند تغيّر المهمة */
+  useEffect(() => {
+    if (!task) return
+    const locationIds = (task.task_locations || []).map((tl: any) => tl.location_id)
+    if (!task.start_date || (locationIds.length === 0 && !task.assigned_to_user_id)) {
+      setConflicts({ location: [], assignee: [] }); return
+    }
+    let cancelled = false
+    findConflicts(supabase, {
+      startDate: task.start_date, endDate: task.end_date,
+      locationIds, assigneeId: task.assigned_to_user_id, excludeTaskId: taskId,
+    }).then(r => { if (!cancelled) setConflicts(r) })
+    return () => { cancelled = true }
+  }, [task, taskId])
 
   /* المسار البنيوي للمهمة: الخطط › الخطة › المحور › ... › العقدة الأم */
   const [pathCrumbs, setPathCrumbs] = useState<{ label: string; href?: string }[]>([])
@@ -679,6 +697,9 @@ export default function TaskPage() {
               { label: task.name_ar },
             ]
       } />
+
+      {/* تحذير تعارض ناعم (مكان/موظف متداخل زمنياً) */}
+      <ConflictWarning result={conflicts} />
 
       {/* ── الشريط اللاصق — يظهر عند التمرير بعد رأس المهمة ── */}
       <div className={`sticky top-2 z-30 transition-all duration-200 ${showSticky ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>

@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createNotification } from '@/lib/notifications'
+import { findConflicts, type ConflictResult } from '@/lib/conflicts'
+import ConflictWarning from '@/components/ConflictWarning'
 
 function NewTaskForm() {
   const router       = useRouter()
@@ -42,6 +44,7 @@ function NewTaskForm() {
   const [selLocationIds,   setSelLocationIds]   = useState<string[]>([])
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState('')
+  const [conflicts,        setConflicts]        = useState<ConflictResult>({ location: [], assignee: [] })
 
   /* ════ تحميل الخطط + المستخدمين ════ */
   useEffect(() => {
@@ -121,6 +124,21 @@ function NewTaskForm() {
     // إذا هذا آخر مستوى → هو العقدة المستهدفة
     setSelectedNode(levelIdx + 1 === levelCount ? nodeId : '')
   }
+
+  /* ════ كشف التعارض الحيّ ════ */
+  useEffect(() => {
+    if (!startDate || (selLocationIds.length === 0 && !assignedUserId)) {
+      setConflicts({ location: [], assignee: [] }); return
+    }
+    let cancelled = false
+    const t = setTimeout(async () => {
+      const r = await findConflicts(supabase, {
+        startDate, endDate, locationIds: selLocationIds, assigneeId: assignedUserId,
+      })
+      if (!cancelled) setConflicts(r)
+    }, 400)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [startDate, endDate, selLocationIds, assignedUserId])
 
   /* ════ حفظ المهمة ════ */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -506,6 +524,9 @@ function NewTaskForm() {
             </div>
           )}
         </div>
+
+        {/* تحذير تعارض ناعم */}
+        <ConflictWarning result={conflicts} />
 
         {/* خطأ */}
         {error && (
