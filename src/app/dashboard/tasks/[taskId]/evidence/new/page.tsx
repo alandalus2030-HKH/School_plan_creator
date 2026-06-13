@@ -6,6 +6,45 @@ import { useRouter, useParams } from 'next/navigation'
 import { FileText, FolderOpen, Lock } from 'lucide-react'
 import Link from 'next/link'
 
+/** يحسب رقم المهمة الكامل من سلسلة العقد — نفس منطق getTaskNumber في صفحة المهمة */
+async function computeTaskNumber(
+  supabase: ReturnType<typeof createClient>,
+  nodeId: string,
+  taskOrderNum: number,
+): Promise<string | null> {
+  const { data: node } = await supabase
+    .from('plan_nodes').select('plan_id').eq('id', nodeId).single()
+  if (!node) return null
+
+  const { data: allNodes } = await supabase
+    .from('plan_nodes')
+    .select('id, parent_id, order_num, standard_code')
+    .eq('plan_id', node.plan_id)
+  if (!allNodes) return null
+
+  const chain: { id: string; order_num: number; standard_code: string | null }[] = []
+  let current = allNodes.find((n: any) => n.id === nodeId)
+  while (current) {
+    chain.unshift({ id: current.id, order_num: current.order_num, standard_code: (current as any).standard_code || null })
+    current = allNodes.find((n: any) => n.id === current!.parent_id)
+  }
+
+  let baseIdx = -1
+  for (let i = chain.length - 1; i >= 0; i--) {
+    if (chain[i].standard_code) { baseIdx = i; break }
+  }
+
+  const path: (string | number)[] = []
+  if (baseIdx >= 0) {
+    path.push(chain[baseIdx].standard_code as string)
+    for (let i = baseIdx + 1; i < chain.length; i++) path.push(chain[i].order_num)
+  } else {
+    for (const n of chain) path.push(n.order_num)
+  }
+  path.push(taskOrderNum)
+  return path.join('.')
+}
+
 export default function NewEvidencePage() {
   const router  = useRouter()
   const params  = useParams()
@@ -19,12 +58,21 @@ export default function NewEvidencePage() {
   const [error,       setError]       = useState('')
   const [preview,     setPreview]     = useState<string | null>(null)
   const [taskLocked,  setTaskLocked]  = useState(false)
+  /* بيانات المهمة اللازمة لحساب رقم الدليل */
+  const [taskNodeId,  setTaskNodeId]  = useState<string | null>(null)
+  const [taskOrderNum,setTaskOrderNum]= useState<number>(1)
 
   /* المهمة المنجزة مقفلة — لا رفع أدلة (الحارس الخادمي: RLS في الترحيل 024) */
   useEffect(() => {
     ;(async () => {
-      const { data } = await supabase.from('tasks').select('status').eq('id', taskId).single()
+      const { data } = await supabase
+        .from('tasks')
+        .select('status, node_id, order_num')
+        .eq('id', taskId)
+        .single()
       if (data?.status === 'completed') setTaskLocked(true)
+      if (data?.node_id)  setTaskNodeId(data.node_id)
+      if (data?.order_num) setTaskOrderNum(data.order_num)
     })()
   }, [taskId])
 
@@ -49,19 +97,27 @@ export default function NewEvidencePage() {
     setError('')
 
     try {
-      // Count existing evidence to generate number
+      /* عدد الأدلة الموجودة (لتحديد الرقم التسلسلي) */
       const { count } = await supabase
         .from('evidence')
         .select('id', { count: 'exact', head: true })
         .eq('task_id', taskId)
 
-      const evNum = `دليل-${(count || 0) + 1}`
+      const seq = (count || 0) + 1
 
-      // Upload file to Supabase Storage
+      /* حساب رقم المهمة الكامل لاشتقاق رقم الدليل منه */
+      let taskNum: string | null = null
+      if (taskNodeId) {
+        taskNum = await computeTaskNumber(supabase, taskNodeId, taskOrderNum)
+      }
+      /* الصيغة: 1.1.3.1.3.1 | احتياط: دليل-1 */
+      const evNum = taskNum ? `${taskNum}.${seq}` : `دليل-${seq}`
+
+      /* رفع الملف لـ Supabase Storage */
       const ext      = file.name.split('.').pop()
       const filePath = `evidence/${taskId}/${Date.now()}.${ext}`
 
-      const { data: uploadData, error: uploadError } = await supabase
+      const { error: uploadError } = await supabase
         .storage
         .from('evidence')
         .upload(filePath, file, { upsert: false })
