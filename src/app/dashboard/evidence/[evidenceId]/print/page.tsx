@@ -22,6 +22,7 @@ export default function EvidencePrintPage() {
         .from('evidence')
         .select(`
           id, name, description, evidence_number, file_url, video_url, file_type, created_at,
+          evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ),
           task:tasks (
             id, name_ar, order_num, node_id
           )
@@ -80,10 +81,12 @@ export default function EvidencePrintPage() {
   if (!ev) return <p className="text-center text-slate-400 mt-12">الدليل غير موجود</p>
 
   const task      = ev.task as any
-  const isVideo   = ev.file_type === 'video/youtube'
-  const qrUrl     = isVideo && ev.video_url
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(ev.video_url)}&margin=10`
-    : null
+  /* الملفات — من evidence_files، مع احتياط لصف الدليل القديم */
+  const files: any[] = (ev.evidence_files && ev.evidence_files.length > 0)
+    ? [...ev.evidence_files].sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
+    : [{ id: ev.id, name: ev.name, file_url: ev.file_url, file_type: ev.file_type, video_url: ev.video_url, order_num: 1 }]
+  const qrFor = (url: string) =>
+    `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}&margin=10`
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -115,31 +118,56 @@ export default function EvidencePrintPage() {
 
         <div className="p-6 space-y-6">
 
-          {/* الصورة المصغّرة + QR جنبًا لجنب */}
-          {isVideo && ev.file_url && (
-            <div className="grid grid-cols-2 gap-4 items-start">
-              {/* صورة الفيديو مع ▶ */}
-              <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 shadow-sm">
-                <img src={ev.file_url} alt={ev.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xl mr-[-2px]">▶</span>
-                  </div>
-                </div>
-              </div>
+          {/* الملفات — كل ملف ببطاقته (فيديو: صورة + QR، صورة: معاينة، غيره: أيقونة) */}
+          <div className="space-y-4">
+            {files.map((f: any, i: number) => {
+              const isVid = f.file_type === 'video/youtube'
+              const isImg = f.file_type?.startsWith('image')
+              return (
+                <div key={f.id} className="border border-slate-200 rounded-xl p-4 break-inside-avoid">
+                  {files.length > 1 && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="font-mono text-xs font-bold text-violet-700 bg-violet-100 px-2 py-0.5 rounded-lg">
+                        {ev.evidence_number}.{i + 1}
+                      </span>
+                      <span className="text-sm font-semibold text-slate-700 truncate">{f.name}</span>
+                    </div>
+                  )}
 
-              {/* QR Code */}
-              {qrUrl && (
-                <div className="flex flex-col items-center gap-2 py-2">
-                  <img src={qrUrl} alt="QR Code" className="w-36 h-36 rounded-xl border border-slate-200" />
-                  <p className="text-xs text-slate-500 text-center">امسح لمشاهدة الفيديو</p>
-                  <p className="text-[10px] text-slate-400 text-center font-latin break-all leading-relaxed">
-                    {ev.video_url}
-                  </p>
+                  {isVid && f.file_url ? (
+                    <div className="grid grid-cols-2 gap-4 items-start">
+                      <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 shadow-sm">
+                        <img src={f.file_url} alt={f.name} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xl mr-[-2px]">▶</span>
+                          </div>
+                        </div>
+                      </div>
+                      {f.video_url && (
+                        <div className="flex flex-col items-center gap-2 py-2">
+                          <img src={qrFor(f.video_url)} alt="QR Code" className="w-36 h-36 rounded-xl border border-slate-200" />
+                          <p className="text-xs text-slate-500 text-center">امسح لمشاهدة الفيديو</p>
+                          <p className="text-[10px] text-slate-400 text-center font-latin break-all leading-relaxed">{f.video_url}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : isImg ? (
+                    <img src={f.file_url} alt={f.name} className="max-h-64 mx-auto rounded-xl" />
+                  ) : (
+                    <a href={f.file_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 bg-slate-50 rounded-xl p-3 text-slate-600 print:no-underline">
+                      <span className="text-3xl">{f.file_type === 'application/pdf' ? '📄' : '📎'}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{f.name}</p>
+                        <p className="text-xs text-slate-400 font-latin break-all">{f.file_url}</p>
+                      </div>
+                    </a>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              )
+            })}
+          </div>
 
           {/* معلومات الدليل */}
           <div className="space-y-3">

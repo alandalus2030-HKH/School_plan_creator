@@ -157,7 +157,8 @@ export default function TaskPage() {
         return_note, submitted_at, created_by,
         budget_qar, other_resources, evidence_required,
         depends_on_task_id,
-        evidence ( id, name, description, evidence_number, file_url, video_url, file_type, created_at ),
+        evidence ( id, name, description, evidence_number, file_url, video_url, file_type, created_at,
+          evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) ),
         task_comments (
           id, content, created_at,
           profiles:author_id ( id, full_name_ar )
@@ -942,74 +943,77 @@ export default function TaskPage() {
         {evidence.length > 0 ? (
           <div className="space-y-2">
             {(showAllEvidence ? evidence : evidence.slice(0, 3)).map((ev: any) => {
-              const isVideoEv = ev.file_type === 'video/youtube'
               const evNumDisplay = /^\d/.test(ev.evidence_number)
                 ? ev.evidence_number
                 : taskNum
                   ? `${taskNum}.${ev.evidence_number.split('-').pop()}`
                   : ev.evidence_number
+              /* ملفات الدليل — من evidence_files، مع احتياط لصف الدليل القديم */
+              const files: any[] = (ev.evidence_files && ev.evidence_files.length > 0)
+                ? [...ev.evidence_files].sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
+                : [{ id: ev.id, name: ev.name, file_url: ev.file_url, file_type: ev.file_type, video_url: ev.video_url, order_num: 1 }]
+              const hasVideo = files.some(f => f.file_type === 'video/youtube')
               return (
-                <div key={ev.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                  isVideoEv ? 'border-red-100 hover:border-red-200 bg-red-50/30' : 'border-slate-100 hover:border-violet-100'
-                }`}>
-                  {/* أيقونة/صورة مصغّرة */}
-                  {isVideoEv && ev.file_url ? (
-                    <div className="relative w-14 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
-                      <img src={ev.file_url} alt={ev.name} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <span className="text-white text-xs">▶</span>
+                <div key={ev.id} className="p-3 rounded-xl border border-slate-100 hover:border-violet-100 transition-all">
+                  {/* رأس الدليل */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {ev.evidence_number && (
+                          <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{evNumDisplay}</span>
+                        )}
+                        <p className="text-sm font-semibold text-slate-700 truncate">{ev.name}</p>
+                        <span className="text-xs text-slate-400">📎 {files.length} {files.length === 1 ? 'ملف' : 'ملفات'}</span>
                       </div>
+                      {ev.description && <p className="text-xs text-slate-400 truncate mt-0.5">{ev.description}</p>}
                     </div>
-                  ) : (
-                    <span className="text-2xl flex-shrink-0">
-                      {ev.file_type?.startsWith('image') ? '🖼️' : ev.file_type === 'application/pdf' ? '📄' : '📎'}
-                    </span>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-700 truncate">{ev.name}</p>
-                    {ev.description && <p className="text-xs text-slate-400 truncate">{ev.description}</p>}
-                    {ev.evidence_number && (
-                      <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full mt-1 inline-block">
-                        {evNumDisplay}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <a href={isVideoEv ? ev.video_url : ev.file_url} target="_blank" rel="noopener noreferrer"
-                      className={`px-2.5 py-1.5 text-xs rounded-lg transition-colors ${
-                        isVideoEv
-                          ? 'bg-red-50 hover:bg-red-100 text-red-600'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                      }`}>
-                      {isVideoEv ? '▶ فتح' : '📥 فتح'}
-                    </a>
-                    {isVideoEv && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <a href={`/dashboard/evidence/${ev.id}/print`} target="_blank"
                         className="px-2.5 py-1.5 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors">
                         🖨️
                       </a>
-                    )}
-                    {!isCompleted && (
-                      deletingEvId === ev.id ? (
-                        <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
-                      ) : confirmEvId === ev.id ? (
-                        <span className="flex items-center gap-1">
-                          <button onClick={() => deleteEvidence(ev.id)} disabled={!!deletingEvId}
-                            className="px-2.5 py-1.5 text-xs bg-red-600 text-white rounded-lg font-medium disabled:opacity-50">
-                            تأكيد
-                          </button>
-                          <button onClick={() => setConfirmEvId(null)}
-                            className="px-2.5 py-1.5 text-xs border border-slate-200 text-slate-500 rounded-lg">
-                            إلغاء
-                          </button>
-                        </span>
-                      ) : (
-                        <button onClick={() => setConfirmEvId(ev.id)} disabled={!!deletingEvId}
-                          className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50">
-                          🗑️
-                        </button>
+                      {!isCompleted && (
+                        deletingEvId === ev.id ? (
+                          <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
+                        ) : confirmEvId === ev.id ? (
+                          <span className="flex items-center gap-1">
+                            <button onClick={() => deleteEvidence(ev.id)} disabled={!!deletingEvId}
+                              className="px-2.5 py-1.5 text-xs bg-red-600 text-white rounded-lg font-medium disabled:opacity-50">تأكيد</button>
+                            <button onClick={() => setConfirmEvId(null)}
+                              className="px-2.5 py-1.5 text-xs border border-slate-200 text-slate-500 rounded-lg">إلغاء</button>
+                          </span>
+                        ) : (
+                          <button onClick={() => setConfirmEvId(ev.id)} disabled={!!deletingEvId}
+                            className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50">🗑️</button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  {/* شبكة الملفات */}
+                  <div className="flex flex-wrap gap-2">
+                    {files.map((f: any) => {
+                      const isVid = f.file_type === 'video/youtube'
+                      return (
+                        <a key={f.id} href={isVid ? f.video_url : f.file_url} target="_blank" rel="noopener noreferrer"
+                          title={f.name}
+                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-colors max-w-[200px] ${
+                            isVid ? 'border-red-100 bg-red-50/60 hover:bg-red-100 text-red-700'
+                                  : 'border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}>
+                          {isVid && f.file_url ? (
+                            <span className="relative w-8 h-6 rounded overflow-hidden flex-shrink-0 bg-slate-200">
+                              <img src={f.file_url} alt="" className="w-full h-full object-cover" />
+                              <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-[8px]">▶</span>
+                            </span>
+                          ) : (
+                            <span className="flex-shrink-0">
+                              {f.file_type?.startsWith('image') ? '🖼️' : f.file_type === 'application/pdf' ? '📄' : '📎'}
+                            </span>
+                          )}
+                          <span className="truncate">{f.name || (isVid ? 'فيديو' : 'ملف')}</span>
+                        </a>
                       )
-                    )}
+                    })}
                   </div>
                 </div>
               )
