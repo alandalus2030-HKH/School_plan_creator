@@ -167,7 +167,7 @@ export default function TaskPage() {
         budget_qar, other_resources, evidence_required,
         depends_on_task_id,
         task_locations ( location_id, school_locations ( id, name_ar ) ),
-        evidence ( id, name, description, evidence_number, file_url, video_url, file_type, created_at,
+        evidence ( id, name, description, evidence_number, status, file_url, video_url, file_type, created_at,
           evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) ),
         task_comments (
           id, content, created_at,
@@ -190,7 +190,7 @@ export default function TaskPage() {
     /* الأدلة المشتركة (المرتبطة من مهام أخرى عبر evidence_links) — استعلام متسامح */
     const { data: links } = await supabase
       .from('evidence_links')
-      .select('evidence_number, evidence:evidence_id ( id, name, description, evidence_number, file_url, video_url, file_type, created_at, task_id, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) )')
+      .select('evidence_number, evidence:evidence_id ( id, name, description, evidence_number, status, file_url, video_url, file_type, created_at, task_id, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) )')
       .eq('task_id', taskId)
     setLinkedEvidence((links || [])
       .map((l: any) => l.evidence ? { ...l.evidence, _linkNumber: l.evidence_number } : null)
@@ -554,6 +554,15 @@ export default function TaskPage() {
   const unlinkEvidence = async (evId: string) => {
     const { error } = await supabase.from('evidence_links').delete().eq('evidence_id', evId).eq('task_id', taskId)
     if (error) { toast(error.message || 'تعذّر فك الارتباط', 'error'); return }
+    await loadTask()
+  }
+
+  /* اعتماد/رفض الدليل (للمقيّم/المدير) — عبر API محروس */
+  const setEvidenceStatus = async (evId: string, status: 'accepted' | 'rejected' | 'pending') => {
+    const res = await fetch(`/api/evidence/${evId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+    })
+    if (!res.ok) { const j = await res.json().catch(() => ({})); toast(j.error || 'تعذّر تغيير حالة الدليل', 'error'); return }
     await loadTask()
   }
 
@@ -1096,6 +1105,9 @@ export default function TaskPage() {
                 ? [...ev.evidence_files].sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
                 : [{ id: ev.id, name: ev.name, file_url: ev.file_url, file_type: ev.file_type, video_url: ev.video_url, order_num: 1 }]
               const hasVideo = files.some(f => f.file_type === 'video/youtube')
+              const stMeta = ev.status === 'accepted' ? { ar: 'معتمد', cls: 'bg-emerald-50 text-emerald-700' }
+                : ev.status === 'rejected' ? { ar: 'مرفوض', cls: 'bg-red-50 text-red-600' }
+                : { ar: 'قيد المراجعة', cls: 'bg-slate-100 text-slate-500' }
               return (
                 <div key={ev.id} className="p-3 rounded-xl border border-slate-100 hover:border-violet-100 transition-all">
                   {/* رأس الدليل */}
@@ -1108,10 +1120,26 @@ export default function TaskPage() {
                         <p className="text-sm font-semibold text-slate-700 truncate">{ev.name}</p>
                         <span className="text-xs text-slate-400">📎 {files.length} {files.length === 1 ? 'ملف' : 'ملفات'}</span>
                         {ev._shared && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1">🔗 مشترك</span>}
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full ${stMeta.cls}`}>{stMeta.ar}</span>
                       </div>
                       {ev.description && <p className="text-xs text-slate-400 truncate mt-0.5">{ev.description}</p>}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
+                      {/* اعتماد/رفض الدليل — للمقيّم/المدير على الأدلة المملوكة (مرتبط ببوابة الإنجاز) */}
+                      {canRate && !ev._shared && (
+                        <span className="flex items-center gap-1 ml-1">
+                          <button onClick={() => setEvidenceStatus(ev.id, ev.status === 'accepted' ? 'pending' : 'accepted')}
+                            title="اعتماد الدليل"
+                            className={`px-2 py-1.5 text-xs rounded-lg transition-colors ${ev.status === 'accepted' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
+                            ✓
+                          </button>
+                          <button onClick={() => setEvidenceStatus(ev.id, ev.status === 'rejected' ? 'pending' : 'rejected')}
+                            title="رفض الدليل"
+                            className={`px-2 py-1.5 text-xs rounded-lg transition-colors ${ev.status === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
+                            ✕
+                          </button>
+                        </span>
+                      )}
                       {/* المملوك: تعديل؛ المشترك: لا تعديل (يُحرَّر من مهمته الأصلية) */}
                       {!isCompleted && !ev._shared && (
                         <Link href={`/dashboard/tasks/${taskId}/evidence/${ev.id}/edit`}
