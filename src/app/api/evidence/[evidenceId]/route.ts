@@ -8,7 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
  */
 
 const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
-const VALID = ['uploaded', 'approved', 'rejected']
+const VALID = ['pending', 'accepted', 'rejected']
 
 async function getContext(userId: string) {
   const admin = createAdminClient()
@@ -46,8 +46,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
 
   const { error } = await admin.from('evidence').update({
     status,
-    reviewed_by: status === 'uploaded' ? null : auth.user.id,
-    reviewed_at: status === 'uploaded' ? null : new Date().toISOString(),
+    reviewed_by: status === 'pending' ? null : auth.user.id,
+    reviewed_at: status === 'pending' ? null : new Date().toISOString(),
   }).eq('id', evidenceId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

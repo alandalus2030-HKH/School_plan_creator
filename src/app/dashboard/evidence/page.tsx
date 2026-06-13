@@ -17,9 +17,9 @@ type Ev = {
 type Std = { code: string | null; name: string; plan: string; department: string | null; total: number; covered: number; without: { id: string; name_ar: string }[] }
 
 const STATUS_META: Record<string, { ar: string; cls: string }> = {
-  uploaded: { ar: 'مرفوع', cls: 'bg-slate-100 text-slate-600' },
-  approved: { ar: 'معتمد', cls: 'bg-emerald-50 text-emerald-700' },
-  rejected: { ar: 'مرفوض', cls: 'bg-red-50 text-red-600' },
+  pending:  { ar: 'قيد المراجعة', cls: 'bg-slate-100 text-slate-600' },
+  accepted: { ar: 'معتمد',        cls: 'bg-emerald-50 text-emerald-700' },
+  rejected: { ar: 'مرفوض',        cls: 'bg-red-50 text-red-600' },
 }
 const typeOf = (ft: string | null) =>
   ft === 'video/youtube' ? 'video' : ft?.startsWith('image') ? 'image'
@@ -98,7 +98,7 @@ export default function EvidenceLockerPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Stat label="الأدلة" value={stats.total} />
           <Stat label="التغطية" value={`${stats.coverage}%`} tone="text-violet-700" />
-          <Stat label="معتمدة" value={stats.approved} tone="text-emerald-700" />
+          <Stat label="معتمدة" value={stats.accepted} tone="text-emerald-700" />
           <Stat label="مشتركة" value={stats.shared} />
           <Stat label="الحجم" value={fmtSize(stats.totalSize)} />
         </div>
@@ -122,7 +122,7 @@ export default function EvidenceLockerPage() {
             <Select value={fType} onChange={setFType} placeholder="كل الأنواع" options={Object.keys(TYPE_LABEL).map(k => ({ v: k, l: TYPE_LABEL[k] }))} />
             {departments.length > 0 && <Select value={fDept} onChange={setFDept} placeholder="كل الأقسام" options={departments.map(d => ({ v: d, l: d }))} />}
             {stdOptions.length > 0 && <Select value={fStd} onChange={setFStd} placeholder="كل المعايير" options={stdOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
-            <Select value={fStatus} onChange={setFStatus} placeholder="كل الحالات" options={[{ v: 'uploaded', l: 'مرفوع' }, { v: 'approved', l: 'معتمد' }, { v: 'rejected', l: 'مرفوض' }]} />
+            <Select value={fStatus} onChange={setFStatus} placeholder="كل الحالات" options={[{ v: 'pending', l: 'قيد المراجعة' }, { v: 'accepted', l: 'معتمد' }, { v: 'rejected', l: 'مرفوض' }]} />
             <button onClick={() => setSharedOnly(v => !v)}
               className={`px-3 py-2 rounded-xl text-sm border transition-colors ${sharedOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
               🔗 المشتركة فقط
@@ -158,8 +158,8 @@ export default function EvidenceLockerPage() {
                     {canReview && (
                       <select value={e.status} onChange={ev => changeStatus(e.id, ev.target.value)}
                         className="text-xs px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400">
-                        <option value="uploaded">مرفوع</option>
-                        <option value="approved">معتمد</option>
+                        <option value="pending">قيد المراجعة</option>
+                        <option value="accepted">معتمد</option>
                         <option value="rejected">مرفوض</option>
                       </select>
                     )}

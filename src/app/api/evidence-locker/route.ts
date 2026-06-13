@@ -144,7 +144,7 @@ export async function GET() {
 
   /* إحصاءات */
   const byType: Record<string, number> = {}
-  let totalSize = 0, shared = 0, approved = 0, uploaded = 0, rejected = 0
+  let totalSize = 0, shared = 0, accepted = 0, pending = 0, rejected = 0
   for (const e of evList) {
     const cat = e.file_type === 'video/youtube' ? 'video'
       : e.file_type?.startsWith('image') ? 'image'
@@ -154,9 +154,9 @@ export async function GET() {
     byType[cat] = (byType[cat] || 0) + 1
     totalSize += e.size
     if (e.linkedCount > 0) shared++
-    if (e.status === 'approved') approved++
+    if (e.status === 'accepted') accepted++
     else if (e.status === 'rejected') rejected++
-    else uploaded++
+    else pending++
   }
   const totalTasks = tasks.length
   const coveredTasks = tasks.filter((t: any) => tasksWithOwned.has(t.id) || tasksWithLink.has(t.id)).length
@@ -165,7 +165,7 @@ export async function GET() {
     evidence: evList,
     standards,
     stats: {
-      total: evList.length, byType, totalSize, shared, approved, uploaded, rejected,
+      total: evList.length, byType, totalSize, shared, accepted, pending, rejected,
       totalTasks, coveredTasks,
       coverage: totalTasks > 0 ? Math.round((coveredTasks / totalTasks) * 100) : 0,
     },
@@ -173,5 +173,5 @@ export async function GET() {
 }
 
 function emptyStats() {
-  return { total: 0, byType: {}, totalSize: 0, shared: 0, approved: 0, uploaded: 0, rejected: 0, totalTasks: 0, coveredTasks: 0, coverage: 0 }
+  return { total: 0, byType: {}, totalSize: 0, shared: 0, accepted: 0, pending: 0, rejected: 0, totalTasks: 0, coveredTasks: 0, coverage: 0 }
 }
