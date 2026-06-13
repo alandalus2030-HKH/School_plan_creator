@@ -278,10 +278,10 @@ export default function NewPlanPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">مالك الخطة (المسؤول)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">صاحب الخطة (المسؤول)</label>
                 <select value={ownerId} onChange={e => setOwnerId(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50">
-                  <option value="">— بدون مالك —</option>
+                  <option value="">— بدون صاحب —</option>
                   {owners.map((o: any) => <option key={o.id} value={o.id}>{o.name_ar}{o.job_title ? ` — ${o.job_title}` : ''}</option>)}
                 </select>
               </div>

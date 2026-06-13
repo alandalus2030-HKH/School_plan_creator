@@ -710,7 +710,7 @@ export default function PlanOverviewPage() {
               </div>
               <select value={editOwner} onChange={e => setEditOwner(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-white/15 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
-                <option value="" className="text-slate-800">— مالك الخطة —</option>
+                <option value="" className="text-slate-800">— صاحب الخطة —</option>
                 {dimOwners.map((o: any) => <option key={o.id} value={o.id} className="text-slate-800">{o.name_ar}{o.job_title ? ` — ${o.job_title}` : ''}</option>)}
               </select>
             </div>

@@ -10,6 +10,7 @@ export const ALL_PERMISSIONS = [
   { code: 'manage_tasks',          label: 'إدارة المهام',          icon: 'CircleCheckBig' },
   { code: 'view_tasks',            label: 'عرض المهام',            icon: 'Eye'            },
   { code: 'view_reports',          label: 'عرض التقارير',          icon: 'ChartNoAxesColumn' },
+  { code: 'view_aggregate',        label: 'عرض لوحة التجميع',      icon: 'Layers'         },
   { code: 'manage_settings',       label: 'إدارة الإعدادات',       icon: 'Settings'       },
   { code: 'manage_roles',          label: 'إدارة الأدوار',         icon: 'Crown'          },
   { code: 'manage_badges',         label: 'إنشاء وإدارة الأوسمة',  icon: 'Award'          },
@@ -26,7 +27,7 @@ export const PERMISSION_GROUPS: { title: string; codes: string[] }[] = [
   { title: 'المستخدمون والفِرق',   codes: ['manage_users', 'manage_teams'] },
   { title: 'الخطط والمهام',         codes: ['manage_plans', 'manage_tasks', 'view_tasks', 'rate_tasks'] },
   { title: 'الاجتماعات',            codes: ['manage_meetings'] },
-  { title: 'التقارير والإشعارات',   codes: ['view_reports', 'receive_notifications'] },
+  { title: 'التقارير والإشعارات',   codes: ['view_reports', 'view_aggregate', 'receive_notifications'] },
   { title: 'الأوسمة',               codes: ['manage_badges', 'grant_badges'] },
   { title: 'النظام والصلاحيات',     codes: ['manage_settings', 'manage_roles'] },
 ]
