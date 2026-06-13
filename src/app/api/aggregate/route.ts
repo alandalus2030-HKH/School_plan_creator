@@ -77,7 +77,7 @@ export async function GET() {
   const taskToPlan = new Map<string, string>()
   if (nodeIds.length > 0) {
     const { data: tasks } = await admin.from('tasks')
-      .select('id, node_id, status, end_date, rating')
+      .select('id, node_id, name_ar, status, end_date, rating')
       .in('node_id', nodeIds)
     for (const t of tasks || []) {
       const pid = nodeToPlan.get(t.node_id)
@@ -114,12 +114,15 @@ export async function GET() {
     const total = ts.length
     let completed = 0, inProgress = 0, notStarted = 0, overdue = 0
     let ratingSum = 0, ratingCount = 0
+    const tasks: any[] = []
     for (const t of ts) {
       if (t.status === 'completed') completed++
       else if (t.status === 'in_progress') inProgress++
       else notStarted++
-      if (t.status !== 'completed' && t.end_date && t.end_date < today) overdue++
+      const isOverdue = t.status !== 'completed' && !!t.end_date && t.end_date < today
+      if (isOverdue) overdue++
       if (t.rating) { ratingSum += t.rating; ratingCount++ }
+      tasks.push({ id: t.id, name_ar: t.name_ar, status: t.status, end_date: t.end_date, overdue: isOverdue })
     }
     return {
       id: p.id, name_ar: p.name_ar,
@@ -128,6 +131,7 @@ export async function GET() {
       owner_id: p.owner_id || null,
       owner_name: p.owner_id ? (owners[p.owner_id] || null) : null,
       approved_at: p.approved_at || null,
+      tasks,
       metrics: {
         total, completed, inProgress, notStarted, overdue,
         progress: total > 0 ? Math.round((completed / total) * 100) : 0,
