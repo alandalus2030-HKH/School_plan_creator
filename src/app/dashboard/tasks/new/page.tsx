@@ -484,6 +484,19 @@ function NewTaskForm() {
                   </div>
                 ) : (
                   <>
+                    {/* مصدر القائمة واضح: أعضاء القسم (افتراضي) أو كل المستخدمين — لا التباس */}
+                    {planDept && (
+                      <div className="flex items-center gap-2 mb-2 text-xs flex-wrap">
+                        <button type="button" onClick={() => { setDeptOnly(true); setAssignedUserId('') }}
+                          className={`px-3 py-1.5 rounded-lg border transition-colors ${deptOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                          أعضاء قسم «{planDept}» ({profiles.filter((p: any) => p.department === planDept).length})
+                        </button>
+                        <button type="button" onClick={() => { setDeptOnly(false); setAssignedUserId('') }}
+                          className={`px-3 py-1.5 rounded-lg border transition-colors ${!deptOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                          كل مستخدمي المدرسة
+                        </button>
+                      </div>
+                    )}
                     <select value={assignedUserId} onChange={e => setAssignedUserId(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
                       <option value="">— بدون تكليف محدد —</option>
@@ -493,11 +506,8 @@ function NewTaskForm() {
                         </option>
                       ))}
                     </select>
-                    {planDept && (
-                      <label className="flex items-center gap-2 mt-2 text-xs text-slate-500 cursor-pointer">
-                        <input type="checkbox" checked={deptOnly} onChange={e => setDeptOnly(e.target.checked)} className="accent-violet-600" />
-                        حصر المكلَّفين بأعضاء قسم «{planDept}»
-                      </label>
+                    {deptOnly && planDept && people.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1.5">لا أعضاء في قسم «{planDept}» — اضممهم من الإعدادات ← أعضاء الأقسام، أو اختر «كل مستخدمي المدرسة».</p>
                     )}
                     {assignedUserId && (
                       <p className="text-xs text-violet-600 mt-1.5 flex items-center gap-1">
