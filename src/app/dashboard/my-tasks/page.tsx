@@ -77,7 +77,7 @@ export default function MyTasksPage() {
 
       /* ── جلب بيانات المستخدم ── */
       const { data: profile } = await supabase
-        .from('profiles').select('full_name_ar, name_ar, department').eq('id', user.id).single()
+        .from('profiles').select('full_name_ar, name_ar, department, role, is_super_admin').eq('id', user.id).single()
       setUserName(profile?.full_name_ar || profile?.name_ar || '')
       const myDept = profile?.department || null
       setUserDept(myDept)
@@ -136,6 +136,22 @@ export default function MyTasksPage() {
         ;(deptTasks || []).forEach(t => {
           if (!allTasks.find(x => x.id === t.id))
             allTasks.push({ ...t, _source: 'department' })
+        })
+      }
+
+      /* المهام المرفوعة للتقييم بدون مقيّم → تظهر لمشرفي المدرسة فقط */
+      const ADMIN_ROLES_LOCAL = ['super_admin', 'school_admin', 'admin']
+      const isAdminUser = profile?.is_super_admin || ADMIN_ROLES_LOCAL.includes(profile?.role || '')
+      if (isAdminUser) {
+        const { data: noReviewerTasks } = await supabase
+          .from('tasks')
+          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at')
+          .eq('status', 'submitted')
+          .is('reviewer_id', null)
+          .order('end_date', { ascending: true, nullsFirst: false })
+        ;(noReviewerTasks || []).forEach(t => {
+          if (!allTasks.find(x => x.id === t.id))
+            allTasks.push({ ...t, _source: 'reviewer' })
         })
       }
 

@@ -164,11 +164,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     if (task.status !== 'submitted') return NextResponse.json({ error: 'المهمة ليست مرفوعة للتقييم' }, { status: 400 })
     const rating = parseInt(body.rating, 10)
     if (!(rating >= 1 && rating <= 5)) return NextResponse.json({ error: 'التقييم مطلوب (1-5)' }, { status: 400 })
+    const ev = await evidenceByType()
     if (requiredTypes.length > 0) {
-      const ev = await evidenceByType()
       const accepted = new Set(ev.filter((e: any) => e.status === 'accepted').map((e: any) => e.evidence_type))
       const notAccepted = requiredTypes.filter(t => !accepted.has(t))
       if (notAccepted.length) return NextResponse.json({ error: `لا يمكن الاعتماد قبل قبول أدلة الأنواع: ${notAccepted.join('، ')}` }, { status: 400 })
+    }
+    /* حجب الاعتماد إن كانت كل الأدلة مرفوضة ولا يوجد مقبول واحد */
+    if (ev.length > 0 && ev.every((e: any) => e.status === 'rejected')) {
+      return NextResponse.json({ error: 'لا يمكن اعتماد المهمة — جميع الأدلة مرفوضة. اقبل دليلاً أو أعِد المهمة للتعديل.' }, { status: 400 })
     }
     return logAndRespond('completed',
       { rating, rating_note: body.note?.toString().trim() || null, rated_at: new Date().toISOString(), reviewer_id: task.reviewer_id || userId },
