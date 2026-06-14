@@ -55,7 +55,8 @@ export async function GET() {
   let plans = (allPlans || []).filter((p: any) => !p.is_archived)
   if (allowedDepts !== null) {
     const set = new Set(allowedDepts)
-    plans = plans.filter((p: any) => p.department && set.has(p.department))
+    /* العزل: أقسام المستخدم المُسندة/قسمه — أو الخطط التي يملكها (الملكية بُعد عزل) */
+    plans = plans.filter((p: any) => (p.department && set.has(p.department)) || p.owner_id === auth.user.id)
   }
 
   if (plans.length === 0) {

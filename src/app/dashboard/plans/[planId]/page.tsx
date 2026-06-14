@@ -11,6 +11,7 @@ import { ClipboardList, AlertTriangle, Target, TrendingUp, Package, BarChart3, S
 import { generateQnsaReport } from '@/lib/qnsaReport'
 import StandardPicker from '@/components/StandardPicker'
 import { usePermissions } from '@/lib/PermissionsContext'
+import { createNotification } from '@/lib/notifications'
 
 /* خريطة أيقونات KPI */
 const KPI_ICON_MAP: Record<string, React.ElementType> = {
@@ -33,7 +34,7 @@ export default function PlanOverviewPage() {
   const planId   = params.planId as string
   const router   = useRouter()
   const supabase = createClient()
-  const { isSuperAdmin } = usePermissions()
+  const { isSuperAdmin, userId } = usePermissions()
 
   const [plan,         setPlan]         = useState<any>(null)
   const [nodes,        setNodes]        = useState<any[]>([])
@@ -158,6 +159,7 @@ export default function PlanOverviewPage() {
     e.preventDefault()
     if (!editPlanName.trim()) return
     setSavingPlan(true)
+    const prevOwner = plan.owner_id || ''
     await supabase.from('plans').update({
       name_ar: editPlanName.trim(),
       academic_year: editPlanYear,
@@ -167,6 +169,17 @@ export default function PlanOverviewPage() {
       plan_category: editCategory || null,
       owner_id:      editOwner    || null,
     }).eq('id', planId)
+
+    /* إشعار صاحب الخطة الجديد عند تغييره */
+    if (editOwner && editOwner !== prevOwner && editOwner !== userId) {
+      await createNotification({
+        recipientId: editOwner, senderId: userId, type: 'task_status_changed',
+        title: `📋 أصبحت صاحب خطة: ${editPlanName.trim()}`,
+        body: 'تم تعيينك مسؤولاً عن هذه الخطة — تابعها من لوحة التجميع.',
+        link: `/dashboard/plans/${planId}`,
+      })
+    }
+
     setSavingPlan(false); setEditingPlan(false)
     await load()
   }

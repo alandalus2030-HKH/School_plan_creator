@@ -47,5 +47,20 @@ export async function POST(req: NextRequest) {
     owner_id:      body.owner_id || null,
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  /* إشعار صاحب الخطة عند تعيينه (إن اختلف عن المُنشئ واحترام تفضيلاته) */
+  const ownerId = body.owner_id || null
+  if (ownerId && ownerId !== auth.user.id) {
+    const { data: op } = await ctx.admin.from('profiles').select('notif_enabled, notif_inapp').eq('id', ownerId).maybeSingle()
+    if (!(op?.notif_enabled === false || op?.notif_inapp === false)) {
+      await ctx.admin.from('notifications').insert({
+        recipient_id: ownerId, sender_id: auth.user.id, type: 'task_status_changed',
+        title: `📋 أصبحت صاحب خطة: ${name_ar}`,
+        body: 'تم تعيينك مسؤولاً عن هذه الخطة — تابعها من لوحة التجميع.',
+        link: `/dashboard/plans/${data.id}`, is_read: false, send_email: false,
+      })
+    }
+  }
+
   return NextResponse.json({ ok: true, id: data.id })
 }
