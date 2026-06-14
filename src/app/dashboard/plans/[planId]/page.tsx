@@ -7,8 +7,9 @@ import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
 import { ClipboardList, AlertTriangle, Target, TrendingUp, Package, BarChart3, Star,
-  Settings, Pencil, Trash2, Award, BadgeCheck, ShieldOff } from 'lucide-react'
+  Settings, Pencil, Trash2, Award, BadgeCheck, ShieldOff, Bell } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
+import { toast } from '@/components/Toast'
 import StandardPicker from '@/components/StandardPicker'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createNotification } from '@/lib/notifications'
@@ -34,7 +35,7 @@ export default function PlanOverviewPage() {
   const planId   = params.planId as string
   const router   = useRouter()
   const supabase = createClient()
-  const { isSuperAdmin, userId } = usePermissions()
+  const { isSuperAdmin, userId, can } = usePermissions()
 
   const [plan,         setPlan]         = useState<any>(null)
   const [nodes,        setNodes]        = useState<any[]>([])
@@ -99,6 +100,17 @@ export default function PlanOverviewPage() {
   const [confirmDelPlan, setConfirmDelPlan] = useState(false)
   const [deletingPlan, setDeletingPlan] = useState(false)
   const [certifying, setCertifying] = useState(false)
+  const [notifyingOwner, setNotifyingOwner] = useState(false)
+
+  /* تنبيه صاحب الخطة (مساءلة) — عبر API محروس */
+  const notifyOwner = async () => {
+    setNotifyingOwner(true)
+    const res = await fetch(`/api/plans/${planId}/notify-owner`, { method: 'POST' })
+    const j = await res.json().catch(() => ({}))
+    setNotifyingOwner(false)
+    if (!res.ok) { toast(j.error || 'تعذّر إرسال التنبيه', 'error'); return }
+    toast('تم تنبيه صاحب الخطة')
+  }
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
@@ -600,6 +612,14 @@ export default function PlanOverviewPage() {
                       {plan.approved_at ? <ShieldOff size={14} /> : <BadgeCheck size={14} />}
                     </span>
                     <span>{plan.approved_at ? 'إلغاء الاعتماد' : 'اعتماد الخطة'}</span>
+                  </button>
+                )}
+                {/* تنبيه صاحب الخطة — لمن يملك إدارة الخطط/التجميع، إن وُجد صاحب غير المستخدم */}
+                {plan.owner_id && plan.owner_id !== userId && (isSuperAdmin || can('manage_plans') || can('view_aggregate')) && (
+                  <button onClick={notifyOwner} disabled={notifyingOwner}
+                    className="flex items-center gap-1.5 bg-amber-400/25 hover:bg-amber-400/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+                    title="تنبيه صاحب الخطة">
+                    <Bell size={14} /> {notifyingOwner ? 'جارٍ...' : 'تنبيه صاحب الخطة'}
                   </button>
                 )}
                 <button onClick={openEditPlan}
