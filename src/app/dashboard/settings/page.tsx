@@ -11,7 +11,8 @@ import {
 import SchoolProfile from '@/components/SchoolProfile'
 import LocationsManager from '@/components/LocationsManager'
 import DeptSupervisorsManager from '@/components/DeptSupervisorsManager'
-import { MapPin, UserCog } from 'lucide-react'
+import DeptMembersManager from '@/components/DeptMembersManager'
+import { MapPin, UserCog, BookOpen as BookOpenIcon } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -184,6 +185,7 @@ export default function SettingsPage() {
   const isSchool = activeCat === '__school__'
   const isLocations = activeCat === '__locations__'
   const isSupervisors = activeCat === '__supervisors__'
+  const isDeptMembers = activeCat === '__dept_members__'
 
   const sendNotif = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -276,6 +278,20 @@ export default function SettingsPage() {
             </div>
           </button>
 
+          {/* أعضاء الأقسام */}
+          <button
+            onClick={() => { setActiveCat('__dept_members__'); setEditId(null); setConfirmDel(null) }}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
+              ${isDeptMembers
+                ? 'text-white shadow-lg'
+                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
+            style={isDeptMembers ? { background: 'var(--gradient-button)' } : undefined}>
+            <BookOpenIcon size={18} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold truncate ${isDeptMembers ? 'text-white' : 'text-slate-700'}`}>أعضاء الأقسام</p>
+            </div>
+          </button>
+
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1 mb-3">القوائم المنسدلة</p>
 
           {CATEGORIES.map(cat => {
@@ -353,6 +369,9 @@ export default function SettingsPage() {
           ) : isSupervisors ? (
             /* ════ قسم إشراف الأقسام ════ */
             <DeptSupervisorsManager />
+          ) : isDeptMembers ? (
+            /* ════ أعضاء الأقسام ════ */
+            <DeptMembersManager />
           ) : isNotifs ? (
             /* ════ قسم إرسال الإشعارات ════ */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
