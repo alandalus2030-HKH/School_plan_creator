@@ -58,6 +58,27 @@ export async function GET() {
     }
     return null
   }
+
+  /* مستويات المعيار الثلاثة لعقدة: الرئيس (1) · الجانب (1.1) · الفرعي (1.1.3)
+     الأرقام من بادئة كود المعيار، والأسماء من عقد السلسلة المقابلة. */
+  type Std = { code: string; name: string }
+  const standardLevels = (nodeId: string): { main: Std | null; aspect: Std | null; sub: Std | null } => {
+    const chain: any[] = []
+    let cur: any = nodeById.get(nodeId)
+    while (cur) { chain.unshift(cur); cur = cur.parent_id ? nodeById.get(cur.parent_id) : null }
+    let baseIdx = -1
+    for (let i = chain.length - 1; i >= 0; i--) { if (chain[i].standard_code) { baseIdx = i; break } }
+    if (baseIdx < 0) return { main: null, aspect: null, sub: null }
+    const code  = chain[baseIdx].standard_code as string
+    const parts = code.split('.')
+    const sub: Std = { code, name: chain[baseIdx].name_ar }
+    const aligned = parts.length === baseIdx + 1   // كل مستوى عقدة يقابل جزءاً من الكود
+    const main: Std | null = parts.length >= 1
+      ? { code: parts[0], name: aligned ? (chain[0]?.name_ar || parts[0]) : parts[0] } : null
+    const aspect: Std | null = parts.length >= 2
+      ? { code: parts.slice(0, 2).join('.'), name: aligned ? (chain[1]?.name_ar || parts.slice(0, 2).join('.')) : parts.slice(0, 2).join('.') } : null
+    return { main, aspect, sub }
+  }
   const planOfNode = (nodeId: string): any => {
     const n: any = nodeById.get(nodeId)
     return n ? planById.get(n.plan_id) : null
@@ -106,10 +127,10 @@ export async function GET() {
     }
   }
 
-  /* بناء قائمة الأدلة بسياق المعيار/الخطة */
+  /* بناء قائمة الأدلة بسياق المعيار/الخطة (بمستويات المعيار الثلاثة) */
   const evList = evidence.map((e: any) => {
     const t = taskById.get(e.task_id)
-    const std = t ? standardFor(t.node_id) : null
+    const lvl = t ? standardLevels(t.node_id) : { main: null, aspect: null, sub: null }
     const plan = t ? planOfNode(t.node_id) : null
     return {
       id: e.id, name: e.name, number: e.evidence_number,
@@ -119,7 +140,9 @@ export async function GET() {
       linkedCount: linkedCount[e.id] || 0,
       task: t ? { id: t.id, name_ar: t.name_ar, status: t.status } : null,
       plan: plan ? { name_ar: plan.name_ar, department: plan.department, category: plan.plan_category } : null,
-      standard: std,
+      standard: lvl.sub,
+      standardMain: lvl.main,
+      standardAspect: lvl.aspect,
     }
   })
 

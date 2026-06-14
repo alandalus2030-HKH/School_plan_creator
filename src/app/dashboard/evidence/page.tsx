@@ -13,6 +13,8 @@ type Ev = {
   task: { id: string; name_ar: string; status: string } | null
   plan: { name_ar: string; department: string | null; category: string | null } | null
   standard: { code: string; name: string } | null
+  standardMain: { code: string; name: string } | null
+  standardAspect: { code: string; name: string } | null
 }
 type Std = { code: string | null; name: string; plan: string; department: string | null; total: number; covered: number; without: { id: string; name_ar: string }[] }
 
@@ -43,6 +45,8 @@ export default function EvidenceLockerPage() {
   const [search, setSearch] = useState('')
   const [fType, setFType] = useState('')
   const [fDept, setFDept] = useState('')
+  const [fMain, setFMain] = useState('')
+  const [fAspect, setFAspect] = useState('')
   const [fStd, setFStd] = useState('')
   const [fStatus, setFStatus] = useState('')
   const [sharedOnly, setSharedOnly] = useState(false)
@@ -57,17 +61,27 @@ export default function EvidenceLockerPage() {
   useEffect(() => { load() }, [])
 
   const departments = useMemo(() => [...new Set(evidence.map(e => e.plan?.department).filter(Boolean))].sort() as string[], [evidence])
-  const stdOptions  = useMemo(() => [...new Map(evidence.filter(e => e.standard).map(e => [e.standard!.code, e.standard!])).values()], [evidence])
+
+  /* خيارات المعيار الثلاثة (متدرّجة: الجانب يتبع الرئيس، والفرعي يتبع الجانب) */
+  const uniq = (arr: ({ code: string; name: string } | null)[]) =>
+    [...new Map(arr.filter(Boolean).map(s => [s!.code, s!])).values()].sort((a, b) => a.code.localeCompare(b.code, 'ar'))
+  const mainOptions   = useMemo(() => uniq(evidence.map(e => e.standardMain)), [evidence])
+  const aspectOptions = useMemo(() => uniq(evidence.filter(e => !fMain || e.standardMain?.code === fMain).map(e => e.standardAspect)), [evidence, fMain])
+  const subOptions    = useMemo(() => uniq(evidence
+    .filter(e => (!fMain || e.standardMain?.code === fMain) && (!fAspect || e.standardAspect?.code === fAspect))
+    .map(e => e.standard)), [evidence, fMain, fAspect])
 
   const shown = useMemo(() => evidence.filter(e => {
     if (search && !(`${e.name} ${e.number}`.toLowerCase().includes(search.toLowerCase()))) return false
     if (fType && typeOf(e.file_type) !== fType) return false
     if (fDept && e.plan?.department !== fDept) return false
+    if (fMain && e.standardMain?.code !== fMain) return false
+    if (fAspect && e.standardAspect?.code !== fAspect) return false
     if (fStd && e.standard?.code !== fStd) return false
     if (fStatus && e.status !== fStatus) return false
     if (sharedOnly && e.linkedCount === 0) return false
     return true
-  }), [evidence, search, fType, fDept, fStd, fStatus, sharedOnly])
+  }), [evidence, search, fType, fDept, fMain, fAspect, fStd, fStatus, sharedOnly])
 
   const changeStatus = async (id: string, status: string) => {
     const res = await fetch(`/api/evidence/${id}`, {
@@ -121,7 +135,9 @@ export default function EvidenceLockerPage() {
             </div>
             <Select value={fType} onChange={setFType} placeholder="كل الأنواع" options={Object.keys(TYPE_LABEL).map(k => ({ v: k, l: TYPE_LABEL[k] }))} />
             {departments.length > 0 && <Select value={fDept} onChange={setFDept} placeholder="كل الأقسام" options={departments.map(d => ({ v: d, l: d }))} />}
-            {stdOptions.length > 0 && <Select value={fStd} onChange={setFStd} placeholder="كل المعايير" options={stdOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
+            {mainOptions.length > 0 && <Select value={fMain} onChange={v => { setFMain(v); setFAspect(''); setFStd('') }} placeholder="المعيار الرئيس" options={mainOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
+            {aspectOptions.length > 0 && <Select value={fAspect} onChange={v => { setFAspect(v); setFStd('') }} placeholder="الجانب" options={aspectOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
+            {subOptions.length > 0 && <Select value={fStd} onChange={setFStd} placeholder="المعيار الفرعي" options={subOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
             <Select value={fStatus} onChange={setFStatus} placeholder="كل الحالات" options={[{ v: 'pending', l: 'قيد المراجعة' }, { v: 'accepted', l: 'معتمد' }, { v: 'rejected', l: 'مرفوض' }]} />
             <button onClick={() => setSharedOnly(v => !v)}
               className={`px-3 py-2 rounded-xl text-sm border transition-colors ${sharedOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
