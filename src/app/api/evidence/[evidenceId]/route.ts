@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   /* تأكيد أن الدليل ضمن مدرسة المستخدم (الدليل → المهمة → العقدة → الخطة) */
   const { data: ev } = await admin.from('evidence').select('id, name, task_id').eq('id', evidenceId).maybeSingle()
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
-  const { data: t } = await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id').eq('id', ev.task_id).maybeSingle()
+  const { data: t } = await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id, assigned_to_department').eq('id', ev.task_id).maybeSingle()
   const { data: n } = t?.node_id ? await admin.from('plan_nodes').select('plan_id').eq('id', t.node_id).maybeSingle() : { data: null }
   const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id, owner_id').eq('id', n.plan_id).maybeSingle() : { data: null }
   if (!p || p.school_id !== schoolId) return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
@@ -56,32 +56,38 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   }).eq('id', evidenceId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  /* إشعار صاحب المهمة عند الرفض (مع سبب اختياري) */
-  if (status === 'rejected' && t?.assigned_to_user_id && t.assigned_to_user_id !== auth.user.id) {
-    const { data: rp } = await admin.from('profiles')
-      .select('notif_enabled, notif_inapp').eq('id', t.assigned_to_user_id).maybeSingle()
-    if (!(rp?.notif_enabled === false || rp?.notif_inapp === false)) {
-      await admin.from('notifications').insert({
-        recipient_id: t.assigned_to_user_id, sender_id: auth.user.id, type: 'task_status_changed',
-        title: `↩️ رُفض دليل على مهمة: ${t.name_ar}`,
-        body: note?.trim() ? `الدليل: ${ev.name} — السبب: ${note.trim()}` : `الدليل: ${ev.name} — يُرجى مراجعته ورفع بديل إن لزم.`,
-        link: `/dashboard/tasks/${ev.task_id}`, is_read: false, send_email: false,
-      })
-    }
+  /* إشعارات الرفض (مع سبب اختياري) — تشمل المكلَّف الفردي أو أعضاء القسم + صاحب الخطة */
+  if (status === 'rejected') {
+    const sender = auth.user.id
+    const detail = `الدليل: ${ev.name}${note?.trim() ? ` — السبب: ${note.trim()}` : ''}`
+    const recipients = new Set<string>()
 
-    /* إشعار صاحب الخطة أيضاً (إن اختلف عن المكلّف والمراجع) */
+    /* مستقبِلو الرفض: المكلَّف الفردي، أو كل أعضاء القسم المُكلَّف */
+    if (t?.assigned_to_user_id) {
+      recipients.add(t.assigned_to_user_id)
+    } else if (t?.assigned_to_department) {
+      const { data: members } = await admin.from('profiles')
+        .select('id').eq('department', t.assigned_to_department).eq('is_active', true)
+      ;(members || []).forEach((m: any) => recipients.add(m.id))
+    }
+    /* صاحب الخطة أيضاً */
     const ownerId = (p as any)?.owner_id as string | null
-    if (ownerId && ownerId !== auth.user.id && ownerId !== t.assigned_to_user_id) {
-      const { data: op } = await admin.from('profiles')
-        .select('notif_enabled, notif_inapp').eq('id', ownerId).maybeSingle()
-      if (!(op?.notif_enabled === false || op?.notif_inapp === false)) {
-        await admin.from('notifications').insert({
-          recipient_id: ownerId, sender_id: auth.user.id, type: 'task_status_changed',
-          title: `↩️ رُفض دليل في خطتك — مهمة: ${t.name_ar}`,
-          body: `الدليل: ${ev.name}${note?.trim() ? ` — السبب: ${note.trim()}` : ''}`,
-          link: `/dashboard/tasks/${ev.task_id}`, is_read: false, send_email: false,
-        })
-      }
+    if (ownerId) recipients.add(ownerId)
+
+    recipients.delete(sender)   // لا تُشعر من رفض
+
+    if (recipients.size > 0) {
+      const ids = [...recipients]
+      const { data: prefs } = await admin.from('profiles')
+        .select('id, notif_enabled, notif_inapp').in('id', ids)
+      const allowed = new Set((prefs || [])
+        .filter((p: any) => p.notif_enabled !== false && p.notif_inapp !== false).map((p: any) => p.id))
+      const rows = ids.filter(id => allowed.has(id)).map(id => ({
+        recipient_id: id, sender_id: sender, type: 'task_status_changed',
+        title: `↩️ رُفض دليل على مهمة: ${t?.name_ar || ''}`,
+        body: detail, link: `/dashboard/tasks/${ev.task_id}`, is_read: false, send_email: false,
+      }))
+      if (rows.length > 0) await admin.from('notifications').insert(rows)
     }
   }
 
