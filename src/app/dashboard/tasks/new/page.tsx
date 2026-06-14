@@ -37,6 +37,8 @@ function NewTaskForm() {
   const [evidenceRequired, setEvidenceRequired] = useState('')
   const [assignedUserId,   setAssignedUserId]   = useState('')
   const [reviewerId,       setReviewerId]       = useState('')
+  const [assignMode,       setAssignMode]       = useState<'person' | 'department'>('person')
+  const [deptOnly,         setDeptOnly]         = useState(true)   // حصر المكلَّفين بأعضاء قسم الخطة
   const [dependsOnTaskId,  setDependsOnTaskId]  = useState('')
   const [profiles,         setProfiles]         = useState<any[]>([])
   const [planTasksList,    setPlanTasksList]     = useState<any[]>([])
@@ -49,8 +51,8 @@ function NewTaskForm() {
   /* ════ تحميل الخطط + المستخدمين ════ */
   useEffect(() => {
     Promise.all([
-      supabase.from('plans').select('id,name_ar,academic_year,level_count,level_names').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id,name_ar,job_title').eq('is_active', true).order('name_ar'),
+      supabase.from('plans').select('id,name_ar,academic_year,level_count,level_names,department').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id,name_ar,job_title,department').eq('is_active', true).order('name_ar'),
     ]).then(([{ data: plansData }, { data: profsData }]) => {
       setPlans(plansData || [])
       setProfiles(profsData || [])
@@ -166,7 +168,8 @@ function NewTaskForm() {
         budget_qar:            budgetQar ? Number(budgetQar) : null,
         other_resources:       otherResources.trim()   || null,
         evidence_required:     evidenceRequired.trim() || null,
-        assigned_to_user_id:   assignedUserId  || null,
+        assigned_to_user_id:   assignMode === 'person' ? (assignedUserId || null) : null,
+        assigned_to_department: assignMode === 'department' ? ((plans.find((p: any) => p.id === selPlanId) as any)?.department || null) : null,
         reviewer_id:           reviewerId      || null,
         depends_on_task_id:    dependsOnTaskId || null,
       }).select('id').single()
@@ -449,27 +452,64 @@ function NewTaskForm() {
           </div>
 
           {/* المكلَّف بالمهمة */}
-          <div className="pt-1 border-t border-slate-100">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              👤 المكلَّف بالتنفيذ
-              <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — يمكن تعيينه لاحقاً)</span>
-            </label>
-            <select value={assignedUserId} onChange={e => setAssignedUserId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
-              <option value="">— بدون تكليف محدد —</option>
-              {profiles.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name_ar}{p.job_title ? ` — ${p.job_title}` : ''}
-                </option>
-              ))}
-            </select>
-            {assignedUserId && (
-              <p className="text-xs text-violet-600 mt-1.5 flex items-center gap-1">
-                <span>📬</span>
-                <span>سيصل للمكلَّف إشعار فور إنشاء المهمة</span>
-              </p>
-            )}
-          </div>
+          {(() => {
+            const planDept = (plans.find((p: any) => p.id === selPlanId) as any)?.department || null
+            const people = (deptOnly && planDept)
+              ? profiles.filter((p: any) => p.department === planDept)
+              : profiles
+            return (
+              <div className="pt-1 border-t border-slate-100">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  👤 المكلَّف بالتنفيذ
+                  <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — يمكن تعيينه لاحقاً)</span>
+                </label>
+
+                {/* وضع التكليف: فرد / القسم كله — يظهر إن كان للخطة قسم */}
+                {planDept && (
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <button type="button" onClick={() => setAssignMode('person')}
+                      className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${assignMode === 'person' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                      فرد
+                    </button>
+                    <button type="button" onClick={() => setAssignMode('department')}
+                      className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${assignMode === 'department' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                      القسم كله ({planDept})
+                    </button>
+                  </div>
+                )}
+
+                {assignMode === 'department' ? (
+                  <div className="bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 text-sm text-violet-700">
+                    📋 ستُكلَّف بهذه المهمة كل أعضاء قسم <strong>{planDept}</strong> — أي عضو يستطيع تنفيذها.
+                  </div>
+                ) : (
+                  <>
+                    <select value={assignedUserId} onChange={e => setAssignedUserId(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
+                      <option value="">— بدون تكليف محدد —</option>
+                      {people.map((p: any) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name_ar}{p.job_title ? ` — ${p.job_title}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {planDept && (
+                      <label className="flex items-center gap-2 mt-2 text-xs text-slate-500 cursor-pointer">
+                        <input type="checkbox" checked={deptOnly} onChange={e => setDeptOnly(e.target.checked)} className="accent-violet-600" />
+                        حصر المكلَّفين بأعضاء قسم «{planDept}»
+                      </label>
+                    )}
+                    {assignedUserId && (
+                      <p className="text-xs text-violet-600 mt-1.5 flex items-center gap-1">
+                        <span>📬</span>
+                        <span>سيصل للمكلَّف إشعار فور إنشاء المهمة</span>
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          })()}
 
           {/* المقيّم */}
           <div className="pt-1 border-t border-slate-100">

@@ -62,16 +62,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
   /* ── تحميل المهمة + التحقق من المدرسة ── */
   const { data: task } = await admin
     .from('tasks')
-    .select('id, status, name_ar, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, required_evidence_types, deleted_at')
+    .select('id, status, name_ar, node_id, assigned_to_user_id, assigned_to_team_id, assigned_to_department, reviewer_id, required_evidence_types, deleted_at')
     .eq('id', taskId).maybeSingle()
   if (!task || task.deleted_at) return NextResponse.json({ error: 'المهمة غير موجودة' }, { status: 404 })
 
   let taskSchool: string | null = null
+  let planDept: string | null = null
   if (task.node_id) {
     const { data: node } = await admin.from('plan_nodes').select('plan_id').eq('id', task.node_id).maybeSingle()
     if (node?.plan_id) {
-      const { data: plan } = await admin.from('plans').select('school_id').eq('id', node.plan_id).maybeSingle()
+      const { data: plan } = await admin.from('plans').select('school_id, department').eq('id', node.plan_id).maybeSingle()
       taskSchool = plan?.school_id ?? null
+      planDept = plan?.department ?? null
     }
   }
   if (taskSchool && taskSchool !== ctx.schoolId) {
@@ -85,7 +87,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
       .eq('team_id', task.assigned_to_team_id).eq('profile_id', userId).maybeSingle()
     isAssignee = !!tm
   }
-  const canReview = (task.reviewer_id === userId) || await hasReviewPerm(admin, ctx.me.role, ctx.me.is_super_admin)
+  if (!isAssignee && task.assigned_to_department) {
+    /* مهمة مُكلَّف بها القسم كله → أي عضو في القسم منفّذ */
+    const { data: prof } = await admin.from('profiles').select('department').eq('id', userId).maybeSingle()
+    isAssignee = !!prof && prof.department === task.assigned_to_department
+  }
+  let canReview = (task.reviewer_id === userId) || await hasReviewPerm(admin, ctx.me.role, ctx.me.is_super_admin)
+  /* رئيس القسم (مشرف قسم خطة المهمة) مقيّم افتراضي لمهام قسمه */
+  if (!canReview && planDept) {
+    const { data: sup } = await admin.from('department_supervisors').select('id')
+      .eq('user_id', userId).eq('department', planDept).maybeSingle()
+    canReview = !!sup
+  }
 
   const requiredTypes: string[] = Array.isArray(task.required_evidence_types) ? task.required_evidence_types : []
 

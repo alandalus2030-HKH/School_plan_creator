@@ -11,6 +11,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 const EDITABLE = [
   'name_ar', 'name_en', 'description', 'task_type', 'priority',
   'start_date', 'end_date', 'assigned_to_user_id', 'assigned_to_team_id',
+  'assigned_to_department',
   'reviewer_id', 'depends_on_task_id', 'budget_qar', 'other_resources',
   'evidence_required', 'required_evidence_types',
 ] as const

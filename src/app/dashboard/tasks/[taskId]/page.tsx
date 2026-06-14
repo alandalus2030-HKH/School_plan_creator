@@ -113,6 +113,8 @@ export default function TaskPage() {
   const [teams,          setTeams]          = useState<any[]>([])
   const [assignUserId,   setAssignUserId]   = useState('')
   const [assignTeamId,   setAssignTeamId]   = useState('')
+  const [assignDept,     setAssignDept]     = useState('')
+  const [deptOptions,    setDeptOptions]    = useState<string[]>([])
   const [assignReviewer, setAssignReviewer] = useState('')
   const [savingAssign,   setSavingAssign]   = useState(false)
   const [showAssign,     setShowAssign]     = useState(false)
@@ -166,7 +168,7 @@ export default function TaskPage() {
       .select(`
         id, name_ar, description, task_type, status, priority,
         start_date, end_date, order_num, node_id,
-        assigned_to_user_id, assigned_to_team_id,
+        assigned_to_user_id, assigned_to_team_id, assigned_to_department,
         reviewer_id, rating, rating_note, rated_at,
         return_note, submitted_at, created_by,
         budget_qar, other_resources, evidence_required,
@@ -212,6 +214,7 @@ export default function TaskPage() {
 
     setAssignUserId(data.assigned_to_user_id || '')
     setAssignTeamId(data.assigned_to_team_id  || '')
+    setAssignDept(data.assigned_to_department || '')
     setAssignReviewer(data.reviewer_id || '')
     setRatingValue(data.rating || null)
     setRatingNote(data.rating_note || '')
@@ -262,14 +265,16 @@ export default function TaskPage() {
       if (!user) { router.push('/login'); return }
       setUserId(user.id)
 
-      const [{ data: profile }, { data: profs }, { data: tms }] = await Promise.all([
+      const [{ data: profile }, { data: profs }, { data: tms }, { data: deptOpts }] = await Promise.all([
         supabase.from('profiles').select('full_name_ar, role').eq('id', user.id).single(),
-        supabase.from('profiles').select('id, name_ar, job_title').eq('is_active', true).order('name_ar'),
+        supabase.from('profiles').select('id, name_ar, job_title, department').eq('is_active', true).order('name_ar'),
         supabase.from('teams').select('id, name_ar, color, leader_id'),
+        supabase.from('dropdown_options').select('value').eq('category', 'department').eq('is_active', true).order('sort_order'),
       ])
       setUserName(profile?.full_name_ar || 'أنت')
       setProfiles(profs || [])
       setTeams(tms || [])
+      setDeptOptions((deptOpts || []).map((o: any) => o.value))
 
       // التحقق من الصلاحيات (المهام + الأدلة)
       if (profile?.role) {
@@ -611,6 +616,7 @@ export default function TaskPage() {
       body: JSON.stringify({
         assigned_to_user_id: assignUserId   || null,
         assigned_to_team_id: assignTeamId   || null,
+        assigned_to_department: assignDept   || null,
         reviewer_id:         assignReviewer || null,
       }),
     })
@@ -1588,6 +1594,17 @@ export default function TaskPage() {
               ) : null
             })()}
 
+            {/* القسم المكلَّف (كل أعضائه) */}
+            {task.assigned_to_department && (
+              <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2">
+                <span className="text-lg">🏷️</span>
+                <div>
+                  <p className="text-sm font-semibold text-violet-800">{task.assigned_to_department}</p>
+                  <p className="text-xs text-violet-500">قسم مكلَّف — كل الأعضاء</p>
+                </div>
+              </div>
+            )}
+
             {/* المقيّم */}
             {reviewerProfile ? (
               <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
@@ -1628,6 +1645,14 @@ export default function TaskPage() {
                     </option>
                   )
                 })}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">القسم المكلَّف (كل أعضائه)</label>
+              <select value={assignDept} onChange={e => setAssignDept(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-sm">
+                <option value="">— بدون تكليف قسم —</option>
+                {deptOptions.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <div>
