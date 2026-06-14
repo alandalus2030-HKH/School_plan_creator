@@ -51,7 +51,7 @@ type Task = {
   rating: number | null
   rated_at: string | null
   /* مصدر ظهور المهمة للمستخدم */
-  _source?: 'assigned' | 'team' | 'reviewer'
+  _source?: 'assigned' | 'team' | 'reviewer' | 'department'
 }
 
 export default function MyTasksPage() {
@@ -65,7 +65,8 @@ export default function MyTasksPage() {
   const [plans,     setPlans]     = useState<Pick<Plan, 'id' | 'name_ar'>[]>([])
   const [teams,     setTeams]     = useState<Pick<Team, 'id' | 'name_ar' | 'color' | 'leader_id'>[]>([])
   const [loading,   setLoading]   = useState(true)
-  const [activeTab, setActiveTab] = useState<'assigned' | 'team' | 'reviewer'>('assigned')
+  const [activeTab, setActiveTab] = useState<'assigned' | 'team' | 'reviewer' | 'department'>('assigned')
+  const [userDept,  setUserDept]  = useState<string | null>(null)
   const [savingId,  setSavingId]  = useState<string | null>(null)
 
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function MyTasksPage() {
         .from('profiles').select('full_name_ar, name_ar, department').eq('id', user.id).single()
       setUserName(profile?.full_name_ar || profile?.name_ar || '')
       const myDept = profile?.department || null
+      setUserDept(myDept)
 
       /* ── الفرق التي ينتمي إليها (كقائد أو عضو) ── */
       const { data: teamsData } = await supabase
@@ -133,7 +135,7 @@ export default function MyTasksPage() {
           .order('end_date', { ascending: true, nullsFirst: false })
         ;(deptTasks || []).forEach(t => {
           if (!allTasks.find(x => x.id === t.id))
-            allTasks.push({ ...t, _source: 'assigned' })
+            allTasks.push({ ...t, _source: 'department' })
         })
       }
 
@@ -190,24 +192,29 @@ export default function MyTasksPage() {
   const myTasks      = tasks.filter(t => t._source === 'assigned')
   const teamTasks    = tasks.filter(t => t._source === 'team')
   const reviewTasks  = tasks.filter(t => t._source === 'reviewer')
+  const deptTasks    = tasks.filter(t => t._source === 'department')
 
-  const done    = myTasks.filter(t => t.status === 'completed').length
-  const overdue = myTasks.filter(t =>
+  /* البطاقات العلوية = مهامي المباشرة + مهام قسمي (كلها مهام يؤدّيها المستخدم) */
+  const mineAll = [...myTasks, ...deptTasks]
+  const done    = mineAll.filter(t => t.status === 'completed').length
+  const overdue = mineAll.filter(t =>
     t.status !== 'completed' && t.end_date && new Date(t.end_date) < new Date()
   ).length
   const toReview = reviewTasks.filter(t => t.rating == null).length
-  const inProgress = myTasks.filter(t => t.status === 'in_progress').length
+  const inProgress = mineAll.filter(t => t.status === 'in_progress').length
 
   /* ── تبويبات ── */
   const TABS = [
     { key: 'assigned' as const, label: 'مهامي المباشرة', Icon: UserRound,  count: myTasks.length,     color: 'violet' },
+    ...(userDept ? [{ key: 'department' as const, label: `مهام قسمي · ${userDept}`, Icon: BookOpen, count: deptTasks.length, color: 'violet' }] : []),
     { key: 'team'     as const, label: 'مهام فريقي',      Icon: Users,      count: teamTasks.length,   color: 'blue'   },
     { key: 'reviewer' as const, label: 'أقيّمها',          Icon: Search,     count: reviewTasks.length, color: 'amber'  },
   ]
 
   const currentTasks =
-    activeTab === 'assigned' ? myTasks :
-    activeTab === 'team'     ? teamTasks :
+    activeTab === 'assigned'   ? myTasks :
+    activeTab === 'department'  ? deptTasks :
+    activeTab === 'team'       ? teamTasks :
     reviewTasks
 
   if (loading) return (
@@ -239,7 +246,7 @@ export default function MyTasksPage() {
       {/* ══ بطاقات الإحصائيات ══ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'إجمالي مهامي', value: myTasks.length, Icon: ClipboardList,  bg: 'linear-gradient(135deg,#5a0d22,#8a1538)', fg: '#fff',     iconFg: 'rgba(255,255,255,0.8)' },
+          { label: 'إجمالي مهامي', value: mineAll.length, Icon: ClipboardList,  bg: 'linear-gradient(135deg,#5a0d22,#8a1538)', fg: '#fff',     iconFg: 'rgba(255,255,255,0.8)' },
           { label: 'جارية',         value: inProgress,     Icon: Zap,            bg: '#f4dde2',                                  fg: '#8a1538',  iconFg: '#c25c74' },
           { label: 'منجزة',         value: done,           Icon: CheckCircle2,   bg: '#fbf2f4',                                  fg: '#8a1538',  iconFg: '#d98ea0' },
           { label: 'متأخرة',        value: overdue,        Icon: AlertTriangle,  bg: '#f4dde2',                                  fg: '#6f1029',  iconFg: '#a83356' },
