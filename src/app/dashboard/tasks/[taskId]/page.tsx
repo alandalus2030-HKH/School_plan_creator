@@ -102,6 +102,7 @@ export default function TaskPage() {
   const [sendingCmt,   setSendingCmt]   = useState(false)
   const [userId,       setUserId]       = useState('')
   const [userName,     setUserName]     = useState('')
+  const [myDept,       setMyDept]       = useState<string | null>(null)
   const [confirmDel,   setConfirmDel]   = useState(false)
   const [deleting,     setDeleting]     = useState(false)
   const [canManageTasks, setCanManageTasks] = useState(false)
@@ -266,12 +267,13 @@ export default function TaskPage() {
       setUserId(user.id)
 
       const [{ data: profile }, { data: profs }, { data: tms }, { data: deptOpts }] = await Promise.all([
-        supabase.from('profiles').select('full_name_ar, role').eq('id', user.id).single(),
+        supabase.from('profiles').select('full_name_ar, role, department').eq('id', user.id).single(),
         supabase.from('profiles').select('id, name_ar, job_title, department').eq('is_active', true).order('name_ar'),
         supabase.from('teams').select('id, name_ar, color, leader_id'),
         supabase.from('dropdown_options').select('value').eq('category', 'department').eq('is_active', true).order('sort_order'),
       ])
       setUserName(profile?.full_name_ar || 'أنت')
+      setMyDept(profile?.department || null)
       setProfiles(profs || [])
       setTeams(tms || [])
       setDeptOptions((deptOpts || []).map((o: any) => o.value))
@@ -740,7 +742,10 @@ export default function TaskPage() {
 
   /* المهمة المنجزة مقفلة: لا تعديلات (عدا التعليقات) إلا بعد إعادة فتحها */
   const isCompleted    = status === 'completed'
-  const canAskReopen   = task.assigned_to_user_id === userId || task.reviewer_id === userId
+  /* المكلَّف = مباشرةً، أو عضو في القسم المُكلَّف (تكليف القسم كله) */
+  const isAssignee     = task.assigned_to_user_id === userId
+    || (!!task.assigned_to_department && task.assigned_to_department === myDept)
+  const canAskReopen   = isAssignee || task.reviewer_id === userId
 
   // صلاحية التقييم: المقيّم المعيّن أو أصحاب manage_tasks
   const canRate = canManageTasks || (task.reviewer_id && task.reviewer_id === userId)
@@ -761,7 +766,7 @@ export default function TaskPage() {
       ? { label: 'طلب إعادة فتح', run: () => { setShowRequest(true); scrollToHeader() } } :
     status === 'submitted' && canRate
       ? { label: 'تقييم المهمة', run: () => document.getElementById('rating-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) } :
-    task.assigned_to_user_id === userId && ['not_started', 'in_progress', 'returned'].includes(status)
+    isAssignee && ['not_started', 'in_progress', 'returned'].includes(status)
       ? { label: 'إجراءات المهمة', run: scrollToHeader } :
     null
 
@@ -935,8 +940,8 @@ export default function TaskPage() {
             </div>
           )}
 
-          {/* أزرار المكلّف */}
-          {task.assigned_to_user_id === userId && status !== 'submitted' && status !== 'completed' && (
+          {/* أزرار المكلّف (مباشر أو عضو القسم المُكلَّف) */}
+          {isAssignee && status !== 'submitted' && status !== 'completed' && (
             <div className="flex flex-wrap gap-2">
               {(status === 'not_started' || status === 'returned') && (
                 <button onClick={() => doTransition('start')} disabled={transitioning}
