@@ -148,6 +148,11 @@ function NewTaskForm() {
     if (!selPlanId)    { setError('يرجى اختيار الخطة'); return }
     if (!selectedNode) { setError(`يرجى إكمال الاختيار حتى مستوى "${levelNames[levelCount - 1] || 'الأخير'}"`); return }
     if (!nameAr.trim()) { setError('اسم المهمة مطلوب'); return }
+    /* حارس: «القسم كله» يتطلب أن يكون للخطة قسم (يمنع حفظ تكليف فارغ صامتاً) */
+    const deptForAssign = (plans.find((p: any) => p.id === selPlanId) as any)?.department || null
+    if (assignMode === 'department' && !deptForAssign) {
+      setError('الخطة بلا قسم — صنّفها بقسم أولاً أو اختر تكليف فرد'); return
+    }
     setLoading(true); setError('')
 
     try {
@@ -169,7 +174,7 @@ function NewTaskForm() {
         other_resources:       otherResources.trim()   || null,
         evidence_required:     evidenceRequired.trim() || null,
         assigned_to_user_id:   assignMode === 'person' ? (assignedUserId || null) : null,
-        assigned_to_department: assignMode === 'department' ? ((plans.find((p: any) => p.id === selPlanId) as any)?.department || null) : null,
+        assigned_to_department: assignMode === 'department' ? deptForAssign : null,
         reviewer_id:           reviewerId      || null,
         depends_on_task_id:    dependsOnTaskId || null,
       }).select('id').single()
@@ -197,19 +202,16 @@ function NewTaskForm() {
       }
 
       /* تكليف القسم كله → إشعار كل أعضاء القسم (عدا المُنشئ) */
-      if (assignMode === 'department') {
-        const planDept = (plans.find((p: any) => p.id === selPlanId) as any)?.department || null
-        if (planDept) {
-          const members = profiles.filter((p: any) => p.department === planDept && p.id !== user?.id)
-          await Promise.all(members.map((m: any) => createNotification({
-            recipientId: m.id,
-            senderId:    user?.id,
-            type:        'task_assigned',
-            title:       `📋 مهمة جديدة لقسم ${planDept}: ${nameAr.trim()}`,
-            body:        description.trim() || undefined,
-            link:        `/dashboard/tasks/${task.id}`,
-          })))
-        }
+      if (assignMode === 'department' && deptForAssign) {
+        const members = profiles.filter((p: any) => p.department === deptForAssign && p.id !== user?.id)
+        await Promise.all(members.map((m: any) => createNotification({
+          recipientId: m.id,
+          senderId:    user?.id,
+          type:        'task_assigned',
+          title:       `📋 مهمة جديدة لقسم ${deptForAssign}: ${nameAr.trim()}`,
+          body:        description.trim() || undefined,
+          link:        `/dashboard/tasks/${task.id}`,
+        })))
       }
 
       /* إشعار المقيّم إذا تم تعيينه */

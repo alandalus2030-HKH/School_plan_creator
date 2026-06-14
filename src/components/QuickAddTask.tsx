@@ -39,11 +39,12 @@ export default function QuickAddTask() {
   const [nodeId,   setNodeId]   = useState('')
   const [endDate,  setEndDate]  = useState('')
   const [assignee, setAssignee] = useState('')
+  const [assignToDept, setAssignToDept] = useState(false)   // تكليف قسم الخطة كله
   const [extraDesc, setExtraDesc] = useState('')   // وصف من المصدر (اجتماع مثلاً)
   const [saving,   setSaving]   = useState(false)
-  const [plans,    setPlans]    = useState<{ id: string; name_ar: string }[]>([])
+  const [plans,    setPlans]    = useState<{ id: string; name_ar: string; department: string | null }[]>([])
   const [nodes,    setNodes]    = useState<{ id: string; name_ar: string; level_num: number }[]>([])
-  const [people,   setPeople]   = useState<{ id: string; name_ar: string }[]>([])
+  const [people,   setPeople]   = useState<{ id: string; name_ar: string; department: string | null }[]>([])
 
   /* ── تسجيل المُشغّل البرمجي openQuickAdd() ── */
   useEffect(() => {
@@ -81,16 +82,16 @@ export default function QuickAddTask() {
       setTimeout(() => inputRef.current?.focus(), 50)
       loadData()
     } else {
-      setName(''); setPlanId(''); setNodeId(''); setEndDate(''); setAssignee(''); setExtraDesc('')
+      setName(''); setPlanId(''); setNodeId(''); setEndDate(''); setAssignee(''); setAssignToDept(false); setExtraDesc('')
     }
   }, [open])
 
   /* ── تحميل الخطط + الأشخاص ── */
   const loadData = async () => {
     const [{ data: pl }, { data: pr }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar')
+      supabase.from('plans').select('id, name_ar, department')
         .eq('is_archived', false).limit(50).order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id, name_ar')
+      supabase.from('profiles').select('id, name_ar, department')
         .eq('is_active', true).order('name_ar').limit(500),
     ])
     setPlans(pl || [])
@@ -111,8 +112,10 @@ export default function QuickAddTask() {
   /* ── حفظ المهمة ── */
   const handleSave = async () => {
     if (!name.trim()) return
+    const planDept = plans.find(p => p.id === planId)?.department || null
+    const useDept  = assignToDept && !!planDept
     setSaving(true)
-    const assignedTo = assignee || userId || null
+    const assignedTo = useDept ? null : (assignee || userId || null)
     const { data, error } = await supabase.from('tasks').insert({
       name_ar:             name.trim(),
       description:         extraDesc || null,
@@ -122,6 +125,7 @@ export default function QuickAddTask() {
       node_id:             nodeId || null,
       end_date:            endDate || null,
       assigned_to_user_id: assignedTo,
+      assigned_to_department: useDept ? planDept : null,
       created_by:          userId || null,
       order_num:           1,
     }).select('id').single()
@@ -130,15 +134,18 @@ export default function QuickAddTask() {
     toast(`✓ تم إنشاء "${name.trim()}"`)
     logActivity({ action: 'task_created', tableName: 'tasks', summary: name.trim() })
 
-    /* إشعار المكلَّف إن كان غير المُنشئ */
-    if (assignedTo && assignedTo !== userId) {
+    const link = data?.id ? `/dashboard/tasks/${data.id}` : '/dashboard/my-tasks'
+    if (useDept) {
+      /* إشعار كل أعضاء قسم الخطة (عدا المُنشئ) */
+      const members = people.filter(p => p.department === planDept && p.id !== userId)
+      members.forEach(m => createNotification({
+        recipientId: m.id, senderId: userId, type: 'task_assigned',
+        title: `📋 مهمة جديدة لقسم ${planDept}: ${name.trim()}`, body: name.trim(), link,
+      }))
+    } else if (assignedTo && assignedTo !== userId) {
       createNotification({
-        recipientId: assignedTo,
-        senderId:    userId,
-        type:        'task_assigned',
-        title:       `كُلِّفت بمهمة جديدة من ${userName || 'مستخدم'}`,
-        body:        name.trim(),
-        link:        data?.id ? `/dashboard/tasks/${data.id}` : '/dashboard/my-tasks',
+        recipientId: assignedTo, senderId: userId, type: 'task_assigned',
+        title: `كُلِّفت بمهمة جديدة من ${userName || 'مستخدم'}`, body: name.trim(), link,
       })
     }
     setOpen(false)
@@ -234,6 +241,18 @@ export default function QuickAddTask() {
                 style={{ direction: 'ltr' }}
               />
             </div>
+
+            {/* تكليف قسم الخطة كله — يظهر إن كان للخطة المختارة قسم */}
+            {(() => {
+              const planDept = plans.find(p => p.id === planId)?.department || null
+              if (!planDept) return null
+              return (
+                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={assignToDept} onChange={e => setAssignToDept(e.target.checked)} className="accent-violet-600" />
+                  تكليف كل أعضاء قسم «{planDept}» (بدل فرد)
+                </label>
+              )
+            })()}
 
             {/* الأزرار */}
             <div className="flex gap-2 pt-1">
