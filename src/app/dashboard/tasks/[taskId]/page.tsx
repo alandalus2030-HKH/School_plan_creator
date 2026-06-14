@@ -119,6 +119,8 @@ export default function TaskPage() {
   const [assignReviewer, setAssignReviewer] = useState('')
   const [savingAssign,   setSavingAssign]   = useState(false)
   const [showAssign,     setShowAssign]     = useState(false)
+  const [planDept,       setPlanDept]       = useState<string | null>(null)  // قسم خطة المهمة
+  const [deptOnly,       setDeptOnly]       = useState(true)                 // حصر قائمة المكلَّفين بأعضاء قسم الخطة
 
   /* ── الأماكن المطلوبة ── */
   const [availLocations, setAvailLocations] = useState<any[]>([])
@@ -235,6 +237,10 @@ export default function TaskPage() {
       const { data: nodeData } = await supabase
         .from('plan_nodes').select('plan_id').eq('id', data.node_id).single()
       if (nodeData?.plan_id) {
+        /* قسم الخطة — لتصفية قائمة المكلَّفين في محرّر التكليف */
+        const { data: planRow } = await supabase
+          .from('plans').select('department').eq('id', nodeData.plan_id).single()
+        setPlanDept(planRow?.department || null)
         const { data: planNodes } = await supabase
           .from('plan_nodes').select('id').eq('plan_id', nodeData.plan_id)
         if (planNodes?.length) {
@@ -1629,13 +1635,36 @@ export default function TaskPage() {
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1.5">المسؤول (شخص)</label>
-              <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-sm">
-                <option value="">— بدون تكليف شخصي —</option>
-                {profiles.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name_ar}{p.job_title ? ` — ${p.job_title}` : ''}</option>
-                ))}
-              </select>
+              {/* تصفية بقسم خطة المهمة — تمنع ظهور غير المعنيين */}
+              {planDept && (
+                <div className="flex gap-2 mb-1.5">
+                  <button type="button" onClick={() => setDeptOnly(true)}
+                    className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${deptOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                    أعضاء قسم «{planDept}» ({profiles.filter((p: any) => p.department === planDept).length})
+                  </button>
+                  <button type="button" onClick={() => setDeptOnly(false)}
+                    className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${!deptOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                    كل المستخدمين
+                  </button>
+                </div>
+              )}
+              {(() => {
+                const people = (deptOnly && planDept)
+                  ? profiles.filter((p: any) => p.department === planDept || p.id === assignUserId)
+                  : profiles
+                return (
+                  <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-sm">
+                    <option value="">— بدون تكليف شخصي —</option>
+                    {people.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name_ar}{p.job_title ? ` — ${p.job_title}` : ''}</option>
+                    ))}
+                  </select>
+                )
+              })()}
+              {deptOnly && planDept && profiles.filter((p: any) => p.department === planDept).length === 0 && (
+                <p className="text-xs text-amber-600 mt-1.5">لا أعضاء في قسم «{planDept}» — اضممهم من الإعدادات ← أعضاء الأقسام، أو اختر «كل المستخدمين».</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1.5">الفريق المكلَّف</label>
