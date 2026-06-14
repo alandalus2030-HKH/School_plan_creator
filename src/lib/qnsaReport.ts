@@ -27,9 +27,16 @@ export async function generateQnsaReport(planId: string) {
   /* ── جمع البيانات ── */
   const { data: plan } = await supabase
     .from('plans')
-    .select('id, name_ar, academic_year, school_id')
+    .select('id, name_ar, academic_year, school_id, owner_id')
     .eq('id', planId).single()
   if (!plan) { alert('تعذّر تحميل الخطة'); return }
+
+  /* مسؤول الخطة (صاحب الخطة) — للتوثيق في الغلاف */
+  let ownerName: string | null = null
+  if (plan.owner_id) {
+    const { data: owner } = await supabase.from('profiles').select('name_ar').eq('id', plan.owner_id).maybeSingle()
+    ownerName = owner?.name_ar || null
+  }
 
   const [{ data: school }, { data: nodes }] = await Promise.all([
     supabase.from('schools')
@@ -126,6 +133,7 @@ export async function generateQnsaReport(planId: string) {
       </div>
       <h1 class="report-title">تقرير الخطة التطويرية وفق معايير الاعتماد المدرسي الوطني</h1>
       <div class="report-sub">${esc(plan.name_ar)} · العام الدراسي ${esc(plan.academic_year)}</div>
+      ${ownerName ? `<div class="vm"><span class="vm-label">مسؤول الخطة:</span> ${esc(ownerName)}</div>` : ''}
       ${school?.vision_ar ? `<div class="vm"><span class="vm-label">الرؤية:</span> ${esc(school.vision_ar)}</div>` : ''}
       ${school?.mission_ar ? `<div class="vm"><span class="vm-label">الرسالة:</span> ${esc(school.mission_ar)}</div>` : ''}
       ${contactBits ? `<div class="contact-bar">${contactBits}</div>` : ''}

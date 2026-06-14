@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
   const { data: t } = await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id').eq('id', ev.task_id).maybeSingle()
   const { data: n } = t?.node_id ? await admin.from('plan_nodes').select('plan_id').eq('id', t.node_id).maybeSingle() : { data: null }
-  const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id').eq('id', n.plan_id).maybeSingle() : { data: null }
+  const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id, owner_id').eq('id', n.plan_id).maybeSingle() : { data: null }
   if (!p || p.school_id !== schoolId) return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
 
   /* المهمة المنجزة مقفلة — لا تُغيَّر حالة أدلتها إلا بعد إعادة فتحها */
@@ -67,6 +67,21 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
         body: note?.trim() ? `الدليل: ${ev.name} — السبب: ${note.trim()}` : `الدليل: ${ev.name} — يُرجى مراجعته ورفع بديل إن لزم.`,
         link: `/dashboard/tasks/${ev.task_id}`, is_read: false, send_email: false,
       })
+    }
+
+    /* إشعار صاحب الخطة أيضاً (إن اختلف عن المكلّف والمراجع) */
+    const ownerId = (p as any)?.owner_id as string | null
+    if (ownerId && ownerId !== auth.user.id && ownerId !== t.assigned_to_user_id) {
+      const { data: op } = await admin.from('profiles')
+        .select('notif_enabled, notif_inapp').eq('id', ownerId).maybeSingle()
+      if (!(op?.notif_enabled === false || op?.notif_inapp === false)) {
+        await admin.from('notifications').insert({
+          recipient_id: ownerId, sender_id: auth.user.id, type: 'task_status_changed',
+          title: `↩️ رُفض دليل في خطتك — مهمة: ${t.name_ar}`,
+          body: `الدليل: ${ev.name}${note?.trim() ? ` — السبب: ${note.trim()}` : ''}`,
+          link: `/dashboard/tasks/${ev.task_id}`, is_read: false, send_email: false,
+        })
+      }
     }
   }
 

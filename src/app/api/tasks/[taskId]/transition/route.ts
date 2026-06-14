@@ -130,8 +130,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
       const missing = requiredTypes.filter(t => !present.has(t))
       if (missing.length) return NextResponse.json({ error: `يجب رفع أدلة الأنواع: ${missing.join('، ')}` }, { status: 400 })
     }
+    /* لا مقيّم معيّن → تصعيد لصاحب الخطة (المراجع/المصعّد الافتراضي) */
+    let notifyTo = task.reviewer_id
+    let notifTitle = `مهمة بانتظار تقييمك: ${task.name_ar}`
+    if (!notifyTo && task.node_id) {
+      const { data: node } = await admin.from('plan_nodes').select('plan_id').eq('id', task.node_id).maybeSingle()
+      if (node?.plan_id) {
+        const { data: plan } = await admin.from('plans').select('owner_id').eq('id', node.plan_id).maybeSingle()
+        if (plan?.owner_id) { notifyTo = plan.owner_id; notifTitle = `مهمة مرفوعة بلا مقيّم في خطتك: ${task.name_ar}` }
+      }
+    }
     return logAndRespond('submitted', { submitted_at: new Date().toISOString(), submitted_by: userId, return_note: null },
-      null, task.reviewer_id, `مهمة بانتظار تقييمك: ${task.name_ar}`, null)
+      null, notifyTo, notifTitle, null)
   }
 
   /* ════ approve ════ */

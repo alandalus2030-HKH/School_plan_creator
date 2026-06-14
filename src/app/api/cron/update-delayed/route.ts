@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   /* ── المهام التي تجاوزت موعدها ولم تكتمل ولم تُعلَّم متأخرة بعد ── */
   const { data: overdue, error: fetchErr } = await admin
     .from('tasks')
-    .select('id, name_ar, assigned_to_user_id, end_date')
+    .select('id, name_ar, assigned_to_user_id, node_id, end_date')
     .lt('end_date', today)
     .neq('status', 'completed')
     .is('deleted_at', null)
@@ -61,5 +61,43 @@ export async function GET(req: Request) {
     await admin.from('notifications').insert(notifs)
   }
 
-  return NextResponse.json({ ok: true, notified: notifs.length })
+  /* ── ملخّص متأخرات لكل صاحب خطة (إشعار واحد مُجمَّع، لا تكرار لكل مهمة) ── */
+  let ownerNotified = 0
+  const nodeIds = [...new Set(overdue.map(t => t.node_id).filter(Boolean))] as string[]
+  if (nodeIds.length > 0) {
+    const { data: pn } = await admin.from('plan_nodes').select('id, plan_id').in('id', nodeIds)
+    const nodeToPlan = new Map((pn || []).map((n: any) => [n.id, n.plan_id]))
+    const planIds = [...new Set((pn || []).map((n: any) => n.plan_id).filter(Boolean))] as string[]
+    const { data: pl } = planIds.length
+      ? await admin.from('plans').select('id, owner_id').in('id', planIds)
+      : { data: [] as any[] }
+    const ownerOf = new Map((pl || []).map((p: any) => [p.id, p.owner_id]))
+
+    const ownerCounts = new Map<string, number>()
+    for (const t of overdue) {
+      const pid = t.node_id ? nodeToPlan.get(t.node_id) : null
+      const oid = pid ? ownerOf.get(pid) : null
+      if (oid) ownerCounts.set(oid, (ownerCounts.get(oid) || 0) + 1)
+    }
+    if (ownerCounts.size > 0) {
+      const { data: ownerProfs } = await admin.from('profiles')
+        .select('id, notif_enabled, notif_inapp').in('id', [...ownerCounts.keys()])
+      const ownerAllowed = new Set((ownerProfs || [])
+        .filter(p => p.notif_enabled !== false && p.notif_inapp !== false).map(p => p.id))
+      const ownerNotifs = [...ownerCounts.entries()]
+        .filter(([oid]) => ownerAllowed.has(oid))
+        .map(([oid, count]) => ({
+          recipient_id: oid, type: 'task_overdue',
+          title: '📋 ملخّص خططك: مهام متأخرة',
+          body: `لديك ${count} مهمة متأخرة في خططك — يُرجى المتابعة.`,
+          link: '/dashboard/aggregate', is_read: false, send_email: false,
+        }))
+      if (ownerNotifs.length > 0) {
+        await admin.from('notifications').insert(ownerNotifs)
+        ownerNotified = ownerNotifs.length
+      }
+    }
+  }
+
+  return NextResponse.json({ ok: true, notified: notifs.length, owners: ownerNotified })
 }

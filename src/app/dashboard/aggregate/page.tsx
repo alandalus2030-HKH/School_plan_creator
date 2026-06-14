@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown } from 'lucide-react'
+import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
+import { usePermissions } from '@/lib/PermissionsContext'
+import { toast } from '@/components/Toast'
 
 type TaskRow = { id: string; name_ar: string; status: string; end_date: string | null; overdue: boolean }
 type Metrics = {
@@ -72,11 +74,14 @@ function StatChip({ icon, label, value, tone }: { icon: React.ReactNode; label: 
 
 export default function AggregatePage() {
   const [plans,    setPlans]    = useState<PlanRow[]>([])
+  const { userId } = usePermissions()
   const [loading,  setLoading]  = useState(true)
   const [denied,   setDenied]   = useState(false)
   const [selDepts, setSelDepts] = useState<string[]>([])
   const [status,   setStatus]   = useState<StatusFilter>('all')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [mineOnly, setMineOnly] = useState(false)   // مرشّح «خططي»
+  const [notifying, setNotifying] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -88,13 +93,26 @@ export default function AggregatePage() {
     })()
   }, [])
 
+  const ownsAny = useMemo(() => plans.some(p => p.owner_id === userId), [plans, userId])
+
+  const notifyOwner = async (planId: string) => {
+    setNotifying(planId)
+    const res = await fetch(`/api/plans/${planId}/notify-owner`, { method: 'POST' })
+    const j = await res.json().catch(() => ({}))
+    setNotifying(null)
+    if (!res.ok) { toast(j.error || 'تعذّر إرسال التنبيه', 'error'); return }
+    toast('تم تنبيه صاحب الخطة')
+  }
+
   const departments = useMemo(() => {
     const s = new Set<string>()
     plans.forEach(p => s.add(p.department || NO_DEPT))
     return [...s].sort()
   }, [plans])
 
-  const shown = selDepts.length === 0 ? plans : plans.filter(p => selDepts.includes(p.department || NO_DEPT))
+  const shown = plans
+    .filter(p => selDepts.length === 0 || selDepts.includes(p.department || NO_DEPT))
+    .filter(p => !mineOnly || p.owner_id === userId)
   const overall = useMemo(() => rollup(shown), [shown])
 
   /* عدد المهام المطابقة لمرشّح الحالة عبر الخطط المعروضة */
@@ -191,6 +209,21 @@ export default function AggregatePage() {
             </div>
           </div>
 
+          {/* مرشّح «خططي» — لمن يملك خططاً */}
+          {ownsAny && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-slate-400 w-12">العرض:</span>
+              <button onClick={() => setMineOnly(false)}
+                className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${!mineOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                الكل
+              </button>
+              <button onClick={() => setMineOnly(true)}
+                className={`px-3 py-1.5 rounded-xl text-sm border transition-colors inline-flex items-center gap-1 ${mineOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                <User size={13} /> خططي
+              </button>
+            </div>
+          )}
+
           {/* مرشّح الأقسام */}
           {departments.length > 1 && (
             <div className="flex flex-wrap gap-2 items-center">
@@ -284,6 +317,13 @@ export default function AggregatePage() {
                                   {p.metrics.avgRating != null && <StatChip icon={<Star size={12} />} label="" value={p.metrics.avgRating} tone="bg-amber-50 text-amber-700" />}
                                   <StatChip icon={<Paperclip size={12} />} label="أدلة" value={p.metrics.evidence} />
                                   {p.owner_name && <StatChip icon={<User size={12} />} label="" value={p.owner_name} tone="bg-slate-50 text-slate-500" />}
+                                  {p.owner_id && p.owner_id !== userId && (
+                                    <button onClick={() => notifyOwner(p.id)} disabled={notifying === p.id}
+                                      className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+                                      title="تنبيه صاحب الخطة">
+                                      <Bell size={12} /> {notifying === p.id ? '...' : 'تنبيه'}
+                                    </button>
+                                  )}
                                   <Link href={`/dashboard/plans/${p.id}`} className="text-xs text-violet-600 hover:underline mr-auto">فتح الخطة ←</Link>
                                 </div>
                                 {/* قائمة المهام عند التوسيع/التصفية */}
