@@ -76,8 +76,9 @@ export default function MyTasksPage() {
 
       /* ── جلب بيانات المستخدم ── */
       const { data: profile } = await supabase
-        .from('profiles').select('full_name_ar, name_ar').eq('id', user.id).single()
+        .from('profiles').select('full_name_ar, name_ar, department').eq('id', user.id).single()
       setUserName(profile?.full_name_ar || profile?.name_ar || '')
+      const myDept = profile?.department || null
 
       /* ── الفرق التي ينتمي إليها (كقائد أو عضو) ── */
       const { data: teamsData } = await supabase
@@ -122,6 +123,19 @@ export default function MyTasksPage() {
         if (!allTasks.find(x => x.id === t.id))
           allTasks.push({ ...t, _source: 'reviewer' })
       })
+
+      /* المهام المكلَّف بها قسمه (تكليف القسم كله) → تُعدّ ضمن مهامه المباشرة */
+      if (myDept) {
+        const { data: deptTasks } = await supabase
+          .from('tasks')
+          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at')
+          .eq('assigned_to_department', myDept)
+          .order('end_date', { ascending: true, nullsFirst: false })
+        ;(deptTasks || []).forEach(t => {
+          if (!allTasks.find(x => x.id === t.id))
+            allTasks.push({ ...t, _source: 'assigned' })
+        })
+      }
 
       /* مهام الفرق */
       if (allTeamIds.length > 0) {

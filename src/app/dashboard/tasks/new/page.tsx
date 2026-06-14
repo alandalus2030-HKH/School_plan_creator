@@ -185,7 +185,7 @@ function NewTaskForm() {
       const { data: { user } } = await supabase.auth.getUser()
 
       /* إشعار المكلَّف إذا تم تعيينه */
-      if (assignedUserId && assignedUserId !== user?.id) {
+      if (assignMode === 'person' && assignedUserId && assignedUserId !== user?.id) {
         await createNotification({
           recipientId: assignedUserId,
           senderId:    user?.id,
@@ -194,6 +194,22 @@ function NewTaskForm() {
           body:        description.trim() || undefined,
           link:        `/dashboard/tasks/${task.id}`,
         })
+      }
+
+      /* تكليف القسم كله → إشعار كل أعضاء القسم (عدا المُنشئ) */
+      if (assignMode === 'department') {
+        const planDept = (plans.find((p: any) => p.id === selPlanId) as any)?.department || null
+        if (planDept) {
+          const members = profiles.filter((p: any) => p.department === planDept && p.id !== user?.id)
+          await Promise.all(members.map((m: any) => createNotification({
+            recipientId: m.id,
+            senderId:    user?.id,
+            type:        'task_assigned',
+            title:       `📋 مهمة جديدة لقسم ${planDept}: ${nameAr.trim()}`,
+            body:        description.trim() || undefined,
+            link:        `/dashboard/tasks/${task.id}`,
+          })))
+        }
       }
 
       /* إشعار المقيّم إذا تم تعيينه */
