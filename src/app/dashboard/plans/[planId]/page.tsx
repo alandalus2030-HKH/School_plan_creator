@@ -558,6 +558,19 @@ export default function PlanOverviewPage() {
                   </span>
                 )}
               </div>
+              {/* القسم + صاحب الخطة */}
+              {(plan.department || plan.owner_id) && (
+                <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                  {plan.department && (
+                    <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">🏷️ {plan.department}</span>
+                  )}
+                  {plan.owner_id && (
+                    <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">
+                      👤 {dimOwners.find((o: any) => o.id === plan.owner_id)?.name_ar || 'صاحب الخطة'}
+                    </span>
+                  )}
+                </div>
+              )}
               <p className="text-violet-200 text-sm mt-1">العام الدراسي: <span className="font-latin">{plan.academic_year}</span></p>
               <div className="flex items-center gap-4 mt-3 text-sm text-violet-200">
                 <span>{topNodes.length} {level1Name}</span>

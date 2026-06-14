@@ -57,9 +57,18 @@ function PlansPageInner() {
   const loadPlans = async () => {
     const { data } = await supabase
       .from('plans')
-      .select('id, name_ar, academic_year, start_date, end_date, is_archived, approved_at, level_count, level_names')
+      .select('id, name_ar, academic_year, start_date, end_date, is_archived, approved_at, level_count, level_names, department, owner_id')
       .order('created_at', { ascending: false })
-    setPlans((data || []) as unknown as Plan[])
+    const rows = (data || []) as any[]
+    /* أسماء أصحاب الخطط */
+    const ownerIds = [...new Set(rows.map(p => p.owner_id).filter(Boolean))]
+    if (ownerIds.length > 0) {
+      const { data: profs } = await supabase.from('profiles').select('id, name_ar').in('id', ownerIds)
+      const nameById: Record<string, string> = {}
+      ;(profs || []).forEach((p: any) => { nameById[p.id] = p.name_ar })
+      rows.forEach(p => { p.owner_name = p.owner_id ? (nameById[p.owner_id] || null) : null })
+    }
+    setPlans(rows as unknown as Plan[])
     setLoading(false)
   }
 
@@ -244,6 +253,17 @@ function PlansPageInner() {
                           <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">مؤرشفة</span>
                         )}
                       </div>
+                      {/* القسم + صاحب الخطة */}
+                      {((plan as any).department || (plan as any).owner_name) && (
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                          {(plan as any).department && (
+                            <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">🏷️ {(plan as any).department}</span>
+                          )}
+                          {(plan as any).owner_name && (
+                            <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">👤 {(plan as any).owner_name}</span>
+                          )}
+                        </div>
+                      )}
                       <p className={`text-sm mt-1 ${plan.is_archived ? 'text-slate-300' : 'text-violet-200'}`}>
                         العام الدراسي: {plan.academic_year}
                       </p>
