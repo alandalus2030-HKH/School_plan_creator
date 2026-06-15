@@ -271,7 +271,9 @@ export default function AggregatePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-5">
+    <div className="max-w-6xl mx-auto">
+      {/* ═══ الجزء المثبّت: الترويسة + المؤشرات + الفلاتر ═══ */}
+      <div className="sticky top-0 z-20 bg-slate-50 -mt-6 pt-6 pb-4 mb-4 border-b border-slate-200 space-y-4">
       {/* الترويسة */}
       <div className="flex items-center gap-3">
         <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white flex-shrink-0"
@@ -290,13 +292,7 @@ export default function AggregatePage() {
         )}
       </div>
 
-      {plans.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-10 text-center">
-          <FolderOpen size={40} className="mx-auto mb-3" style={{ color: 'var(--maroon-300)' }} />
-          <p className="text-sm font-semibold text-slate-700 mb-1">لا توجد خطط ضمن نطاقك</p>
-          <p className="text-xs text-slate-400">صنّف الخطط (قسم/نوع) أو راجع إشراف الأقسام في الإعدادات.</p>
-        </div>
-      ) : (
+      {plans.length > 0 && (
         <>
           {/* مؤشرات إجمالية */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -322,72 +318,63 @@ export default function AggregatePage() {
             </div>
           </div>
 
-          {/* مرشّح «خططي» — لمن يملك خططاً */}
-          {ownsAny && (
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-xs text-slate-400 w-12">العرض:</span>
-              <button onClick={() => setMineOnly(false)}
-                className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${!mineOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-                الكل
+          {/* فلاتر مضغوطة — صفّ واحد (قوائم منسدلة) */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={groupBy} onChange={e => setGroupBy(e.target.value as 'department' | 'plan_category' | 'owner')}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
+              <option value="department">التجميع: حسب القسم</option>
+              <option value="plan_category">التجميع: حسب النوع</option>
+              <option value="owner">التجميع: حسب صاحب الخطة</option>
+            </select>
+            <select value={status} onChange={e => setStatus(e.target.value as StatusFilter)}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
+              {STATUS_FILTERS.map(f => (
+                <option key={f.key} value={f.key}>{f.key === 'all' ? 'كل الحالات' : f.label}</option>
+              ))}
+            </select>
+            {ownsAny && (
+              <button onClick={() => setMineOnly(v => !v)}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm border transition-colors ${mineOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                <User size={13} /> خططي فقط
               </button>
-              <button onClick={() => setMineOnly(true)}
-                className={`px-3 py-1.5 rounded-xl text-sm border transition-colors inline-flex items-center gap-1 ${mineOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-                <User size={13} /> خططي
-              </button>
-            </div>
-          )}
-
-          {/* بُعد التجميع */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-slate-400 w-12">التجميع:</span>
-            {([['department','حسب القسم'],['plan_category','حسب النوع'],['owner','حسب صاحب الخطة']] as const).map(([key, label]) => (
-              <button key={key} onClick={() => setGroupBy(key)}
-                className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${groupBy === key ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-                {label}
-              </button>
-            ))}
+            )}
+            {matchCount != null && <span className="text-xs text-slate-500">({matchCount} مهمة مطابقة)</span>}
+            {selDepts.length > 0 && (
+              <button onClick={() => setSelDepts([])} className="text-xs text-violet-600 hover:underline mr-auto">مسح تحديد الأقسام</button>
+            )}
           </div>
 
-          {/* مرشّح الأقسام */}
+          {/* مرشّح الأقسام — صفّ مستقل (يظهر عند وجود أكثر من قسم) */}
           {departments.length > 1 && (
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-xs text-slate-400 w-12">الأقسام:</span>
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-xs text-slate-400">الأقسام:</span>
               <button onClick={() => setSelDepts([])}
-                className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${selDepts.length === 0 ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${selDepts.length === 0 ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
                 الكل
               </button>
               {departments.map(d => {
                 const on = selDepts.includes(d)
                 return (
                   <button key={d} onClick={() => setSelDepts(prev => on ? prev.filter(x => x !== d) : [...prev, d])}
-                    className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                    className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
                     {d}
                   </button>
                 )
               })}
             </div>
           )}
+        </>
+      )}
+      </div>{/* ═══ نهاية الجزء المثبّت ═══ */}
 
-          {/* مرشّح حالة المهام */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-slate-400 w-12">المهام:</span>
-            {STATUS_FILTERS.map(f => {
-              const on = status === f.key
-              const isOverdue = f.key === 'overdue'
-              return (
-                <button key={f.key} onClick={() => setStatus(f.key)}
-                  className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
-                    on ? (isOverdue ? 'bg-red-600 text-white border-red-600' : 'bg-violet-600 text-white border-violet-600')
-                       : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-                  {f.label}
-                </button>
-              )
-            })}
-            {matchCount != null && (
-              <span className="text-xs text-slate-500 mr-1">({matchCount} مهمة مطابقة)</span>
-            )}
-          </div>
-
+      {plans.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-10 text-center">
+          <FolderOpen size={40} className="mx-auto mb-3" style={{ color: 'var(--maroon-300)' }} />
+          <p className="text-sm font-semibold text-slate-700 mb-1">لا توجد خطط ضمن نطاقك</p>
+          <p className="text-xs text-slate-400">صنّف الخطط (قسم/نوع) أو راجع إشراف الأقسام في الإعدادات.</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
           {/* اتجاه نسبة الإنجاز عبر الزمن */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -490,7 +477,7 @@ export default function AggregatePage() {
               })}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   )
