@@ -12,7 +12,8 @@ import SchoolProfile from '@/components/SchoolProfile'
 import LocationsManager from '@/components/LocationsManager'
 import DeptSupervisorsManager from '@/components/DeptSupervisorsManager'
 import DeptMembersManager from '@/components/DeptMembersManager'
-import { MapPin, UserCog, BookOpen as BookOpenIcon } from 'lucide-react'
+import CalendarManager from '@/components/CalendarManager'
+import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -186,6 +187,7 @@ export default function SettingsPage() {
   const isLocations = activeCat === '__locations__'
   const isSupervisors = activeCat === '__supervisors__'
   const isDeptMembers = activeCat === '__dept_members__'
+  const isCalendar = activeCat === '__calendar__'
 
   const sendNotif = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -292,6 +294,20 @@ export default function SettingsPage() {
             </div>
           </button>
 
+          {/* التقويم المدرسي */}
+          <button
+            onClick={() => { setActiveCat('__calendar__'); setEditId(null); setConfirmDel(null) }}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
+              ${isCalendar
+                ? 'text-white shadow-lg'
+                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
+            style={isCalendar ? { background: 'var(--gradient-button)' } : undefined}>
+            <CalendarDays size={18} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold truncate ${isCalendar ? 'text-white' : 'text-slate-700'}`}>التقويم المدرسي</p>
+            </div>
+          </button>
+
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1 mb-3">القوائم المنسدلة</p>
 
           {CATEGORIES.map(cat => {
@@ -372,6 +388,9 @@ export default function SettingsPage() {
           ) : isDeptMembers ? (
             /* ════ أعضاء الأقسام ════ */
             <DeptMembersManager />
+          ) : isCalendar ? (
+            /* ════ التقويم المدرسي ════ */
+            <CalendarManager />
           ) : isNotifs ? (
             /* ════ قسم إرسال الإشعارات ════ */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
