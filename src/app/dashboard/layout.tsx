@@ -23,6 +23,7 @@ const PAGE_TITLES: Record<string, { ar: string; en: string }> = {
   '/dashboard/users':     { ar: 'المستخدمون',       en: 'Users'     },
   '/dashboard/settings':  { ar: 'الإعدادات',        en: 'Settings'  },
   '/dashboard/profile':   { ar: 'ملفي الشخصي',      en: 'My Profile'},
+  '/dashboard/help':      { ar: 'المساعدة',         en: 'Help'      },
 }
 
 function getTitle(pathname: string, lang: 'ar' | 'en'): string {
