@@ -11,10 +11,14 @@ export default function ReworkReport() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [denied, setDenied] = useState(false)
+  const [period, setPeriod] = useState<{ from?: string; to?: string }>({})
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=rework')
+      const q = new URLSearchParams(window.location.search)
+      const from = q.get('from') || undefined, to = q.get('to') || undefined
+      setPeriod({ from, to })
+      const res = await fetch(`/api/reports?type=rework${from ? `&from=${from}` : ''}${to ? `&to=${to}` : ''}`)
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ rows: [], totalReturns: 0 }))
       setRows(j.rows || []); setTotal(j.totalReturns || 0)
@@ -29,7 +33,7 @@ export default function ReworkReport() {
   const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('ar-QA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
   return (
-    <ReportShell title="تقرير المهام المُعادة" subtitle={`${rows.length} مهمة أُعيدت للتعديل · ${total} مرة إعادة إجمالاً`} loading={loading}>
+    <ReportShell title="تقرير المهام المُعادة" subtitle={`${rows.length} مهمة أُعيدت للتعديل · ${total} مرة إعادة إجمالاً`} period={period} loading={loading}>
       {rows.length === 0 ? (
         <p className="text-center text-slate-400 py-8 text-sm">لا مهام مُعادة — جودة عالية في التنفيذ.</p>
       ) : (

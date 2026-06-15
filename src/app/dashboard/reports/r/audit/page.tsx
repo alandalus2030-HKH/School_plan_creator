@@ -20,10 +20,14 @@ export default function AuditReport() {
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [denied, setDenied] = useState(false)
+  const [period, setPeriod] = useState<{ from?: string; to?: string }>({})
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=audit')
+      const q = new URLSearchParams(window.location.search)
+      const from = q.get('from') || undefined, to = q.get('to') || undefined
+      setPeriod({ from, to })
+      const res = await fetch(`/api/reports?type=audit${from ? `&from=${from}` : ''}${to ? `&to=${to}` : ''}`)
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ rows: [] }))
       setRows(j.rows || [])
@@ -38,7 +42,7 @@ export default function AuditReport() {
   const fmt = (d: string) => new Date(d).toLocaleString('ar-QA', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
   return (
-    <ReportShell title="سجل التدقيق" subtitle={`آخر ${rows.length} عملية مسجّلة`} loading={loading}>
+    <ReportShell title="سجل التدقيق" subtitle={`${rows.length} عملية مسجّلة`} period={period} loading={loading}>
       {rows.length === 0 ? (
         <p className="text-center text-slate-400 py-8 text-sm">لا عمليات مسجّلة بعد.</p>
       ) : (

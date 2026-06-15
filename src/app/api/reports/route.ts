@@ -191,14 +191,17 @@ async function staffStats(admin: any, schoolId: string) {
 }
 
 /* ════ المهام المُعادة (Rework) ════ */
-async function reworkReport(admin: any, schoolId: string) {
+async function reworkReport(admin: any, schoolId: string, from?: string, to?: string) {
   const { tasks } = await loadSchoolTasks(admin, schoolId)
   const taskMap = new Map(tasks.map((t: any) => [t.id, t]))
   const ids = tasks.map((t: any) => t.id)
   if (!ids.length) return { rows: [], totalReturns: 0 }
 
-  const { data: trs } = await admin.from('task_transitions')
+  let trq = admin.from('task_transitions')
     .select('task_id, note, actor_id, created_at').eq('to_status', 'returned').in('task_id', ids)
+  if (from) trq = trq.gte('created_at', from)
+  if (to)   trq = trq.lte('created_at', to + 'T23:59:59')
+  const { data: trs } = await trq
 
   const actorIds = [...new Set((trs || []).map((t: any) => t.actor_id).filter(Boolean))]
   const names = new Map<string, string>()
@@ -256,9 +259,12 @@ async function locationsReport(admin: any, schoolId: string) {
 }
 
 /* ════ الاتجاه الزمني (من اللقطات الأسبوعية) ════ */
-async function trendReport(admin: any, schoolId: string) {
-  const { data: snaps } = await admin.from('plan_metric_snapshots')
-    .select('captured_on, total, completed, overdue').eq('school_id', schoolId).order('captured_on')
+async function trendReport(admin: any, schoolId: string, from?: string, to?: string) {
+  let q = admin.from('plan_metric_snapshots')
+    .select('captured_on, total, completed, overdue').eq('school_id', schoolId)
+  if (from) q = q.gte('captured_on', from)
+  if (to)   q = q.lte('captured_on', to)
+  const { data: snaps } = await q.order('captured_on')
   const byDate = new Map<string, { completed: number; total: number; overdue: number }>()
   for (const s of snaps || []) {
     const g = byDate.get(s.captured_on) || { completed: 0, total: 0, overdue: 0 }
@@ -273,14 +279,17 @@ async function trendReport(admin: any, schoolId: string) {
 }
 
 /* ════ التقدير والتحفيز ════ */
-async function recognitionReport(admin: any, schoolId: string) {
+async function recognitionReport(admin: any, schoolId: string, from?: string, to?: string) {
   const { data: profs } = await admin.from('profiles').select('id, name_ar, department').eq('school_id', schoolId).eq('is_active', true)
   const profMap = new Map<string, any>((profs || []).map((p: any) => [p.id, p]))
   const ids = (profs || []).map((p: any) => p.id)
 
   const stat = new Map<string, { id: string; name_ar: string; department: string | null; badges: number; points: number }>()
   if (ids.length) {
-    const { data: ub } = await admin.from('user_badges').select('profile_id, badge_id').in('profile_id', ids)
+    let ubq = admin.from('user_badges').select('profile_id, badge_id, granted_at').in('profile_id', ids)
+    if (from) ubq = ubq.gte('granted_at', from)
+    if (to)   ubq = ubq.lte('granted_at', to + 'T23:59:59')
+    const { data: ub } = await ubq
     const badgeIds = [...new Set((ub || []).map((x: any) => x.badge_id))]
     const points = new Map<string, number>()
     if (badgeIds.length) {
@@ -305,10 +314,12 @@ async function recognitionReport(admin: any, schoolId: string) {
 }
 
 /* ════ سجل التدقيق ════ */
-async function auditReport(admin: any, schoolId: string) {
-  const { data: logs } = await admin.from('audit_logs')
-    .select('id, action, table_name, user_id, created_at')
-    .eq('school_id', schoolId).order('created_at', { ascending: false }).limit(300)
+async function auditReport(admin: any, schoolId: string, from?: string, to?: string) {
+  let q = admin.from('audit_logs')
+    .select('id, action, table_name, user_id, created_at').eq('school_id', schoolId)
+  if (from) q = q.gte('created_at', from)
+  if (to)   q = q.lte('created_at', to + 'T23:59:59')
+  const { data: logs } = await q.order('created_at', { ascending: false }).limit(300)
   const userIds = [...new Set((logs || []).map((l: any) => l.user_id).filter(Boolean))]
   const names = new Map<string, string>()
   if (userIds.length) {
@@ -473,18 +484,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'لا تملك صلاحية عرض التقارير' }, { status: 403 })
 
   const type = req.nextUrl.searchParams.get('type')
+  const from = req.nextUrl.searchParams.get('from') || undefined
+  const to   = req.nextUrl.searchParams.get('to')   || undefined
   switch (type) {
     case 'plans-portfolio':    return NextResponse.json(await plansPortfolio(admin, schoolId))
     case 'task-status':        return NextResponse.json(await taskStatus(admin, schoolId))
     case 'overdue':            return NextResponse.json(await overdueReport(admin, schoolId))
     case 'staff-performance':  return NextResponse.json(await staffStats(admin, schoolId))
     case 'workload':           return NextResponse.json(await staffStats(admin, schoolId))
-    case 'rework':             return NextResponse.json(await reworkReport(admin, schoolId))
+    case 'rework':             return NextResponse.json(await reworkReport(admin, schoolId, from, to))
     case 'resources':          return NextResponse.json(await resourcesReport(admin, schoolId))
     case 'locations':          return NextResponse.json(await locationsReport(admin, schoolId))
-    case 'trend':              return NextResponse.json(await trendReport(admin, schoolId))
-    case 'recognition':        return NextResponse.json(await recognitionReport(admin, schoolId))
-    case 'audit':              return NextResponse.json(await auditReport(admin, schoolId))
+    case 'trend':              return NextResponse.json(await trendReport(admin, schoolId, from, to))
+    case 'recognition':        return NextResponse.json(await recognitionReport(admin, schoolId, from, to))
+    case 'audit':              return NextResponse.json(await auditReport(admin, schoolId, from, to))
     case 'performance':        return NextResponse.json(await performanceReport(admin, schoolId))
     case 'coverage':           return NextResponse.json(await coverageReport(admin, schoolId))
     case 'plans-list':         return NextResponse.json(await plansList(admin, schoolId))

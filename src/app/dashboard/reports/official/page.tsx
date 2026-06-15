@@ -1,14 +1,21 @@
 'use client'
 
 import Link from 'next/link'
+import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import {
   FileText, ClipboardList, Map, Users, Package, MapPin,
-  TrendingUp, ShieldCheck, Award, ArrowLeft,
+  TrendingUp, ShieldCheck, Award, ArrowLeft, Play, CalendarRange,
 } from 'lucide-react'
 
-type Report = { key: string; title: string; desc: string; href?: string }
+function todayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+type Report = { key: string; title: string; desc: string; href?: string; timeBased?: boolean }
 type Group = { label: string; Icon: any; reports: Report[] }
 
 /* الكتالوج — href = جاهز، بدونه = قريباً */
@@ -17,7 +24,7 @@ const GROUPS: Group[] = [
     label: 'المهام', Icon: ClipboardList, reports: [
       { key: 'task-status', title: 'حالة المهام', desc: 'توزيع الحالات والمتأخرات', href: '/dashboard/reports/r/task-status' },
       { key: 'overdue', title: 'المهام المتأخرة', desc: 'قائمة المتأخر مع المكلَّفين', href: '/dashboard/reports/r/overdue' },
-      { key: 'rework', title: 'المهام المُعادة', desc: 'الإعادات وأسبابها', href: '/dashboard/reports/r/rework' },
+      { key: 'rework', title: 'المهام المُعادة', desc: 'الإعادات وأسبابها', href: '/dashboard/reports/r/rework', timeBased: true },
     ],
   },
   {
@@ -42,21 +49,43 @@ const GROUPS: Group[] = [
   {
     label: 'الأداء والتحسين', Icon: TrendingUp, reports: [
       { key: 'performance', title: 'تحليل الأداء', desc: 'الإنجاز والجودة حسب القسم', href: '/dashboard/reports/r/performance' },
-      { key: 'trend', title: 'الاتجاه الزمني', desc: 'تطوّر الإنجاز عبر الوقت', href: '/dashboard/reports/r/trend' },
+      { key: 'trend', title: 'الاتجاه الزمني', desc: 'تطوّر الإنجاز عبر الوقت', href: '/dashboard/reports/r/trend', timeBased: true },
       { key: 'coverage', title: 'التغطية والفجوات', desc: 'تغطية المعايير بالأدلة', href: '/dashboard/reports/r/coverage' },
       { key: 'accreditation', title: 'جاهزية الاعتماد', desc: 'الفجوات قبل الاعتماد', href: '/dashboard/reports/r/accreditation' },
     ],
   },
   {
     label: 'الحوكمة والتحفيز', Icon: ShieldCheck, reports: [
-      { key: 'audit', title: 'سجل التدقيق', desc: 'من فعل ماذا ومتى', href: '/dashboard/reports/r/audit' },
-      { key: 'recognition', title: 'التقدير والصدارة', desc: 'الأوسمة والنقاط وموظف الشهر', href: '/dashboard/reports/r/recognition' },
+      { key: 'audit', title: 'سجل التدقيق', desc: 'من فعل ماذا ومتى', href: '/dashboard/reports/r/audit', timeBased: true },
+      { key: 'recognition', title: 'التقدير والصدارة', desc: 'الأوسمة والنقاط وموظف الشهر', href: '/dashboard/reports/r/recognition', timeBased: true },
     ],
   },
 ]
 
 export default function OfficialReportsCatalog() {
   const { can, loading } = usePermissions()
+  const router = useRouter()
+  const runnable = useMemo(() => GROUPS.flatMap(g => g.reports.filter(r => r.href).map(r => ({ ...r, group: g.label }))), [])
+  const [sel, setSel] = useState('')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState(todayStr())
+  const selReport = runnable.find(r => r.key === sel)
+  const isTime = !!selReport?.timeBased
+
+  const preset = (days: number) => {
+    const d = new Date(); d.setDate(d.getDate() - days)
+    setFrom(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+    setTo(todayStr())
+  }
+  const run = () => {
+    if (!selReport?.href) return
+    const p = new URLSearchParams()
+    if (isTime && from) p.set('from', from)
+    if (isTime && to)   p.set('to', to)
+    const qs = p.toString()
+    router.push(selReport.href + (qs ? `?${qs}` : ''))
+  }
+
   if (loading) return null
   if (!can('view_reports')) return <NoAccess />
 
@@ -74,6 +103,60 @@ export default function OfficialReportsCatalog() {
         <Link href="/dashboard/reports" className="text-sm text-slate-500 hover:text-violet-700 inline-flex items-center gap-1">
           لوحة التحليلات <ArrowLeft size={15} />
         </Link>
+      </div>
+
+      {/* ═══ مُشغّل التقارير: قائمة + فترة + إصدار ═══ */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[220px]">
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">اختر التقرير</label>
+            <select value={sel} onChange={e => setSel(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300">
+              <option value="">— اختر تقريراً —</option>
+              {GROUPS.map(g => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.reports.filter(r => r.href).map(r => <option key={r.key} value={r.key}>{r.title}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          {isTime && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">من</label>
+                <input type="date" value={from} onChange={e => setFrom(e.target.value)} dir="ltr"
+                  className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">إلى</label>
+                <input type="date" value={to} onChange={e => setTo(e.target.value)} dir="ltr"
+                  className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+              </div>
+            </>
+          )}
+
+          <button onClick={run} disabled={!selReport?.href}
+            className="inline-flex items-center gap-2 text-sm text-white px-5 py-2.5 rounded-xl font-medium transition-all hover:brightness-110 disabled:opacity-50"
+            style={{ background: 'var(--gradient-button, #8a1538)' }}>
+            <Play size={15} /> إصدار
+          </button>
+        </div>
+
+        {isTime ? (
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <CalendarRange size={14} className="text-slate-400" />
+            <span className="text-xs text-slate-400">فترات سريعة:</span>
+            {[['هذا الشهر', 30], ['آخر 90 يوماً', 90], ['هذا العام', 365]].map(([label, days]) => (
+              <button key={label as string} onClick={() => preset(days as number)}
+                className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:border-violet-300 transition-colors">
+                {label as string}
+              </button>
+            ))}
+          </div>
+        ) : selReport ? (
+          <p className="text-xs text-slate-400 mt-3">تقرير لقطة للوضع الحالي «حتى تاريخه» — لا يحتاج فترة زمنية.</p>
+        ) : null}
       </div>
 
       {GROUPS.map(g => (

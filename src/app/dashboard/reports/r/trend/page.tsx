@@ -40,10 +40,14 @@ export default function TrendReport() {
   const [series, setSeries] = useState<Pt[]>([])
   const [loading, setLoading] = useState(true)
   const [denied, setDenied] = useState(false)
+  const [period, setPeriod] = useState<{ from?: string; to?: string }>({})
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=trend')
+      const q = new URLSearchParams(window.location.search)
+      const from = q.get('from') || undefined, to = q.get('to') || undefined
+      setPeriod({ from, to })
+      const res = await fetch(`/api/reports?type=trend${from ? `&from=${from}` : ''}${to ? `&to=${to}` : ''}`)
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ series: [] }))
       setSeries(j.series || [])
@@ -58,7 +62,7 @@ export default function TrendReport() {
   const fmt = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('ar-QA', { day: 'numeric', month: 'short', year: 'numeric' })
 
   return (
-    <ReportShell title="تقرير الاتجاه الزمني" subtitle="تطوّر نسبة الإنجاز عبر اللقطات الأسبوعية" loading={loading}>
+    <ReportShell title="تقرير الاتجاه الزمني" subtitle="تطوّر نسبة الإنجاز عبر اللقطات الأسبوعية" period={period} loading={loading}>
       {series.length < 2 ? (
         <p className="text-center text-slate-400 py-8 text-sm">تحتاج لقطتين على الأقل لرسم الاتجاه — تُلتقط أسبوعياً.</p>
       ) : (

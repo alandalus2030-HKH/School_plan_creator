@@ -11,10 +11,14 @@ export default function RecognitionReport() {
   const [d, setD] = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
   const [denied, setDenied] = useState(false)
+  const [period, setPeriod] = useState<{ from?: string; to?: string }>({})
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=recognition')
+      const q = new URLSearchParams(window.location.search)
+      const from = q.get('from') || undefined, to = q.get('to') || undefined
+      setPeriod({ from, to })
+      const res = await fetch(`/api/reports?type=recognition${from ? `&from=${from}` : ''}${to ? `&to=${to}` : ''}`)
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       setD(await res.json().catch(() => null))
       setLoading(false)
@@ -27,7 +31,7 @@ export default function RecognitionReport() {
   const td = 'px-2 py-1.5 text-slate-700 border-b border-slate-100'
 
   return (
-    <ReportShell title="تقرير التقدير والتحفيز" subtitle="الأوسمة والنقاط وموظف الشهر" loading={loading}>
+    <ReportShell title="تقرير التقدير والتحفيز" subtitle="الأوسمة والنقاط وموظف الشهر" period={period} loading={loading}>
       {d && (
         <>
           {d.featured?.name && (
