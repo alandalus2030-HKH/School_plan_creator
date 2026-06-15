@@ -456,6 +456,8 @@ export default function TaskPage() {
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editName.trim()) return
+    if (!editEnd) { toast('تاريخ الانتهاء (الموعد النهائي) مطلوب', 'error'); return }
+    if (editStart && editEnd < editStart) { toast('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء', 'error'); return }
     setSavingEdit(true)
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -889,10 +891,16 @@ export default function TaskPage() {
                   <option value="medium">🟡 متوسطة</option>
                   <option value="high">🔴 عالية</option>
                 </select>
-                <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} dir="ltr"
-                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm" />
-                <input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} dir="ltr"
-                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm" />
+                <div>
+                  <label className="block text-[11px] text-white/70 mb-1">تاريخ البدء</label>
+                  <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} dir="ltr"
+                    className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-white/70 mb-1">تاريخ الانتهاء <span className="text-amber-300">*</span></label>
+                  <input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} dir="ltr" required min={editStart || undefined}
+                    className={`w-full px-3 py-2 rounded-xl bg-white/10 border text-white focus:outline-none text-sm ${editEnd ? 'border-white/20' : 'border-amber-300/70'}`} />
+                </div>
               </div>
               <button type="submit" disabled={savingEdit}
                 className="w-full py-2 bg-white text-violet-700 font-semibold rounded-xl text-sm disabled:opacity-50">

@@ -112,6 +112,7 @@ export default function QuickAddTask() {
   /* ── حفظ المهمة ── */
   const handleSave = async () => {
     if (!name.trim()) return
+    if (!endDate) { toast('الموعد النهائي مطلوب', 'error'); return }
     const planDept = plans.find(p => p.id === planId)?.department || null
     const useDept  = assignToDept && !!planDept
     setSaving(true)
@@ -236,11 +237,17 @@ export default function QuickAddTask() {
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm
-                           focus:outline-none focus:ring-2 focus:ring-violet-300"
+                required
+                aria-label="الموعد النهائي (مطلوب)"
+                className={`px-3 py-2.5 rounded-xl border text-sm
+                           focus:outline-none focus:ring-2 focus:ring-violet-300
+                           ${endDate ? 'border-slate-200' : 'border-red-300'}`}
                 style={{ direction: 'ltr' }}
               />
             </div>
+            {!endDate && (
+              <p className="text-[11px] text-red-500 -mt-2">⚠️ الموعد النهائي مطلوب — لتفعيل الإشعارات ووسم التأخير.</p>
+            )}
 
             {/* تكليف قسم الخطة كله — يظهر إن كان للخطة المختارة قسم */}
             {(() => {
@@ -258,7 +265,7 @@ export default function QuickAddTask() {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={handleSave}
-                disabled={!name.trim() || saving}
+                disabled={!name.trim() || !endDate || saving}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white
                            disabled:opacity-50 transition-all hover:brightness-110"
                 style={{ background: 'var(--gradient-button)' }}>

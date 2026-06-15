@@ -141,6 +141,9 @@ export default function NewPlanPage() {
 
   /* ── إنشاء الخطة ── */
   const handleCreate = async () => {
+    /* تاريخا فترة الخطة إلزاميان — يضبطان نطاق المتابعة والإشعارات */
+    if (!startDate || !endDate) { setError('تاريخا البدء والانتهاء مطلوبان'); return }
+    if (endDate < startDate) { setError('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'); return }
     setLoading(true); setError('')
     try {
       const kpiLevelsToSave = kpiLevels
@@ -245,13 +248,13 @@ export default function NewPlanPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">تاريخ البدء</label>
-                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">تاريخ البدء <span className="text-red-500">*</span></label>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required
                   dir="ltr" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">تاريخ الانتهاء</label>
-                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">تاريخ الانتهاء <span className="text-red-500">*</span></label>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required min={startDate || undefined}
                   dir="ltr" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50" />
               </div>
             </div>

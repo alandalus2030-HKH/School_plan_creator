@@ -148,6 +148,9 @@ function NewTaskForm() {
     if (!selPlanId)    { setError('يرجى اختيار الخطة'); return }
     if (!selectedNode) { setError(`يرجى إكمال الاختيار حتى مستوى "${levelNames[levelCount - 1] || 'الأخير'}"`); return }
     if (!nameAr.trim()) { setError('اسم المهمة مطلوب'); return }
+    /* الموعد النهائي إلزامي — بدونه تتعطّل الإشعارات ووسم «متأخرة» */
+    if (!endDate) { setError('تاريخ الانتهاء (الموعد النهائي) مطلوب'); return }
+    if (startDate && endDate < startDate) { setError('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'); return }
     /* حارس: «القسم كله» يتطلب أن يكون للخطة قسم (يمنع حفظ تكليف فارغ صامتاً) */
     const deptForAssign = (plans.find((p: any) => p.id === selPlanId) as any)?.department || null
     if (assignMode === 'department' && !deptForAssign) {
@@ -389,8 +392,8 @@ function NewTaskForm() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">تاريخ الانتهاء</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} dir="ltr"
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">تاريخ الانتهاء <span className="text-red-500">*</span></label>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} dir="ltr" required min={startDate || undefined}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
             </div>
           </div>
