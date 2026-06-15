@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from '@/components/Toast'
 
 /* ══════════════════ ثوابت ══════════════════ */
 export const KANBAN_COLUMNS = [
@@ -330,10 +331,60 @@ export default function KanbanBoard({
     if (!newStatus) return
     const task = tasks.find(t => t.id === taskId)
     if (!task || task.status === newStatus) return
+    const from = task.status
 
-    // سير العمل يحكم الحالة — لا يُسمح بتغييرها بالسحب
-    setSaveError('لتغيير الحالة، افتح المهمة واتبع سير العمل (بدء/رفع/اعتماد)')
-    setTimeout(() => setSaveError(null), 4000)
+    /* السحب يمرّ عبر آلة الحالات (لا تغيير مباشر) — النقلات البسيطة تتم هنا */
+    let action: string | null = null
+    if (newStatus === 'in_progress') {
+      if (from === 'not_started' || from === 'returned') action = 'start'
+      else if (from === 'completed') action = 'reopen'
+    } else if (newStatus === 'submitted') {
+      if (['not_started', 'in_progress', 'returned'].includes(from)) action = 'submit'
+    }
+
+    /* نقلات تتطلب إدخالاً (تقييم/سبب) → تفتح المهمة عند المكان الصحيح بدل الفشل الصامت */
+    if (newStatus === 'completed' && from === 'submitted') {
+      toast('للاعتماد: افتح المهمة وأدخل التقييم', 'info')
+      window.location.href = `/dashboard/tasks/${taskId}#rating`
+      return
+    }
+    if (newStatus === 'returned' && from === 'submitted') {
+      toast('للإعادة: افتح المهمة واكتب سبب الإعادة', 'info')
+      window.location.href = `/dashboard/tasks/${taskId}#rating`
+      return
+    }
+
+    if (!action) {
+      setSaveError('نقلة غير مسموحة في سير العمل — افتح المهمة لاتباع الخطوات')
+      setTimeout(() => setSaveError(null), 4000)
+      return
+    }
+
+    /* تحديث تفاؤلي ثم استدعاء آلة الحالات (تحترم الصلاحيات + البوّابات + تسجّل التحوّل) */
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
+    setSaving(true); setSaveError(null)
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/transition`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const j = await res.json().catch(() => ({}))
+      setSaving(false)
+      if (!res.ok) {
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: from } : t))
+        setSaveError(j.error || 'تعذّر تغيير الحالة')
+        setTimeout(() => setSaveError(null), 4500)
+        return
+      }
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: j.status || newStatus } : t))
+      setLastSaved(taskId)
+      setTimeout(() => setLastSaved(null), 2000)
+    } catch {
+      setSaving(false)
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: from } : t))
+      setSaveError('تعذّر الاتصال بالخادم')
+      setTimeout(() => setSaveError(null), 4500)
+    }
   }, [tasks])
 
   const handleQuickAdd = (status: string) => {
