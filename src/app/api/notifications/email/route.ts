@@ -13,6 +13,8 @@ export async function POST(req: NextRequest) {
   try {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
     const fullLink = link ? `${siteUrl}${link}` : siteUrl
+    /* عنوان المُرسِل: من متغيّر البيئة (نطاق مُوثَّق في Resend) أو نطاق Resend التجريبي افتراضياً */
+    const from = process.env.RESEND_FROM || 'نظام متابعة الخطط <onboarding@resend.dev>'
 
     const res = await fetch('https://api.resend.com/emails', {
       method:  'POST',
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
         'Content-Type':  'application/json',
       },
       body: JSON.stringify({
-        from:    'نظام متابعة الخطط <notifications@yourdomain.com>',
+        from,
         to:      [to],
         subject: title,
         html: `
