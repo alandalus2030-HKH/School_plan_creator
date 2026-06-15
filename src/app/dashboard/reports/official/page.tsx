@@ -15,8 +15,8 @@ type Group = { label: string; Icon: any; reports: Report[] }
 const GROUPS: Group[] = [
   {
     label: 'المهام', Icon: ClipboardList, reports: [
-      { key: 'task-status', title: 'حالة المهام', desc: 'توزيع الحالات والمتأخرات' },
-      { key: 'overdue', title: 'المهام المتأخرة', desc: 'قائمة المتأخر مع المكلَّفين' },
+      { key: 'task-status', title: 'حالة المهام', desc: 'توزيع الحالات والمتأخرات', href: '/dashboard/reports/r/task-status' },
+      { key: 'overdue', title: 'المهام المتأخرة', desc: 'قائمة المتأخر مع المكلَّفين', href: '/dashboard/reports/r/overdue' },
       { key: 'rework', title: 'المهام المُعادة', desc: 'الإعادات وأسبابها' },
     ],
   },
@@ -29,8 +29,8 @@ const GROUPS: Group[] = [
   },
   {
     label: 'الأشخاص', Icon: Users, reports: [
-      { key: 'staff-performance', title: 'أداء الموظف', desc: 'مكلّف/منجز/متأخر + التقييم' },
-      { key: 'workload', title: 'عبء العمل', desc: 'توزيع المهام على الأفراد' },
+      { key: 'staff-performance', title: 'أداء الموظف', desc: 'مكلّف/منجز/متأخر + التقييم', href: '/dashboard/reports/r/staff-performance' },
+      { key: 'workload', title: 'عبء العمل', desc: 'توزيع المهام على الأفراد', href: '/dashboard/reports/r/workload' },
     ],
   },
   {
