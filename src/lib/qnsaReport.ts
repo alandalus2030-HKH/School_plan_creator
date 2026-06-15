@@ -50,6 +50,8 @@ export async function generateQnsaReport(planId: string) {
   const nodeIds = (nodes || []).map(n => n.id)
 
   let tasks: any[] = [], kpis: any[] = [], readings: any[] = [], evidence: any[] = []
+  let transitions: any[] = []
+  const actorNames: Record<string, string> = {}
   if (nodeIds.length > 0) {
     const [t, k] = await Promise.all([
       supabase.from('tasks')
@@ -70,6 +72,19 @@ export async function generateQnsaReport(planId: string) {
     ])
     evidence = ev.data || []
     readings = rd.data || []
+
+    /* سجل التحوّلات (الاعتماد والمراجعة) لمصداقية تقرير الاعتماد */
+    if (taskIds.length) {
+      const { data: trs } = await supabase.from('task_transitions')
+        .select('task_id, from_status, to_status, actor_id, note, created_at')
+        .in('task_id', taskIds).order('created_at', { ascending: true })
+      transitions = trs || []
+      const actorIds = [...new Set(transitions.map(t => t.actor_id).filter(Boolean))]
+      if (actorIds.length) {
+        const { data: acts } = await supabase.from('profiles').select('id, name_ar').in('id', actorIds)
+        for (const a of acts || []) actorNames[a.id] = a.name_ar
+      }
+    }
   }
 
   /* ── خرائط مساعدة ── */
@@ -227,7 +242,30 @@ export async function generateQnsaReport(planId: string) {
       </div>`
   }).join('')
 
-  const html = header + summary + axisSections
+  /* سجل الاعتماد والمراجعة (سلسلة سير العمل الموثّقة) */
+  const ACTION_AR: Record<string, string> = {
+    submitted: 'رفع للتقييم', completed: 'اعتماد وإنجاز', returned: 'إعادة للتعديل',
+    in_progress: 'بدء/إعادة فتح', not_started: 'إعادة فتح',
+  }
+  const taskName = (id: string) => tasks.find(t => t.id === id)?.name_ar || '—'
+  const trackable = transitions.filter(t => ['submitted', 'completed', 'returned'].includes(t.to_status))
+  const approvalSection = trackable.length ? `
+    <div class="section">
+      <h2 class="sec-title">سجل الاعتماد والمراجعة</h2>
+      <p class="muted" style="margin-bottom:8px">توثيق سلسلة سير العمل: من رفع/اعتمد/أعاد كل مهمة ومتى — لتعزيز مصداقية ملف الاعتماد.</p>
+      <table>
+        <thead><tr><th>المهمة</th><th>الإجراء</th><th>المنفِّذ</th><th>التاريخ</th><th>ملاحظة / سبب</th></tr></thead>
+        <tbody>${trackable.map(t => `<tr>
+          <td><strong>${esc(taskName(t.task_id))}</strong></td>
+          <td>${esc(ACTION_AR[t.to_status] || t.to_status)}</td>
+          <td>${esc(actorNames[t.actor_id] || '—')}</td>
+          <td>${new Date(t.created_at).toLocaleDateString('ar-QA')}</td>
+          <td>${esc(t.note || '—')}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>` : ''
+
+  const html = header + summary + axisSections + approvalSection
 
   /* ════════════ فتح نافذة الطباعة ════════════ */
   const win = window.open('', '_blank', 'width=1000,height=760')
