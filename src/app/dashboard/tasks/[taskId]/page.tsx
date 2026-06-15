@@ -9,6 +9,7 @@ import { createNotification } from '@/lib/notifications'
 import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2, History, ChevronDown } from 'lucide-react'
 import { STATUS_META, OVERDUE_META } from '@/lib/constants/tasks'
 import { toast } from '@/components/Toast'
+import { todayInput } from '@/lib/dates'
 
 /* تسمية الانتقال حسب الحالة المُنتقَل إليها */
 const TRANSITION_LABEL: Record<string, string> = {
@@ -448,7 +449,7 @@ export default function TaskPage() {
     setEditDesc(task.description || '')
     setEditType(task.task_type || 'general')
     setEditPriority(task.priority || 'medium')
-    setEditStart(task.start_date || '')
+    setEditStart(task.start_date || todayInput())
     setEditEnd(task.end_date || '')
     setEditing(true)
   }
@@ -456,8 +457,9 @@ export default function TaskPage() {
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editName.trim()) return
+    if (!editStart) { toast('تاريخ البدء مطلوب', 'error'); return }
     if (!editEnd) { toast('تاريخ الانتهاء (الموعد النهائي) مطلوب', 'error'); return }
-    if (editStart && editEnd < editStart) { toast('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء', 'error'); return }
+    if (editEnd < editStart) { toast('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء', 'error'); return }
     setSavingEdit(true)
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -892,9 +894,9 @@ export default function TaskPage() {
                   <option value="high">🔴 عالية</option>
                 </select>
                 <div>
-                  <label className="block text-[11px] text-white/70 mb-1">تاريخ البدء</label>
-                  <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} dir="ltr"
-                    className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm" />
+                  <label className="block text-[11px] text-white/70 mb-1">تاريخ البدء <span className="text-amber-300">*</span></label>
+                  <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} dir="ltr" required
+                    className={`w-full px-3 py-2 rounded-xl bg-white/10 border text-white focus:outline-none text-sm ${editStart ? 'border-white/20' : 'border-amber-300/70'}`} />
                 </div>
                 <div>
                   <label className="block text-[11px] text-white/70 mb-1">تاريخ الانتهاء <span className="text-amber-300">*</span></label>

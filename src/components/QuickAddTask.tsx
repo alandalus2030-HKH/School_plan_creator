@@ -8,6 +8,7 @@ import { Plus, X, ChevronLeft } from 'lucide-react'
 import { toast } from '@/components/Toast'
 import { logActivity } from '@/lib/activity'
 import { createNotification } from '@/lib/notifications'
+import { todayInput } from '@/lib/dates'
 
 /* تعبئة مسبقة عند الفتح برمجياً (مثلاً من الاجتماعات) */
 export type QuickAddPrefill = {
@@ -124,6 +125,7 @@ export default function QuickAddTask() {
       priority:            'medium',
       task_type:           'general',
       node_id:             nodeId || null,
+      start_date:          todayInput(),   // البدء إلزامي → افتراضي اليوم (لجانت/كشف التعارض)
       end_date:            endDate || null,
       assigned_to_user_id: assignedTo,
       assigned_to_department: useDept ? planDept : null,
