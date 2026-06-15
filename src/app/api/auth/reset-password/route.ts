@@ -16,6 +16,13 @@ export async function POST(req: Request) {
     redirectTo: `${siteUrl}/auth/callback?next=/auth/update-password`,
   })
 
-  if (error) return Response.json({ error: error.message }, { status: 400 })
+  if (error) {
+    /* رسائل أوضح للأخطاء الشائعة (حدّ إرسال البريد المدمج في Supabase) */
+    const raw = error.message || ''
+    const msg = /rate limit/i.test(raw)
+      ? 'تم تجاوز حدّ إرسال رسائل البريد مؤقتاً (قيد مزوّد بريد Supabase الافتراضي). انتظر قليلاً ثم أعد المحاولة، أو اضبط مزوّد SMTP مخصّصاً لرفع الحد.'
+      : raw
+    return Response.json({ error: msg }, { status: 400 })
+  }
   return Response.json({ ok: true })
 }

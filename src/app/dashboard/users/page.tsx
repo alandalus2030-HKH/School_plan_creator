@@ -214,10 +214,10 @@ export default function UsersPage() {
   /* ════ حفظ عضوية الفرق ════ */
   const saveTeams = async (userId: string) => {
     try {
-      await supabase.from('team_members').delete().eq('user_id', userId)
+      await supabase.from('team_members').delete().eq('profile_id', userId)
       if (formTeams.length > 0) {
         await supabase.from('team_members').insert(
-          formTeams.map(m => ({ user_id: userId, team_id: m.team_id, is_leader: m.is_leader }))
+          formTeams.map(m => ({ profile_id: userId, team_id: m.team_id, is_leader: m.is_leader }))
         )
       }
     } catch {}
@@ -229,8 +229,8 @@ export default function UsersPage() {
       if (!m.is_leader) continue
       try {
         const { data } = await supabase
-          .from('team_members').select('user_id').eq('team_id', m.team_id).eq('is_leader', true)
-        const others = (data || []).filter((x: any) => x.user_id !== userId)
+          .from('team_members').select('profile_id').eq('team_id', m.team_id).eq('is_leader', true)
+        const others = (data || []).filter((x: any) => x.profile_id !== userId)
         if (others.length > 0) {
           const team = allTeams.find(t => t.id === m.team_id)
           return `فريق "${team?.name_ar || m.team_id}" لديه قائد بالفعل`
@@ -273,7 +273,7 @@ export default function UsersPage() {
     setCredsMsg(''); setResetMsg('')
     // تحميل الفرق
     try {
-      const { data } = await supabase.from('team_members').select('team_id,is_leader').eq('user_id', p.id)
+      const { data } = await supabase.from('team_members').select('team_id,is_leader').eq('profile_id', p.id)
       setFormTeams((data || []).map((m: any) => ({ team_id: m.team_id, is_leader: !!m.is_leader })))
     } catch { setFormTeams([]) }
     setShowForm(true)
