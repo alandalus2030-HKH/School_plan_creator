@@ -322,6 +322,146 @@ async function auditReport(admin: any, schoolId: string) {
   return { rows }
 }
 
+/* ════ تحليل الأداء (إنجاز + جودة حسب القسم) ════ */
+async function performanceReport(admin: any, schoolId: string) {
+  const { tasks } = await loadSchoolTasks(admin, schoolId)
+  const td = today()
+  const mk = () => ({ total: 0, completed: 0, overdue: 0, ratingSum: 0, ratingCount: 0 })
+  const overall = mk()
+  const deptMap = new Map<string, any>()
+  for (const t of tasks) {
+    const dept = t.dept || 'غير مصنّفة'
+    const g = deptMap.get(dept) || { dept, ...mk() }
+    for (const acc of [overall, g]) {
+      acc.total++
+      if (t.status === 'completed') acc.completed++
+      if (isOverdue(t, td)) acc.overdue++
+      if (t.rating) { acc.ratingSum += t.rating; acc.ratingCount++ }
+    }
+    deptMap.set(dept, g)
+  }
+  const fin = (a: any) => ({
+    total: a.total, completed: a.completed, overdue: a.overdue,
+    progress: a.total ? Math.round((a.completed / a.total) * 100) : 0,
+    avgRating: a.ratingCount ? Math.round((a.ratingSum / a.ratingCount) * 10) / 10 : null,
+  })
+  const byDept = [...deptMap.values()].map(g => ({ dept: g.dept, ...fin(g) })).sort((a, b) => b.progress - a.progress)
+  return { overall: fin(overall), byDept }
+}
+
+/* ════ تغطية المعايير بالأدلة + الفجوات (لجاهزية الاعتماد) ════ */
+async function coverageReport(admin: any, schoolId: string) {
+  const { data: plansRaw } = await admin.from('plans')
+    .select('id, name_ar, department, is_archived').eq('school_id', schoolId)
+  const plans = (plansRaw || []).filter((p: any) => !p.is_archived)
+  if (plans.length === 0) return { standards: [], overall: { totalTasks: 0, coveredTasks: 0, coverage: 0 } }
+  const planIds = plans.map((p: any) => p.id)
+  const planById = new Map(plans.map((p: any) => [p.id, p]))
+
+  const { data: nodes } = await admin.from('plan_nodes')
+    .select('id, parent_id, standard_code, name_ar, plan_id').in('plan_id', planIds)
+  const nodeById = new Map((nodes || []).map((n: any) => [n.id, n]))
+
+  /* المعيار الحاكم = أعمق سلف له standard_code */
+  const standardFor = (nodeId: string): { code: string; name: string } | null => {
+    let cur: any = nodeById.get(nodeId)
+    while (cur) { if (cur.standard_code) return { code: cur.standard_code, name: cur.name_ar }; cur = cur.parent_id ? nodeById.get(cur.parent_id) : null }
+    return null
+  }
+  const planOfNode = (nodeId: string): any => { const n: any = nodeById.get(nodeId); return n ? planById.get(n.plan_id) : null }
+
+  const nodeIds = (nodes || []).map((n: any) => n.id)
+  const tasks = nodeIds.length
+    ? (await admin.from('tasks').select('id, name_ar, node_id').in('node_id', nodeIds).is('deleted_at', null)).data || []
+    : []
+  const taskIds = tasks.map((t: any) => t.id)
+
+  /* مهمة مغطّاة = لها دليل معتمد (مملوك أو مشترك) */
+  const acceptedOwned = new Set<string>()
+  const acceptedLinks = new Set<string>()
+  if (taskIds.length) {
+    const { data: ev } = await admin.from('evidence').select('task_id, status').eq('status', 'accepted').in('task_id', taskIds).is('deleted_at', null)
+    for (const e of ev || []) acceptedOwned.add(e.task_id)
+    const { data: evAll } = await admin.from('evidence').select('id, status').in('task_id', taskIds)
+    const acceptedEvIds = new Set((evAll || []).filter((e: any) => e.status === 'accepted').map((e: any) => e.id))
+    const { data: links } = await admin.from('evidence_links').select('evidence_id, task_id').in('task_id', taskIds)
+    for (const l of links || []) if (acceptedEvIds.has(l.evidence_id)) acceptedLinks.add(l.task_id)
+  }
+  const isCovered = (id: string) => acceptedOwned.has(id) || acceptedLinks.has(id)
+
+  const stdMap = new Map<string, any>()
+  for (const t of tasks) {
+    const std = standardFor(t.node_id)
+    const plan = planOfNode(t.node_id)
+    const key = std ? `${plan?.id}|${std.code}` : `${plan?.id}|__none__`
+    if (!stdMap.has(key)) stdMap.set(key, {
+      code: std?.code || null, name: std?.name || 'بلا معيار',
+      plan: plan?.name_ar || '—', department: plan?.department || null, total: 0, covered: 0,
+    })
+    const g = stdMap.get(key)
+    g.total++; if (isCovered(t.id)) g.covered++
+  }
+  const standards = [...stdMap.values()]
+    .map(g => ({ ...g, coverage: g.total ? Math.round((g.covered / g.total) * 100) : 0 }))
+    .sort((a, b) => (a.code || '').localeCompare(b.code || '', 'ar'))
+
+  const totalTasks = tasks.length
+  const coveredTasks = tasks.filter((t: any) => isCovered(t.id)).length
+  return {
+    standards,
+    overall: { totalTasks, coveredTasks, coverage: totalTasks ? Math.round((coveredTasks / totalTasks) * 100) : 0 },
+  }
+}
+
+/* ════ قائمة الخطط (لمنتقي تقرير تقدّم الخطة) ════ */
+async function plansList(admin: any, schoolId: string) {
+  const { data } = await admin.from('plans')
+    .select('id, name_ar, is_archived').eq('school_id', schoolId).order('created_at', { ascending: false })
+  return { plans: (data || []).filter((p: any) => !p.is_archived).map((p: any) => ({ id: p.id, name_ar: p.name_ar })) }
+}
+
+/* ════ تقدّم خطة واحدة (عقد المستوى الأول + نسبة إنجاز كل فرع) ════ */
+async function planProgress(admin: any, schoolId: string, planId: string) {
+  const { data: plan } = await admin.from('plans')
+    .select('id, name_ar, school_id, department, academic_year').eq('id', planId).maybeSingle()
+  if (!plan || plan.school_id !== schoolId) return { error: 'الخطة خارج نطاق مدرستك' }
+
+  const { data: nodes } = await admin.from('plan_nodes')
+    .select('id, parent_id, name_ar, level_num, order_num').eq('plan_id', planId)
+  const nodeById = new Map((nodes || []).map((n: any) => [n.id, n]))
+  const nodeIds = (nodes || []).map((n: any) => n.id)
+  const td = today()
+
+  const tasks = nodeIds.length
+    ? (await admin.from('tasks').select('id, status, end_date, node_id').in('node_id', nodeIds).is('deleted_at', null)).data || []
+    : []
+
+  /* جذر كل مهمة = عقدة المستوى الأول التي تنتمي إليها */
+  const rootOf = (nodeId: string): any => {
+    let cur: any = nodeById.get(nodeId)
+    while (cur && cur.parent_id) cur = nodeById.get(cur.parent_id)
+    return cur
+  }
+  const roots = (nodes || []).filter((n: any) => !n.parent_id).sort((a: any, b: any) => a.order_num - b.order_num)
+  const stat = new Map<string, any>()
+  for (const r of roots) stat.set(r.id, { id: r.id, name_ar: r.name_ar, total: 0, completed: 0, overdue: 0 })
+
+  let total = 0, completed = 0, overdue = 0
+  for (const t of tasks) {
+    const root = rootOf(t.node_id)
+    const g = root ? stat.get(root.id) : null
+    const od = t.status !== 'completed' && t.end_date && t.end_date < td
+    total++; if (t.status === 'completed') completed++; if (od) overdue++
+    if (g) { g.total++; if (t.status === 'completed') g.completed++; if (od) g.overdue++ }
+  }
+  const branches = [...stat.values()].map(g => ({ ...g, progress: g.total ? Math.round((g.completed / g.total) * 100) : 0 }))
+  return {
+    plan: { name_ar: plan.name_ar, department: plan.department, academic_year: plan.academic_year },
+    overall: { total, completed, overdue, progress: total ? Math.round((completed / total) * 100) : 0 },
+    branches,
+  }
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
@@ -345,6 +485,14 @@ export async function GET(req: NextRequest) {
     case 'trend':              return NextResponse.json(await trendReport(admin, schoolId))
     case 'recognition':        return NextResponse.json(await recognitionReport(admin, schoolId))
     case 'audit':              return NextResponse.json(await auditReport(admin, schoolId))
+    case 'performance':        return NextResponse.json(await performanceReport(admin, schoolId))
+    case 'coverage':           return NextResponse.json(await coverageReport(admin, schoolId))
+    case 'plans-list':         return NextResponse.json(await plansList(admin, schoolId))
+    case 'plan-progress': {
+      const planId = req.nextUrl.searchParams.get('planId')
+      if (!planId) return NextResponse.json({ error: 'planId مطلوب' }, { status: 400 })
+      return NextResponse.json(await planProgress(admin, schoolId, planId))
+    }
     default: return NextResponse.json({ error: 'نوع تقرير غير معروف' }, { status: 400 })
   }
 }

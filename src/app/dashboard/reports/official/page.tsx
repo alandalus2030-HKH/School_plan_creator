@@ -23,8 +23,8 @@ const GROUPS: Group[] = [
   {
     label: 'الخطط', Icon: Map, reports: [
       { key: 'plans-portfolio', title: 'محفظة الخطط', desc: 'كل الخطط ومؤشراتها', href: '/dashboard/reports/r/plans-portfolio' },
-      { key: 'plan-progress', title: 'تقدّم الخطة', desc: 'هرمية الخطة ونسبة الإنجاز' },
-      { key: 'sip', title: 'خطة التحسين المدرسي (QNSA)', desc: 'مبادرات وأهداف وأدلة' },
+      { key: 'plan-progress', title: 'تقدّم الخطة', desc: 'التقدّم حسب محاور الخطة', href: '/dashboard/reports/r/plan-progress' },
+      { key: 'sip', title: 'خطة التحسين المدرسي (QNSA)', desc: 'تقرير الاعتماد الشامل', href: '/dashboard/reports/r/sip' },
     ],
   },
   {
@@ -41,10 +41,10 @@ const GROUPS: Group[] = [
   },
   {
     label: 'الأداء والتحسين', Icon: TrendingUp, reports: [
-      { key: 'performance', title: 'تحليل الأداء', desc: 'الإنجاز والجودة حسب القسم' },
+      { key: 'performance', title: 'تحليل الأداء', desc: 'الإنجاز والجودة حسب القسم', href: '/dashboard/reports/r/performance' },
       { key: 'trend', title: 'الاتجاه الزمني', desc: 'تطوّر الإنجاز عبر الوقت', href: '/dashboard/reports/r/trend' },
-      { key: 'coverage', title: 'التغطية والفجوات', desc: 'تغطية المعايير بالأدلة' },
-      { key: 'accreditation', title: 'جاهزية الاعتماد', desc: 'ملف الأدلة حسب المعيار' },
+      { key: 'coverage', title: 'التغطية والفجوات', desc: 'تغطية المعايير بالأدلة', href: '/dashboard/reports/r/coverage' },
+      { key: 'accreditation', title: 'جاهزية الاعتماد', desc: 'الفجوات قبل الاعتماد', href: '/dashboard/reports/r/accreditation' },
     ],
   },
   {
