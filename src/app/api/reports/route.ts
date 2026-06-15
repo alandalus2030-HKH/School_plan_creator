@@ -110,7 +110,7 @@ async function loadSchoolTasks(admin: any, schoolId: string) {
   let tasks: any[] = []
   if (nodeIds.length) {
     const { data: t } = await admin.from('tasks')
-      .select('id, name_ar, status, end_date, rating, assigned_to_user_id, assigned_to_department, node_id')
+      .select('id, name_ar, status, end_date, rating, assigned_to_user_id, assigned_to_department, node_id, budget_qar, other_resources')
       .in('node_id', nodeIds).is('deleted_at', null)
     tasks = (t || []).map((x: any) => {
       const pid = nodeToPlan.get(x.node_id) || null
@@ -190,6 +190,71 @@ async function staffStats(admin: any, schoolId: string) {
   return { rows }
 }
 
+/* ════ المهام المُعادة (Rework) ════ */
+async function reworkReport(admin: any, schoolId: string) {
+  const { tasks } = await loadSchoolTasks(admin, schoolId)
+  const taskMap = new Map(tasks.map((t: any) => [t.id, t]))
+  const ids = tasks.map((t: any) => t.id)
+  if (!ids.length) return { rows: [], totalReturns: 0 }
+
+  const { data: trs } = await admin.from('task_transitions')
+    .select('task_id, note, actor_id, created_at').eq('to_status', 'returned').in('task_id', ids)
+
+  const actorIds = [...new Set((trs || []).map((t: any) => t.actor_id).filter(Boolean))]
+  const names = new Map<string, string>()
+  if (actorIds.length) {
+    const { data: p } = await admin.from('profiles').select('id, name_ar').in('id', actorIds)
+    for (const x of p || []) names.set(x.id, x.name_ar)
+  }
+
+  const byTask = new Map<string, any>()
+  for (const tr of trs || []) {
+    const g = byTask.get(tr.task_id) || { task_id: tr.task_id, count: 0, lastNote: null, lastActor: null, lastAt: null }
+    g.count++
+    if (!g.lastAt || tr.created_at > g.lastAt) { g.lastAt = tr.created_at; g.lastNote = tr.note; g.lastActor = names.get(tr.actor_id) || null }
+    byTask.set(tr.task_id, g)
+  }
+  const rows = [...byTask.values()].map(g => ({
+    ...g, name_ar: (taskMap.get(g.task_id) as any)?.name_ar || '—', plan: (taskMap.get(g.task_id) as any)?.planName || null,
+  })).sort((a, b) => b.count - a.count)
+  return { rows, totalReturns: (trs || []).length }
+}
+
+/* ════ الموارد والميزانية ════ */
+async function resourcesReport(admin: any, schoolId: string) {
+  const { tasks } = await loadSchoolTasks(admin, schoolId)
+  const byPlan = new Map<string, { plan: string; budget: number; count: number }>()
+  const items: any[] = []
+  let total = 0
+  for (const t of tasks) {
+    const b = Number(t.budget_qar) || 0
+    const hasRes = !!(t.other_resources && t.other_resources.trim())
+    if (b > 0 || hasRes) items.push({ id: t.id, name_ar: t.name_ar, plan: t.planName, budget: b, resources: t.other_resources || null })
+    if (b > 0) {
+      total += b
+      const key = t.planName || 'غير مرتبطة بخطة'
+      const g = byPlan.get(key) || { plan: key, budget: 0, count: 0 }
+      g.budget += b; g.count++; byPlan.set(key, g)
+    }
+  }
+  return { total, byPlan: [...byPlan.values()].sort((a, b) => b.budget - a.budget), items }
+}
+
+/* ════ استخدام الأماكن ════ */
+async function locationsReport(admin: any, schoolId: string) {
+  const { data: locs } = await admin.from('school_locations').select('id, name_ar').eq('school_id', schoolId).eq('is_active', true)
+  const { tasks } = await loadSchoolTasks(admin, schoolId)
+  const ids = tasks.map((t: any) => t.id)
+  const counts = new Map<string, number>()
+  if (ids.length) {
+    const { data: tl } = await admin.from('task_locations').select('location_id, task_id').in('task_id', ids)
+    for (const r of tl || []) counts.set(r.location_id, (counts.get(r.location_id) || 0) + 1)
+  }
+  const rows = (locs || []).map((l: any) => ({ id: l.id, name_ar: l.name_ar, taskCount: counts.get(l.id) || 0 }))
+    .sort((a: any, b: any) => b.taskCount - a.taskCount)
+  return { rows }
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
@@ -207,6 +272,9 @@ export async function GET(req: NextRequest) {
     case 'overdue':            return NextResponse.json(await overdueReport(admin, schoolId))
     case 'staff-performance':  return NextResponse.json(await staffStats(admin, schoolId))
     case 'workload':           return NextResponse.json(await staffStats(admin, schoolId))
+    case 'rework':             return NextResponse.json(await reworkReport(admin, schoolId))
+    case 'resources':          return NextResponse.json(await resourcesReport(admin, schoolId))
+    case 'locations':          return NextResponse.json(await locationsReport(admin, schoolId))
     default: return NextResponse.json({ error: 'نوع تقرير غير معروف' }, { status: 400 })
   }
 }

@@ -17,7 +17,7 @@ const GROUPS: Group[] = [
     label: 'المهام', Icon: ClipboardList, reports: [
       { key: 'task-status', title: 'حالة المهام', desc: 'توزيع الحالات والمتأخرات', href: '/dashboard/reports/r/task-status' },
       { key: 'overdue', title: 'المهام المتأخرة', desc: 'قائمة المتأخر مع المكلَّفين', href: '/dashboard/reports/r/overdue' },
-      { key: 'rework', title: 'المهام المُعادة', desc: 'الإعادات وأسبابها' },
+      { key: 'rework', title: 'المهام المُعادة', desc: 'الإعادات وأسبابها', href: '/dashboard/reports/r/rework' },
     ],
   },
   {
@@ -35,8 +35,8 @@ const GROUPS: Group[] = [
   },
   {
     label: 'الموارد والأماكن', Icon: Package, reports: [
-      { key: 'resources', title: 'الموارد والميزانية', desc: 'الميزانية والموارد لكل خطة' },
-      { key: 'locations', title: 'استخدام الأماكن', desc: 'الحجوزات والتعارضات' },
+      { key: 'resources', title: 'الموارد والميزانية', desc: 'الميزانية والموارد لكل خطة', href: '/dashboard/reports/r/resources' },
+      { key: 'locations', title: 'استخدام الأماكن', desc: 'عدد المهام لكل مكان', href: '/dashboard/reports/r/locations' },
     ],
   },
   {
