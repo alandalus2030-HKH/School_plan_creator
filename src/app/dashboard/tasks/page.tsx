@@ -72,6 +72,10 @@ export default function TasksPage() {
   /* فلتر طلبات إعادة الفتح — لا يُحفظ (فلتر إجرائي مؤقت)، ويُفعَّل من ?filter=reopen */
   const [reopenF,   setReopenF]   = useState(false)
 
+  /* ── ترقيم عرض القائمة ── */
+  const PAGE_SIZE = 50
+  const [page, setPage] = useState(1)
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     const q = new URLSearchParams(window.location.search)
@@ -87,6 +91,9 @@ export default function TasksPage() {
     if (typeof window === 'undefined') return
     localStorage.setItem(FILTERS_KEY, JSON.stringify({ statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF }))
   }, [statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF])
+
+  /* العودة للصفحة الأولى عند تغيّر أي مرشّح/بحث */
+  useEffect(() => { setPage(1) }, [search, statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF, reopenF])
 
   useEffect(() => {
     if (permsLoading) return   // انتظر تحميل الصلاحيات أولاً
@@ -111,25 +118,38 @@ export default function TasksPage() {
       setMyDept(dept)
       setMyTeamIds(teamIds)
 
+      /* جلب كل المهام على دفعات (تجاوز سقف الـ1000 لكيلا تُخفى أي مهمة) */
+      const fetchAllTasks = async () => {
+        const SIZE = 1000
+        const all: any[] = []
+        for (let from = 0; ; from += SIZE) {
+          const { data } = await supabase.from('tasks').select(`
+            id, name_ar, status, task_type, priority,
+            start_date, end_date, order_num, node_id,
+            rating, rated_at, depends_on_task_id,
+            assigned_to_user_id, assigned_to_team_id, assigned_to_department,
+            reviewer_id, reopen_requested_by
+          `).order('created_at', { ascending: false }).range(from, from + SIZE - 1)
+          if (!data || data.length === 0) break
+          all.push(...data)
+          if (data.length < SIZE) break
+        }
+        return all
+      }
+
       const [
-        { data: tasksData },
+        tasksData,
         { data: nodesData },
         { data: plansData },
         { data: profsData },
         { data: teamsData },
         { data: deptOpts },
       ] = await Promise.all([
-        supabase.from('tasks').select(`
-          id, name_ar, status, task_type, priority,
-          start_date, end_date, order_num, node_id,
-          rating, rated_at, depends_on_task_id,
-          assigned_to_user_id, assigned_to_team_id, assigned_to_department,
-          reviewer_id, reopen_requested_by
-        `).order('created_at', { ascending: false }).limit(1000),
-        supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num').limit(2000),
-        supabase.from('plans').select('id, name_ar').limit(100),
-        supabase.from('profiles').select('id, name_ar').limit(500),
-        supabase.from('teams').select('id, name_ar, color').limit(100),
+        fetchAllTasks(),
+        supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num').limit(5000),
+        supabase.from('plans').select('id, name_ar').limit(200),
+        supabase.from('profiles').select('id, name_ar').limit(1000),
+        supabase.from('teams').select('id, name_ar, color').limit(200),
         supabase.from('dropdown_options').select('value').eq('category', 'department').eq('is_active', true).order('sort_order'),
       ])
 
@@ -195,6 +215,12 @@ export default function TasksPage() {
     }
     return true
   })
+
+  /* ── شريحة الصفحة الحالية (عرض القائمة فقط — الكانبان/جانت/التقويم تعرض الكل المُصفّى) ── */
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageClamped = Math.min(page, totalPages)
+  const pageStart   = (pageClamped - 1) * PAGE_SIZE
+  const pageTasks   = filtered.slice(pageStart, pageStart + PAGE_SIZE)
 
   /* ── إحصائيات التقييم ── */
   const ratedCount   = tasks.filter(t => t.rating != null).length
@@ -438,7 +464,7 @@ export default function TasksPage() {
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="divide-y divide-slate-50">
-            {filtered.map(task => {
+            {pageTasks.map(task => {
               const statusInfo  = STATUS_LIST.find(s => s.value === task.status)
               const assignee    = profiles.find(p => p.id === task.assigned_to_user_id)
               const assignTeam  = teams.find(t => t.id === task.assigned_to_team_id)
@@ -539,8 +565,26 @@ export default function TasksPage() {
               )
             })}
           </div>
-          <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 text-xs text-slate-400">
-            {filtered.length} مهمة معروضة من {tasks.length}
+          <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-xs text-slate-400">
+              {filtered.length === 0
+                ? 'لا مهام'
+                : `عرض ${pageStart + 1}–${pageStart + pageTasks.length} من ${filtered.length}`}
+              {filtered.length !== tasks.length && <span className="text-slate-300"> · (الإجمالي {tasks.length})</span>}
+            </span>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={pageClamped <= 1}
+                  className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 bg-white text-slate-600 disabled:opacity-40 hover:border-violet-300 transition-colors">
+                  السابق
+                </button>
+                <span className="text-xs text-slate-500">صفحة {pageClamped} من {totalPages}</span>
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={pageClamped >= totalPages}
+                  className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 bg-white text-slate-600 disabled:opacity-40 hover:border-violet-300 transition-colors">
+                  التالي
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )
