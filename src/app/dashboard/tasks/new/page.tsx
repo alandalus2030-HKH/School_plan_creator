@@ -44,6 +44,8 @@ function NewTaskForm() {
   const [budgetQar,        setBudgetQar]        = useState('')
   const [otherResources,   setOtherResources]   = useState('')
   const [evidenceRequired, setEvidenceRequired] = useState('')
+  const [evTypeOptions,    setEvTypeOptions]    = useState<string[]>([])   // أنواع الأدلة (للبوّابة)
+  const [requiredTypes,    setRequiredTypes]    = useState<string[]>([])
   const [assignedUserId,   setAssignedUserId]   = useState('')
   const [reviewerId,       setReviewerId]       = useState('')
   const [assignMode,       setAssignMode]       = useState<'person' | 'department'>('person')
@@ -62,9 +64,11 @@ function NewTaskForm() {
     Promise.all([
       supabase.from('plans').select('id,name_ar,academic_year,level_count,level_names,department').order('created_at', { ascending: false }),
       supabase.from('profiles').select('id,name_ar,job_title,department').eq('is_active', true).order('name_ar'),
-    ]).then(([{ data: plansData }, { data: profsData }]) => {
+      supabase.from('dropdown_options').select('value').eq('category', 'evidence_type').eq('is_active', true).order('sort_order'),
+    ]).then(([{ data: plansData }, { data: profsData }, { data: evTypes }]) => {
       setPlans(plansData || [])
       setProfiles(profsData || [])
+      setEvTypeOptions((evTypes || []).map((o: any) => o.value))
       setFetching(false)
     })
     /* أماكن المدرسة النشطة (لاختيار مكان المهمة) */
@@ -196,6 +200,7 @@ function NewTaskForm() {
         budget_qar:            budgetQar ? Number(budgetQar) : null,
         other_resources:       otherResources.trim()   || null,
         evidence_required:     evidenceRequired.trim() || null,
+        required_evidence_types: requiredTypes.length ? requiredTypes : null,
         assigned_to_user_id:   assignMode === 'person' ? (assignedUserId || null) : null,
         assigned_to_department: assignMode === 'department' ? deptForAssign : null,
         reviewer_id:           reviewerId      || null,
@@ -495,6 +500,28 @@ function NewTaskForm() {
             />
             <p className="text-xs text-slate-400 mt-1 text-left">{evidenceRequired.length} / 500</p>
           </div>
+
+          {/* أنواع الأدلة المطلوبة — بوّابة الإنجاز */}
+          {evTypeOptions.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                ✅ أنواع الأدلة المطلوبة للإنجاز
+                <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — إن حُدِّدت، لا تُعتمد المهمة قبل قبول دليل لكل نوع)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {evTypeOptions.map(t => {
+                  const on = requiredTypes.includes(t)
+                  return (
+                    <button type="button" key={t}
+                      onClick={() => setRequiredTypes(prev => on ? prev.filter(x => x !== t) : [...prev, t])}
+                      className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                      {on ? '✓ ' : ''}{t}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* المكلَّف بالمهمة */}
           {(() => {

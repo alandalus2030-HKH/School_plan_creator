@@ -143,6 +143,8 @@ export default function TaskPage() {
   const [editPriority, setEditPriority] = useState('')
   const [editStart,    setEditStart]    = useState('')
   const [editEnd,      setEditEnd]      = useState('')
+  const [editReqTypes, setEditReqTypes] = useState<string[]>([])   // أنواع الأدلة المطلوبة (بوّابة الإنجاز)
+  const [evTypeOptions, setEvTypeOptions] = useState<string[]>([])
   const [savingEdit,   setSavingEdit]   = useState(false)
 
   /* ── تعديل/حذف التعليقات ── */
@@ -177,10 +179,10 @@ export default function TaskPage() {
         assigned_to_user_id, assigned_to_team_id, assigned_to_department,
         reviewer_id, rating, rating_note, rated_at,
         return_note, submitted_at, created_by,
-        budget_qar, other_resources, evidence_required,
+        budget_qar, other_resources, evidence_required, required_evidence_types,
         depends_on_task_id,
         task_locations ( location_id, school_locations ( id, name_ar ) ),
-        evidence ( id, name, description, evidence_number, status, file_url, video_url, file_type, created_at,
+        evidence ( id, name, description, evidence_number, status, evidence_type, file_url, video_url, file_type, created_at,
           evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) ),
         task_comments (
           id, content, created_at,
@@ -278,17 +280,19 @@ export default function TaskPage() {
       if (!user) { router.push('/login'); return }
       setUserId(user.id)
 
-      const [{ data: profile }, { data: profs }, { data: tms }, { data: deptOpts }] = await Promise.all([
+      const [{ data: profile }, { data: profs }, { data: tms }, { data: deptOpts }, { data: evTypes }] = await Promise.all([
         supabase.from('profiles').select('full_name_ar, role, department').eq('id', user.id).single(),
         supabase.from('profiles').select('id, name_ar, job_title, department').eq('is_active', true).order('name_ar'),
         supabase.from('teams').select('id, name_ar, color, leader_id'),
         supabase.from('dropdown_options').select('value').eq('category', 'department').eq('is_active', true).order('sort_order'),
+        supabase.from('dropdown_options').select('value').eq('category', 'evidence_type').eq('is_active', true).order('sort_order'),
       ])
       setUserName(profile?.full_name_ar || 'أنت')
       setMyDept(profile?.department || null)
       setProfiles(profs || [])
       setTeams(tms || [])
       setDeptOptions((deptOpts || []).map((o: any) => o.value))
+      setEvTypeOptions((evTypes || []).map((o: any) => o.value))
 
       // التحقق من الصلاحيات (المهام + الأدلة)
       if (profile?.role) {
@@ -456,6 +460,7 @@ export default function TaskPage() {
     setEditPriority(task.priority || 'medium')
     setEditStart(task.start_date || todayInput())
     setEditEnd(task.end_date || '')
+    setEditReqTypes(Array.isArray(task.required_evidence_types) ? task.required_evidence_types : [])
     setEditing(true)
   }
 
@@ -487,6 +492,7 @@ export default function TaskPage() {
         priority: editPriority,
         start_date: editStart || null,
         end_date: editEnd || null,
+        required_evidence_types: editReqTypes.length ? editReqTypes : null,
       }),
     })
     setSavingEdit(false)
@@ -925,6 +931,24 @@ export default function TaskPage() {
                     return <p className={`text-[11px] mt-1 ${s.level === 'block' ? 'text-red-200' : 'text-amber-200'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
                 </div>
               </div>
+              {/* أنواع الأدلة المطلوبة — بوّابة الإنجاز */}
+              {evTypeOptions.length > 0 && (
+                <div>
+                  <label className="block text-[11px] text-white/70 mb-1">أنواع الأدلة المطلوبة للإنجاز (اختياري)</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {evTypeOptions.map(t => {
+                      const on = editReqTypes.includes(t)
+                      return (
+                        <button type="button" key={t}
+                          onClick={() => setEditReqTypes(prev => on ? prev.filter(x => x !== t) : [...prev, t])}
+                          className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${on ? 'bg-white text-violet-700 border-white' : 'bg-white/10 text-white border-white/20 hover:border-white/50'}`}>
+                          {on ? '✓ ' : ''}{t}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
               <button type="submit" disabled={savingEdit}
                 className="w-full py-2 bg-white text-violet-700 font-semibold rounded-xl text-sm disabled:opacity-50">
                 {savingEdit ? 'جارٍ الحفظ...' : '💾 حفظ التعديلات'}
@@ -1295,6 +1319,35 @@ export default function TaskPage() {
             <p className="text-xs text-blue-600 leading-relaxed">{task.evidence_required}</p>
           </div>
         )}
+
+        {/* بوّابة الإنجاز: حالة أنواع الأدلة المطلوبة */}
+        {Array.isArray(task.required_evidence_types) && task.required_evidence_types.length > 0 && (() => {
+          const owned = (task.evidence || []) as any[]
+          const acceptedTypes = new Set(owned.filter(e => e.status === 'accepted').map(e => e.evidence_type))
+          const pendingTypes  = new Set(owned.filter(e => e.status !== 'accepted').map(e => e.evidence_type))
+          const allMet = task.required_evidence_types.every((t: string) => acceptedTypes.has(t))
+          return (
+            <div className={`mt-3 p-3 rounded-xl border ${allMet ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+              <p className={`text-xs font-semibold mb-2 ${allMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+                ✅ بوّابة الإنجاز — أنواع الأدلة المطلوبة {allMet ? '(مكتملة)' : '(غير مكتملة)'}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {task.required_evidence_types.map((t: string) => {
+                  const ok = acceptedTypes.has(t)
+                  const pend = !ok && pendingTypes.has(t)
+                  return (
+                    <span key={t} className={`text-[11px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1
+                      ${ok ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                        : pend ? 'bg-amber-100 text-amber-700 border-amber-200'
+                        : 'bg-red-50 text-red-600 border-red-200'}`}>
+                      {ok ? '✓' : pend ? '⏳' : '✗'} {t}{ok ? ' — مقبول' : pend ? ' — قيد المراجعة' : ' — ناقص'}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* ══ تقييم جودة التنفيذ ══ */}
