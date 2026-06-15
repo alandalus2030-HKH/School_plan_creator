@@ -14,17 +14,22 @@ type SchoolData = {
   address: string | null; phone: string | null; email: string | null
   principal_name: string | null; ministry_number: string | null
   report_header: string | null; report_footer: string | null
+  signature_url: string | null; stamp_url: string | null
 }
+
+const IMG_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp']
 
 const MAX_LOGO = 2 * 1024 * 1024 // 2MB
 
 export default function SchoolProfile() {
-  const fileRef = useRef<HTMLInputElement>(null)
+  const fileRef  = useRef<HTMLInputElement>(null)
+  const sigRef   = useRef<HTMLInputElement>(null)
+  const stampRef = useRef<HTMLInputElement>(null)
 
   const [data, setData]       = useState<SchoolData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploading, setUploading] = useState<null | 'logo' | 'signature' | 'stamp'>(null)
 
   const load = async () => {
     setLoading(true)
@@ -38,31 +43,32 @@ export default function SchoolProfile() {
   const setField = (k: keyof SchoolData, v: string) =>
     setData(d => d ? { ...d, [k]: v } : d)
 
-  /* ── رفع الشعار ── */
-  const onPickLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (e.target) e.target.value = '' // السماح بإعادة اختيار نفس الملف
-    if (!file || !data) return
-    if (file.size > MAX_LOGO) { toast('حجم الصورة يتجاوز 2MB', 'error'); return }
-    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'].includes(file.type)) {
-      toast('صيغة غير مدعومة (PNG/JPG/SVG/WEBP)', 'error'); return
+  /* ── رفع صورة (شعار/توقيع/ختم) عبر الخادم ── */
+  const onPick = (kind: 'logo' | 'signature' | 'stamp', field: keyof SchoolData, labelAr: string) =>
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (e.target) e.target.value = '' // السماح بإعادة اختيار نفس الملف
+      if (!file || !data) return
+      if (file.size > MAX_LOGO) { toast('حجم الصورة يتجاوز 2MB', 'error'); return }
+      if (!IMG_TYPES.includes(file.type)) { toast('صيغة غير مدعومة (PNG/JPG/SVG/WEBP)', 'error'); return }
+      setUploading(kind)
+      try {
+        const fd = new FormData()
+        fd.append('file', file)
+        fd.append('kind', kind)
+        const res = await fetch('/api/school-profile', { method: 'POST', body: fd })
+        const json = await res.json()
+        if (!res.ok) { toast(`تعذّر رفع ${labelAr}: ` + (json.error || res.status), 'error'); return }
+        setField(field, json.url || '')
+        toast(`تم رفع ${labelAr} — لا تنسَ الحفظ`)
+      } catch (err: any) {
+        console.error('[SchoolProfile] upload failed:', err)
+        toast(`تعذّر رفع ${labelAr}: ` + (err?.message || 'خطأ غير معروف'), 'error')
+      } finally {
+        setUploading(null)
+      }
     }
-    setUploading(true)
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/school-profile', { method: 'POST', body: fd })
-      const json = await res.json()
-      if (!res.ok) { toast('تعذّر رفع الشعار: ' + (json.error || res.status), 'error'); return }
-      setField('logo_url', json.url || '')
-      toast('تم رفع الشعار — لا تنسَ الحفظ')
-    } catch (err: any) {
-      console.error('[SchoolProfile] upload failed:', err)
-      toast('تعذّر رفع الشعار: ' + (err?.message || 'خطأ غير معروف'), 'error')
-    } finally {
-      setUploading(false)
-    }
-  }
+  const onPickLogo = onPick('logo', 'logo_url', 'الشعار')
 
   /* ── حفظ كل البيانات ── */
   const save = async () => {
@@ -77,6 +83,7 @@ export default function SchoolProfile() {
         address: data.address, phone: data.phone, email: data.email,
         principal_name: data.principal_name, ministry_number: data.ministry_number,
         report_header: data.report_header, report_footer: data.report_footer,
+        signature_url: data.signature_url, stamp_url: data.stamp_url,
       }),
     })
     const json = await res.json()
@@ -117,11 +124,11 @@ export default function SchoolProfile() {
             </div>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={onPickLogo} className="hidden" />
             <div className="flex gap-1">
-              <button onClick={() => fileRef.current?.click()} disabled={uploading}
+              <button onClick={() => fileRef.current?.click()} disabled={uploading === 'logo'}
                 className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-50">
                 {/* عزل تبديل الأيقونة داخل span ثابت لتجنّب خطأ insertBefore في React */}
-                <span className="inline-flex">{uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}</span>
-                <span>{uploading ? 'جارٍ الرفع' : 'رفع شعار'}</span>
+                <span className="inline-flex">{uploading === 'logo' ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}</span>
+                <span>{uploading === 'logo' ? 'جارٍ الرفع' : 'رفع شعار'}</span>
               </button>
               {data.logo_url && (
                 <button onClick={() => setField('logo_url', '')} aria-label="إزالة الشعار"
@@ -191,6 +198,61 @@ export default function SchoolProfile() {
             <input value={data.ministry_number || ''} onChange={e => setField('ministry_number', e.target.value)} dir="ltr" className={inputCls} />
           </div>
         </div>
+      </div>
+
+      {/* توقيع وختم التقارير */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <h3 className="font-bold text-slate-800 mb-1 flex items-center gap-2">
+          <FileText size={18} style={{ color: 'var(--maroon-600)' }} /> توقيع وختم التقارير
+        </h3>
+        <p className="text-[11px] text-slate-400 mb-4">تظهر في تذييل التقارير الرسمية المُصدَّرة (مع اسم المدير)</p>
+        <div className="flex flex-wrap gap-6">
+          {/* التوقيع */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-40 h-24 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden bg-slate-50">
+              {data.signature_url
+                ? <img src={data.signature_url} alt="توقيع المدير" className="w-full h-full object-contain" />
+                : <ImageIcon size={28} className="text-slate-300" />}
+            </div>
+            <input ref={sigRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={onPick('signature', 'signature_url', 'التوقيع')} className="hidden" />
+            <div className="flex gap-1">
+              <button onClick={() => sigRef.current?.click()} disabled={uploading === 'signature'}
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-50">
+                <span className="inline-flex">{uploading === 'signature' ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}</span>
+                <span>توقيع المدير</span>
+              </button>
+              {data.signature_url && (
+                <button onClick={() => setField('signature_url', '')} aria-label="إزالة التوقيع"
+                  className="text-xs px-2 py-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+          {/* الختم */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden bg-slate-50">
+              {data.stamp_url
+                ? <img src={data.stamp_url} alt="ختم المدرسة" className="w-full h-full object-contain" />
+                : <ImageIcon size={28} className="text-slate-300" />}
+            </div>
+            <input ref={stampRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={onPick('stamp', 'stamp_url', 'الختم')} className="hidden" />
+            <div className="flex gap-1">
+              <button onClick={() => stampRef.current?.click()} disabled={uploading === 'stamp'}
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-50">
+                <span className="inline-flex">{uploading === 'stamp' ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}</span>
+                <span>ختم المدرسة</span>
+              </button>
+              {data.stamp_url && (
+                <button onClick={() => setField('stamp_url', '')} aria-label="إزالة الختم"
+                  className="text-xs px-2 py-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        <span className="text-[10px] text-slate-400 mt-2 block">يُفضّل صور PNG بخلفية شفافة · حد 2MB</span>
       </div>
 
       {/* رأسية وتذييل التقارير */}

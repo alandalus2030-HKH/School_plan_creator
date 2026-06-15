@@ -25,7 +25,7 @@ async function getContext(userId: string) {
 const ALLOWED = [
   'name_ar', 'name_en', 'logo_url', 'vision_ar', 'mission_ar',
   'address', 'phone', 'email', 'principal_name', 'ministry_number',
-  'report_header', 'report_footer',
+  'report_header', 'report_footer', 'signature_url', 'stamp_url',
 ] as const
 
 const LOGO_BUCKET = 'school-logos'
@@ -110,8 +110,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'صيغة غير مدعومة (PNG/JPG/SVG/WEBP)' }, { status: 400 })
   }
 
+  /* نوع الصورة لتسمية المسار: شعار/توقيع/ختم */
+  const kindRaw = (form.get('kind') || 'logo').toString()
+  const kind = ['logo', 'signature', 'stamp'].includes(kindRaw) ? kindRaw : 'logo'
   const ext  = (file.name.split('.').pop() || 'png').toLowerCase()
-  const path = `${ctx.schoolId}/logo_${Date.now()}.${ext}`
+  const path = `${ctx.schoolId}/${kind}_${Date.now()}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
   const { error: upErr } = await ctx.admin.storage

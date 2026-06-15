@@ -11,7 +11,7 @@ import {
 import {
   BookOpen, Archive, Pin, BarChart3, TrendingUp, PartyPopper, Inbox,
   ClipboardList, CheckCircle2, Clock, Circle, AlertTriangle, Star,
-  LayoutDashboard, Network, Users, Printer,
+  LayoutDashboard, Network, Users, Printer, FileText,
 } from 'lucide-react'
 import {
   STATUS_META, RATING_META, PRIORITY_META, TYPE_META,
@@ -1018,6 +1018,11 @@ export default function ReportsPage() {
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
             <Printer size={14} className="inline ml-1" /> طباعة
           </button>
+          <a href="/dashboard/reports/official"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-white font-medium transition-all hover:brightness-110"
+            style={{ background: 'var(--gradient-button, #8a1538)' }}>
+            <FileText size={14} className="inline ml-1" /> التقارير الرسمية (PDF)
+          </a>
         </div>
       </div>
 
