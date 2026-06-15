@@ -8,6 +8,8 @@ import { createNotification } from '@/lib/notifications'
 import { findConflicts, type ConflictResult } from '@/lib/conflicts'
 import ConflictWarning from '@/components/ConflictWarning'
 import { todayInput } from '@/lib/dates'
+import { loadCalendar, dayStatus, type CalendarData } from '@/lib/calendar'
+import { usePermissions } from '@/lib/PermissionsContext'
 
 function NewTaskForm() {
   const router       = useRouter()
@@ -15,6 +17,12 @@ function NewTaskForm() {
   const preNodeId    = searchParams.get('node')
   const prePlanId    = searchParams.get('plan')
   const supabase     = createClient()
+  const { can }      = usePermissions()
+
+  /* ── التقويم المدرسي (عطلات/اختبارات) ── */
+  const [cal, setCal] = useState<CalendarData>({ events: [], weekend: [5, 6] })
+  useEffect(() => { loadCalendar().then(setCal) }, [])
+  const canOverride = can('manage_plans')
 
   /* ── بيانات الخطط والعقد ── */
   const [plans,     setPlans]     = useState<any[]>([])
@@ -153,6 +161,16 @@ function NewTaskForm() {
     if (!startDate) { setError('تاريخ البدء مطلوب'); return }
     if (!endDate) { setError('تاريخ الانتهاء (الموعد النهائي) مطلوب'); return }
     if (endDate < startDate) { setError('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'); return }
+    /* أيام محجوزة في التقويم المدرسي: منع (قابل لتجاوز المدير بتأكيد) */
+    const blocked = [
+      { d: startDate, label: 'البدء', s: dayStatus(startDate, cal) },
+      { d: endDate,   label: 'الانتهاء', s: dayStatus(endDate, cal) },
+    ].filter(x => x.s?.level === 'block')
+    if (blocked.length) {
+      const msg = blocked.map(b => `تاريخ ${b.label} (${b.d}) ضمن «${b.s!.reason}»`).join('، ')
+      if (!canOverride) { setError(`${msg} — اختر تاريخاً آخر.`); return }
+      if (!window.confirm(`${msg}.\nهذه أيام محجوزة في التقويم المدرسي. هل تريد المتابعة رغم ذلك؟`)) return
+    }
     /* حارس: «القسم كله» يتطلب أن يكون للخطة قسم (يمنع حفظ تكليف فارغ صامتاً) */
     const deptForAssign = (plans.find((p: any) => p.id === selPlanId) as any)?.department || null
     if (assignMode === 'department' && !deptForAssign) {
@@ -392,11 +410,15 @@ function NewTaskForm() {
               <label className="block text-sm font-medium text-slate-700 mb-1.5">تاريخ البدء <span className="text-red-500">*</span></label>
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} dir="ltr" required
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
+              {(() => { const s = dayStatus(startDate, cal); if (!s) return null
+                return <p className={`text-xs mt-1 ${s.level === 'block' ? 'text-red-600' : 'text-amber-600'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">تاريخ الانتهاء <span className="text-red-500">*</span></label>
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} dir="ltr" required min={startDate || undefined}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
+              {(() => { const s = dayStatus(endDate, cal); if (!s) return null
+                return <p className={`text-xs mt-1 ${s.level === 'block' ? 'text-red-600' : 'text-amber-600'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
             </div>
           </div>
 

@@ -10,6 +10,7 @@ import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Tras
 import { STATUS_META, OVERDUE_META } from '@/lib/constants/tasks'
 import { toast } from '@/components/Toast'
 import { todayInput } from '@/lib/dates'
+import { loadCalendar, dayStatus, type CalendarData } from '@/lib/calendar'
 
 /* تسمية الانتقال حسب الحالة المُنتقَل إليها */
 const TRANSITION_LABEL: Record<string, string> = {
@@ -122,6 +123,7 @@ export default function TaskPage() {
   const [showAssign,     setShowAssign]     = useState(false)
   const [planDept,       setPlanDept]       = useState<string | null>(null)  // قسم خطة المهمة
   const [deptOnly,       setDeptOnly]       = useState(true)                 // حصر قائمة المكلَّفين بأعضاء قسم الخطة
+  const [cal,            setCal]            = useState<CalendarData>({ events: [], weekend: [5, 6] })  // التقويم المدرسي
 
   /* ── الأماكن المطلوبة ── */
   const [availLocations, setAvailLocations] = useState<any[]>([])
@@ -266,6 +268,9 @@ export default function TaskPage() {
     )
     setLoading(false)
   }, [taskId])
+
+  /* التقويم المدرسي — للتنبيه/المنع على تواريخ المهمة */
+  useEffect(() => { loadCalendar().then(setCal) }, [])
 
   useEffect(() => {
     ;(async () => {
@@ -460,6 +465,18 @@ export default function TaskPage() {
     if (!editStart) { toast('تاريخ البدء مطلوب', 'error'); return }
     if (!editEnd) { toast('تاريخ الانتهاء (الموعد النهائي) مطلوب', 'error'); return }
     if (editEnd < editStart) { toast('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء', 'error'); return }
+    /* أيام محجوزة في التقويم المدرسي — منع قابل لتجاوز مدير المهام بتأكيد */
+    {
+      const blocked = [
+        { d: editStart, label: 'البدء', s: dayStatus(editStart, cal) },
+        { d: editEnd,   label: 'الانتهاء', s: dayStatus(editEnd, cal) },
+      ].filter(x => x.s?.level === 'block')
+      if (blocked.length) {
+        const msg = blocked.map(b => `تاريخ ${b.label} (${b.d}) ضمن «${b.s!.reason}»`).join('، ')
+        if (!canManageTasks) { toast(`${msg} — اختر تاريخاً آخر.`, 'error'); return }
+        if (!window.confirm(`${msg}.\nأيام محجوزة في التقويم المدرسي. المتابعة رغم ذلك؟`)) return
+      }
+    }
     setSavingEdit(true)
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -897,11 +914,15 @@ export default function TaskPage() {
                   <label className="block text-[11px] text-white/70 mb-1">تاريخ البدء <span className="text-amber-300">*</span></label>
                   <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} dir="ltr" required
                     className={`w-full px-3 py-2 rounded-xl bg-white/10 border text-white focus:outline-none text-sm ${editStart ? 'border-white/20' : 'border-amber-300/70'}`} />
+                  {(() => { const s = dayStatus(editStart, cal); if (!s) return null
+                    return <p className={`text-[11px] mt-1 ${s.level === 'block' ? 'text-red-200' : 'text-amber-200'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
                 </div>
                 <div>
                   <label className="block text-[11px] text-white/70 mb-1">تاريخ الانتهاء <span className="text-amber-300">*</span></label>
                   <input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} dir="ltr" required min={editStart || undefined}
                     className={`w-full px-3 py-2 rounded-xl bg-white/10 border text-white focus:outline-none text-sm ${editEnd ? 'border-white/20' : 'border-amber-300/70'}`} />
+                  {(() => { const s = dayStatus(editEnd, cal); if (!s) return null
+                    return <p className={`text-[11px] mt-1 ${s.level === 'block' ? 'text-red-200' : 'text-amber-200'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
                 </div>
               </div>
               <button type="submit" disabled={savingEdit}

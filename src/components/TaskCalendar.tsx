@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
 import { STATUS_META } from '@/lib/constants/tasks'
 import type { Task } from '@/lib/types'
+import { loadCalendar, dayStatus, eventsOn, KIND_COLOR, type CalendarData } from '@/lib/calendar'
 
 const AR_MONTHS = [
   'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -15,9 +16,12 @@ const AR_DAYS = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خمي
 export default function TaskCalendar({ tasks }: { tasks: Task[] }) {
   const today = new Date()
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1))
+  const [cal, setCal] = useState<CalendarData>({ events: [], weekend: [5, 6] })
+  useEffect(() => { loadCalendar().then(setCal) }, [])
 
   const year  = cursor.getFullYear()
   const month = cursor.getMonth()
+  const dateStr = (d: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
   /* أول يوم في الشهر + عدد الأيام */
   const firstDay   = new Date(year, month, 1).getDay()   // 0=أحد
@@ -80,18 +84,39 @@ export default function TaskCalendar({ tasks }: { tasks: Task[] }) {
       <div className="grid grid-cols-7">
         {cells.map((day, i) => {
           const dayTasks = day ? (tasksByDay[day] || []) : []
+          const ds  = day ? dayStatus(dateStr(day), cal) : null
+          const evs = day ? eventsOn(dateStr(day), cal) : []
+          /* خلفية اليوم المحجوز: عطلة (منع) أحمر فاتح، اختبارات/تنبيه أصفر فاتح، نهاية أسبوع رمادي */
+          const cellTint =
+            ds?.level === 'block' ? 'bg-red-50' :
+            ds?.kind === 'weekend' ? 'bg-slate-100/70' :
+            ds?.level === 'warn' ? 'bg-amber-50' : ''
           return (
             <div key={i}
               className={`min-h-[92px] border-b border-l border-slate-50 p-1.5 last:border-l-0
-                ${day === null ? 'bg-slate-50/50' : ''}`}>
+                ${day === null ? 'bg-slate-50/50' : cellTint}`}>
               {day !== null && (
                 <>
-                  <div className={`text-xs mb-1 w-6 h-6 flex items-center justify-center rounded-full
-                    ${isToday(day)
-                      ? 'bg-violet-600 text-white font-bold'
-                      : 'text-slate-500'}`}>
-                    {day}
+                  <div className="flex items-center gap-1 mb-1">
+                    <div className={`text-xs w-6 h-6 flex items-center justify-center rounded-full
+                      ${isToday(day)
+                        ? 'bg-violet-600 text-white font-bold'
+                        : 'text-slate-500'}`}>
+                      {day}
+                    </div>
                   </div>
+                  {evs.length > 0 && (
+                    <div className="mb-1 space-y-0.5">
+                      {evs.slice(0, 1).map(e => (
+                        <div key={e.id} title={e.title}
+                          className="text-[9px] px-1 py-0.5 rounded truncate font-medium"
+                          style={{ background: (KIND_COLOR[e.kind] || '#64748b') + '22', color: KIND_COLOR[e.kind] || '#64748b' }}>
+                          {e.title}
+                        </div>
+                      ))}
+                      {evs.length > 1 && <div className="text-[8px] text-slate-400 px-1">+{evs.length - 1}</div>}
+                    </div>
+                  )}
                   <div className="space-y-0.5">
                     {dayTasks.slice(0, 3).map(t => {
                       const sm = STATUS_META[t.status]

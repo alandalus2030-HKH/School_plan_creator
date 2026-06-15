@@ -9,6 +9,7 @@ import { toast } from '@/components/Toast'
 import { logActivity } from '@/lib/activity'
 import { createNotification } from '@/lib/notifications'
 import { todayInput } from '@/lib/dates'
+import { loadCalendar, dayStatus, type CalendarData } from '@/lib/calendar'
 
 /* تعبئة مسبقة عند الفتح برمجياً (مثلاً من الاجتماعات) */
 export type QuickAddPrefill = {
@@ -43,6 +44,7 @@ export default function QuickAddTask() {
   const [assignToDept, setAssignToDept] = useState(false)   // تكليف قسم الخطة كله
   const [extraDesc, setExtraDesc] = useState('')   // وصف من المصدر (اجتماع مثلاً)
   const [saving,   setSaving]   = useState(false)
+  const [cal,      setCal]      = useState<CalendarData>({ events: [], weekend: [5, 6] })
   const [plans,    setPlans]    = useState<{ id: string; name_ar: string; department: string | null }[]>([])
   const [nodes,    setNodes]    = useState<{ id: string; name_ar: string; level_num: number }[]>([])
   const [people,   setPeople]   = useState<{ id: string; name_ar: string; department: string | null }[]>([])
@@ -82,6 +84,7 @@ export default function QuickAddTask() {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50)
       loadData()
+      loadCalendar().then(setCal)
     } else {
       setName(''); setPlanId(''); setNodeId(''); setEndDate(''); setAssignee(''); setAssignToDept(false); setExtraDesc('')
     }
@@ -114,6 +117,14 @@ export default function QuickAddTask() {
   const handleSave = async () => {
     if (!name.trim()) return
     if (!endDate) { toast('الموعد النهائي مطلوب', 'error'); return }
+    /* يوم محجوز في التقويم المدرسي — منع قابل لتجاوز المدير بتأكيد */
+    {
+      const s = dayStatus(endDate, cal)
+      if (s?.level === 'block') {
+        if (!can('manage_plans')) { toast(`الموعد ضمن «${s.reason}» — اختر تاريخاً آخر`, 'error'); return }
+        if (!window.confirm(`الموعد النهائي ضمن «${s.reason}» (يوم محجوز). المتابعة رغم ذلك؟`)) return
+      }
+    }
     const planDept = plans.find(p => p.id === planId)?.department || null
     const useDept  = assignToDept && !!planDept
     setSaving(true)
@@ -250,6 +261,8 @@ export default function QuickAddTask() {
             {!endDate && (
               <p className="text-[11px] text-red-500 -mt-2">⚠️ الموعد النهائي مطلوب — لتفعيل الإشعارات ووسم التأخير.</p>
             )}
+            {(() => { const s = endDate ? dayStatus(endDate, cal) : null; if (!s) return null
+              return <p className={`text-[11px] -mt-2 ${s.level === 'block' ? 'text-red-600' : 'text-amber-600'}`}>{s.level === 'block' ? '⛔' : '⚠️'} الموعد ضمن «{s.reason}»</p> })()}
 
             {/* تكليف قسم الخطة كله — يظهر إن كان للخطة المختارة قسم */}
             {(() => {
