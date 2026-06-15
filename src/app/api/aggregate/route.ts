@@ -89,10 +89,11 @@ export async function GET() {
     }
   }
 
-  /* عدد الأدلة لكل خطة */
+  /* عدد الأدلة المقبولة لكل خطة (المقبول فقط — اتساقاً مع خزانة الأدلة) */
   const evidenceByPlan: Record<string, number> = {}
   if (taskIds.length > 0) {
-    const { data: evs } = await admin.from('evidence').select('task_id').in('task_id', taskIds)
+    const { data: evs } = await admin.from('evidence')
+      .select('task_id').eq('status', 'accepted').in('task_id', taskIds)
     for (const e of evs || []) {
       const pid = taskToPlan.get(e.task_id)
       if (pid) evidenceByPlan[pid] = (evidenceByPlan[pid] || 0) + 1
@@ -137,6 +138,7 @@ export async function GET() {
         total, completed, inProgress, notStarted, overdue,
         progress: total > 0 ? Math.round((completed / total) * 100) : 0,
         avgRating: ratingCount > 0 ? Math.round((ratingSum / ratingCount) * 10) / 10 : null,
+        ratingSum, ratingCount,   // للتجميع المرجّح بعدد المهام
         evidence: evidenceByPlan[p.id] || 0,
       },
     }

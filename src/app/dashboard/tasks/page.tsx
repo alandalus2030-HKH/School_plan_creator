@@ -15,8 +15,6 @@ import TaskCalendar from '@/components/TaskCalendar'
 import {
   STATUS_META, RATING_META, PRIORITY_META,
 } from '@/lib/constants/tasks'
-import { toast } from '@/components/Toast'
-import { logActivity } from '@/lib/activity'
 import type { Task, Profile, Team, PlanNode, Plan } from '@/lib/types'
 
 /* ── مصفوفة الحالات للفلاتر والـ tabs ── */
@@ -41,18 +39,19 @@ const RATING_INFO = RATING_META
 
 export default function TasksPage() {
   const supabase = createClient()
-  const { can, loading: permsLoading, userId: permUserId } = usePermissions()
+  const { can, loading: permsLoading } = usePermissions()
 
   const [tasks,         setTasks]         = useState<Task[]>([])
   const [profiles,      setProfiles]      = useState<Profile[]>([])
   const [teams,         setTeams]         = useState<Team[]>([])
   const [nodes,         setNodes]         = useState<PlanNode[]>([])
   const [plans,         setPlans]         = useState<Plan[]>([])
+  const [deptOptions,   setDeptOptions]   = useState<string[]>([])
   const [loading,       setLoading]       = useState(true)
   const [myId,          setMyId]          = useState('')
+  const [myDept,        setMyDept]        = useState<string | null>(null)
+  const [myTeamIds,     setMyTeamIds]     = useState<string[]>([])
   const [canManage,     setCanManage]     = useState(false)
-  const [savingId,      setSavingId]      = useState<string | null>(null)
-  const [savedId,       setSavedId]       = useState<string | null>(null) // flash تأكيد
 
   /* ── وضع العرض ── */
   const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt' | 'calendar'>('list')
@@ -67,6 +66,7 @@ export default function TasksPage() {
   const [priorityF, setPriorityF] = useState(savedFilters.priorityF || '')
   const [planF,     setPlanF]     = useState(savedFilters.planF     || '')
   const [teamF,     setTeamF]     = useState(savedFilters.teamF     || '')
+  const [deptF,     setDeptF]     = useState(savedFilters.deptF     || '')
   const [onlyMine,  setOnlyMine]  = useState(savedFilters.onlyMine  || false)
   const [ratingF,   setRatingF]   = useState(savedFilters.ratingF   || '')
   /* فلتر طلبات إعادة الفتح — لا يُحفظ (فلتر إجرائي مؤقت)، ويُفعَّل من ?filter=reopen */
@@ -74,14 +74,19 @@ export default function TasksPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (new URLSearchParams(window.location.search).get('filter') === 'reopen') setReopenF(true)
+    const q = new URLSearchParams(window.location.search)
+    if (q.get('filter') === 'reopen') setReopenF(true)
+    /* غوص من لوحة التجميع: ?dept=...&status=...&plan=... */
+    if (q.get('dept'))   setDeptF(q.get('dept')!)
+    if (q.get('status')) setStatusF(q.get('status')!)
+    if (q.get('plan'))   setPlanF(q.get('plan')!)
   }, [])
 
   /* حفظ الفلاتر عند كل تغيير */
   useEffect(() => {
     if (typeof window === 'undefined') return
-    localStorage.setItem(FILTERS_KEY, JSON.stringify({ statusF, priorityF, planF, teamF, onlyMine, ratingF }))
-  }, [statusF, priorityF, planF, teamF, onlyMine, ratingF])
+    localStorage.setItem(FILTERS_KEY, JSON.stringify({ statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF }))
+  }, [statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF])
 
   useEffect(() => {
     if (permsLoading) return   // انتظر تحميل الصلاحيات أولاً
@@ -92,40 +97,51 @@ export default function TasksPage() {
       const manage = can('manage_tasks')
       setCanManage(manage)
 
+      /* قسم المستخدم + فرقه — لتوسيع تعريف «المكلّفة لي» */
+      let dept: string | null = null
+      let teamIds: string[] = []
+      if (user) {
+        const { data: prof } = await supabase.from('profiles').select('department').eq('id', user.id).maybeSingle()
+        dept = prof?.department || null
+        try {
+          const { data: tm } = await supabase.from('team_members').select('team_id').eq('profile_id', user.id)
+          teamIds = (tm || []).map((m: any) => m.team_id)
+        } catch { /* الجدول غير موجود بعد */ }
+      }
+      setMyDept(dept)
+      setMyTeamIds(teamIds)
+
       const [
         { data: tasksData },
         { data: nodesData },
         { data: plansData },
         { data: profsData },
         { data: teamsData },
+        { data: deptOpts },
       ] = await Promise.all([
         supabase.from('tasks').select(`
           id, name_ar, status, task_type, priority,
           start_date, end_date, order_num, node_id,
-          rating, rated_at, depends_on_task_id
+          rating, rated_at, depends_on_task_id,
+          assigned_to_user_id, assigned_to_team_id, assigned_to_department,
+          reviewer_id, reopen_requested_by
         `).order('created_at', { ascending: false }).limit(1000),
         supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num').limit(2000),
         supabase.from('plans').select('id, name_ar').limit(100),
         supabase.from('profiles').select('id, name_ar').limit(500),
         supabase.from('teams').select('id, name_ar, color').limit(100),
+        supabase.from('dropdown_options').select('value').eq('category', 'department').eq('is_active', true).order('sort_order'),
       ])
 
-      // جلب حقول التكليف وطلب إعادة الفتح إذا كانت موجودة
       let tasksWithAssign = tasksData || []
-      try {
-        const { data: ta } = await supabase
-          .from('tasks').select('id, assigned_to_user_id, assigned_to_team_id, reviewer_id, reopen_requested_by')
-          .order('created_at', { ascending: false }).limit(1000)
-        if (ta) {
-          const map = Object.fromEntries(ta.map(x => [x.id, x]))
-          tasksWithAssign = tasksWithAssign.map(t => ({ ...t, ...map[t.id] }))
-        }
-      } catch { /* العمود غير موجود بعد */ }
-
-      /* إذا لم يكن مديراً، نعرض مهامه فقط */
+      /* إذا لم يكن مديراً، نعرض ما يخصّه: مكلَّف له / مقيّم / قسمه / فِرَقه */
       if (!manage && user) {
+        const teamSet = new Set(teamIds)
         tasksWithAssign = tasksWithAssign.filter((t: any) =>
-          t.assigned_to_user_id === user.id || t.reviewer_id === user.id
+          t.assigned_to_user_id === user.id ||
+          t.reviewer_id === user.id ||
+          (dept && t.assigned_to_department === dept) ||
+          (t.assigned_to_team_id && teamSet.has(t.assigned_to_team_id))
         )
       }
       setTasks(tasksWithAssign)
@@ -133,6 +149,7 @@ export default function TasksPage() {
       setPlans(plansData   || [])
       setProfiles(profsData|| [])
       setTeams(teamsData   || [])
+      setDeptOptions((deptOpts || []).map((o: any) => o.value))
       setLoading(false)
     })()
   }, [permsLoading])
@@ -156,7 +173,15 @@ export default function TasksPage() {
     if (search    && !t.name_ar.toLowerCase().includes(search.toLowerCase())) return false
     if (statusF   && t.status   !== statusF)   return false
     if (priorityF && t.priority !== priorityF) return false
-    if (onlyMine  && t.assigned_to_user_id !== myId) return false
+    if (deptF     && (t as any).assigned_to_department !== deptF) return false
+    if (onlyMine) {
+      const mine =
+        t.assigned_to_user_id === myId ||
+        (t as any).reviewer_id === myId ||
+        (!!myDept && (t as any).assigned_to_department === myDept) ||
+        (!!t.assigned_to_team_id && myTeamIds.includes(t.assigned_to_team_id))
+      if (!mine) return false
+    }
     if (teamF     && t.assigned_to_team_id  !== teamF) return false
     if (planF) {
       const node = nodes.find(n => n.id === t.node_id)
@@ -184,32 +209,7 @@ export default function TasksPage() {
   const isOverdue = (t: any) =>
     t.status !== 'completed' && t.end_date && new Date(t.end_date) < new Date()
 
-  /* ── تحديث الحالة Inline (بدون فتح صفحة المهمة) ── */
-  const updateStatus = async (e: React.MouseEvent, taskId: string, newStatus: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (savingId) return
-    setSavingId(taskId)
-    // Optimistic update
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as Task['status'] } : t))
-    await supabase.from('tasks').update({
-      status:     newStatus,
-      updated_by: permUserId || null,
-    }).eq('id', taskId)
-    setSavingId(null)
-    setSavedId(taskId)
-    setTimeout(() => setSavedId(null), 1500)
-    const label   = STATUS_LIST.find(s => s.value === newStatus)?.label || newStatus
-    const taskObj = tasks.find(t => t.id === taskId)
-    toast(`تم تحديث الحالة: ${label}`)
-    logActivity({
-      action:    'task_status_changed',
-      tableName: 'tasks',
-      recordId:  taskId,
-      summary:   `${taskObj?.name_ar || ''} → ${label}`,
-      newValues: { status: newStatus },
-    })
-  }
+  /* تغيير الحالة يُدار حصراً من صفحة المهمة عبر آلة الحالات (سير العمل + بوّابة الأدلة) */
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -324,6 +324,12 @@ export default function TasksPage() {
           {teams.map(t => <option key={t.id} value={t.id}>{t.name_ar}</option>)}
         </select>
 
+        <select value={deptF} onChange={e => setDeptF(e.target.value)}
+          className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
+          <option value="">كل الأقسام</option>
+          {deptOptions.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+
         <button onClick={() => setOnlyMine(!onlyMine)}
           className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors
             ${onlyMine ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
@@ -424,8 +430,8 @@ export default function TasksPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
           <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><CheckCircle2 size={48} /></div>
           <p className="text-slate-500 font-medium">لا توجد مهام</p>
-          {(search || statusF || priorityF || planF || teamF || onlyMine || ratingF || reopenF) && (
-            <button onClick={() => { setSearch(''); setStatusF(''); setPriorityF(''); setPlanF(''); setTeamF(''); setOnlyMine(false); setRatingF(''); setReopenF(false) }}
+          {(search || statusF || priorityF || planF || teamF || deptF || onlyMine || ratingF || reopenF) && (
+            <button onClick={() => { setSearch(''); setStatusF(''); setPriorityF(''); setPlanF(''); setTeamF(''); setDeptF(''); setOnlyMine(false); setRatingF(''); setReopenF(false) }}
               className="mt-3 text-sm text-violet-600 hover:underline">مسح الفلاتر</button>
           )}
         </div>
@@ -436,6 +442,7 @@ export default function TasksPage() {
               const statusInfo  = STATUS_LIST.find(s => s.value === task.status)
               const assignee    = profiles.find(p => p.id === task.assigned_to_user_id)
               const assignTeam  = teams.find(t => t.id === task.assigned_to_team_id)
+              const assignDept  = (task as any).assigned_to_department as string | null
               const overdue     = isOverdue(task)
               const path        = buildPath(task.node_id ?? null)
 
@@ -456,7 +463,7 @@ export default function TasksPage() {
                     )}
 
                     {/* التكليف */}
-                    {(assignee || assignTeam) && (
+                    {(assignee || assignTeam || assignDept) && (
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {assignee && (
                           <span className="flex items-center gap-1 text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">
@@ -470,6 +477,11 @@ export default function TasksPage() {
                           <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full text-white font-medium"
                             style={{ backgroundColor: assignTeam.color || '#7c3aed' }}>
                             <Users size={10} className="inline ml-1" />{assignTeam.name_ar}
+                          </span>
+                        )}
+                        {assignDept && (
+                          <span className="flex items-center gap-1 text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full border border-violet-200">
+                            🏷️ {assignDept}
                           </span>
                         )}
                       </div>

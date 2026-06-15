@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell } from 'lucide-react'
+import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell, Download, ListChecks } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -11,6 +11,7 @@ type TaskRow = { id: string; name_ar: string; status: string; end_date: string |
 type Metrics = {
   total: number; completed: number; inProgress: number; notStarted: number
   overdue: number; progress: number; avgRating: number | null; evidence: number
+  ratingSum?: number; ratingCount?: number
 }
 type PlanRow = {
   id: string; name_ar: string; department: string | null; plan_category: string | null
@@ -48,7 +49,9 @@ function rollup(plans: PlanRow[]): Metrics {
     m.total += p.metrics.total; m.completed += p.metrics.completed
     m.inProgress += p.metrics.inProgress; m.notStarted += p.metrics.notStarted
     m.overdue += p.metrics.overdue; m.evidence += p.metrics.evidence
-    if (p.metrics.avgRating != null) { rSum += p.metrics.avgRating; rCount++ }
+    /* تقييم مرجّح بعدد المهام المُقيَّمة (لا متوسط المتوسطات) */
+    rSum += p.metrics.ratingSum ?? 0
+    rCount += p.metrics.ratingCount ?? 0
   }
   m.progress = m.total > 0 ? Math.round((m.completed / m.total) * 100) : 0
   m.avgRating = rCount > 0 ? Math.round((rSum / rCount) * 10) / 10 : null
@@ -82,6 +85,7 @@ export default function AggregatePage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [mineOnly, setMineOnly] = useState(false)   // مرشّح «خططي»
   const [notifying, setNotifying] = useState<string | null>(null)
+  const [groupBy,  setGroupBy]  = useState<'department' | 'plan_category' | 'owner'>('department')
 
   useEffect(() => {
     ;(async () => {
@@ -121,19 +125,52 @@ export default function AggregatePage() {
     return shown.reduce((n, p) => n + p.tasks.filter(t => matchTask(t, status)).length, 0)
   }, [shown, status])
 
-  /* تجميع: قسم → خطط (تُخفى الخطط بلا مهام مطابقة عند تفعيل مرشّح حالة) */
+  /* مفتاح التجميع حسب البُعد المختار */
+  const groupLabelOf = (p: PlanRow): string => {
+    if (groupBy === 'plan_category') return p.plan_category || 'بلا نوع'
+    if (groupBy === 'owner')         return p.owner_name || 'بلا صاحب'
+    return p.department || NO_DEPT
+  }
+
+  /* تجميع: بُعد → خطط (تُخفى الخطط بلا مهام مطابقة عند تفعيل مرشّح حالة) */
   const byDept = useMemo(() => {
     const groups: { dept: string; plans: PlanRow[] }[] = []
     const map = new Map<string, PlanRow[]>()
     for (const p of shown) {
       if (status !== 'all' && !p.tasks.some(t => matchTask(t, status))) continue
-      const d = p.department || NO_DEPT
+      const d = groupLabelOf(p)
       if (!map.has(d)) { map.set(d, []); groups.push({ dept: d, plans: map.get(d)! }) }
       map.get(d)!.push(p)
     }
     groups.sort((a, b) => a.dept.localeCompare(b.dept, 'ar'))
     return groups
-  }, [shown, status])
+  }, [shown, status, groupBy])
+
+  /* تصدير الخطط المعروضة CSV (للتقارير) — BOM لدعم العربية في Excel */
+  const exportCsv = () => {
+    const headers = ['القسم', 'الخطة', 'النوع', 'صاحب الخطة', 'نسبة الإنجاز %', 'منجزة', 'إجمالي المهام', 'متأخرة', 'متوسط التقييم', 'أدلة مقبولة', 'معتمدة']
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const rows = shown.map(p => [
+      p.department || NO_DEPT, p.name_ar, p.plan_category || '', p.owner_name || '',
+      p.metrics.progress, p.metrics.completed, p.metrics.total, p.metrics.overdue,
+      p.metrics.avgRating ?? '', p.metrics.evidence, p.approved_at ? 'نعم' : 'لا',
+    ].map(esc).join(','))
+    const csv = '﻿' + [headers.map(esc).join(','), ...rows].join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `لوحة-التجميع-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  /* رابط الغوص إلى «كل المهام» مع تمرير المرشّحات (الحالة الفعلية فقط — «متأخرة» وسم محسوب) */
+  const drillUrl = (extra: Record<string, string>) => {
+    const q = new URLSearchParams(extra)
+    if (status !== 'all' && status !== 'overdue') q.set('status', status)
+    return `/dashboard/tasks?${q.toString()}`
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64"><Loader2 size={28} className="animate-spin text-violet-500" /></div>
@@ -175,6 +212,12 @@ export default function AggregatePage() {
           <h1 className="text-2xl font-bold text-slate-800">لوحة التجميع</h1>
           <p className="text-sm text-slate-500">متابعة خطط الأقسام ومؤشراتها المجمّعة</p>
         </div>
+        {plans.length > 0 && (
+          <button onClick={exportCsv}
+            className="mr-auto inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors">
+            <Download size={15} /> تصدير CSV
+          </button>
+        )}
       </div>
 
       {plans.length === 0 ? (
@@ -204,7 +247,7 @@ export default function AggregatePage() {
               <p className={`text-2xl font-bold ${overall.overdue > 0 ? 'text-red-600' : 'text-slate-800'}`}>{overall.overdue}</p>
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-              <p className="text-xs text-slate-400 mb-1">الأدلة</p>
+              <p className="text-xs text-slate-400 mb-1">أدلة مقبولة</p>
               <p className="text-2xl font-bold text-slate-800">{overall.evidence}</p>
             </div>
           </div>
@@ -223,6 +266,17 @@ export default function AggregatePage() {
               </button>
             </div>
           )}
+
+          {/* بُعد التجميع */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-slate-400 w-12">التجميع:</span>
+            {([['department','حسب القسم'],['plan_category','حسب النوع'],['owner','حسب صاحب الخطة']] as const).map(([key, label]) => (
+              <button key={key} onClick={() => setGroupBy(key)}
+                className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${groupBy === key ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
 
           {/* مرشّح الأقسام */}
           {departments.length > 1 && (
@@ -275,10 +329,17 @@ export default function AggregatePage() {
                 const r = rollup(dplans)
                 return (
                   <div key={dept} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    {/* رأس القسم */}
+                    {/* رأس المجموعة */}
                     <div className="flex items-center gap-3 p-4 border-b border-slate-100 bg-gradient-to-l from-violet-50 to-white flex-wrap">
-                      <h2 className="font-bold text-slate-800 flex-1">{dept}
-                        <span className="text-xs font-normal text-slate-400 mr-2">({dplans.length} خطة)</span>
+                      <h2 className="font-bold text-slate-800 flex-1 inline-flex items-center gap-2">
+                        {dept}
+                        <span className="text-xs font-normal text-slate-400">({dplans.length} خطة)</span>
+                        {groupBy === 'department' && dept !== NO_DEPT && (
+                          <Link href={drillUrl({ dept })} title="عرض مهام القسم في «كل المهام»"
+                            className="text-xs font-normal text-violet-600 hover:underline inline-flex items-center gap-1">
+                            <ListChecks size={13} /> المهام
+                          </Link>
+                        )}
                       </h2>
                       <div className="flex items-center gap-2 flex-wrap">
                         <StatChip icon={<CircleCheckBig size={12} />} label="إنجاز" value={`${r.progress}%`} tone="bg-violet-50 text-violet-700" />
@@ -306,6 +367,7 @@ export default function AggregatePage() {
                                   <span className="text-sm font-semibold text-slate-800 truncate">{p.name_ar}</span>
                                   {p.plan_category && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{p.plan_category}</span>}
                                   {p.approved_at && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 inline-flex items-center gap-1"><BadgeCheck size={11} /> معتمدة</span>}
+                                  {p.metrics.total === 0 && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">⚠️ لا مهام</span>}
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <div className="flex-1 max-w-xs"><ProgressBar value={p.metrics.progress} /></div>
@@ -315,7 +377,7 @@ export default function AggregatePage() {
                                   <StatChip icon={<Clock size={12} />} label="مهام" value={`${p.metrics.completed}/${p.metrics.total}`} />
                                   {p.metrics.overdue > 0 && <StatChip icon={<AlertTriangle size={12} />} label="متأخرة" value={p.metrics.overdue} tone="bg-red-50 text-red-600" />}
                                   {p.metrics.avgRating != null && <StatChip icon={<Star size={12} />} label="" value={p.metrics.avgRating} tone="bg-amber-50 text-amber-700" />}
-                                  <StatChip icon={<Paperclip size={12} />} label="أدلة" value={p.metrics.evidence} />
+                                  <StatChip icon={<Paperclip size={12} />} label="أدلة مقبولة" value={p.metrics.evidence} />
                                   {p.owner_name && <StatChip icon={<User size={12} />} label="" value={p.owner_name} tone="bg-slate-50 text-slate-500" />}
                                   {p.owner_id && p.owner_id !== userId && (
                                     <button onClick={() => notifyOwner(p.id)} disabled={notifying === p.id}
@@ -324,7 +386,14 @@ export default function AggregatePage() {
                                       <Bell size={12} /> {notifying === p.id ? '...' : 'تنبيه'}
                                     </button>
                                   )}
-                                  <Link href={`/dashboard/plans/${p.id}`} className="text-xs text-violet-600 hover:underline mr-auto">فتح الخطة ←</Link>
+                                  <div className="mr-auto inline-flex items-center gap-3">
+                                    {p.metrics.total > 0 && (
+                                      <Link href={drillUrl({ plan: p.id })} className="text-xs text-violet-600 hover:underline inline-flex items-center gap-1" title="عرض مهام هذه الخطة">
+                                        <ListChecks size={13} /> المهام
+                                      </Link>
+                                    )}
+                                    <Link href={`/dashboard/plans/${p.id}`} className="text-xs text-violet-600 hover:underline">فتح الخطة ←</Link>
+                                  </div>
                                 </div>
                                 {/* قائمة المهام عند التوسيع/التصفية */}
                                 {open && <TaskList p={p} />}

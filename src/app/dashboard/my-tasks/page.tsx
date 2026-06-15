@@ -68,6 +68,10 @@ export default function MyTasksPage() {
   const [activeTab, setActiveTab] = useState<'assigned' | 'team' | 'reviewer' | 'department'>('assigned')
   const [userDept,  setUserDept]  = useState<string | null>(null)
   const [savingId,  setSavingId]  = useState<string | null>(null)
+  /* أدوات القائمة: بحث + فرز + تصفية المتأخرة فقط */
+  const [q,          setQ]          = useState('')
+  const [sortBy,     setSortBy]     = useState<'deadline' | 'priority'>('deadline')
+  const [overdueOnly, setOverdueOnly] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -233,6 +237,24 @@ export default function MyTasksPage() {
     activeTab === 'team'       ? teamTasks :
     reviewTasks
 
+  /* ── تطبيق البحث + المتأخرة فقط + الفرز ── */
+  const isLate = (t: Task) =>
+    t.status !== 'completed' && !!t.end_date && new Date(t.end_date) < new Date()
+  const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 }
+  const displayTasks = currentTasks
+    .filter(t => !q || t.name_ar.toLowerCase().includes(q.toLowerCase()))
+    .filter(t => !overdueOnly || isLate(t))
+    .slice()
+    .sort((a, b) => {
+      if (sortBy === 'priority') {
+        return (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9)
+      }
+      /* deadline: الأقرب موعداً أولاً، وما بلا موعد في الآخر */
+      const da = a.end_date ? new Date(a.end_date).getTime() : Infinity
+      const db = b.end_date ? new Date(b.end_date).getTime() : Infinity
+      return da - db
+    })
+
   if (loading) return (
     <div>
       <SkeletonTaskList />
@@ -311,21 +333,47 @@ export default function MyTasksPage() {
           ))}
         </div>
 
+        {/* شريط الأدوات: بحث + فرز + متأخرة فقط */}
+        {currentTasks.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+            <div className="relative flex-1 min-w-[160px]">
+              <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="بحث في المهام..."
+                className="w-full pr-9 pl-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white" />
+            </div>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as 'deadline' | 'priority')}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300">
+              <option value="deadline">الأقرب موعداً</option>
+              <option value="priority">الأعلى أولوية</option>
+            </select>
+            <button onClick={() => setOverdueOnly(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-colors
+                ${overdueOnly ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200 hover:border-red-300'}`}>
+              <AlertTriangle size={14} /> المتأخرة فقط
+            </button>
+          </div>
+        )}
+
         {/* قائمة المهام */}
-        {currentTasks.length === 0 ? (
+        {displayTasks.length === 0 ? (
           <div className="py-16 text-center">
             <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}>
-              {activeTab === 'assigned' ? <PartyPopper size={40} /> : activeTab === 'team' ? <Users size={40} /> : <Search size={40} />}
+              {currentTasks.length > 0 ? <Search size={40} /> :
+               activeTab === 'assigned' ? <PartyPopper size={40} /> :
+               activeTab === 'team' ? <Users size={40} /> :
+               activeTab === 'department' ? <BookOpen size={40} /> : <Search size={40} />}
             </div>
             <p className="text-slate-500 font-medium">
-              {activeTab === 'assigned' ? 'لا توجد مهام مكلَّف بها' :
-               activeTab === 'team'     ? 'لا توجد مهام لفريقك' :
+              {currentTasks.length > 0 ? 'لا مهام مطابقة للبحث/التصفية' :
+               activeTab === 'assigned'  ? 'لا توجد مهام مكلَّف بها' :
+               activeTab === 'team'      ? 'لا توجد مهام لفريقك' :
+               activeTab === 'department' ? `لا توجد مهام لقسمك${userDept ? ` (${userDept})` : ''}` :
                'لا توجد مهام للتقييم'}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
-            {currentTasks.map(task => {
+            {displayTasks.map(task => {
               const statusInfo = STATUS_INFO[task.status] || STATUS_INFO.not_started
               const isOverdue  = task.status !== 'completed' && task.end_date && new Date(task.end_date) < new Date()
               const path       = buildPath(task.node_id)
@@ -349,8 +397,10 @@ export default function MyTasksPage() {
 
                       {/* الأولوية والتاريخ */}
                       <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                        <span className="text-xs text-slate-500">
-                          {PRIORITY_LABEL[task.priority]?.icon} {PRIORITY_LABEL[task.priority]?.label}
+                        <span className="text-xs text-slate-500 inline-flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full inline-block"
+                            style={{ background: PRIORITY_META[task.priority]?.dot || '#cbd5e1' }} />
+                          {PRIORITY_LABEL[task.priority]?.label}
                         </span>
                         {task.end_date && (
                           <span className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-400'}`}>
@@ -413,7 +463,9 @@ export default function MyTasksPage() {
 
         {currentTasks.length > 0 && (
           <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 text-xs text-slate-400">
-            {currentTasks.length} مهمة
+            {displayTasks.length === currentTasks.length
+              ? `${currentTasks.length} مهمة`
+              : `${displayTasks.length} من ${currentTasks.length} مهمة`}
           </div>
         )}
       </div>
