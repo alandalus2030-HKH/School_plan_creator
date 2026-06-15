@@ -255,6 +255,73 @@ async function locationsReport(admin: any, schoolId: string) {
   return { rows }
 }
 
+/* ════ الاتجاه الزمني (من اللقطات الأسبوعية) ════ */
+async function trendReport(admin: any, schoolId: string) {
+  const { data: snaps } = await admin.from('plan_metric_snapshots')
+    .select('captured_on, total, completed, overdue').eq('school_id', schoolId).order('captured_on')
+  const byDate = new Map<string, { completed: number; total: number; overdue: number }>()
+  for (const s of snaps || []) {
+    const g = byDate.get(s.captured_on) || { completed: 0, total: 0, overdue: 0 }
+    g.completed += s.completed; g.total += s.total; g.overdue += s.overdue
+    byDate.set(s.captured_on, g)
+  }
+  const series = [...byDate.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, v]) => ({
+    date, completed: v.completed, total: v.total, overdue: v.overdue,
+    progress: v.total ? Math.round((v.completed / v.total) * 100) : 0,
+  }))
+  return { series }
+}
+
+/* ════ التقدير والتحفيز ════ */
+async function recognitionReport(admin: any, schoolId: string) {
+  const { data: profs } = await admin.from('profiles').select('id, name_ar, department').eq('school_id', schoolId).eq('is_active', true)
+  const profMap = new Map<string, any>((profs || []).map((p: any) => [p.id, p]))
+  const ids = (profs || []).map((p: any) => p.id)
+
+  const stat = new Map<string, { id: string; name_ar: string; department: string | null; badges: number; points: number }>()
+  if (ids.length) {
+    const { data: ub } = await admin.from('user_badges').select('profile_id, badge_id').in('profile_id', ids)
+    const badgeIds = [...new Set((ub || []).map((x: any) => x.badge_id))]
+    const points = new Map<string, number>()
+    if (badgeIds.length) {
+      const { data: bs } = await admin.from('badges').select('id, points').in('id', badgeIds)
+      for (const b of bs || []) points.set(b.id, b.points || 0)
+    }
+    for (const x of ub || []) {
+      const p = profMap.get(x.profile_id); if (!p) continue
+      const g = stat.get(x.profile_id) || { id: p.id, name_ar: p.name_ar, department: p.department || null, badges: 0, points: 0 }
+      g.badges++; g.points += points.get(x.badge_id) || 0
+      stat.set(x.profile_id, g)
+    }
+  }
+  const rows = [...stat.values()].sort((a, b) => b.points - a.points || b.badges - a.badges)
+
+  const { data: school } = await admin.from('schools').select('featured_employee_id, featured_note').eq('id', schoolId).maybeSingle()
+  const featured = school?.featured_employee_id
+    ? { name: profMap.get(school.featured_employee_id)?.name_ar || null, note: school.featured_note || null }
+    : null
+
+  return { rows, featured }
+}
+
+/* ════ سجل التدقيق ════ */
+async function auditReport(admin: any, schoolId: string) {
+  const { data: logs } = await admin.from('audit_logs')
+    .select('id, action, table_name, user_id, created_at')
+    .eq('school_id', schoolId).order('created_at', { ascending: false }).limit(300)
+  const userIds = [...new Set((logs || []).map((l: any) => l.user_id).filter(Boolean))]
+  const names = new Map<string, string>()
+  if (userIds.length) {
+    const { data: p } = await admin.from('profiles').select('id, name_ar').in('id', userIds)
+    for (const x of p || []) names.set(x.id, x.name_ar)
+  }
+  const rows = (logs || []).map((l: any) => ({
+    id: l.id, action: l.action, table_name: l.table_name,
+    user: l.user_id ? (names.get(l.user_id) || '—') : 'النظام', created_at: l.created_at,
+  }))
+  return { rows }
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
@@ -275,6 +342,9 @@ export async function GET(req: NextRequest) {
     case 'rework':             return NextResponse.json(await reworkReport(admin, schoolId))
     case 'resources':          return NextResponse.json(await resourcesReport(admin, schoolId))
     case 'locations':          return NextResponse.json(await locationsReport(admin, schoolId))
+    case 'trend':              return NextResponse.json(await trendReport(admin, schoolId))
+    case 'recognition':        return NextResponse.json(await recognitionReport(admin, schoolId))
+    case 'audit':              return NextResponse.json(await auditReport(admin, schoolId))
     default: return NextResponse.json({ error: 'نوع تقرير غير معروف' }, { status: 400 })
   }
 }

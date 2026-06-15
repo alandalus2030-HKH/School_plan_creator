@@ -42,15 +42,15 @@ const GROUPS: Group[] = [
   {
     label: 'الأداء والتحسين', Icon: TrendingUp, reports: [
       { key: 'performance', title: 'تحليل الأداء', desc: 'الإنجاز والجودة حسب القسم' },
-      { key: 'trend', title: 'الاتجاه الزمني', desc: 'تطوّر الإنجاز عبر الوقت' },
+      { key: 'trend', title: 'الاتجاه الزمني', desc: 'تطوّر الإنجاز عبر الوقت', href: '/dashboard/reports/r/trend' },
       { key: 'coverage', title: 'التغطية والفجوات', desc: 'تغطية المعايير بالأدلة' },
       { key: 'accreditation', title: 'جاهزية الاعتماد', desc: 'ملف الأدلة حسب المعيار' },
     ],
   },
   {
     label: 'الحوكمة والتحفيز', Icon: ShieldCheck, reports: [
-      { key: 'audit', title: 'سجل التدقيق', desc: 'من فعل ماذا ومتى' },
-      { key: 'recognition', title: 'التقدير والصدارة', desc: 'الأوسمة والنقاط وموظف الشهر' },
+      { key: 'audit', title: 'سجل التدقيق', desc: 'من فعل ماذا ومتى', href: '/dashboard/reports/r/audit' },
+      { key: 'recognition', title: 'التقدير والصدارة', desc: 'الأوسمة والنقاط وموظف الشهر', href: '/dashboard/reports/r/recognition' },
     ],
   },
 ]
