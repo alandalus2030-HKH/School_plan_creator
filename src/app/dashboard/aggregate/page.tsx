@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell, Download, ListChecks } from 'lucide-react'
+import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell, Download, ListChecks, TrendingUp } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -67,6 +67,53 @@ function ProgressBar({ value }: { value: number }) {
   )
 }
 
+type TrendPoint = {
+  captured_on: string; department: string
+  total: number; completed: number; overdue: number
+  rating_sum: number; rating_count: number; evidence_accepted: number
+}
+
+/* رسم خطّي بسيط لنسبة الإنجاز عبر الزمن (SVG، بلا مكتبات) */
+function TrendChart({ series }: { series: { date: string; progress: number; completed: number; total: number }[] }) {
+  if (series.length < 2) {
+    return (
+      <p className="text-sm text-slate-400 py-6 text-center">
+        نقطة بيانات واحدة حتى الآن — سيتشكّل خط الاتجاه تلقائياً بعد لقطات الأسابيع القادمة (تُلتقط كل اثنين).
+      </p>
+    )
+  }
+  const W = 720, H = 200, padX = 44, padY = 22
+  const xs = (i: number) => padX + (i * (W - 2 * padX)) / (series.length - 1)
+  const ys = (v: number) => padY + (1 - v / 100) * (H - 2 * padY)
+  const linePts = series.map((s, i) => `${xs(i)},${ys(s.progress)}`).join(' ')
+  const areaPts = `${xs(0)},${ys(0)} ${linePts} ${xs(series.length - 1)},${ys(0)}`
+  const fmt = (d: string) => new Date(d).toLocaleDateString('ar-QA', { month: 'numeric', day: 'numeric' })
+  const last = series[series.length - 1]
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 220 }}>
+      {[0, 50, 100].map(g => (
+        <g key={g}>
+          <line x1={padX} x2={W - padX} y1={ys(g)} y2={ys(g)} stroke="#e2e8f0" strokeWidth={1} />
+          <text x={padX - 6} y={ys(g) + 4} textAnchor="end" fontSize={11} fill="#94a3b8">{g}%</text>
+        </g>
+      ))}
+      <polygon points={areaPts} fill="var(--maroon-600, #8a1538)" opacity={0.08} />
+      <polyline points={linePts} fill="none" stroke="var(--maroon-600, #8a1538)" strokeWidth={2.5}
+        strokeLinejoin="round" strokeLinecap="round" />
+      {series.map((s, i) => (
+        <g key={s.date}>
+          <circle cx={xs(i)} cy={ys(s.progress)} r={3.5} fill="var(--maroon-600, #8a1538)" />
+          {(i === 0 || i === series.length - 1 || i % Math.ceil(series.length / 8) === 0) && (
+            <text x={xs(i)} y={H - 4} textAnchor="middle" fontSize={10} fill="#94a3b8">{fmt(s.date)}</text>
+          )}
+        </g>
+      ))}
+      <text x={xs(series.length - 1)} y={ys(last.progress) - 8} textAnchor="end" fontSize={12}
+        fontWeight="bold" fill="var(--maroon-700, #6f1029)">{last.progress}%</text>
+    </svg>
+  )
+}
+
 function StatChip({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: React.ReactNode; tone?: string }) {
   return (
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg ${tone || 'bg-slate-50 text-slate-600'}`}>
@@ -86,13 +133,19 @@ export default function AggregatePage() {
   const [mineOnly, setMineOnly] = useState(false)   // مرشّح «خططي»
   const [notifying, setNotifying] = useState<string | null>(null)
   const [groupBy,  setGroupBy]  = useState<'department' | 'plan_category' | 'owner'>('department')
+  const [trend,    setTrend]    = useState<TrendPoint[]>([])
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/aggregate')
+      const [res, tRes] = await Promise.all([
+        fetch('/api/aggregate'),
+        fetch('/api/aggregate/trend'),
+      ])
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ plans: [] }))
       setPlans(j.plans || [])
+      const tj = await tRes.json().catch(() => ({ points: [] }))
+      setTrend(tj.points || [])
       setLoading(false)
     })()
   }, [])
@@ -145,6 +198,23 @@ export default function AggregatePage() {
     groups.sort((a, b) => a.dept.localeCompare(b.dept, 'ar'))
     return groups
   }, [shown, status, groupBy])
+
+  /* سلسلة الاتجاه: نسبة الإنجاز عبر التواريخ (تحترم مرشّح الأقسام) */
+  const trendSeries = useMemo(() => {
+    const pts = trend.filter(p => selDepts.length === 0 || selDepts.includes(p.department))
+    const byDate = new Map<string, { completed: number; total: number }>()
+    for (const p of pts) {
+      const cur = byDate.get(p.captured_on) || { completed: 0, total: 0 }
+      cur.completed += p.completed; cur.total += p.total
+      byDate.set(p.captured_on, cur)
+    }
+    return [...byDate.entries()]
+      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      .map(([date, v]) => ({
+        date, completed: v.completed, total: v.total,
+        progress: v.total > 0 ? Math.round((v.completed * 100) / v.total) : 0,
+      }))
+  }, [trend, selDepts])
 
   /* تصدير الخطط المعروضة CSV (للتقارير) — BOM لدعم العربية في Excel */
   const exportCsv = () => {
@@ -316,6 +386,18 @@ export default function AggregatePage() {
             {matchCount != null && (
               <span className="text-xs text-slate-500 mr-1">({matchCount} مهمة مطابقة)</span>
             )}
+          </div>
+
+          {/* اتجاه نسبة الإنجاز عبر الزمن */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp size={18} className="text-violet-600" />
+              <h2 className="font-bold text-slate-800">اتجاه نسبة الإنجاز</h2>
+              <span className="text-xs text-slate-400">
+                {selDepts.length === 0 ? 'كل الأقسام ضمن نطاقك' : `الأقسام المحددة (${selDepts.length})`}
+              </span>
+            </div>
+            <TrendChart series={trendSeries} />
           </div>
 
           {/* المجموعات حسب القسم */}
