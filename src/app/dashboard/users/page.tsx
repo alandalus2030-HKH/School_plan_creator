@@ -385,6 +385,20 @@ export default function UsersPage() {
     setSendingReset(false)
   }
 
+  /* ════ توليد رابط إعادة تعيين ونسخه (دون بريد — يتجاوز حدّ الإرسال) ════ */
+  const copyResetLink = async () => {
+    if (!editProfile?.id) return
+    setSendingReset(true); setResetMsg('')
+    const { ok, json } = await safePost('/api/auth/reset-link', { userId: editProfile.id })
+    if (ok && json.link) {
+      try { await navigator.clipboard.writeText(json.link); setResetMsg('✅ نُسخ رابط إعادة التعيين — سلّمه للمستخدم') }
+      catch { setResetMsg(`✅ الرابط: ${json.link}`) }
+    } else {
+      setResetMsg(`❌ ${json.error || 'تعذّر توليد الرابط'}`)
+    }
+    setSendingReset(false)
+  }
+
   /* ════ إعادة تعيين من القائمة ════ */
   const resetPasswordList = async (p: Profile) => {
     if (!p.email) { alert('لا يوجد بريد إلكتروني'); return }
@@ -1075,11 +1089,19 @@ export default function UsersPage() {
                           سيصل رابط تعيين كلمة مرور جديدة إلى:
                           <span className="font-semibold mr-1 font-latin" dir="ltr">{editProfile.email}</span>
                         </p>
-                        <button type="button" onClick={resetPasswordForm}
-                          disabled={sendingReset || !editProfile.email}
-                          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs rounded-xl transition-colors">
-                          {sendingReset ? '⏳ جارٍ الإرسال...' : '📧 إرسال رابط إعادة التعيين'}
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button type="button" onClick={resetPasswordForm}
+                            disabled={sendingReset || !editProfile.email}
+                            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs rounded-xl transition-colors">
+                            {sendingReset ? '⏳ جارٍ...' : '📧 إرسال رابط بالبريد'}
+                          </button>
+                          <button type="button" onClick={copyResetLink}
+                            disabled={sendingReset}
+                            title="يولّد الرابط وينسخه دون إرسال بريد (يتجاوز حدّ الإرسال)"
+                            className="flex items-center gap-2 px-4 py-2 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 text-xs rounded-xl transition-colors">
+                            🔗 نسخ رابط إعادة التعيين
+                          </button>
+                        </div>
                         {resetMsg && (
                           <p className={`text-xs px-3 py-2 rounded-lg ${resetMsg.startsWith('✅') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {resetMsg}
