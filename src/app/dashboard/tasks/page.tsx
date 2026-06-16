@@ -318,15 +318,15 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* ── إحصائيات الحالة ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* ── بطاقات الحالة (فلاتر بالنقر) — كلها في صفّ واحد ── */}
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {stats.map(s => (
           <button key={s.value}
             onClick={() => setStatusF(statusF === s.value ? '' : s.value)}
-            className={`rounded-2xl border p-4 text-center transition-all shadow-sm
+            className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
               ${statusF === s.value ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
-            <div className="text-2xl font-bold text-slate-800">{s.count}</div>
-            <div className={`text-xs font-medium mt-1 px-2 py-0.5 rounded-full inline-block ${s.bg}`}>{s.label}</div>
+            <div className="text-xl font-bold text-slate-800 leading-none">{s.count}</div>
+            <div className={`text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block ${s.bg}`}>{s.label}</div>
           </button>
         ))}
       </div>
