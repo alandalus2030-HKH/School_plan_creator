@@ -13,7 +13,7 @@ const VALID = ['pending', 'accepted', 'rejected']
 async function getContext(userId: string) {
   const admin = createAdminClient()
   const { data: me } = await admin
-    .from('profiles').select('school_id, active_school_id, is_super_admin, role').eq('id', userId).single()
+    .from('profiles').select('school_id, active_school_id, is_super_admin, role, department').eq('id', userId).single()
   if (!me) return null
   const schoolId = (me.is_super_admin && me.active_school_id) ? me.active_school_id : me.school_id
   return { admin, me, schoolId }
@@ -39,10 +39,24 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   /* تأكيد أن الدليل ضمن مدرسة المستخدم (الدليل → المهمة → العقدة → الخطة) */
   const { data: ev } = await admin.from('evidence').select('id, name, task_id').eq('id', evidenceId).maybeSingle()
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
-  const { data: t } = await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id, assigned_to_department').eq('id', ev.task_id).maybeSingle()
+  const { data: t } = await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id, assigned_to_team_id, assigned_to_department').eq('id', ev.task_id).maybeSingle()
   const { data: n } = t?.node_id ? await admin.from('plan_nodes').select('plan_id').eq('id', t.node_id).maybeSingle() : { data: null }
   const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id, owner_id').eq('id', n.plan_id).maybeSingle() : { data: null }
   if (!p || p.school_id !== schoolId) return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
+
+  /* منع التقييم الذاتي: لا يراجع المكلَّف دليلاً على مهمته (مباشر / قسمه / فريقه) */
+  let isAssignee = t?.assigned_to_user_id === auth.user.id
+  if (!isAssignee && t?.assigned_to_department && me.department) {
+    isAssignee = me.department === t.assigned_to_department
+  }
+  if (!isAssignee && t?.assigned_to_team_id) {
+    const { data: tm } = await admin.from('team_members')
+      .select('id').eq('team_id', t.assigned_to_team_id).eq('profile_id', auth.user.id).maybeSingle()
+    isAssignee = !!tm
+  }
+  if (isAssignee) {
+    return NextResponse.json({ error: 'لا يمكنك مراجعة دليل على مهمة أنت مكلَّف بها — المراجعة للمقيّم فقط' }, { status: 403 })
+  }
 
   /* المهمة المنجزة مقفلة — لا تُغيَّر حالة أدلتها إلا بعد إعادة فتحها */
   if (t?.status === 'completed') {
