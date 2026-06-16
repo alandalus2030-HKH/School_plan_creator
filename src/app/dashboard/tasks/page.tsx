@@ -235,6 +235,13 @@ export default function TasksPage() {
   const isOverdue = (t: any) =>
     t.status !== 'completed' && t.end_date && new Date(t.end_date) < new Date()
 
+  /* ── إدارة الفلاتر ── */
+  const anyFilter = !!(search || statusF || priorityF || planF || teamF || deptF || onlyMine || ratingF || reopenF)
+  const clearAllFilters = () => {
+    setSearch(''); setStatusF(''); setPriorityF(''); setPlanF(''); setTeamF('')
+    setDeptF(''); setOnlyMine(false); setRatingF(''); setReopenF(false)
+  }
+
   /* تغيير الحالة يُدار حصراً من صفحة المهمة عبر آلة الحالات (سير العمل + بوّابة الأدلة) */
 
   if (loading) return (
@@ -377,53 +384,60 @@ export default function TasksPage() {
           )
         })()}
 
-        <select value={ratingF} onChange={e => setRatingF(e.target.value)}
-          className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
-          <option value="">كل التقييمات</option>
-          <option value="rated">تم تقييمها</option>
-          <option value="unrated">لم تُقيَّم بعد</option>
-          <option value="5">★★★★★ ممتاز</option>
-          <option value="4">★★★★☆ جيد جداً</option>
-          <option value="3">★★★☆☆ جيد</option>
-          <option value="2">★★☆☆☆ مقبول</option>
-          <option value="1">★☆☆☆☆ ضعيف</option>
-        </select>
+        {anyFilter && (
+          <button onClick={clearAllFilters}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+            ✕ إزالة كل الفلاتر
+          </button>
+        )}
       </div>
 
-      {/* ── شريط ملخص التقييم ── */}
-      <div className="flex items-center gap-3 flex-wrap">
+      {/* ── فلتر حالة التقييم (الفلتر الأب) ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-bold text-slate-400 w-20 flex-shrink-0">حالة التقييم:</span>
         <button onClick={() => setRatingF(ratingF === 'rated' ? '' : 'rated')}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
           style={ratingF === 'rated'
             ? { background: 'var(--maroon-700)', color: '#fff', borderColor: 'var(--maroon-700)' }
             : { background: 'var(--maroon-50)', color: 'var(--maroon-700)', borderColor: 'var(--maroon-200)' }}>
-          <CheckCheck size={12} /> مُقيَّمة <span className="font-bold">{ratedCount}</span>
+          <CheckCheck size={14} /> مُقيَّمة <span className="font-bold">{ratedCount}</span>
         </button>
         <button onClick={() => setRatingF(ratingF === 'unrated' ? '' : 'unrated')}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
           style={ratingF === 'unrated'
             ? { background: '#475569', color: '#fff', borderColor: '#475569' }
             : { background: '#f8fafc', color: '#64748b', borderColor: '#e2e8f0' }}>
-          <Circle size={12} /> لم تُقيَّم <span className="font-bold">{unratedCount}</span>
+          <Circle size={14} /> لم تُقيَّم <span className="font-bold">{unratedCount}</span>
         </button>
-        {ratedCount > 0 && [5,4,3,2,1].map(r => {
-          const cnt = tasks.filter(t => t.rating === r).length
-          if (cnt === 0) return null
-          const info = RATING_INFO[r]
-          return (
-            <button key={r} onClick={() => setRatingF(ratingF === String(r) ? '' : String(r))}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all hover:scale-105"
-              style={{
-                background: info.bg, color: info.fg,
-                borderColor: info.bg,
-                outline: ratingF === String(r) ? `2px solid ${info.bg}` : 'none',
-                outlineOffset: '2px',
-              }}>
-              <Star size={10} /> {info.label} <span className="font-bold">{cnt}</span>
-            </button>
-          )
-        })}
       </div>
+
+      {/* ── فلتر درجة التقييم (فرعي — يُعطَّل عند اختيار «لم تُقيَّم») ── */}
+      {ratedCount > 0 && (() => {
+        const gradesDisabled = ratingF === 'unrated'
+        return (
+          <div className={`flex items-center gap-2 flex-wrap ${gradesDisabled ? 'opacity-40' : ''}`}>
+            <span className="text-xs font-bold text-slate-400 w-20 flex-shrink-0">درجة التقييم:</span>
+            {gradesDisabled && <span className="text-[11px] text-slate-400">(غير متاحة — المهام غير المقيَّمة بلا درجة)</span>}
+            {[5,4,3,2,1].map(r => {
+              const cnt = tasks.filter(t => t.rating === r).length
+              if (cnt === 0) return null
+              const info = RATING_INFO[r]
+              return (
+                <button key={r} disabled={gradesDisabled}
+                  onClick={() => setRatingF(ratingF === String(r) ? '' : String(r))}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium border transition-all disabled:cursor-not-allowed enabled:hover:scale-105"
+                  style={{
+                    background: info.bg, color: info.fg, borderColor: info.bg,
+                    outline: ratingF === String(r) ? `2px solid ${info.bg}` : 'none',
+                    outlineOffset: '2px',
+                  }}>
+                  <Star size={10} /> {info.label} <span className="font-bold">{cnt}</span>
+                </button>
+              )
+            })}
+          </div>
+        )
+      })()}
 
       {/* ── عرض جانت ── */}
       {viewMode === 'gantt' && (
