@@ -59,6 +59,7 @@ function PlansPageInner() {
   const [ownerF,   setOwnerF]   = useState('')
   const [certF,    setCertF]    = useState<'all' | 'approved' | 'unapproved'>('all')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [statsByPlan, setStatsByPlan] = useState<Record<string, { total: number; done: number; progress: number }>>({})
 
   const loadPlans = async () => {
     const { data } = await supabase
@@ -76,6 +77,30 @@ function PlansPageInner() {
     }
     setPlans(rows as unknown as Plan[])
     setLoading(false)
+
+    /* ── حساب نسبة الإنجاز الفعلية لكل خطة (مهام عبر العقد) ── */
+    const planIds = rows.map(p => p.id)
+    if (planIds.length) {
+      const { data: nodes } = await supabase.from('plan_nodes').select('id, plan_id').in('plan_id', planIds).limit(5000)
+      /* كائن عادي لا new Map() — أيقونة Map من lucide تحجب المُنشئ (درس مستفاد) */
+      const nodeToPlan: Record<string, string> = {}
+      for (const n of nodes || []) nodeToPlan[n.id] = n.plan_id
+      const nodeIds = Object.keys(nodeToPlan)
+      const stats: Record<string, { total: number; done: number; progress: number }> = {}
+      if (nodeIds.length) {
+        const { data: tasks } = await supabase.from('tasks')
+          .select('node_id, status').in('node_id', nodeIds).is('deleted_at', null).limit(10000)
+        for (const t of tasks || []) {
+          const pid = nodeToPlan[t.node_id]; if (!pid) continue
+          const s = stats[pid] || (stats[pid] = { total: 0, done: 0, progress: 0 })
+          s.total++; if (t.status === 'completed') s.done++
+        }
+        for (const pid of Object.keys(stats)) {
+          const s = stats[pid]; s.progress = s.total ? Math.round((s.done / s.total) * 100) : 0
+        }
+      }
+      setStatsByPlan(stats)
+    }
   }
 
   useEffect(() => { loadPlans() }, [])
@@ -131,8 +156,8 @@ function PlansPageInner() {
     }
   }
 
-  /* ─── إحصائيات بسيطة (بدون axes) ─── */
-  const calcStats = (_plan: Plan) => ({ total: 0, done: 0, progress: 0 })
+  /* ─── إحصائيات الخطة الفعلية (محسوبة من المهام عبر العقد) ─── */
+  const calcStats = (plan: Plan) => statsByPlan[plan.id] || { total: 0, done: 0, progress: 0 }
 
   /* خطط العام المحدد */
   const yearPlans = plans.filter(p => p.academic_year === selectedYear)
