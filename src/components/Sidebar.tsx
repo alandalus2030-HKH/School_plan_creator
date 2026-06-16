@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
@@ -45,11 +44,6 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
     schoolName: ctxSchoolName, groupName, roleLabel,
     impersonating, impersonatedSchool } = usePermissions()
   const isRtl = lang === 'ar'
-  const supabase = createClient()
-
-  /* ── عداد مهام اليوم ── */
-  const [myTasksCount, setMyTasksCount] = useState<number | null>(null)
-
   /* ── شعار المدرسة الفعّالة (يحترم التقمّص) ── */
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null)
   useEffect(() => {
@@ -63,21 +57,6 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
       } catch { setSchoolLogo(null) }
     })()
   }, [loading, isGroupOwner, isSuperAdmin, impersonating, impersonatedSchool])
-
-  useEffect(() => {
-    if (!userId) return
-    const today = new Date().toISOString().split('T')[0]
-    ;(async () => {
-      const { count } = await supabase
-        .from('tasks')
-        .select('*', { count: 'exact', head: true })
-        .eq('assigned_to_user_id', userId)
-        .in('status', ['not_started', 'in_progress'])
-        .lte('end_date', today)
-        .is('deleted_at', null)
-      setMyTasksCount(count ?? 0)
-    })()
-  }, [userId])
 
   const visibleNav = NAV_ITEMS.filter(item => {
     /* مالك المجموعة (غير المشرف): نظرة المجموعة + ملفه الشخصي فقط
@@ -174,16 +153,6 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
               <item.Icon size={18} className="flex-shrink-0" />
               {!collapsed && (
                 <span className="text-sm truncate flex-1">{lang === 'ar' ? item.ar : item.en}</span>
-              )}
-              {/* عداد مهام اليوم بجانب "مهامي" */}
-              {!collapsed && item.href === '/dashboard/my-tasks' && myTasksCount !== null && myTasksCount > 0 && (
-                <span className="flex-shrink-0 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px]
-                                 font-bold rounded-full flex items-center justify-center px-1 leading-none">
-                  {myTasksCount > 99 ? '99+' : myTasksCount}
-                </span>
-              )}
-              {!collapsed && active && myTasksCount === 0 && (
-                <span className="mr-auto w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />
               )}
             </Link>
           )
