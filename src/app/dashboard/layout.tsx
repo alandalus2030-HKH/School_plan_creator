@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import ToastContainer  from '@/components/Toast'
 import QuickAddTask    from '@/components/QuickAddTask'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
+import { LocaleProvider } from '@/lib/i18n/LocaleContext'
 
 const SIDEBAR_KEY = 'sidebar_collapsed'
 
@@ -45,7 +46,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const saved = localStorage.getItem(SIDEBAR_KEY)
     if (saved === 'true') setCollapsed(true)
+    const savedLang = localStorage.getItem('lang')
+    if (savedLang === 'en' || savedLang === 'ar') setLang(savedLang)
   }, [])
+
+  /* حفظ اللغة المختارة (أساس i18n — تُقرأ عند التحميل) */
+  useEffect(() => { localStorage.setItem('lang', lang) }, [lang])
 
   const toggleSidebar = () => {
     setCollapsed(prev => {
@@ -71,9 +77,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
           </div>
           <main className="flex-1 overflow-auto bg-slate-50 p-6 print:overflow-visible print:p-0 print:bg-white">
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
+            <LocaleProvider locale={lang}>
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
+            </LocaleProvider>
           </main>
         </div>
       </div>
