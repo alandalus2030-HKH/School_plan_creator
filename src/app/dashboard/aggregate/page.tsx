@@ -124,7 +124,7 @@ function StatChip({ icon, label, value, tone }: { icon: React.ReactNode; label: 
 
 export default function AggregatePage() {
   const [plans,    setPlans]    = useState<PlanRow[]>([])
-  const { userId } = usePermissions()
+  const { userId, can } = usePermissions()
   const [loading,  setLoading]  = useState(true)
   const [denied,   setDenied]   = useState(false)
   const [selDepts, setSelDepts] = useState<string[]>([])
@@ -284,12 +284,20 @@ export default function AggregatePage() {
           <h1 className="text-2xl font-bold text-slate-800">لوحة التجميع</h1>
           <p className="text-sm text-slate-500">متابعة خطط الأقسام ومؤشراتها المجمّعة</p>
         </div>
-        {plans.length > 0 && (
-          <button onClick={exportCsv}
-            className="mr-auto inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors">
-            <Download size={15} /> تصدير CSV
-          </button>
-        )}
+        <div className="mr-auto flex items-center gap-2">
+          {can('manage_plans') && (
+            <Link href="/dashboard/plans"
+              className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors">
+              🗺️ إدارة الخطط
+            </Link>
+          )}
+          {plans.length > 0 && (
+            <button onClick={exportCsv}
+              className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors">
+              <Download size={15} /> تصدير CSV
+            </button>
+          )}
+        </div>
       </div>
 
       {plans.length > 0 && (

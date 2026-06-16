@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle, BadgeCheck, ShieldOff } from 'lucide-react'
+import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle, BadgeCheck, ShieldOff, ChevronDown } from 'lucide-react'
 import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
@@ -53,6 +53,12 @@ function PlansPageInner() {
   const [menuOpen,     setMenuOpen]     = useState<string | null>(null)
   const [confirmDel,   setConfirmDel]   = useState<string | null>(null)
   const [deleting,     setDeleting]     = useState(false)
+  /* ── فلاتر + طيّ ── */
+  const [q,        setQ]        = useState('')
+  const [deptF,    setDeptF]    = useState('')
+  const [ownerF,   setOwnerF]   = useState('')
+  const [certF,    setCertF]    = useState<'all' | 'approved' | 'unapproved'>('all')
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   const loadPlans = async () => {
     const { data } = await supabase
@@ -130,7 +136,32 @@ function PlansPageInner() {
 
   /* خطط العام المحدد */
   const yearPlans = plans.filter(p => p.academic_year === selectedYear)
-  const visible   = yearPlans.filter(p => showArchived ? p.is_archived : !p.is_archived)
+  const baseVisible = yearPlans.filter(p => showArchived ? p.is_archived : !p.is_archived)
+
+  /* قوائم الفلاتر (من خطط العام) */
+  const deptOptions  = [...new Set(yearPlans.map(p => (p as any).department).filter(Boolean))].sort() as string[]
+  const ownerOptions = [...new Set(yearPlans.map(p => (p as any).owner_name).filter(Boolean))].sort() as string[]
+
+  /* تطبيق الفلاتر */
+  const visible = baseVisible.filter(p => {
+    if (q && !p.name_ar.toLowerCase().includes(q.toLowerCase())) return false
+    if (deptF && (p as any).department !== deptF) return false
+    if (ownerF && (p as any).owner_name !== ownerF) return false
+    if (certF === 'approved' && !p.approved_at) return false
+    if (certF === 'unapproved' && p.approved_at) return false
+    return true
+  })
+  const anyFilter = !!(q || deptF || ownerF || certF !== 'all')
+  const clearFilters = () => { setQ(''); setDeptF(''); setOwnerF(''); setCertF('all') }
+
+  /* طيّ/توسيع */
+  const isCollapsed = (id: string) => collapsed.has(id)
+  const toggleCollapse = (id: string) => setCollapsed(prev => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
+  })
+  const collapseAll = () => setCollapsed(new Set(visible.map(p => p.id)))
+  const expandAll   = () => setCollapsed(new Set())
+
   /* عدد الخطط لكل عام (للشارة) */
   const countByYear = (y: string) => plans.filter(p => p.academic_year === y && !p.is_archived).length
 
@@ -142,7 +173,10 @@ function PlansPageInner() {
   )
 
   return (
-    <div className="space-y-6" onClick={() => setMenuOpen(null)}>
+    <div onClick={() => setMenuOpen(null)}>
+
+      {/* ═══ الجزء المثبّت: الترويسة + مجلد العام + الفلاتر ═══ */}
+      <div className="sticky top-0 z-20 bg-slate-50 -mt-6 pt-6 pb-4 mb-4 border-b border-slate-200 space-y-4">
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -151,6 +185,12 @@ function PlansPageInner() {
           <p className="text-slate-500 text-sm mt-1">عرض وإدارة خطط المدرسة حسب العام الدراسي</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {can('view_aggregate') && (
+            <Link href="/dashboard/aggregate"
+              className="flex items-center gap-2 border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
+              📊 المتابعة في لوحة التجميع
+            </Link>
+          )}
           <Link href="/dashboard/plans/new"
             className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-violet-200">
             ➕ خطة جديدة
@@ -218,6 +258,46 @@ function PlansPageInner() {
         )}
       </div>
 
+      {/* ── الفلاتر ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 بحث باسم الخطة..."
+          className="flex-1 min-w-[180px] px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+        {deptOptions.length > 0 && (
+          <select value={deptF} onChange={e => setDeptF(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
+            <option value="">كل الأقسام</option>
+            {deptOptions.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        )}
+        {ownerOptions.length > 0 && (
+          <select value={ownerF} onChange={e => setOwnerF(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
+            <option value="">كل أصحاب الخطط</option>
+            {ownerOptions.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        )}
+        <select value={certF} onChange={e => setCertF(e.target.value as any)}
+          className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
+          <option value="all">كل حالات الاعتماد</option>
+          <option value="approved">معتمدة</option>
+          <option value="unapproved">غير معتمدة</option>
+        </select>
+        {anyFilter && (
+          <button onClick={clearFilters}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+            ✕ إزالة الفلاتر
+          </button>
+        )}
+        {visible.length > 1 && (
+          <div className="mr-auto flex items-center gap-1">
+            <button onClick={collapseAll} className="px-3 py-2.5 rounded-xl text-sm border border-slate-200 bg-white text-slate-600 hover:border-violet-300 transition-colors">طيّ الكل</button>
+            <button onClick={expandAll} className="px-3 py-2.5 rounded-xl text-sm border border-slate-200 bg-white text-slate-600 hover:border-violet-300 transition-colors">توسيع الكل</button>
+          </div>
+        )}
+      </div>
+
+      </div>{/* ═══ نهاية الجزء المثبّت ═══ */}
+
       {/* Plans */}
       {visible.length > 0 ? (
         <div className="space-y-4">
@@ -235,13 +315,18 @@ function PlansPageInner() {
               <div key={plan.id} className={`rounded-2xl border shadow-sm transition-opacity
                 ${plan.is_archived ? 'opacity-70 border-slate-200' : 'border-slate-200'}`}>
 
-                {/* Plan Header — rounded-t-2xl دائماً + rounded-b-2xl للمؤرشفة (لا قسم أبيض تحتها) */}
+                {/* Plan Header — rounded-b-2xl للمؤرشفة أو المطويّة (لا قسم أبيض تحتها) */}
                 <div className={`text-white p-5 rounded-t-2xl
-                  ${plan.is_archived ? 'rounded-b-2xl bg-slate-500' : 'bg-gradient-to-l from-violet-600 to-indigo-700'}`}>
+                  ${(plan.is_archived || isCollapsed(plan.id)) ? 'rounded-b-2xl' : ''}
+                  ${plan.is_archived ? 'bg-slate-500' : 'bg-gradient-to-l from-violet-600 to-indigo-700'}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-xl font-bold">{plan.name_ar}</h3>
+                        <h3 className="text-xl font-bold">
+                          {plan.is_archived
+                            ? plan.name_ar
+                            : <Link href={`/dashboard/plans/${plan.id}`} className="hover:underline" onClick={e => e.stopPropagation()}>{plan.name_ar}</Link>}
+                        </h3>
                         {/* شارة الاعتماد */}
                         {isCertified && (
                           <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2.5 py-0.5 rounded-full font-medium border border-white/30">
@@ -270,6 +355,12 @@ function PlansPageInner() {
                     </div>
 
                     <div className="flex items-start gap-3">
+                      {/* طيّ/توسيع البطاقة */}
+                      <button onClick={e => { e.stopPropagation(); toggleCollapse(plan.id) }}
+                        title={isCollapsed(plan.id) ? 'توسيع' : 'طيّ'}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white">
+                        <ChevronDown size={16} className={`transition-transform ${isCollapsed(plan.id) ? '-rotate-90' : ''}`} />
+                      </button>
                       <div className="text-left">
                         <div className="text-3xl font-bold">{progress}%</div>
                         <div className={`text-xs ${plan.is_archived ? 'text-slate-300' : 'text-violet-200'}`}>نسبة الإنجاز</div>
@@ -323,18 +414,22 @@ function PlansPageInner() {
                     </div>
                   </div>
 
-                  {/* Progress bar — overflow-hidden هنا فقط للشريط */}
-                  <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-white rounded-full transition-all" style={{ width: `${progress}%` }} />
-                  </div>
-                  <div className="flex justify-between text-xs mt-1" style={{ color: plan.is_archived ? '#cbd5e1' : '#ddd6fe' }}>
-                    <span>{done} منجزة</span>
-                    <span>{total} مهمة إجمالاً</span>
-                  </div>
+                  {/* Progress bar — يُخفى عند الطيّ */}
+                  {!isCollapsed(plan.id) && (
+                    <>
+                      <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-white rounded-full transition-all" style={{ width: `${progress}%` }} />
+                      </div>
+                      <div className="flex justify-between text-xs mt-1" style={{ color: plan.is_archived ? '#cbd5e1' : '#ddd6fe' }}>
+                        <span>{done} منجزة</span>
+                        <span>{total} مهمة إجمالاً</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                {/* فتح الخطة — القسم الأبيض، rounded-b-2xl */}
-                {!plan.is_archived && (
+                {/* فتح الخطة — القسم الأبيض، rounded-b-2xl (يُخفى عند الطيّ) */}
+                {!plan.is_archived && !isCollapsed(plan.id) && (
                   <div className="p-4 bg-white rounded-b-2xl">
                     <Link href={`/dashboard/plans/${plan.id}`}
                       className="flex items-center justify-between p-4 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 transition-colors group">
