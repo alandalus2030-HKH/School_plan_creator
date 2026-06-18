@@ -51,12 +51,32 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ plan
     return NextResponse.json({ error: 'الخطة معتمدة — لا يمكن حذف عناصرها' }, { status: 403 })
   }
 
+  /* حذف متسلسل: العقدة + كل المنحدرات منها + كل مهامها (حذف ناعم) */
+  const { data: allNodes } = await ctx.admin.from('plan_nodes')
+    .select('id, parent_id').eq('plan_id', planId).is('deleted_at', null)
+  const childrenMap: Record<string, string[]> = {}
+  for (const n of allNodes || []) (childrenMap[n.parent_id ?? 'root'] ||= []).push(n.id)
+  const nodeIds: string[] = []
+  const stack = [nodeId]
+  while (stack.length) {
+    const cur = stack.pop()!
+    nodeIds.push(cur)
+    for (const c of childrenMap[cur] || []) stack.push(c)
+  }
+
+  const now = new Date().toISOString()
   const { data: rows, error } = await ctx.admin.from('plan_nodes')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', nodeId).select('id')
+    .update({ deleted_at: now }).in('id', nodeIds).select('id')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!rows || rows.length === 0) {
     return NextResponse.json({ error: 'لم يُحذف أي صف — تحقّق من معرّف العقدة' }, { status: 500 })
   }
-  return NextResponse.json({ ok: true })
+
+  /* حذف المهام التابعة لأي من العقد المحذوفة */
+  const { data: delTasks, error: tErr } = await ctx.admin.from('tasks')
+    .update({ deleted_at: now, updated_by: auth.user.id })
+    .in('node_id', nodeIds).is('deleted_at', null).select('id')
+  if (tErr) return NextResponse.json({ error: tErr.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true, deletedNodes: rows.length, deletedTasks: delTasks?.length || 0 })
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MapPin, Plus, Trash2, Pencil, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from '@/components/Toast'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 type Loc = { id: string; name_ar: string; sort_order: number; is_active: boolean }
 
@@ -109,11 +110,6 @@ export default function LocationsManager() {
                   <button onClick={() => saveEdit(l.id)} className="px-3 py-1.5 bg-violet-600 text-white text-xs rounded-lg font-medium">حفظ</button>
                   <button onClick={() => setEditId(null)} className="px-3 py-1.5 border border-slate-200 text-slate-500 text-xs rounded-lg">إلغاء</button>
                 </div>
-              ) : confirmDel === l.id ? (
-                <div className="flex items-center gap-1">
-                  <button onClick={() => remove(l.id)} className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg font-medium">حذف</button>
-                  <button onClick={() => setConfirmDel(null)} className="px-3 py-1.5 border border-slate-200 text-slate-500 text-xs rounded-lg">إلغاء</button>
-                </div>
               ) : (
                 <div className="flex items-center gap-1">
                   <button onClick={() => toggle(l)} title={l.is_active ? 'تعطيل' : 'تفعيل'}
@@ -130,6 +126,19 @@ export default function LocationsManager() {
           ))}
         </div>
       )}
+
+      {(() => {
+        const d = confirmDel ? locs.find(l => l.id === confirmDel) : null
+        return (
+          <ConfirmDialog
+            open={!!d}
+            title="حذف الموقع"
+            message={d ? <>سيتم حذف «<strong>{d.name_ar}</strong>» نهائياً.</> : null}
+            onConfirm={() => confirmDel && remove(confirmDel)}
+            onCancel={() => setConfirmDel(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

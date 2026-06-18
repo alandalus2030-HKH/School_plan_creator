@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { CalendarDays, Plus, Trash2, Pencil, X, Save } from 'lucide-react'
 import { toast } from '@/components/Toast'
 import { KIND_LABEL, KIND_COLOR, type CalendarEvent } from '@/lib/calendar'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 const KINDS = ['holiday', 'break', 'national', 'eid', 'exam', 'other'] as const
 const WEEK_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'] // index = getDay
@@ -177,12 +178,7 @@ export default function CalendarManager() {
                 <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ${ev.enforcement === 'block' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
                   {ev.enforcement === 'block' ? 'منع' : 'تنبيه'}
                 </span>
-                {confirmDel === ev.id ? (
-                  <span className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => remove(ev.id)} className="text-xs px-2 py-1 rounded-lg bg-red-600 text-white">تأكيد</button>
-                    <button onClick={() => setConfirmDel(null)} className="text-xs px-2 py-1 rounded-lg bg-slate-100 text-slate-600">إلغاء</button>
-                  </span>
-                ) : (
+                {(
                   <span className="flex items-center gap-1 flex-shrink-0">
                     <button onClick={() => setForm({ id: ev.id, title: ev.title, kind: ev.kind, enforcement: ev.enforcement, start_date: ev.start_date, end_date: ev.end_date })}
                       className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg" title="تعديل"><Pencil size={14} /></button>
@@ -195,6 +191,19 @@ export default function CalendarManager() {
           </div>
         )}
       </div>
+
+      {(() => {
+        const d = confirmDel ? events.find(e => e.id === confirmDel) : null
+        return (
+          <ConfirmDialog
+            open={!!d}
+            title="حذف الحدث"
+            message={d ? <>سيتم حذف «<strong>{d.title}</strong>» من التقويم نهائياً.</> : null}
+            onConfirm={() => confirmDel && remove(confirmDel)}
+            onCancel={() => setConfirmDel(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

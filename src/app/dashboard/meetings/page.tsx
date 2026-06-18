@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createNotification } from '@/lib/notifications'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { CalendarDays, CalendarClock, CalendarCheck, UserRound,
   AlertTriangle, Inbox, Video, Briefcase, Link2, Monitor,
   Map, CircleCheckBig, Plus, Pencil, Trash2 } from 'lucide-react'
@@ -570,16 +571,6 @@ export default function MeetingsPage() {
                       </div>
                     )}
                   </div>
-
-                  {confirmDel === m.id && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
-                      <span className="text-xs text-red-700 flex-1">حذف الاجتماع نهائياً؟</span>
-                      <button onClick={() => deleteMeeting(m.id)}
-                        className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg">نعم</button>
-                      <button onClick={() => setConfirmDel(null)}
-                        className="px-3 py-1 border border-slate-200 text-xs rounded-lg">لا</button>
-                    </div>
-                  )}
                 </div>
               </div>
             )
@@ -832,6 +823,19 @@ export default function MeetingsPage() {
           </div>
         </div>
       )}
+
+      {(() => {
+        const m = confirmDel ? meetings.find(x => x.id === confirmDel) : null
+        return (
+          <ConfirmDialog
+            open={!!m}
+            title="حذف الاجتماع"
+            message={m ? <>سيتم حذف اجتماع «<strong>{m.title}</strong>» نهائياً.</> : 'سيتم حذف الاجتماع نهائياً.'}
+            onConfirm={() => confirmDel && deleteMeeting(confirmDel)}
+            onCancel={() => setConfirmDel(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

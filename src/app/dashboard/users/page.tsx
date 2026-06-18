@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import * as XLSX from 'xlsx'
 import { Users, CheckCircle2, BookOpen, Crown, UserRound } from 'lucide-react'
 
@@ -801,22 +802,7 @@ export default function UsersPage() {
               const initials = (p.name_ar || p.email || '').trim().split(' ').map((w: string) => w[0]).slice(0,2).join('')
               return (
                 <div key={p.id}>
-                  {confirmDel === p.id ? (
-                    <div className="px-4 py-3 bg-red-50 space-y-2">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-sm text-red-700 flex-1">حذف "{p.name_ar}" نهائياً؟</span>
-                        <button onClick={() => deleteProfile(p.id)} disabled={deletingId === p.id}
-                          className="px-4 py-1.5 bg-red-600 text-white text-xs rounded-lg disabled:opacity-60">
-                          {deletingId === p.id ? '⏳ جارٍ الحذف...' : 'نعم، احذف'}
-                        </button>
-                        <button onClick={() => { setConfirmDel(null); setDelMsg(null) }} disabled={deletingId === p.id}
-                          className="px-4 py-1.5 border border-slate-200 text-slate-600 text-xs rounded-lg disabled:opacity-60">إلغاء</button>
-                      </div>
-                      {delMsg?.id === p.id && (
-                        <p className="text-xs font-medium text-red-700 bg-red-100 px-3 py-2 rounded-lg">{delMsg.text}</p>
-                      )}
-                    </div>
-                  ) : (
+                  {(
                     <>
                       <div className={`grid grid-cols-12 gap-2 items-center px-4 py-3 transition-colors group ${
                         p.is_active ? 'hover:bg-slate-50' : 'bg-red-50/40 hover:bg-red-50/70'
@@ -913,6 +899,26 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      {/* ══ نافذة تأكيد حذف المستخدم ══ */}
+      {(() => {
+        const delP = confirmDel ? profiles.find(p => p.id === confirmDel) : null
+        return (
+          <ConfirmDialog
+            open={!!delP}
+            title="حذف المستخدم"
+            loading={deletingId === confirmDel}
+            message={delP ? (
+              <>
+                سيتم حذف «<strong>{delP.name_ar}</strong>» نهائياً.
+                {delMsg?.id === confirmDel && <span className="block text-red-600 font-semibold mt-1">{delMsg.text}</span>}
+              </>
+            ) : null}
+            onConfirm={() => confirmDel && deleteProfile(confirmDel)}
+            onCancel={() => { setConfirmDel(null); setDelMsg(null) }}
+          />
+        )
+      })()}
 
       {/* ══════════════════════ مودال الإضافة / التعديل ══════════════════════ */}
       {showForm && (

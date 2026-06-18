@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import {
   Award, Trophy, Sparkles, Plus, X, Loader2, Trash2, Gift, Send, Star, Medal, BarChart3, Pencil,
 } from 'lucide-react'
@@ -463,19 +464,13 @@ export default function BadgesPage() {
       )}
 
       {/* ══ تأكيد حذف الوسام ══ */}
-      {confirmDel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setConfirmDel(null)}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 text-center" dir="rtl" onClick={e => e.stopPropagation()}>
-            <p className="text-slate-700 mb-1 font-semibold">حذف وسام «{confirmDel.name_ar}»؟</p>
-            <p className="text-xs text-slate-400 mb-4">ستُحذف كل منحاته من المستخدمين. لا يمكن التراجع.</p>
-            <div className="flex gap-2">
-              <button onClick={() => deleteBadge(confirmDel)} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors">حذف</button>
-              <button onClick={() => setConfirmDel(null)} className="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">إلغاء</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmDel}
+        title="حذف الوسام"
+        message={confirmDel ? <>حذف وسام «<strong>{confirmDel.name_ar}</strong>»؟ ستُحذف كل منحاته من المستخدمين. لا يمكن التراجع.</> : null}
+        onConfirm={() => confirmDel && deleteBadge(confirmDel)}
+        onCancel={() => setConfirmDel(null)}
+      />
     </div>
   )
 }

@@ -6,11 +6,12 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
-import { ClipboardList, AlertTriangle, Target, TrendingUp, Package, BarChart3, Star,
+import { ClipboardList, Target, TrendingUp, Package, BarChart3, Star,
   Settings, Pencil, Trash2, Award, BadgeCheck, ShieldOff, Bell } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
 import { toast } from '@/components/Toast'
 import StandardPicker from '@/components/StandardPicker'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createNotification } from '@/lib/notifications'
 
@@ -97,6 +98,7 @@ export default function PlanOverviewPage() {
   const [editNodeId,   setEditNodeId]   = useState<string|null>(null)
   const [editNodeName, setEditNodeName] = useState('')
   const [confirmDelId, setConfirmDelId] = useState<string|null>(null)
+  const [deletingNode, setDeletingNode] = useState(false)
   const [confirmDelPlan, setConfirmDelPlan] = useState(false)
   const [deletingPlan, setDeletingPlan] = useState(false)
   const [certifying, setCertifying] = useState(false)
@@ -314,8 +316,10 @@ export default function PlanOverviewPage() {
 
   /* ── حذف عقدة — عبر API خادمي (الحذف الناعم من العميل ترفضه سياسة القراءة) ── */
   const deleteNode = async (nodeId: string) => {
+    setDeletingNode(true)
     const res  = await fetch(`/api/plans/${planId}/nodes/${nodeId}`, { method: 'DELETE' })
     const json = await res.json().catch(() => ({}))
+    setDeletingNode(false)
     if (!res.ok) {
       alert(`تعذّر الحذف: ${json.error || res.status}`)
       setConfirmDelId(null)
@@ -836,16 +840,6 @@ export default function PlanOverviewPage() {
                         className="px-3 py-2 border border-slate-200 text-slate-500 text-sm rounded-xl">إلغاء</button>
                     </div>
 
-                  /* ── وضع تأكيد الحذف (مخفي للخطط المعتمدة) ── */
-                  ) : confirmDelId === node.id && !plan.approved_at ? (
-                    <div className="flex items-center gap-3 p-4 bg-red-50 rounded-2xl border border-red-200">
-                      <span className="text-sm text-red-700 flex-1">حذف "{node.name_ar}" وكل محتوياته؟</span>
-                      <button onClick={() => deleteNode(node.id)}
-                        className="px-4 py-2 bg-red-600 text-white text-sm rounded-xl font-medium">نعم، احذف</button>
-                      <button onClick={() => setConfirmDelId(null)}
-                        className="px-3 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl">إلغاء</button>
-                    </div>
-
                   /* ── العرض الاعتيادي ── */
                   ) : (
                     <div className="flex items-center gap-3 p-4 group">
@@ -1133,29 +1127,36 @@ export default function PlanOverviewPage() {
         </div>
       )}
 
-      {/* ══ مربع تأكيد حذف الخطة ══ */}
-      {confirmDelPlan && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setConfirmDelPlan(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-center mb-3"><AlertTriangle size={40} style={{ color: 'var(--maroon-600)' }} /></div>
-            <h3 className="text-lg font-bold text-slate-800 text-center mb-2">حذف الخطة نهائياً</h3>
-            <p className="text-slate-500 text-sm text-center mb-5">
-              سيتم حذف "<strong>{plan.name_ar}</strong>" وجميع هيكلها ومهامها بشكل نهائي لا يمكن التراجع عنه.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={deletePlan} disabled={deletingPlan}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl disabled:opacity-50">
-                {deletingPlan ? 'جارٍ الحذف...' : 'نعم، احذف'}
-              </button>
-              <button onClick={() => setConfirmDelPlan(false)}
-                className="flex-1 border border-slate-200 text-slate-600 font-semibold py-3 rounded-xl hover:bg-slate-50">
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ══ نافذة تأكيد حذف عقدة (المعيار الرئيس وما تحته) ══ */}
+      {(() => {
+        const delNode = confirmDelId ? nodes.find(n => n.id === confirmDelId) : null
+        const cnt = delNode ? tasks.filter(t => getDescendantIds(delNode.id).includes(t.node_id)).length : 0
+        return (
+          <ConfirmDialog
+            open={!!delNode}
+            title="حذف العنصر"
+            loading={deletingNode}
+            message={delNode ? (
+              <>
+                سيتم حذف «<strong>{delNode.name_ar}</strong>» وكل ما تحته نهائياً.
+                {cnt > 0 && <span className="block text-red-600 font-semibold mt-1">⚠️ سيُحذف معه {cnt} مهمة تابعة.</span>}
+              </>
+            ) : null}
+            onConfirm={() => confirmDelId && deleteNode(confirmDelId)}
+            onCancel={() => setConfirmDelId(null)}
+          />
+        )
+      })()}
+
+      {/* ══ نافذة تأكيد حذف الخطة ══ */}
+      <ConfirmDialog
+        open={confirmDelPlan}
+        title="حذف الخطة نهائياً"
+        loading={deletingPlan}
+        message={<>سيتم حذف "<strong>{plan.name_ar}</strong>" وجميع هيكلها ومهامها بشكل نهائي لا يمكن التراجع عنه.</>}
+        onConfirm={deletePlan}
+        onCancel={() => setConfirmDelPlan(false)}
+      />
     </div>
   )
 }

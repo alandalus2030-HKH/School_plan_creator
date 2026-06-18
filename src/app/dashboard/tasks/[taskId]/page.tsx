@@ -22,6 +22,7 @@ const TRANSITION_LABEL: Record<string, string> = {
 }
 import Breadcrumb from '@/components/Breadcrumb'
 import ConflictWarning from '@/components/ConflictWarning'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { findConflicts, type ConflictResult } from '@/lib/conflicts'
 import MentionInput, { extractMentions } from '@/components/MentionInput'
 import Subtasks from '@/components/Subtasks'
@@ -1243,13 +1244,6 @@ export default function TaskPage() {
                       {!isCompleted && !ev._shared && canManageEvidence && ev.status !== 'accepted' && (
                         deletingEvId === ev.id ? (
                           <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
-                        ) : confirmEvId === ev.id ? (
-                          <span className="flex items-center gap-1">
-                            <button onClick={() => deleteEvidence(ev.id)} disabled={!!deletingEvId}
-                              className="px-2.5 py-1.5 text-xs bg-red-600 text-white rounded-lg font-medium disabled:opacity-50">تأكيد</button>
-                            <button onClick={() => setConfirmEvId(null)}
-                              className="px-2.5 py-1.5 text-xs border border-slate-200 text-slate-500 rounded-lg">إلغاء</button>
-                          </span>
                         ) : (
                           <button onClick={() => setConfirmEvId(ev.id)} disabled={!!deletingEvId}
                             className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50">🗑️</button>
@@ -1915,25 +1909,31 @@ export default function TaskPage() {
         <p className="text-sm font-semibold text-slate-700 mb-2">منطقة الخطر</p>
         <div className="flex items-center justify-between">
           <p className="text-xs text-slate-400">حذف هذه المهمة وجميع بياناتها نهائياً</p>
-          {confirmDel ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-500">هل أنت متأكد؟</span>
-              <button onClick={deleteTask} disabled={deleting}
-                className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg font-medium disabled:opacity-50">
-                {deleting ? 'جارٍ الحذف...' : 'نعم، احذف'}
-              </button>
-              <button onClick={() => setConfirmDel(false)}
-                className="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs rounded-lg">إلغاء</button>
-            </div>
-          ) : (
-            <button onClick={() => setConfirmDel(true)}
-              className="px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
-              🗑️ حذف المهمة
-            </button>
-          )}
+          <button onClick={() => setConfirmDel(true)}
+            className="px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
+            🗑️ حذف المهمة
+          </button>
         </div>
       </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDel}
+        title="حذف المهمة"
+        loading={deleting}
+        message="سيتم حذف هذه المهمة وجميع بياناتها (الأدلة والسجلّ) نهائياً."
+        onConfirm={deleteTask}
+        onCancel={() => setConfirmDel(false)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmEvId}
+        title="حذف الدليل"
+        loading={!!deletingEvId}
+        message="سيتم حذف هذا الدليل وملفاته المرفقة نهائياً."
+        onConfirm={() => confirmEvId && deleteEvidence(confirmEvId)}
+        onCancel={() => setConfirmEvId(null)}
+      />
 
       </div>
 

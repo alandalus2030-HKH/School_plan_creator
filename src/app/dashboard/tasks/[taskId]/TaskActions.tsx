@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
 import { Check } from 'lucide-react'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 type Status = 'not_started' | 'in_progress' | 'completed' | 'delayed'
 
@@ -178,26 +179,20 @@ export function DeleteTaskButton({ taskId }: { taskId: string }) {
     router.push('/dashboard/tasks')
   }
 
-  if (confirming) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-500">هل أنت متأكد؟</span>
-        <button onClick={handleDelete} disabled={loading}
-          className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg font-medium disabled:opacity-50">
-          {loading ? 'جارٍ الحذف...' : 'نعم، احذف'}
-        </button>
-        <button onClick={() => setConfirming(false)}
-          className="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs rounded-lg">
-          إلغاء
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <button onClick={() => setConfirming(true)}
-      className="px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
-      🗑️ حذف المهمة
-    </button>
+    <>
+      <button onClick={() => setConfirming(true)}
+        className="px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
+        🗑️ حذف المهمة
+      </button>
+      <ConfirmDialog
+        open={confirming}
+        title="حذف المهمة"
+        loading={loading}
+        message="سيتم حذف هذه المهمة نهائياً مع أدلتها وسجلّها."
+        onConfirm={handleDelete}
+        onCancel={() => setConfirming(false)}
+      />
+    </>
   )
 }

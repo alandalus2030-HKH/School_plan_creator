@@ -4,8 +4,9 @@ import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, Archive, ClipboardList, FolderOpen, Map, AlertTriangle, BadgeCheck, ShieldOff, ChevronDown } from 'lucide-react'
+import { Eye, Archive, ClipboardList, FolderOpen, Map, BadgeCheck, ShieldOff, ChevronDown } from 'lucide-react'
 import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
@@ -498,28 +499,15 @@ function PlansPageInner() {
       )}
 
       {/* مربع تأكيد الحذف */}
-      {confirmDel && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setConfirmDel(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-center mb-3"><AlertTriangle size={40} style={{ color: 'var(--maroon-600)' }} /></div>
-            <h3 className="text-lg font-bold text-slate-800 text-center mb-2">حذف الخطة نهائياً</h3>
-            <p className="text-slate-500 text-sm text-center mb-5">
-              سيتم حذف الخطة وجميع محاورها ومبادراتها وأهدافها ومهامها بشكل نهائي لا يمكن التراجع عنه.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => deletePlan(confirmDel)} disabled={deleting}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50">
-                {deleting ? 'جارٍ الحذف...' : 'نعم، احذف الخطة'}
-              </button>
-              <button onClick={() => setConfirmDel(null)}
-                className="flex-1 border border-slate-200 text-slate-600 font-semibold py-3 rounded-xl hover:bg-slate-50 transition-colors">
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmDel}
+        title="حذف الخطة نهائياً"
+        loading={deleting}
+        confirmLabel="نعم، احذف الخطة"
+        message="سيتم حذف الخطة وجميع معاييرها وأهدافها ومهامها بشكل نهائي لا يمكن التراجع عنه."
+        onConfirm={() => confirmDel && deletePlan(confirmDel)}
+        onCancel={() => setConfirmDel(null)}
+      />
     </div>
   )
 }

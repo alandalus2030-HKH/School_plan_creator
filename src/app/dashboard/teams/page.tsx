@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { Users, UserRound, ClipboardList, BarChart3 } from 'lucide-react'
 import WorkloadView from '@/components/WorkloadView'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 const TEAM_COLORS = [
   '#8a1538', '#a83356', '#c25c74', '#6f1029',
@@ -247,15 +248,7 @@ export default function TeamsPage() {
               <div key={team.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
                 {/* ── رأس الفريق ── */}
-                {confirmDel === team.id ? (
-                  <div className="p-4 bg-red-50 flex items-center gap-3 flex-wrap">
-                    <span className="text-sm text-red-700 flex-1">حذف فريق "{team.name_ar}" وإزالة جميع أعضائه؟</span>
-                    <button onClick={() => deleteTeam(team.id)}
-                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-xl font-medium">نعم، احذف</button>
-                    <button onClick={() => setConfirmDel(null)}
-                      className="px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl">إلغاء</button>
-                  </div>
-                ) : (
+                {(
                   <div className="flex items-center gap-4 p-4 group">
                     {/* لون الفريق */}
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
@@ -469,6 +462,19 @@ export default function TeamsPage() {
           </div>
         </div>
       )}
+
+      {(() => {
+        const t = confirmDel ? teams.find(x => x.id === confirmDel) : null
+        return (
+          <ConfirmDialog
+            open={!!t}
+            title="حذف الفريق"
+            message={t ? <>سيتم حذف فريق «<strong>{t.name_ar}</strong>» وإزالة جميع أعضائه.</> : null}
+            onConfirm={() => confirmDel && deleteTeam(confirmDel)}
+            onCancel={() => setConfirmDel(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

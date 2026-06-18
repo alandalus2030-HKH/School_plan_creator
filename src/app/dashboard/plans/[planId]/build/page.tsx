@@ -13,10 +13,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Flag, Plus, ListTree, ArrowRight } from 'lucide-react'
+import { Flag, Plus, ListTree, ArrowRight, Trash2 } from 'lucide-react'
+import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 type PlanNode = { id: string; plan_id: string; parent_id: string | null; level_num: number; name_ar: string; order_num: number; standard_code: string | null }
-type TaskLite = { id: string; name_ar: string; status: string; node_id: string; end_date: string | null }
+type TaskLite = { id: string; name_ar: string; status: string; node_id: string; end_date: string | null; order_num: number | null; created_at: string | null }
 type Choice   = { name: string; standardCode: string | null }
 
 const LEVEL_COLORS = ['#8a1538', '#7c3aed', '#0891b2', '#d97706', '#16a34a']
@@ -28,9 +30,10 @@ const statusColor: Record<string, string> = {
 }
 
 /* ═══ صف مستوى واحد: قائمة تجمع المضاف + كتالوج الاعتماد + بند مخصص ═══ */
-function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, selectedId, saving, onSelect, onAdd }: {
+function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, codes, selectedId, saving, onSelect, onAdd }: {
   levelNum: number; levelName: string; color: string
   existing: PlanNode[]; parentStandardCode: string | null
+  codes: Record<string, string>
   selectedId: string; saving: boolean
   onSelect: (id: string) => void
   onAdd: (choice: Choice) => void
@@ -89,7 +92,7 @@ function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, se
           {existing.length > 0 && (
             <optgroup label="في خطتك">
               {existing.map(n => (
-                <option key={n.id} value={n.id}>{n.standard_code ? `${n.standard_code} — ` : ''}{n.name_ar}</option>
+                <option key={n.id} value={n.id}>{codes[n.id] ? `${codes[n.id]} — ` : ''}{n.name_ar}</option>
               ))}
             </optgroup>
           )}
@@ -132,6 +135,8 @@ export default function PlanBuildPage() {
   const [loading, setLoading] = useState(true)
   const [path,    setPath]    = useState<string[]>([])      // معرّف العقدة المختارة لكل مستوى
   const [saving,  setSaving]  = useState(false)
+  const [confirmDel, setConfirmDel] = useState(false)
+  const [deleting,   setDeleting]   = useState(false)
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
@@ -143,7 +148,7 @@ export default function PlanBuildPage() {
     const ids = (nodesData || []).map(n => n.id)
     if (ids.length) {
       const { data: t } = await supabase.from('tasks')
-        .select('id, name_ar, status, node_id, end_date').in('node_id', ids)
+        .select('id, name_ar, status, node_id, end_date, order_num, created_at').in('node_id', ids)
       setTasks(t || [])
     } else setTasks([])
     setLoading(false)
@@ -159,6 +164,7 @@ export default function PlanBuildPage() {
   }
 
   const onSelect = (L: number, id: string) => {
+    setConfirmDel(false)
     if (id === '') setPath(path.slice(0, L))
     else setPath([...path.slice(0, L), id])
   }
@@ -167,19 +173,40 @@ export default function PlanBuildPage() {
   const addChild = async (L: number, choice: Choice) => {
     setSaving(true)
     const parentId = L === 0 ? null : path[L - 1]
-    const parent   = L === 0 ? null : byId(path[L - 1])
     const siblings = nodes.filter(n => n.level_num === L + 1 && n.parent_id === parentId)
     const nextSeq  = siblings.length ? Math.max(...siblings.map(s => s.order_num)) + 1 : 1
-    const code     = choice.standardCode ?? (parent?.standard_code ? `${parent.standard_code}.${nextSeq}` : `${nextSeq}`)
-
+    // الكود الرسمي فقط يُخزَّن؛ المخصص يُترك null ليُحسب رقمه تلقائياً (ويُعاد ترقيمه عند الحذف)
     const { data, error } = await supabase.from('plan_nodes').insert({
       plan_id: planId, parent_id: parentId, level_num: L + 1,
-      name_ar: choice.name, order_num: nextSeq, standard_code: code,
+      name_ar: choice.name, order_num: nextSeq, standard_code: choice.standardCode,
     }).select('id').single()
     setSaving(false)
     if (error) { alert(`تعذّر الإضافة: ${error.message}`); return }
     await load()
     if (data) setPath([...path.slice(0, L), data.id])
+  }
+
+  /* معرّفات العقدة وكل المنحدرات منها (لعدّ المهام وحذفها) */
+  const subtreeIds = (rootId: string): string[] => {
+    const out: string[] = []
+    const stack = [rootId]
+    while (stack.length) {
+      const cur = stack.pop()!
+      out.push(cur)
+      for (const c of nodes.filter(n => n.parent_id === cur)) stack.push(c.id)
+    }
+    return out
+  }
+
+  /* حذف عقدة (متسلسل خادمياً) ثم العودة لمستوى الأب */
+  const deleteNode = async (id: string, level: number) => {
+    setDeleting(true)
+    const res  = await fetch(`/api/plans/${planId}/nodes/${id}`, { method: 'DELETE' })
+    const json = await res.json().catch(() => ({}))
+    setDeleting(false); setConfirmDel(false)
+    if (!res.ok) { alert(`تعذّر الحذف: ${json.error || res.status}`); return }
+    setPath(path.slice(0, level))
+    await load()
   }
 
   if (loading) return (
@@ -200,10 +227,17 @@ export default function PlanBuildPage() {
     rows.push(L)
   }
 
+  const codes = computeNodeCodes(nodes)
+  const taskCodes = computeTaskCodes(tasks as any, codes)
   const leafSelected = path[levelCount - 1] ? byId(path[levelCount - 1]) : null
-  const leafTasks    = leafSelected ? tasks.filter(t => t.node_id === leafSelected.id) : []
+  const leafTasks    = leafSelected
+    ? tasks.filter(t => t.node_id === leafSelected.id)
+           .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0) || String(a.created_at || '').localeCompare(String(b.created_at || '')))
+    : []
   const last = path.length - 1
   const sel  = last >= 0 ? byId(path[last]) : null
+  const selTaskCount = sel ? tasks.filter(t => subtreeIds(sel.id).includes(t.node_id)).length : 0
+  const canDelete = sel && !plan.approved_at
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -241,6 +275,7 @@ export default function PlanBuildPage() {
             color={LEVEL_COLORS[L] || '#64748b'}
             existing={itemsAt(L)}
             parentStandardCode={L === 0 ? null : (byId(path[L - 1])?.standard_code || null)}
+            codes={codes}
             selectedId={path[L] || ''}
             saving={saving}
             onSelect={id => onSelect(L, id)}
@@ -255,11 +290,20 @@ export default function PlanBuildPage() {
           <p className="text-sm text-slate-400">ابدأ باختيار {lname(0)} من القائمة الأولى.</p>
         ) : (
           <>
-            <p className="text-sm flex items-center gap-2 flex-wrap">
-              <Flag size={15} className="text-slate-500" /> أنت في:
-              <span className="font-semibold" style={{ color: LEVEL_COLORS[last] || '#64748b' }}>{lname(last)}</span>
-              <span className="text-slate-700">— {sel.standard_code ? `${sel.standard_code} ` : ''}{sel.name_ar}</span>
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm flex items-center gap-2 flex-wrap flex-1">
+                <Flag size={15} className="text-slate-500" /> أنت في:
+                <span className="font-semibold" style={{ color: LEVEL_COLORS[last] || '#64748b' }}>{lname(last)}</span>
+                <span className="text-slate-700">— {codes[sel.id] ? `${codes[sel.id]} ` : ''}{sel.name_ar}</span>
+              </p>
+              {/* حذف العقدة المختارة (متسلسل) — يفتح نافذة تأكيد */}
+              {canDelete && (
+                <button onClick={() => setConfirmDel(true)}
+                  className="flex items-center gap-1 text-xs text-red-500 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors">
+                  <Trash2 size={13} /> حذف {lname(last)}
+                </button>
+              )}
+            </div>
 
             {/* قسم المهام يظهر فقط عند اختيار عقدة في المستوى الأخير */}
             {leafSelected && (
@@ -271,6 +315,9 @@ export default function PlanBuildPage() {
                     {leafTasks.map(t => (
                       <Link key={t.id} href={`/dashboard/tasks/${t.id}`}
                         className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-violet-200 hover:bg-violet-50/50 transition-colors">
+                        {taskCodes[t.id] && (
+                          <span className="font-mono text-[11px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">{taskCodes[t.id]}</span>
+                        )}
                         <span className="text-sm text-slate-700 flex-1">{t.name_ar}</span>
                         {t.end_date && <span className="text-xs text-slate-400">{new Date(t.end_date).toLocaleDateString('ar-QA')}</span>}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[t.status] || 'bg-slate-100'}`}>
@@ -298,6 +345,23 @@ export default function PlanBuildPage() {
           </>
         )}
       </div>
+
+      {/* ══ نافذة تأكيد حذف العقدة ══ */}
+      <ConfirmDialog
+        open={confirmDel && !!sel}
+        title={`حذف ${lname(last)}`}
+        loading={deleting}
+        message={sel ? (
+          <>
+            سيتم حذف «<strong>{sel.name_ar}</strong>» وكل ما تحته نهائياً.
+            {selTaskCount > 0 && (
+              <span className="block text-red-600 font-semibold mt-1">⚠️ سيُحذف معه {selTaskCount} مهمة تابعة.</span>
+            )}
+          </>
+        ) : null}
+        onConfirm={() => sel && deleteNode(sel.id, last)}
+        onCancel={() => setConfirmDel(false)}
+      />
     </div>
   )
 }

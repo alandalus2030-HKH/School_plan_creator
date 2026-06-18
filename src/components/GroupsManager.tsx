@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from '@/components/Toast'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import {
   Layers, Plus, X, Loader2, Pencil, Trash2, Building2, UserRound,
 } from 'lucide-react'
@@ -280,20 +281,13 @@ export default function GroupsManager() {
       )}
 
       {/* تأكيد الحذف */}
-      {confirmDel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setConfirmDel(null)}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 text-center" dir="rtl" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-3"><Trash2 size={22} className="text-red-500" /></div>
-            <h3 className="font-bold text-slate-800 mb-1">حذف المجموعة</h3>
-            <p className="text-sm text-slate-500 mb-5">حذف <span className="font-semibold text-slate-700">{confirmDel.name_ar}</span>؟ المدارس <span className="font-semibold">لن تُحذف</span> — ستصبح مستقلة.</p>
-            <div className="flex gap-2">
-              <button onClick={doDelete} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors">نعم، احذف</button>
-              <button onClick={() => setConfirmDel(null)} className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">إلغاء</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmDel}
+        title="حذف المجموعة"
+        message={confirmDel ? <>حذف «<strong>{confirmDel.name_ar}</strong>»؟ المدارس <strong>لن تُحذف</strong> — ستصبح مستقلة.</> : null}
+        onConfirm={doDelete}
+        onCancel={() => setConfirmDel(null)}
+      />
     </div>
   )
 }

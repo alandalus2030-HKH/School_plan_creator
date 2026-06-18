@@ -16,6 +16,7 @@ import CalendarManager from '@/components/CalendarManager'
 import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 /* ══════════════════════ فئات القوائم المنسدلة ══════════════════════ */
 const CATEGORIES = [
@@ -565,13 +566,7 @@ export default function SettingsPage() {
                 <div className="divide-y divide-slate-100">
                   {roles.map(role => (
                     <div key={role.id} className="group">
-                      {confirmDelRole === role.id ? (
-                        <div className="flex items-center gap-3 p-4 bg-red-50">
-                          <span className="text-sm text-red-700 flex-1">حذف دور "{role.name_ar}"؟ لا يمكن التراجع.</span>
-                          <button onClick={() => deleteRole(role.id)} className="px-4 py-2 bg-red-600 text-white text-sm rounded-xl">نعم</button>
-                          <button onClick={() => setConfirmDelRole(null)} className="px-3 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl">لا</button>
-                        </div>
-                      ) : (
+                      {(
                         <div className="flex items-start gap-4 p-4">
                           {/* أيقونة الدور */}
                           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
@@ -699,12 +694,6 @@ export default function SettingsPage() {
                           </button>
                           <button onClick={() => setEditId(null)}
                             className="px-3 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-white">إلغاء</button>
-                        </div>
-                      ) : confirmDel === opt.id ? (
-                        <div className="flex items-center gap-3 p-3 bg-red-50">
-                          <span className="text-sm text-red-700 flex-1">حذف "{opt.value}"؟</span>
-                          <button onClick={() => deleteOption(opt.id)} className="px-4 py-2 bg-red-600 text-white text-sm rounded-xl">نعم</button>
-                          <button onClick={() => setConfirmDel(null)} className="px-3 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl">لا</button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-3 px-4 py-3">
@@ -876,6 +865,32 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* ══ نافذتا تأكيد الحذف (دور / خيار قائمة) ══ */}
+      {(() => {
+        const r = confirmDelRole ? roles.find(x => x.id === confirmDelRole) : null
+        return (
+          <ConfirmDialog
+            open={!!r}
+            title="حذف الدور"
+            message={r ? <>حذف دور «<strong>{r.name_ar}</strong>»؟ لا يمكن التراجع.</> : null}
+            onConfirm={() => confirmDelRole && deleteRole(confirmDelRole)}
+            onCancel={() => setConfirmDelRole(null)}
+          />
+        )
+      })()}
+      {(() => {
+        const o = confirmDel ? options.find(x => x.id === confirmDel) : null
+        return (
+          <ConfirmDialog
+            open={!!o}
+            title="حذف الخيار"
+            message={o ? <>حذف «<strong>{o.value}</strong>» من القائمة؟</> : null}
+            onConfirm={() => confirmDel && deleteOption(confirmDel)}
+            onCancel={() => setConfirmDel(null)}
+          />
+        )
+      })()}
     </div>
   )
 }
