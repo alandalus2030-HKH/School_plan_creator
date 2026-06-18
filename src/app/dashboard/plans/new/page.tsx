@@ -11,7 +11,7 @@ const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => `${2024 + i}-${2025 
 const LEVEL_PRESETS: Record<number, string[]> = {
   2: ['المحور', 'المبادرة'],
   3: ['المحور', 'المبادرة', 'الهدف'],
-  4: ['المحور', 'الهدف الاستراتيجي', 'الهدف العام', 'الهدف الفرعي'],
+  4: ['المعيار الرئيس', 'الجانب', 'المعيار الفرعي', 'الهدف'],
   5: ['المجال', 'البرنامج', 'المبادرة', 'الهدف', 'النشاط'],
 }
 
@@ -82,8 +82,8 @@ export default function NewPlanPage() {
   const [year,       setYear]       = useState('2025-2026')
   const [startDate,  setStartDate]  = useState('2025-09-01')
   const [endDate,    setEndDate]    = useState('2026-06-30')
-  const [levelCount, setLevelCount] = useState(3)
-  const [levelNames, setLevelNames] = useState(['المحور', 'المبادرة', 'الهدف'])
+  const [levelCount, setLevelCount] = useState(4)
+  const [levelNames, setLevelNames] = useState(LEVEL_PRESETS[4])
   const [kpiLevels,  setKpiLevels]  = useState<KpiLevelConfig[]>([])
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState('')
@@ -122,11 +122,10 @@ export default function NewPlanPage() {
   /* ── الانتقال لخطوة KPI مع توليد الإعدادات الافتراضية ── */
   const goToKpiStep = () => {
     if (kpiLevels.length === 0) {
-      // إعداد افتراضي ذكي: المستوى الأول فقط مُقفَل (الحاوي العام)
-      // المهام كيان منفصل تحت جميع المستويات — لا "مستوى أخير محجوز"
+      // إعداد افتراضي: المعيار الفرعي فقط (المستوى الثالث) مُفعَّل — باقي المستويات مُعطَّلة
       const defaults: KpiLevelConfig[] = levelNames.map((_, idx) => ({
         levelIndex: idx,
-        enabled:    idx > 0,   // كل المستويات عدا الأول
+        enabled:    idx === 2,   // المعيار الفرعي فقط
         kpiType:    idx <= 1 ? 'impact' : 'outcome',
         frequency:  idx <= 1 ? 'yearly' : 'semester',
       }))
@@ -139,8 +138,8 @@ export default function NewPlanPage() {
   const updateKpiLevel = (idx: number, patch: Partial<KpiLevelConfig>) =>
     setKpiLevels(prev => prev.map(k => k.levelIndex === idx ? { ...k, ...patch } : k))
 
-  /* ── إنشاء الخطة ── */
-  const handleCreate = async () => {
+  /* ── إنشاء الخطة (بطريقتي البناء: القوائم المتتالية أو العقد الهرمية) ── */
+  const handleCreate = async (method: 'list' | 'tree') => {
     /* تاريخا فترة الخطة إلزاميان — يضبطان نطاق المتابعة والإشعارات */
     if (!startDate || !endDate) { setError('تاريخا البدء والانتهاء مطلوبان'); return }
     if (endDate < startDate) { setError('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'); return }
@@ -172,7 +171,9 @@ export default function NewPlanPage() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'تعذّر إنشاء الخطة')
-      router.push(`/dashboard/plans/${json.id}`)
+      router.push(method === 'list'
+        ? `/dashboard/plans/${json.id}/build`   // طريقة القوائم المتتالية
+        : `/dashboard/plans/${json.id}`)         // طريقة العقد الهرمية (الصفحة الأصلية)
     } catch (e: any) {
       setError(e.message || 'حدث خطأ')
       setLoading(false)
@@ -526,13 +527,25 @@ export default function NewPlanPage() {
 
             {error && <p className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</p>}
 
-            <div className="flex gap-3">
-              <button onClick={handleCreate} disabled={loading}
-                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
-                {loading ? '⏳ جارٍ الإنشاء...' : '✅ إنشاء الخطة'}
-              </button>
+            {/* اختيار طريقة البناء عند الإنشاء */}
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-slate-400">اختر طريقة بناء الخطة:</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {/* الطريقة 1: القوائم المتتالية */}
+                <button onClick={() => handleCreate('list')} disabled={loading}
+                  className="flex flex-col items-start gap-1 text-right bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
+                  <span className="flex items-center gap-1.5">📋 {loading ? 'جارٍ الإنشاء...' : 'إنشاء بطريقة القوائم'}</span>
+                  <span className="text-[11px] font-normal text-violet-100">قوائم متتالية — اختر مستوى ثم التالي حتى المهمة</span>
+                </button>
+                {/* الطريقة 2: العقد الهرمية */}
+                <button onClick={() => handleCreate('tree')} disabled={loading}
+                  className="flex flex-col items-start gap-1 text-right bg-white border-2 border-violet-300 hover:bg-violet-50 text-violet-700 font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-60">
+                  <span className="flex items-center gap-1.5">🌳 {loading ? 'جارٍ الإنشاء...' : 'إنشاء بطريقة العقد الهرمية'}</span>
+                  <span className="text-[11px] font-normal text-violet-400">شجرة متداخلة قابلة للطي والتوسّع</span>
+                </button>
+              </div>
               <button onClick={() => setStep(2)}
-                className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+                className="w-full px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors text-sm">
                 رجوع
               </button>
             </div>

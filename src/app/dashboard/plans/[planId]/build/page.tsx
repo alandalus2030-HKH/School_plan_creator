@@ -1,0 +1,303 @@
+'use client'
+
+/* ════════════════════════════════════════════════════════════
+   صفحة بناء الخطة — نموذج «القوائم المنسدلة المتتالية».
+   قائمة لكل مستوى تعرض مباشرةً: المضاف في خطتك + معايير الاعتماد
+   المتاحة (المستويات 1-3) + «بند مخصص». اختيار العنصر يفعّل التالي.
+   - المستويات الأعمق (الهدف): نص حر + ترقيم هرمي تلقائي.
+   - المهمة: رابط ينقل لصفحة إنشاء المهمة الكاملة (تفاصيلها كثيرة).
+   بديل مبسّط للشجرة المتداخلة — الشجرة لا تزال متاحة من صفحة العقدة.
+   ════════════════════════════════════════════════════════════ */
+
+import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import { Flag, Plus, ListTree, ArrowRight } from 'lucide-react'
+
+type PlanNode = { id: string; plan_id: string; parent_id: string | null; level_num: number; name_ar: string; order_num: number; standard_code: string | null }
+type TaskLite = { id: string; name_ar: string; status: string; node_id: string; end_date: string | null }
+type Choice   = { name: string; standardCode: string | null }
+
+const LEVEL_COLORS = ['#8a1538', '#7c3aed', '#0891b2', '#d97706', '#16a34a']
+const statusAr: Record<string, string> = { not_started:'لم تبدأ', in_progress:'جارية', submitted:'مرفوعة', completed:'منجزة', returned:'مُعادة', delayed:'متأخرة' }
+const statusColor: Record<string, string> = {
+  not_started:'bg-slate-100 text-slate-600', in_progress:'bg-violet-100 text-violet-700',
+  submitted:'bg-amber-100 text-amber-700', completed:'bg-emerald-100 text-emerald-700',
+  returned:'bg-red-100 text-red-700', delayed:'bg-red-100 text-red-700',
+}
+
+/* ═══ صف مستوى واحد: قائمة تجمع المضاف + كتالوج الاعتماد + بند مخصص ═══ */
+function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, selectedId, saving, onSelect, onAdd }: {
+  levelNum: number; levelName: string; color: string
+  existing: PlanNode[]; parentStandardCode: string | null
+  selectedId: string; saving: boolean
+  onSelect: (id: string) => void
+  onAdd: (choice: Choice) => void
+}) {
+  const supabase = createClient()
+  const catalogContext = levelNum <= 3 && (levelNum === 1 || !!parentStandardCode)
+  const [catalog, setCatalog] = useState<{ code: string; name_ar: string }[]>([])
+  const [customMode, setCustomMode] = useState(false)
+  const [customText, setCustomText] = useState('')
+
+  useEffect(() => {
+    if (!catalogContext) { setCatalog([]); return }
+    ;(async () => {
+      let q = supabase.from('qnsa_standards').select('code, name_ar')
+        .eq('level', levelNum).eq('is_active', true).order('sort_order')
+      if (levelNum > 1) q = q.eq('parent_code', parentStandardCode)
+      const { data } = await q
+      setCatalog(data || [])
+    })()
+  }, [levelNum, parentStandardCode, catalogContext])
+
+  const usedCodes  = existing.map(n => n.standard_code).filter(Boolean) as string[]
+  const available  = catalog.filter(c => !usedCodes.includes(c.code))
+
+  const handleChange = (val: string) => {
+    if (val === '__custom__') { setCustomMode(true); setCustomText(''); return }
+    setCustomMode(false)
+    if (val === '') { onSelect(''); return }
+    if (val.startsWith('cat:')) {
+      const code = val.slice(4)
+      const opt  = catalog.find(c => c.code === code)
+      if (opt) onAdd({ name: opt.name_ar, standardCode: opt.code })
+      return
+    }
+    onSelect(val)
+  }
+
+  const submitCustom = () => {
+    const name = customText.trim()
+    if (!name) return
+    onAdd({ name, standardCode: null })   // الترقيم الهرمي يُحسب في addChild
+    setCustomMode(false); setCustomText('')
+  }
+
+  const selectCls = 'flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300'
+
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <label className="text-sm font-medium min-w-[110px] flex items-center gap-1.5" style={{ color }}>
+          <span className="w-2 h-2 rounded-full inline-block" style={{ background: color }} />
+          {levelName}
+        </label>
+        <select value={customMode ? '__custom__' : selectedId} onChange={e => handleChange(e.target.value)} className={selectCls} disabled={saving}>
+          <option value="">— اختر {levelName} —</option>
+          {existing.length > 0 && (
+            <optgroup label="في خطتك">
+              {existing.map(n => (
+                <option key={n.id} value={n.id}>{n.standard_code ? `${n.standard_code} — ` : ''}{n.name_ar}</option>
+              ))}
+            </optgroup>
+          )}
+          {available.length > 0 && (
+            <optgroup label="➕ من معايير الاعتماد (اختر لإضافته)">
+              {available.map(c => (
+                <option key={c.code} value={`cat:${c.code}`}>{c.code} — {c.name_ar}</option>
+              ))}
+            </optgroup>
+          )}
+          <option value="__custom__">✏️ {levelName} مخصص (نص حر)...</option>
+        </select>
+      </div>
+
+      {/* إدخال البند المخصص */}
+      {customMode && (
+        <div className="mt-2 flex items-center gap-2 p-2 rounded-xl border-2 border-dashed border-violet-300 bg-violet-50/60">
+          <input autoFocus value={customText} onChange={e => setCustomText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') submitCustom(); if (e.key === 'Escape') setCustomMode(false) }}
+            placeholder={`اسم ${levelName}...`}
+            className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-violet-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+          <button onClick={submitCustom} disabled={saving || !customText.trim()}
+            className="px-3 py-2 text-xs text-white rounded-xl font-medium disabled:opacity-50"
+            style={{ background: 'var(--gradient-button, #8a1538)' }}>{saving ? '...' : 'إضافة'}</button>
+          <button onClick={() => setCustomMode(false)} className="px-2.5 py-2 text-xs text-slate-500 rounded-xl hover:bg-slate-100">إلغاء</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function PlanBuildPage() {
+  const params   = useParams()
+  const planId   = params.planId as string
+  const supabase = createClient()
+
+  const [plan,    setPlan]    = useState<any>(null)
+  const [nodes,   setNodes]   = useState<PlanNode[]>([])
+  const [tasks,   setTasks]   = useState<TaskLite[]>([])
+  const [loading, setLoading] = useState(true)
+  const [path,    setPath]    = useState<string[]>([])      // معرّف العقدة المختارة لكل مستوى
+  const [saving,  setSaving]  = useState(false)
+
+  const load = useCallback(async () => {
+    const [{ data: planData }, { data: nodesData }] = await Promise.all([
+      supabase.from('plans').select('id, name_ar, level_count, level_names, approved_at').eq('id', planId).single(),
+      supabase.from('plan_nodes').select('id, plan_id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
+    ])
+    setPlan(planData)
+    setNodes(nodesData || [])
+    const ids = (nodesData || []).map(n => n.id)
+    if (ids.length) {
+      const { data: t } = await supabase.from('tasks')
+        .select('id, name_ar, status, node_id, end_date').in('node_id', ids)
+      setTasks(t || [])
+    } else setTasks([])
+    setLoading(false)
+  }, [planId])
+
+  useEffect(() => { load() }, [load])
+
+  const byId    = (id: string) => nodes.find(n => n.id === id) || null
+  const itemsAt = (L: number): PlanNode[] => {
+    const parentId = L === 0 ? null : path[L - 1]
+    return nodes.filter(n => n.level_num === L + 1 && n.parent_id === parentId)
+                .sort((a, b) => a.order_num - b.order_num)
+  }
+
+  const onSelect = (L: number, id: string) => {
+    if (id === '') setPath(path.slice(0, L))
+    else setPath([...path.slice(0, L), id])
+  }
+
+  /* إضافة عقدة جديدة + ترقيم هرمي تلقائي عند غياب كود رسمي */
+  const addChild = async (L: number, choice: Choice) => {
+    setSaving(true)
+    const parentId = L === 0 ? null : path[L - 1]
+    const parent   = L === 0 ? null : byId(path[L - 1])
+    const siblings = nodes.filter(n => n.level_num === L + 1 && n.parent_id === parentId)
+    const nextSeq  = siblings.length ? Math.max(...siblings.map(s => s.order_num)) + 1 : 1
+    const code     = choice.standardCode ?? (parent?.standard_code ? `${parent.standard_code}.${nextSeq}` : `${nextSeq}`)
+
+    const { data, error } = await supabase.from('plan_nodes').insert({
+      plan_id: planId, parent_id: parentId, level_num: L + 1,
+      name_ar: choice.name, order_num: nextSeq, standard_code: code,
+    }).select('id').single()
+    setSaving(false)
+    if (error) { alert(`تعذّر الإضافة: ${error.message}`); return }
+    await load()
+    if (data) setPath([...path.slice(0, L), data.id])
+  }
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+    </div>
+  )
+  if (!plan) return null
+
+  const levelCount: number   = plan.level_count || 3
+  const levelNames: string[] = plan.level_names || []
+  const lname = (L: number) => levelNames[L] || `المستوى ${L + 1}`
+
+  /* المستويات المعروضة: 0، ثم كل مستوى أبوه مختار، حتى آخر مستوى */
+  const rows: number[] = []
+  for (let L = 0; L < levelCount; L++) {
+    if (L > 0 && !path[L - 1]) break
+    rows.push(L)
+  }
+
+  const leafSelected = path[levelCount - 1] ? byId(path[levelCount - 1]) : null
+  const leafTasks    = leafSelected ? tasks.filter(t => t.node_id === leafSelected.id) : []
+  const last = path.length - 1
+  const sel  = last >= 0 ? byId(path[last]) : null
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-4">
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-slate-500">
+        <Link href="/dashboard/plans" className="hover:text-violet-600">الخطط</Link>
+        <span>›</span>
+        <Link href={`/dashboard/plans/${planId}`} className="hover:text-violet-600">{plan.name_ar}</Link>
+        <span>›</span>
+        <span className="text-violet-700 font-medium">بناء الخطة</span>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <ListTree size={20} className="text-violet-600" /> بناء الخطة بالقوائم المتتالية
+        </h2>
+        <Link href={`/dashboard/plans/${planId}`}
+          className="text-xs text-slate-500 hover:text-violet-600 flex items-center gap-1">
+          العرض الشجري <ArrowRight size={13} />
+        </Link>
+      </div>
+
+      <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 text-sm text-violet-800">
+        افتح قائمة {lname(0)} لتظهر معايير الاعتماد فاختر منها مباشرةً (أو «مخصص» نص حر)، ثم انزل للمستوى التالي حتى المهمة. العناصر تُرقَّم تلقائياً. <strong>المهمة</strong> تُضاف من نموذجها الكامل عبر رابط في الأسفل.
+      </div>
+
+      {/* القوائم المتتالية */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+        {rows.map(L => (
+          <LevelRow
+            key={L}
+            levelNum={L + 1}
+            levelName={lname(L)}
+            color={LEVEL_COLORS[L] || '#64748b'}
+            existing={itemsAt(L)}
+            parentStandardCode={L === 0 ? null : (byId(path[L - 1])?.standard_code || null)}
+            selectedId={path[L] || ''}
+            saving={saving}
+            onSelect={id => onSelect(L, id)}
+            onAdd={choice => addChild(L, choice)}
+          />
+        ))}
+      </div>
+
+      {/* لوحة «أنت في» + المهام في المستوى الأخير */}
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        {!sel ? (
+          <p className="text-sm text-slate-400">ابدأ باختيار {lname(0)} من القائمة الأولى.</p>
+        ) : (
+          <>
+            <p className="text-sm flex items-center gap-2 flex-wrap">
+              <Flag size={15} className="text-slate-500" /> أنت في:
+              <span className="font-semibold" style={{ color: LEVEL_COLORS[last] || '#64748b' }}>{lname(last)}</span>
+              <span className="text-slate-700">— {sel.standard_code ? `${sel.standard_code} ` : ''}{sel.name_ar}</span>
+            </p>
+
+            {/* قسم المهام يظهر فقط عند اختيار عقدة في المستوى الأخير */}
+            {leafSelected && (
+              <div className="mt-3 border-t border-slate-200 pt-3">
+                <p className="text-xs font-bold text-slate-600 mb-2">📌 مهام «{leafSelected.name_ar}» ({leafTasks.length})</p>
+
+                {leafTasks.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    {leafTasks.map(t => (
+                      <Link key={t.id} href={`/dashboard/tasks/${t.id}`}
+                        className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-violet-200 hover:bg-violet-50/50 transition-colors">
+                        <span className="text-sm text-slate-700 flex-1">{t.name_ar}</span>
+                        {t.end_date && <span className="text-xs text-slate-400">{new Date(t.end_date).toLocaleDateString('ar-QA')}</span>}
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[t.status] || 'bg-slate-100'}`}>
+                          {statusAr[t.status] || t.status}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                <Link href={`/dashboard/tasks/new?node=${leafSelected.id}&plan=${planId}`}
+                  className="inline-flex items-center gap-1.5 text-sm text-white px-4 py-2 rounded-xl font-medium"
+                  style={{ background: 'var(--gradient-button, #8a1538)' }}>
+                  <Plus size={15} /> فتح نموذج إضافة مهمة
+                </Link>
+              </div>
+            )}
+
+            {/* تلميح للمستويات غير الأخيرة */}
+            {!leafSelected && (
+              <p className="text-xs text-slate-500 mt-1">
+                افتح قائمة {lname(last + 1)} بالأعلى لاختيار/إضافة عنصر تحت هذا.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
