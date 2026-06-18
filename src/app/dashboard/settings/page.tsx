@@ -13,7 +13,7 @@ import LocationsManager from '@/components/LocationsManager'
 import DeptSupervisorsManager from '@/components/DeptSupervisorsManager'
 import DeptMembersManager from '@/components/DeptMembersManager'
 import CalendarManager from '@/components/CalendarManager'
-import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays } from 'lucide-react'
+import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays, ChevronDown, Search } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -31,6 +31,13 @@ const CATEGORIES = [
 type Option = { id: string; category: string; value: string; sort_order: number; is_active: boolean }
 type Role   = { id: string; code: string; name_ar: string; color: string; permissions: string[]; is_system: boolean; sort_order: number }
 
+/* عناصر مجموعة «البنية التنظيمية» */
+const ORG_ITEMS = [
+  { key: '__supervisors__',  label: 'إشراف الأقسام', Icon: UserCog },
+  { key: '__dept_members__', label: 'أعضاء الأقسام', Icon: BookOpenIcon },
+  { key: '__locations__',    label: 'الأماكن',        Icon: MapPin },
+]
+
 export default function SettingsPage() {
   const supabase = createClient()
   const { can, loading: permsLoading } = usePermissions()
@@ -38,7 +45,22 @@ export default function SettingsPage() {
   /* ══ dropdown_options ══ */
   const [options,    setOptions]    = useState<Option[]>([])
   const [loading,    setLoading]    = useState(true)
-  const [activeCat,  setActiveCat]  = useState('job_title')
+  const [activeCat,  setActiveCat]  = useState('__school__')
+  /* تنظيم الشريط: مجموعة مفتوحة واحدة + بحث + حفظ آخر قسم */
+  const [openGroup,  setOpenGroup]  = useState<string | null>(null)
+  const [navQ,       setNavQ]       = useState('')
+  useEffect(() => {
+    const s = localStorage.getItem('settings_cat')
+    if (s) {
+      setActiveCat(s)
+      if (ORG_ITEMS.some(i => i.key === s)) setOpenGroup('org')
+      else if (CATEGORIES.some(c => c.key === s)) setOpenGroup('lists')
+    }
+  }, [])
+  const go = (key: string) => {
+    setActiveCat(key); setEditId(null); setConfirmDel(null)
+    localStorage.setItem('settings_cat', key)
+  }
   const [newValue,   setNewValue]   = useState('')
   const [adding,     setAdding]     = useState(false)
   const [editId,     setEditId]     = useState<string | null>(null)
@@ -225,153 +247,104 @@ export default function SettingsPage() {
     }
   }
 
+  /* زر عنصر في الشريط */
+  const navItemBtn = (key: string, label: string, Icon: any, badge?: number, amber = false) => {
+    const active = activeCat === key
+    return (
+      <button key={key} onClick={() => go(key)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-right transition-all
+          ${active ? (amber ? 'bg-amber-500 text-white shadow' : 'bg-violet-600 text-white shadow')
+                   : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}>
+        <Icon size={17} className="flex-shrink-0" />
+        <span className="flex-1 min-w-0 text-sm font-semibold truncate text-right">{label}</span>
+        {badge != null && (
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{badge}</span>
+        )}
+      </button>
+    )
+  }
+  /* رأس مجموعة قابلة للطيّ */
+  const groupHeader = (id: string, label: string, Icon: any, count: number) => {
+    const open = openGroup === id
+    return (
+      <button onClick={() => setOpenGroup(open ? null : id)}
+        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-right text-slate-600 hover:bg-slate-100 transition-colors">
+        <Icon size={17} className="flex-shrink-0 text-slate-400" />
+        <span className="flex-1 text-sm font-bold truncate text-right">{label}</span>
+        <span className="text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold flex-shrink-0">{count}</span>
+        <ChevronDown size={15} className={`flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+    )
+  }
+  /* قائمة مسطّحة لكل العناصر — للبحث */
+  const allItems = [
+    { key: '__school__', label: 'بيانات المدرسة', Icon: Building2 },
+    ...ORG_ITEMS,
+    { key: '__calendar__', label: 'التقويم المدرسي', Icon: CalendarDays },
+    ...CATEGORIES.map(c => ({ key: c.key, label: c.label, Icon: c.Icon })),
+    { key: '__roles__', label: 'الأدوار والصلاحيات', Icon: Crown },
+    { key: '__notifications__', label: 'إرسال إشعار', Icon: Bell },
+  ]
+  const navFilter = navQ.trim()
+  const navResults = navFilter ? allItems.filter(i => i.label.includes(navFilter)) : null
+  const badgeFor = (key: string): number | undefined =>
+    key === '__roles__' ? roles.length : (CATEGORIES.some(c => c.key === key) ? options.filter(o => o.category === key).length : undefined)
+
   return (
     <div className="space-y-5">
 
-      {/* ── رأس الصفحة ── */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">الإعدادات</h2>
-        <p className="text-slate-500 text-sm mt-1">إدارة القوائم المنسدلة، الأدوار، والصلاحيات</p>
+      {/* ── رأس الصفحة + بحث ── */}
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">الإعدادات</h2>
+          <p className="text-slate-500 text-sm mt-1">إدارة القوائم المنسدلة، الأدوار، والصلاحيات</p>
+        </div>
+        <div className="relative w-full sm:w-72">
+          <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+          <input value={navQ} onChange={e => setNavQ(e.target.value)} placeholder="بحث في الإعدادات..."
+            className="w-full pr-9 pl-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+        </div>
       </div>
 
       <div className="flex gap-5 items-start">
 
-        {/* ══ الشريط الجانبي ══ */}
-        <div className="w-56 flex-shrink-0 space-y-2">
-          {/* بيانات المدرسة */}
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1 mb-3">المدرسة</p>
-          <button
-            onClick={() => { setActiveCat('__school__'); setEditId(null); setConfirmDel(null) }}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
-              ${isSchool
-                ? 'text-white shadow-lg'
-                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
-            style={isSchool ? { background: 'var(--gradient-button)' } : undefined}>
-            <Building2 size={18} className="flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold truncate ${isSchool ? 'text-white' : 'text-slate-700'}`}>بيانات المدرسة</p>
-            </div>
-          </button>
+        {/* ══ الشريط الجانبي (مجموعات قابلة للطيّ) ══ */}
+        <div className="w-56 flex-shrink-0 space-y-1.5">
 
-          {/* الأماكن والموارد المكانية */}
-          <button
-            onClick={() => { setActiveCat('__locations__'); setEditId(null); setConfirmDel(null) }}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
-              ${isLocations
-                ? 'text-white shadow-lg'
-                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
-            style={isLocations ? { background: 'var(--gradient-button)' } : undefined}>
-            <MapPin size={18} className="flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold truncate ${isLocations ? 'text-white' : 'text-slate-700'}`}>الأماكن</p>
-            </div>
-          </button>
+          {navResults ? (
+            navResults.length
+              ? navResults.map(i => navItemBtn(i.key, i.label, i.Icon, badgeFor(i.key), i.key === '__roles__'))
+              : <p className="text-xs text-slate-400 px-2 py-6 text-center">لا نتائج</p>
+          ) : (
+            <>
+              {/* المدرسة */}
+              {navItemBtn('__school__', 'بيانات المدرسة', Building2)}
 
-          {/* إشراف الأقسام */}
-          <button
-            onClick={() => { setActiveCat('__supervisors__'); setEditId(null); setConfirmDel(null) }}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
-              ${isSupervisors
-                ? 'text-white shadow-lg'
-                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
-            style={isSupervisors ? { background: 'var(--gradient-button)' } : undefined}>
-            <UserCog size={18} className="flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold truncate ${isSupervisors ? 'text-white' : 'text-slate-700'}`}>إشراف الأقسام</p>
-            </div>
-          </button>
-
-          {/* أعضاء الأقسام */}
-          <button
-            onClick={() => { setActiveCat('__dept_members__'); setEditId(null); setConfirmDel(null) }}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
-              ${isDeptMembers
-                ? 'text-white shadow-lg'
-                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
-            style={isDeptMembers ? { background: 'var(--gradient-button)' } : undefined}>
-            <BookOpenIcon size={18} className="flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold truncate ${isDeptMembers ? 'text-white' : 'text-slate-700'}`}>أعضاء الأقسام</p>
-            </div>
-          </button>
-
-          {/* التقويم المدرسي */}
-          <button
-            onClick={() => { setActiveCat('__calendar__'); setEditId(null); setConfirmDel(null) }}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all mb-3
-              ${isCalendar
-                ? 'text-white shadow-lg'
-                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}
-            style={isCalendar ? { background: 'var(--gradient-button)' } : undefined}>
-            <CalendarDays size={18} className="flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold truncate ${isCalendar ? 'text-white' : 'text-slate-700'}`}>التقويم المدرسي</p>
-            </div>
-          </button>
-
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1 mb-3">القوائم المنسدلة</p>
-
-          {CATEGORIES.map(cat => {
-            const count  = options.filter(o => o.category === cat.key).length
-            const active = activeCat === cat.key
-            return (
-              <button key={cat.key}
-                onClick={() => { setActiveCat(cat.key); setEditId(null); setConfirmDel(null) }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all
-                  ${active
-                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-200'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}>
-                <cat.Icon size={18} className="flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold truncate ${active ? 'text-white' : 'text-slate-700'}`}>{cat.label}</p>
+              {/* البنية التنظيمية (مجموعة) */}
+              {groupHeader('org', 'البنية التنظيمية', UserCog, ORG_ITEMS.length)}
+              {openGroup === 'org' && (
+                <div className="mr-2 pr-2 border-r-2 border-slate-100 space-y-1.5">
+                  {ORG_ITEMS.map(i => navItemBtn(i.key, i.label, i.Icon))}
                 </div>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold flex-shrink-0
-                  ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                  {count}
-                </span>
-              </button>
-            )
-          })}
+              )}
 
-          {/* فاصل */}
-          <div className="pt-3 pb-1">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">الصلاحيات</p>
-          </div>
+              {/* التقويم */}
+              {navItemBtn('__calendar__', 'التقويم المدرسي', CalendarDays)}
 
-          {/* زر الأدوار */}
-          <button
-            onClick={() => { setActiveCat('__roles__'); setEditId(null); setConfirmDel(null) }}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all
-              ${isRoles
-                ? 'bg-amber-500 text-white shadow-lg shadow-amber-200'
-                : 'bg-white border border-slate-200 text-slate-700 hover:border-amber-200 hover:bg-amber-50'}`}>
-            <Crown size={18} className="flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold truncate ${isRoles ? 'text-white' : 'text-slate-700'}`}>الأدوار والصلاحيات</p>
-            </div>
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold flex-shrink-0
-              ${isRoles ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-              {roles.length}
-            </span>
-          </button>
+              {/* القوائم والتصنيفات (مجموعة) */}
+              {groupHeader('lists', 'القوائم والتصنيفات', ClipboardList, CATEGORIES.length)}
+              {openGroup === 'lists' && (
+                <div className="mr-2 pr-2 border-r-2 border-slate-100 space-y-1.5">
+                  {CATEGORIES.map(c => navItemBtn(c.key, c.label, c.Icon, options.filter(o => o.category === c.key).length))}
+                </div>
+              )}
 
-          {/* فاصل */}
-          <div className="pt-3 pb-1">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">التواصل</p>
-          </div>
-
-          {/* زر الإشعارات */}
-          <button
-            onClick={() => { setActiveCat('__notifications__'); setEditId(null); setConfirmDel(null) }}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-right transition-all
-              ${activeCat === '__notifications__'
-                ? 'bg-violet-600 text-white shadow-lg shadow-violet-200'
-                : 'bg-white border border-slate-200 text-slate-700 hover:border-violet-200 hover:bg-violet-50'}`}>
-            <Bell size={18} className="flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold truncate ${activeCat === '__notifications__' ? 'text-white' : 'text-slate-700'}`}>إرسال إشعار</p>
-            </div>
-          </button>
+              {/* الصلاحيات والتواصل */}
+              <div className="pt-2"><p className="text-[11px] font-bold text-slate-400 px-1 mb-1">الصلاحيات والتواصل</p></div>
+              {navItemBtn('__roles__', 'الأدوار والصلاحيات', Crown, roles.length, true)}
+              {navItemBtn('__notifications__', 'إرسال إشعار', Bell)}
+            </>
+          )}
         </div>
 
         {/* ══ المحتوى الرئيسي ══ */}
