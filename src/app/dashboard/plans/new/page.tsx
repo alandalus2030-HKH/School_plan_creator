@@ -535,7 +535,7 @@ export default function NewPlanPage() {
                 <button onClick={() => handleCreate('list')} disabled={loading}
                   className="flex flex-col items-start gap-1 text-right bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
                   <span className="flex items-center gap-1.5">📋 {loading ? 'جارٍ الإنشاء...' : 'إنشاء بطريقة القوائم'}</span>
-                  <span className="text-[11px] font-normal text-violet-100">قوائم متتالية — اختر مستوى ثم التالي حتى المهمة</span>
+                  <span className="text-[11px] font-normal text-violet-100">قوائم متتالية + اقتراح أهداف ومهام بالذكاء الاصطناعي ✨ AI Powered</span>
                 </button>
                 {/* الطريقة 2: العقد الهرمية */}
                 <button onClick={() => handleCreate('tree')} disabled={loading}

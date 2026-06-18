@@ -12,6 +12,7 @@ import { generateQnsaReport } from '@/lib/qnsaReport'
 import { toast } from '@/components/Toast'
 import StandardPicker from '@/components/StandardPicker'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import PlanHeaderBar from '@/components/PlanHeaderBar'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createNotification } from '@/lib/notifications'
 
@@ -547,8 +548,11 @@ export default function PlanOverviewPage() {
         <span className="text-violet-700 font-medium">{plan.name_ar}</span>
       </div>
 
-      {/* ══ Plan Header ══ */}
-      {!editingPlan ? (
+      {/* ══ Plan Header (مكوّن مشترك بين العرضين) ══ */}
+      <PlanHeaderBar planId={planId} active="tree" onChanged={load} />
+
+      {/* العرض القديم مُعطَّل — استُبدل بالمكوّن المشترك أعلاه */}
+      {false && (
         <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white rounded-2xl p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -590,8 +594,8 @@ export default function PlanOverviewPage() {
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 text-white font-bold text-sm">
                       <Star size={18} className="text-white" />
                       <div>
-                        <div className="text-base font-bold leading-none">{planRatingInfo.label}</div>
-                        <div className="text-white/60 text-xs mt-0.5">{planRatingAvg!.toFixed(1)} / 5</div>
+                        <div className="text-base font-bold leading-none">{planRatingInfo?.label}</div>
+                        <div className="text-white/60 text-xs mt-0.5">{planRatingAvg?.toFixed(1)} / 5</div>
                       </div>
                     </div>
                     <div className="text-violet-200 text-xs mt-1 text-center">تقدير الجودة</div>
@@ -676,7 +680,10 @@ export default function PlanOverviewPage() {
             <span className="bg-green-400/20 px-2.5 py-1 rounded-lg text-xs font-medium text-green-100">✅ المهمة</span>
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* نموذج التعديل القديم مُعطَّل — في المكوّن المشترك */}
+      {false && (
         /* ── نموذج تعديل الخطة ── */
         <div className="bg-gradient-to-l from-violet-600 to-indigo-700 rounded-2xl p-6">
           <form onSubmit={savePlan} className="space-y-3">
@@ -778,17 +785,7 @@ export default function PlanOverviewPage() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="font-bold text-slate-700">{level1Name} ({topNodes.length})</h3>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* تصدير */}
-            <button onClick={exportExcel}
-              className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-              📤 تصدير Excel
-            </button>
-            {/* استيراد */}
-            <button onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-              📥 استيراد Excel
-            </button>
-            <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
+            {/* التصدير/الاستيراد والتحويل أصبحت في رأس الخطة المشترك أعلاه */}
             {/* إضافة يدوية */}
             <button onClick={() => setAdding(true)}
               className="flex items-center gap-2 text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">

@@ -13,9 +13,102 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Flag, Plus, ListTree, ArrowRight, Trash2 } from 'lucide-react'
+import { Flag, Plus, ListTree, Trash2, Sparkles, X } from 'lucide-react'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import PlanHeaderBar from '@/components/PlanHeaderBar'
+
+/* ═══ لوحة اقتراح أهداف/مهام بالذكاء الاصطناعي (Groq) ═══ */
+function AiSuggest({ kind, contextName, contextCode, planName, existing, onAdd }: {
+  kind: 'goal' | 'task'
+  contextName: string
+  contextCode: string | null
+  planName: string
+  existing: string[]
+  onAdd: (names: string[]) => Promise<void>
+}) {
+  const [open,    setOpen]    = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState('')
+  const [items,   setItems]   = useState<{ name: string; checked: boolean }[]>([])
+
+  const label = kind === 'goal' ? 'أهداف' : 'مهام'
+
+  const generate = async () => {
+    setLoading(true); setError(''); setOpen(true); setItems([])
+    try {
+      const res = await fetch('/api/plan-nodes/suggest', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, contextName, contextCode, planName, existing }),
+      })
+      const j = await res.json()
+      if (!res.ok) { setError(j.error || 'تعذّر التوليد'); return }
+      setItems((j.suggestions || []).map((name: string) => ({ name, checked: true })))
+    } catch { setError('تعذّر الاتصال بالخادم') }
+    finally { setLoading(false) }
+  }
+
+  const save = async () => {
+    const chosen = items.filter(i => i.checked).map(i => i.name)
+    if (!chosen.length) return
+    setSaving(true)
+    await onAdd(chosen)
+    setSaving(false); setOpen(false); setItems([])
+  }
+
+  return (
+    <div className="mt-2">
+      {!open && (
+        <button onClick={generate}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-100 hover:bg-violet-200 px-3 py-1.5 rounded-lg transition-colors">
+          <Sparkles size={14} /> اقتراح {label} بالذكاء الاصطناعي
+        </button>
+      )}
+      {open && (
+        <div className="rounded-xl border-2 border-violet-200 bg-violet-50/60 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 bg-violet-100">
+            <span className="text-xs font-bold text-violet-800 flex items-center gap-1.5"><Sparkles size={14} /> مقترحات {label}</span>
+            <button onClick={() => { setOpen(false); setItems([]) }} className="text-violet-400 hover:text-violet-700"><X size={15} /></button>
+          </div>
+          {loading && (
+            <div className="px-3 py-5 text-center text-xs text-violet-600">
+              <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              يولّد الذكاء الاصطناعي اقتراحات {label}...
+            </div>
+          )}
+          {error && (
+            <div className="px-3 py-3 text-xs text-red-700 bg-red-50 flex items-center gap-2">
+              ⚠️ {error}
+              <button onClick={generate} className="underline font-semibold">إعادة المحاولة</button>
+            </div>
+          )}
+          {!loading && items.length > 0 && (
+            <div className="p-3 space-y-1.5">
+              {items.map((it, idx) => (
+                <label key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100 cursor-pointer hover:border-violet-200">
+                  <input type="checkbox" checked={it.checked}
+                    onChange={() => setItems(prev => prev.map((x, i) => i === idx ? { ...x, checked: !x.checked } : x))}
+                    className="accent-violet-600" />
+                  <span className="text-sm text-slate-700">{it.name}</span>
+                </label>
+              ))}
+              <div className="flex gap-2 pt-1">
+                <button onClick={save} disabled={saving || !items.some(i => i.checked)}
+                  className="flex-1 py-2 text-sm text-white font-semibold rounded-xl disabled:opacity-50"
+                  style={{ background: 'var(--gradient-button, #8a1538)' }}>
+                  {saving ? 'جارٍ الإضافة...' : `إضافة المحدد (${items.filter(i => i.checked).length})`}
+                </button>
+                <button onClick={generate} disabled={loading}
+                  className="px-3 py-2 text-sm border border-violet-300 text-violet-600 rounded-xl hover:bg-violet-50">🔄</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 type PlanNode = { id: string; plan_id: string; parent_id: string | null; level_num: number; name_ar: string; order_num: number; standard_code: string | null }
 type TaskLite = { id: string; name_ar: string; status: string; node_id: string; end_date: string | null; order_num: number | null; created_at: string | null }
@@ -137,6 +230,8 @@ export default function PlanBuildPage() {
   const [saving,  setSaving]  = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting,   setDeleting]   = useState(false)
+  const [newTaskName, setNewTaskName] = useState('')
+  const [addingTask,  setAddingTask]  = useState(false)
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
@@ -164,7 +259,7 @@ export default function PlanBuildPage() {
   }
 
   const onSelect = (L: number, id: string) => {
-    setConfirmDel(false)
+    setConfirmDel(false); setNewTaskName('')
     if (id === '') setPath(path.slice(0, L))
     else setPath([...path.slice(0, L), id])
   }
@@ -184,6 +279,43 @@ export default function PlanBuildPage() {
     if (error) { alert(`تعذّر الإضافة: ${error.message}`); return }
     await load()
     if (data) setPath([...path.slice(0, L), data.id])
+  }
+
+  /* إضافة سريعة لمهمة (الاسم فقط) تحت الهدف — التفاصيل تُستكمل لاحقاً من صفحة المهمة */
+  const addQuickTask = async (nodeId: string) => {
+    const name = newTaskName.trim()
+    if (!name) return
+    setAddingTask(true)
+    const sibs = tasks.filter(t => t.node_id === nodeId)
+    const nextOrder = sibs.length ? Math.max(...sibs.map(s => s.order_num ?? 0)) + 1 : 1
+    const { error } = await supabase.from('tasks').insert({ name_ar: name, node_id: nodeId, order_num: nextOrder })
+    setAddingTask(false)
+    if (error) { alert(`تعذّر إضافة المهمة: ${error.message}`); return }
+    setNewTaskName('')
+    await load()
+  }
+
+  /* إضافة دفعة أهداف (أبناء العقدة المختارة) من اقتراحات الذكاء الاصطناعي */
+  const addGoals = async (parent: PlanNode, names: string[]) => {
+    const sibs = nodes.filter(n => n.level_num === parent.level_num + 1 && n.parent_id === parent.id)
+    let order = sibs.length ? Math.max(...sibs.map(s => s.order_num)) + 1 : 1
+    const rows = names.map(name => ({
+      plan_id: planId, parent_id: parent.id, level_num: parent.level_num + 1,
+      name_ar: name, order_num: order++, standard_code: null,
+    }))
+    const { error } = await supabase.from('plan_nodes').insert(rows)
+    if (error) { alert(`تعذّر إضافة الأهداف: ${error.message}`); return }
+    await load()
+  }
+
+  /* إضافة دفعة مهام تحت الهدف من اقتراحات الذكاء الاصطناعي */
+  const addTasks = async (nodeId: string, names: string[]) => {
+    const sibs = tasks.filter(t => t.node_id === nodeId)
+    let order = sibs.length ? Math.max(...sibs.map(s => s.order_num ?? 0)) + 1 : 1
+    const rows = names.map(name => ({ name_ar: name, node_id: nodeId, order_num: order++ }))
+    const { error } = await supabase.from('tasks').insert(rows)
+    if (error) { alert(`تعذّر إضافة المهام: ${error.message}`); return }
+    await load()
   }
 
   /* معرّفات العقدة وكل المنحدرات منها (لعدّ المهام وحذفها) */
@@ -240,7 +372,7 @@ export default function PlanBuildPage() {
   const canDelete = sel && !plan.approved_at
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="space-y-4">
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -251,14 +383,19 @@ export default function PlanBuildPage() {
         <span className="text-violet-700 font-medium">بناء الخطة</span>
       </div>
 
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* رأس الخطة وأدواتها (مشترك مع العرض الشجري — بعرض كامل) */}
+      <PlanHeaderBar planId={planId} active="list" onChanged={load} />
+
+      {/* محتوى البناء بعرض مريح للقراءة — موسَّط */}
+      <div className="max-w-3xl mx-auto space-y-4">
+
+      <div className="flex items-center gap-2 flex-wrap">
         <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
           <ListTree size={20} className="text-violet-600" /> بناء الخطة بالقوائم المتتالية
         </h2>
-        <Link href={`/dashboard/plans/${planId}`}
-          className="text-xs text-slate-500 hover:text-violet-600 flex items-center gap-1">
-          العرض الشجري <ArrowRight size={13} />
-        </Link>
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-gradient-to-l from-violet-100 to-fuchsia-100 border border-violet-200 px-2 py-0.5 rounded-full">
+          <Sparkles size={12} /> مدعوم بالذكاء الاصطناعي · AI Powered
+        </span>
       </div>
 
       <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 text-sm text-violet-800">
@@ -328,19 +465,57 @@ export default function PlanBuildPage() {
                   </div>
                 )}
 
-                <Link href={`/dashboard/tasks/new?node=${leafSelected.id}&plan=${planId}`}
-                  className="inline-flex items-center gap-1.5 text-sm text-white px-4 py-2 rounded-xl font-medium"
-                  style={{ background: 'var(--gradient-button, #8a1538)' }}>
-                  <Plus size={15} /> فتح نموذج إضافة مهمة
-                </Link>
+                {/* إضافة سريعة: اكتب اسم المهمة واضغط Enter — كرّر لإضافة عدة مهام */}
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    value={newTaskName}
+                    onChange={e => setNewTaskName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addQuickTask(leafSelected.id) }}
+                    placeholder="اسم مهمة جديدة... ثم Enter"
+                    className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                  <button onClick={() => addQuickTask(leafSelected.id)} disabled={addingTask || !newTaskName.trim()}
+                    className="inline-flex items-center gap-1 text-sm text-white px-4 py-2.5 rounded-xl font-medium disabled:opacity-50"
+                    style={{ background: 'var(--gradient-button, #8a1538)' }}>
+                    <Plus size={15} /> {addingTask ? '...' : 'إضافة'}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400">
+                  أضف عدة مهام بسرعة بالاسم فقط، ثم افتح كل مهمة لاحقاً لاستكمال التفاصيل —{' '}
+                  <Link href={`/dashboard/tasks/new?node=${leafSelected.id}&plan=${planId}`}
+                    className="text-violet-600 hover:underline font-medium">
+                    أو افتح النموذج الكامل
+                  </Link>
+                </p>
+
+                {/* اقتراح مهام بالذكاء الاصطناعي */}
+                <AiSuggest
+                  kind="task"
+                  contextName={leafSelected.name_ar}
+                  contextCode={codes[leafSelected.id] || null}
+                  planName={plan.name_ar}
+                  existing={leafTasks.map(t => t.name_ar)}
+                  onAdd={names => addTasks(leafSelected.id, names)}
+                />
               </div>
             )}
 
-            {/* تلميح للمستويات غير الأخيرة */}
+            {/* تلميح للمستويات غير الأخيرة + اقتراح الأهداف للمعيار الفرعي */}
             {!leafSelected && (
-              <p className="text-xs text-slate-500 mt-1">
-                افتح قائمة {lname(last + 1)} بالأعلى لاختيار/إضافة عنصر تحت هذا.
-              </p>
+              <>
+                <p className="text-xs text-slate-500 mt-1">
+                  افتح قائمة {lname(last + 1)} بالأعلى لاختيار/إضافة عنصر تحت هذا.
+                </p>
+                {sel.level_num === levelCount - 1 && (
+                  <AiSuggest
+                    kind="goal"
+                    contextName={sel.name_ar}
+                    contextCode={codes[sel.id] || null}
+                    planName={plan.name_ar}
+                    existing={nodes.filter(n => n.parent_id === sel.id && n.level_num === levelCount).map(n => n.name_ar)}
+                    onAdd={names => addGoals(sel, names)}
+                  />
+                )}
+              </>
             )}
           </>
         )}
@@ -362,6 +537,7 @@ export default function PlanBuildPage() {
         onConfirm={() => sel && deleteNode(sel.id, last)}
         onCancel={() => setConfirmDel(false)}
       />
+      </div>
     </div>
   )
 }

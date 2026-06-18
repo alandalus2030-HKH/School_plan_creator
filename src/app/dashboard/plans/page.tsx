@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, Archive, ClipboardList, FolderOpen, Map, BadgeCheck, ShieldOff, ChevronDown } from 'lucide-react'
+import { Eye, Archive, ClipboardList, FolderOpen, BadgeCheck, ShieldOff, ChevronDown } from 'lucide-react'
 import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -456,20 +456,22 @@ function PlansPageInner() {
 
                 {/* فتح الخطة — القسم الأبيض، rounded-b-2xl (يُخفى عند الطيّ) */}
                 {!plan.is_archived && !isCollapsed(plan.id) && (
-                  <div className="p-4 bg-white rounded-b-2xl">
-                    <Link href={`/dashboard/plans/${plan.id}`}
-                      className="flex items-center justify-between p-4 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 transition-colors group">
-                      <div className="flex items-center gap-3">
-                        <Map size={20} style={{ color: 'var(--maroon-600)', flexShrink: 0 }} />
-                        <div>
-                          <p className="font-semibold text-violet-700">فتح الخطة والهيكل الهرمي</p>
-                          <p className="text-xs text-violet-400 mt-0.5">
-                            {((plan as any).level_names as string[] || []).join(' › ')} › ✅ المهمة
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-violet-400 group-hover:text-violet-600">←</span>
-                    </Link>
+                  <div className="p-4 bg-white rounded-b-2xl space-y-2">
+                    <p className="text-xs text-slate-400 px-1">
+                      {((plan as any).level_names as string[] || []).join(' › ')} › ✅ المهمة
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* فتح بالهيكل الهرمي */}
+                      <Link href={`/dashboard/plans/${plan.id}`}
+                        className="flex items-center justify-center gap-2 p-3 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 text-violet-700 font-semibold text-sm transition-colors">
+                        🌳 الهيكل الهرمي
+                      </Link>
+                      {/* فتح بطريقة القوائم — بنفس لون زر الهيكل الهرمي */}
+                      <Link href={`/dashboard/plans/${plan.id}/build`}
+                        className="flex items-center justify-center gap-2 p-3 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 text-violet-700 font-semibold text-sm transition-colors">
+                        📋 القوائم (AI)
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
