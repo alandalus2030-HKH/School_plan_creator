@@ -98,6 +98,7 @@ export default function PlanOverviewPage() {
   /* ── تعديل/حذف العقد ── */
   const [editNodeId,   setEditNodeId]   = useState<string|null>(null)
   const [editNodeName, setEditNodeName] = useState('')
+  const [officialCodes, setOfficialCodes] = useState<Set<string>>(new Set())
   const [confirmDelId, setConfirmDelId] = useState<string|null>(null)
   const [deletingNode, setDeletingNode] = useState(false)
   const [confirmDelPlan, setConfirmDelPlan] = useState(false)
@@ -120,6 +121,8 @@ export default function PlanOverviewPage() {
       supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, approved_by, department, plan_category, owner_id').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
+    const { data: stds } = await supabase.from('qnsa_standards').select('code').eq('is_active', true)
+    setOfficialCodes(new Set((stds || []).map((s: any) => s.code)))
     if (!planData) { router.push('/dashboard/plans'); return }
     setPlan(planData)
     setNodes(nodesData || [])
@@ -310,6 +313,8 @@ export default function PlanOverviewPage() {
   /* ── تعديل عقدة ── */
   const saveNodeEdit = async (nodeId: string) => {
     if (!editNodeName.trim()) return
+    const tgt = nodes.find(n => n.id === nodeId)
+    if (tgt?.standard_code && officialCodes.has(tgt.standard_code)) { setEditNodeId(null); return }
     setSaving(true)
     await supabase.from('plan_nodes').update({ name_ar: editNodeName.trim() }).eq('id', nodeId)
     setEditNodeId(null); setSaving(false); await load()
@@ -868,10 +873,15 @@ export default function PlanOverviewPage() {
 
                       {/* أزرار التعديل والحذف — زر الحذف مخفي للخطط المعتمدة */}
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                        <button
-                          onClick={() => { setEditNodeId(node.id); setEditNodeName(node.name_ar) }}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
-                          title="تعديل">✏️</button>
+                        {node.standard_code && officialCodes.has(node.standard_code) ? (
+                          <span title="معيار من الإطار المرجعي QNSA — غير قابل للتعديل"
+                            className="w-8 h-8 flex items-center justify-center text-slate-300">🔒</span>
+                        ) : (
+                          <button
+                            onClick={() => { setEditNodeId(node.id); setEditNodeName(node.name_ar) }}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+                            title="تعديل">✏️</button>
+                        )}
                         {!plan.approved_at && (
                           <button
                             onClick={() => setConfirmDelId(node.id)}
@@ -1020,11 +1030,9 @@ export default function PlanOverviewPage() {
                         <button
                           type="button"
                           onClick={() => updateKpiLevel(cfg.levelIndex, { enabled: !cfg.enabled })}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none
+                          className={`relative inline-block h-6 w-11 rounded-full transition-colors focus:outline-none flex-shrink-0
                             ${cfg.enabled ? 'bg-emerald-500' : 'bg-slate-200'}`}>
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform
-                            ${cfg.enabled ? 'translate-x-1' : '-translate-x-5'}`}
-                            style={{ transform: cfg.enabled ? 'translateX(24px)' : 'translateX(2px)' }} />
+                          <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-all ${cfg.enabled ? 'left-1' : 'right-1'}`} />
                         </button>
                       )}
                     </div>

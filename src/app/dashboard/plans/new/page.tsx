@@ -287,7 +287,12 @@ export default function NewPlanPage() {
 
             {error && <p className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</p>}
 
-            <button onClick={() => { if (!name.trim()) { setError('اسم الخطة مطلوب'); return }; setError(''); setStep(2) }}
+            <button onClick={() => {
+                if (!name.trim())            { setError('اسم الخطة مطلوب'); return }
+                if (!startDate || !endDate)  { setError('تاريخا البدء والانتهاء مطلوبان'); return }
+                if (endDate < startDate)     { setError('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'); return }
+                setError(''); setStep(2)
+              }}
               className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl transition-colors shadow-lg shadow-violet-200">
               التالي: هيكل المستويات ›
             </button>

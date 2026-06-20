@@ -263,10 +263,13 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName }: {
             onClick={generateKpis}
             disabled={generating}
             className="flex items-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-100 hover:bg-violet-200 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-60">
-            {generating
-              ? <><span className="w-3 h-3 border-2 border-violet-500 border-t-transparent rounded-full animate-spin inline-block" /> جارٍ التوليد...</>
-              : <>🤖 توليد بالذكاء الاصطناعي</>
-            }
+            {/* درس مستفاد: أيقونة شرطية بجوار نص شرطي → اعزل كلاً في span ثابت لتفادي removeChild */}
+            <span className="inline-flex">
+              {generating
+                ? <span className="w-3 h-3 border-2 border-violet-500 border-t-transparent rounded-full animate-spin inline-block" />
+                : <span>🤖</span>}
+            </span>
+            <span>{generating ? 'جارٍ التوليد...' : 'توليد بالذكاء الاصطناعي'}</span>
           </button>
           {/* إضافة يدوية */}
           {!adding && !showAiPanel && (
@@ -700,12 +703,13 @@ function buildTree(nodes: PlanNode[], tasks: Task[], parentId: string|null, leve
 }
 
 /* ── مكوّن العقدة القابلة للتوسع ── */
-function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, kpiLevelConfigs, codes, taskCodes, planApproved=false, depth=0 }: {
+function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, kpiLevelConfigs, codes, taskCodes, officialCodes, planApproved=false, depth=0 }: {
   node: any; levelNames: string[]; levelCount: number
   planId: string; planName: string; onRefresh: ()=>void
   kpiLevelConfigs: KpiLevelConf[]
   codes: Record<string,string>
   taskCodes: Record<string,string>
+  officialCodes: Set<string>
   planApproved?: boolean
   depth?: number
 }) {
@@ -716,9 +720,22 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
   const [editName,  setEditName]  = useState(node.name_ar)
   const [saving,    setSaving]    = useState(false)
   const [confirming,setConfirming]= useState(false)
+  const [confirmDelTask, setConfirmDelTask] = useState<any | null>(null)
+  const [deletingTask,   setDeletingTask]   = useState(false)
+
+  const deleteTask = async (id: string) => {
+    setDeletingTask(true)
+    const res  = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+    const json = await res.json().catch(() => ({}))
+    setDeletingTask(false); setConfirmDelTask(null)
+    if (!res.ok) { alert(`تعذّر حذف المهمة: ${json.error || res.status}`); return }
+    onRefresh()
+  }
 
   const nextLevelName = levelNames[node.level_num] || `المستوى ${node.level_num + 1}`
   const isLeaf = node.level_num === levelCount
+  /* عقدة من الإطار المرجعي QNSA → مقفلة من إعادة التسمية (تُعدَّل البنود المخصّصة فقط) */
+  const isOfficial = !!node.standard_code && officialCodes.has(node.standard_code)
 
   // هل هذا المستوى مُفعَّل للـ KPI؟
   const kpiConf = kpiLevelConfigs.find(k => k.levelIndex === node.level_num - 1) || null
@@ -737,6 +754,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
 
   const saveEdit = async () => {
     if (!editName.trim()) return
+    if (isOfficial) { setEditing(false); return }   // معيار رسمي — لا يُعاد تسميته
     setSaving(true)
     await supabase.from('plan_nodes').update({ name_ar: editName.trim() }).eq('id', node.id)
     setEditing(false); setSaving(false); onRefresh()
@@ -817,8 +835,13 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
                 </div>
               )}
               <span className="text-xs text-slate-400">{totalTasks} مهمة</span>
-              <button onClick={() => { setEditing(true); setEditName(node.name_ar) }}
-                className="w-6 h-6 flex items-center justify-center hover:text-amber-500 text-slate-300 rounded transition-colors text-xs">✏️</button>
+              {isOfficial ? (
+                <span title="معيار من الإطار المرجعي QNSA — غير قابل للتعديل"
+                  className="w-6 h-6 flex items-center justify-center text-slate-300 text-xs">🔒</span>
+              ) : (
+                <button onClick={() => { setEditing(true); setEditName(node.name_ar) }}
+                  className="w-6 h-6 flex items-center justify-center hover:text-amber-500 text-slate-300 rounded transition-colors text-xs">✏️</button>
+              )}
               {!planApproved && (
                 <button onClick={() => setConfirming(true)}
                   className="w-6 h-6 flex items-center justify-center hover:text-red-500 text-slate-300 rounded transition-colors text-xs">🗑️</button>
@@ -846,35 +869,41 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
         {node.children.map((child: any) => (
           <NodeItem key={child.id} node={child} levelNames={levelNames} levelCount={levelCount}
             planId={planId} planName={planName} onRefresh={onRefresh} kpiLevelConfigs={kpiLevelConfigs}
-            codes={codes} taskCodes={taskCodes} planApproved={planApproved} depth={depth + 1} />
+            codes={codes} taskCodes={taskCodes} officialCodes={officialCodes} planApproved={planApproved} depth={depth + 1} />
         ))}
 
         {/* المهام (في المستوى الأخير) */}
         {isLeaf && node.tasks.length > 0 && (
           <div className="space-y-1 mr-2">
             {node.tasks.map((task: any) => (
-              <Link key={task.id} href={`/dashboard/tasks/${task.id}`}
-                className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-violet-50 transition-colors border border-transparent hover:border-violet-100">
-                <span className="text-sm">{task.task_type==='academic'?'📚':task.task_type==='administrative'?'🗃️':'📌'}</span>
-                {taskCodes[task.id] && (
-                  <span className="font-mono text-[11px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">{taskCodes[task.id]}</span>
+              <div key={task.id}
+                className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-violet-50 transition-colors border border-transparent hover:border-violet-100 group/task">
+                <Link href={`/dashboard/tasks/${task.id}`} className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-sm">{task.task_type==='academic'?'📚':task.task_type==='administrative'?'🗃️':'📌'}</span>
+                  {taskCodes[task.id] && (
+                    <span className="font-mono text-[11px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">{taskCodes[task.id]}</span>
+                  )}
+                  <span className="text-sm text-slate-700 flex-1 truncate">{task.name_ar}</span>
+                  {task.end_date && (
+                    <span className="text-xs text-slate-400 flex-shrink-0">{new Date(task.end_date).toLocaleDateString('ar-QA')}</span>
+                  )}
+                  {task.rating != null && (() => {
+                    const info = ratingBadgeClass(task.rating!)
+                    return (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${info.cls}`}>
+                        {info.icon} {info.label}
+                      </span>
+                    )
+                  })()}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${statusColor[task.status]||'bg-slate-100'}`}>
+                    {statusAr[task.status]}
+                  </span>
+                </Link>
+                {!planApproved && (
+                  <button onClick={() => setConfirmDelTask(task)} title="حذف المهمة"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0 opacity-0 group-hover/task:opacity-100 text-xs">🗑️</button>
                 )}
-                <span className="text-sm text-slate-700 flex-1">{task.name_ar}</span>
-                {task.end_date && (
-                  <span className="text-xs text-slate-400">{new Date(task.end_date).toLocaleDateString('ar-QA')}</span>
-                )}
-                {task.rating != null && (() => {
-                  const info = ratingBadgeClass(task.rating!)
-                  return (
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${info.cls}`}>
-                      {info.icon} {info.label}
-                    </span>
-                  )
-                })()}
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[task.status]||'bg-slate-100'}`}>
-                  {statusAr[task.status]}
-                </span>
-              </Link>
+              </div>
             ))}
           </div>
         )}
@@ -929,6 +958,16 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
         onConfirm={deleteNode}
         onCancel={() => setConfirming(false)}
       />
+
+      {/* ══ نافذة تأكيد حذف المهمة ══ */}
+      <ConfirmDialog
+        open={!!confirmDelTask}
+        title="حذف المهمة"
+        loading={deletingTask}
+        message={confirmDelTask ? <>سيتم حذف المهمة «<strong>{confirmDelTask.name_ar}</strong>» نهائياً.</> : null}
+        onConfirm={() => confirmDelTask && deleteTask(confirmDelTask.id)}
+        onCancel={() => setConfirmDelTask(null)}
+      />
     </div>
   )
 }
@@ -958,14 +997,17 @@ export default function NodePage() {
   const [kpiLevelConfigs,setKpiLevelConfigs]= useState<KpiLevelConf[]>([])
   const [codes,          setCodes]          = useState<Record<string,string>>({})
   const [taskCodes,      setTaskCodes]      = useState<Record<string,string>>({})
+  const [officialCodes,  setOfficialCodes]  = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
-    const [{ data: planData }, { data: allNodes }, { data: allTasks }] = await Promise.all([
+    const [{ data: planData }, { data: allNodes }, { data: allTasks }, { data: stds }] = await Promise.all([
       supabase.from('plans').select('id, name_ar, level_count, level_names, kpi_levels, approved_at').eq('id', planId).single(),
       supabase.from('plan_nodes').select('*').eq('plan_id', planId).order('order_num'),
       supabase.from('tasks').select('id, name_ar, status, priority, end_date, task_type, node_id, rating, order_num, created_at')
         .in('node_id', (await supabase.from('plan_nodes').select('id').eq('plan_id', planId)).data?.map(n=>n.id) || []),
+      supabase.from('qnsa_standards').select('code').eq('is_active', true),
     ])
+    setOfficialCodes(new Set((stds || []).map((s: any) => s.code)))
 
     if (!planData) { router.push('/dashboard/plans'); return }
 
@@ -1057,6 +1099,7 @@ export default function NodePage() {
               kpiLevelConfigs={kpiLevelConfigs}
               codes={codes}
               taskCodes={taskCodes}
+              officialCodes={officialCodes}
               planApproved={!!plan.approved_at}
             />
           ))

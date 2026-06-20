@@ -125,7 +125,6 @@ export default function UsersPage() {
 
   /* ── الفرق ── */
   const [formTeams, setFormTeams] = useState<TeamMembership[]>([])
-  const [formPlans, setFormPlans] = useState<string[]>([])   // خطط مسموحة (فارغ = الكل)
   const [inviteLink, setInviteLink] = useState('')           // رابط دعوة (إنشاء بلا كلمة مرور)
 
   /* ── حذف ── */
@@ -229,18 +228,6 @@ export default function UsersPage() {
     } catch {}
   }
 
-  /* ════ حفظ الخطط المسموحة (فارغ = كل الخطط) ════ */
-  const savePlanAccess = async (userId: string) => {
-    try {
-      await supabase.from('user_plan_access').delete().eq('profile_id', userId)
-      if (formPlans.length > 0) {
-        await supabase.from('user_plan_access').insert(
-          formPlans.map(planId => ({ profile_id: userId, plan_id: planId }))
-        )
-      }
-    } catch {}
-  }
-
   /* ════ تحقق من قائد الفريق ════ */
   const checkLeaderConflict = async (userId: string | null): Promise<string | null> => {
     for (const m of formTeams) {
@@ -264,7 +251,7 @@ export default function UsersPage() {
     setForm({ ...EMPTY_FORM })
     setFormTab(0); setFormError('')
     setFormPassword(''); setFormConfirmPass(''); setShowPass(false)
-    setFormTeams([]); setFormPlans([]); setCredsMsg(''); setResetMsg(''); setInviteLink('')
+    setFormTeams([]); setCredsMsg(''); setResetMsg(''); setInviteLink('')
     setShowForm(true)
   }
 
@@ -294,11 +281,6 @@ export default function UsersPage() {
       const { data } = await supabase.from('team_members').select('team_id,is_leader').eq('profile_id', p.id)
       setFormTeams((data || []).map((m: any) => ({ team_id: m.team_id, is_leader: !!m.is_leader })))
     } catch { setFormTeams([]) }
-    // تحميل الخطط المسموحة
-    try {
-      const { data } = await supabase.from('user_plan_access').select('plan_id').eq('profile_id', p.id)
-      setFormPlans((data || []).map((r: any) => r.plan_id))
-    } catch { setFormPlans([]) }
     setShowForm(true)
   }
 
@@ -354,7 +336,6 @@ export default function UsersPage() {
       }).eq('id', editProfile.id)
       if (error) { setFormError(error.message); setSaving(false); return }
       await saveTeams(editProfile.id)
-      await savePlanAccess(editProfile.id)
     } else {
       const { ok: createOk, json } = await safePost('/api/users/create', {
         email:         form.email,
@@ -371,7 +352,7 @@ export default function UsersPage() {
         password:      formPassword || undefined,
       })
       if (!createOk) { setFormError(json.error || 'حدث خطأ'); setSaving(false); return }
-      if (json.id) { await saveTeams(json.id); await savePlanAccess(json.id) }
+      if (json.id) { await saveTeams(json.id) }
 
       /* نموذج الدعوة: أُنشئ بلا كلمة مرور → ولّد رابط دعوة ليضبط كلمته بنفسه، وأبقِ النافذة لعرضه */
       if (json.id && !formPassword) {
@@ -667,7 +648,7 @@ export default function UsersPage() {
     const other: string[] = []    // فشل لأسباب أخرى
 
     for (const row of validRows) {
-      const roleCode = roles.find(r => r.name_ar === row['الدور'])?.code || 'teacher'
+      const roleCode = roles.find(r => r.name_ar === row['الدور'])?.code || 'task_assigned_employee'
       const email = row['البريد الإلكتروني']?.toString().trim() || ''
       const res = await fetch('/api/users/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1261,46 +1242,6 @@ export default function UsersPage() {
                         <a href="/dashboard/settings" className="text-violet-600 hover:underline">الإعدادات ← الأدوار</a>
                       </p>
                     </div>
-
-                    {/* الخطط المسموح بها */}
-                    {allPlans.length > 0 && (() => {
-                      const isAdminTarget = ['super_admin', 'school_admin', 'admin'].includes(form.role)
-                      return (
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-700 mb-2">🗺️ الخطط المسموح بالوصول إليها</h4>
-                          {isAdminTarget ? (
-                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                              هذا الدور (مدير/مشرف) يصل إلى <strong>كل الخطط</strong> بغض النظر عن التحديد.
-                            </p>
-                          ) : (
-                            <>
-                              <p className="text-xs text-slate-500 mb-2">
-                                اترك الكل بلا تحديد = وصول لكل الخطط. حدّد خططاً لقصر وصوله عليها فقط.
-                              </p>
-                              <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                                {allPlans.map((plan: any) => {
-                                  const on = formPlans.includes(plan.id)
-                                  return (
-                                    <label key={plan.id}
-                                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-colors text-xs
-                                        ${on ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                                      <input type="checkbox" checked={on}
-                                        onChange={() => setFormPlans(prev => on ? prev.filter(id => id !== plan.id) : [...prev, plan.id])}
-                                        className="w-4 h-4 accent-violet-600 flex-shrink-0" />
-                                      <span className="flex-1 text-slate-700">{plan.name_ar}</span>
-                                      {plan.academic_year && <span className="text-slate-400 font-latin">{plan.academic_year}</span>}
-                                    </label>
-                                  )
-                                })}
-                              </div>
-                              <p className="text-xs text-slate-400 mt-1.5">
-                                {formPlans.length === 0 ? 'الحالي: كل الخطط (بلا تقييد)' : `الحالي: مقصور على ${formPlans.length} خطة`}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )
-                    })()}
 
                     {/* الفرق */}
                     <div>

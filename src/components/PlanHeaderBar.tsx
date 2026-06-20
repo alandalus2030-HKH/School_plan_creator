@@ -577,8 +577,8 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                       </div>
                       {!locked && (
                         <button type="button" onClick={() => updateKpiLevel(cfg.levelIndex, { enabled: !cfg.enabled })}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${cfg.enabled ? 'bg-emerald-500' : 'bg-slate-200'}`}>
-                          <span className="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform" style={{ transform: cfg.enabled ? 'translateX(24px)' : 'translateX(2px)' }} />
+                          className={`relative inline-block h-6 w-11 rounded-full transition-colors flex-shrink-0 ${cfg.enabled ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                          <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-all ${cfg.enabled ? 'left-1' : 'right-1'}`} />
                         </button>
                       )}
                     </div>

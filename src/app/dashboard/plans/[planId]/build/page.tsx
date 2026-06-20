@@ -232,6 +232,8 @@ export default function PlanBuildPage() {
   const [deleting,   setDeleting]   = useState(false)
   const [newTaskName, setNewTaskName] = useState('')
   const [addingTask,  setAddingTask]  = useState(false)
+  const [confirmDelTask, setConfirmDelTask] = useState<TaskLite | null>(null)
+  const [deletingTask,   setDeletingTask]   = useState(false)
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
@@ -315,6 +317,16 @@ export default function PlanBuildPage() {
     const rows = names.map(name => ({ name_ar: name, node_id: nodeId, order_num: order++ }))
     const { error } = await supabase.from('tasks').insert(rows)
     if (error) { alert(`تعذّر إضافة المهام: ${error.message}`); return }
+    await load()
+  }
+
+  /* حذف مهمة (حذف ناعم خادمي مع الحراسة) */
+  const deleteTask = async (id: string) => {
+    setDeletingTask(true)
+    const res  = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+    const json = await res.json().catch(() => ({}))
+    setDeletingTask(false); setConfirmDelTask(null)
+    if (!res.ok) { alert(`تعذّر حذف المهمة: ${json.error || res.status}`); return }
     await load()
   }
 
@@ -450,17 +462,23 @@ export default function PlanBuildPage() {
                 {leafTasks.length > 0 && (
                   <div className="space-y-1.5 mb-3">
                     {leafTasks.map(t => (
-                      <Link key={t.id} href={`/dashboard/tasks/${t.id}`}
-                        className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-violet-200 hover:bg-violet-50/50 transition-colors">
-                        {taskCodes[t.id] && (
-                          <span className="font-mono text-[11px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">{taskCodes[t.id]}</span>
-                        )}
-                        <span className="text-sm text-slate-700 flex-1">{t.name_ar}</span>
-                        {t.end_date && <span className="text-xs text-slate-400">{new Date(t.end_date).toLocaleDateString('ar-QA')}</span>}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[t.status] || 'bg-slate-100'}`}>
-                          {statusAr[t.status] || t.status}
-                        </span>
-                      </Link>
+                      <div key={t.id}
+                        className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-violet-200 hover:bg-violet-50/50 transition-colors group">
+                        <Link href={`/dashboard/tasks/${t.id}`} className="flex items-center gap-2 flex-1 min-w-0">
+                          {taskCodes[t.id] && (
+                            <span className="font-mono text-[11px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">{taskCodes[t.id]}</span>
+                          )}
+                          <span className="text-sm text-slate-700 flex-1 truncate">{t.name_ar}</span>
+                          {t.end_date && <span className="text-xs text-slate-400 flex-shrink-0">{new Date(t.end_date).toLocaleDateString('ar-QA')}</span>}
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${statusColor[t.status] || 'bg-slate-100'}`}>
+                            {statusAr[t.status] || t.status}
+                          </span>
+                        </Link>
+                        <button onClick={() => setConfirmDelTask(t)} title="حذف المهمة"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -536,6 +554,16 @@ export default function PlanBuildPage() {
         ) : null}
         onConfirm={() => sel && deleteNode(sel.id, last)}
         onCancel={() => setConfirmDel(false)}
+      />
+
+      {/* ══ نافذة تأكيد حذف المهمة ══ */}
+      <ConfirmDialog
+        open={!!confirmDelTask}
+        title="حذف المهمة"
+        loading={deletingTask}
+        message={confirmDelTask ? <>سيتم حذف المهمة «<strong>{confirmDelTask.name_ar}</strong>» نهائياً.</> : null}
+        onConfirm={() => confirmDelTask && deleteTask(confirmDelTask.id)}
+        onCancel={() => setConfirmDelTask(null)}
       />
       </div>
     </div>
