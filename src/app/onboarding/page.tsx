@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
+import { LEVEL_COUNTS, levelOptionLabel } from '@/lib/planLevels'
 import {
   Building2, UserRound, Map, Upload, ImageIcon, Loader2, Check,
   ArrowLeft, ArrowRight, PartyPopper, LogIn, Trash2,
@@ -43,7 +44,7 @@ export default function OnboardingPage() {
   /* الخطة (اختياري) */
   const [planName, setPlanName] = useState('')
   const [planYear, setPlanYear] = useState('2025-2026')
-  const [planLevels, setPlanLevels] = useState(3)
+  const [planLevels, setPlanLevels] = useState(4)
 
   /* حارس مشرف النظام */
   useEffect(() => {
@@ -340,9 +341,7 @@ export default function OnboardingPage() {
                 <div>
                   <label className={labelCls}>عدد مستويات الهيكل</label>
                   <select value={planLevels} onChange={e => setPlanLevels(parseInt(e.target.value, 10))} className={inputCls}>
-                    <option value={2}>2 — محور · مبادرة</option>
-                    <option value={3}>3 — محور · مبادرة · هدف</option>
-                    <option value={4}>4 — محور · هدف استراتيجي · عام · فرعي</option>
+                    {LEVEL_COUNTS.map(n => <option key={n} value={n}>{levelOptionLabel(n)}</option>)}
                   </select>
                 </div>
               </div>

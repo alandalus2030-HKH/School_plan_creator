@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function UpdatePasswordPage() {
+function UpdatePasswordForm() {
   const supabase  = createClient()
   const router    = useRouter()
+  const search    = useSearchParams()
+  const forced    = search.get('forced') === '1'
   const [password, setPassword] = useState('')
   const [confirm,  setConfirm]  = useState('')
   const [loading,  setLoading]  = useState(false)
@@ -17,13 +19,19 @@ export default function UpdatePasswordPage() {
     e.preventDefault()
     if (password !== confirm)   { setError('كلمتا المرور غير متطابقتين'); return }
     if (password.length < 8)    { setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل'); return }
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('كلمة المرور يجب أن تحتوي أحرفاً وأرقاماً'); return
+    }
     setLoading(true); setError('')
 
     const { error } = await supabase.auth.updateUser({ password })
     if (error) { setError(error.message); setLoading(false); return }
 
+    /* رفع إلزام التغيير (إن وُجد) — للدخول الأول */
+    try { await fetch('/api/auth/clear-must-change', { method: 'POST' }) } catch {}
+
     setSuccess(true)
-    setTimeout(() => router.replace('/dashboard'), 2500)
+    setTimeout(() => router.replace('/dashboard'), 2000)
   }
 
   return (
@@ -33,8 +41,14 @@ export default function UpdatePasswordPage() {
         <div className="text-center mb-7">
           <div className="text-5xl mb-3">🔐</div>
           <h1 className="text-2xl font-bold text-slate-800">تعيين كلمة مرور جديدة</h1>
-          <p className="text-slate-500 text-sm mt-1">اختر كلمة مرور قوية وآمنة</p>
+          <p className="text-slate-500 text-sm mt-1">اختر كلمة مرور قوية وآمنة (8 أحرف+، حروف وأرقام)</p>
         </div>
+
+        {forced && !success && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm mb-4 text-center">
+            🔒 لأمان حسابك، يجب تعيين كلمة مرور جديدة خاصة بك قبل المتابعة.
+          </div>
+        )}
 
         {success ? (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-4 rounded-xl text-center text-sm font-medium">
@@ -93,5 +107,17 @@ export default function UpdatePasswordPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function UpdatePasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+      </div>
+    }>
+      <UpdatePasswordForm />
+    </Suspense>
   )
 }

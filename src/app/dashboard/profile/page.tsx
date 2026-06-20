@@ -32,6 +32,13 @@ export default function ProfilePage() {
   /* تغيير كلمة المرور */
   const [sendingReset,  setSendingReset]  = useState(false)
   const [resetMsg,      setResetMsg]      = useState('')
+  /* تغيير مباشر (كلمة قديمة + جديدة) */
+  const [oldPass,    setOldPass]    = useState('')
+  const [newPass,    setNewPass]    = useState('')
+  const [confirmPass,setConfirmPass]= useState('')
+  const [changing,   setChanging]   = useState(false)
+  const [changeMsg,  setChangeMsg]  = useState('')
+  const [oldWrong,   setOldWrong]   = useState(false)
 
   /* الصورة الشخصية */
   const [avatarUrl,       setAvatarUrl]       = useState('')
@@ -185,6 +192,30 @@ export default function ProfilePage() {
       : `❌ ${json.error || 'حدث خطأ'}`)
     setSendingReset(false)
     if (res.ok) setTimeout(() => setResetMsg(''), 6000)
+  }
+
+  /* تغيير كلمة المرور مباشرةً: تحقّق من القديمة ثم عيّن الجديدة */
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setChangeMsg(''); setOldWrong(false)
+    if (newPass !== confirmPass) { setChangeMsg('❌ كلمتا المرور الجديدتان غير متطابقتين'); return }
+    if (newPass.length < 8)      { setChangeMsg('❌ كلمة المرور يجب أن تكون 8 أحرف على الأقل'); return }
+    if (!/[a-zA-Z]/.test(newPass) || !/[0-9]/.test(newPass)) { setChangeMsg('❌ يجب أن تحتوي أحرفاً وأرقاماً'); return }
+    setChanging(true)
+    /* تحقّق من كلمة المرور القديمة بإعادة المصادقة */
+    const { error: signErr } = await supabase.auth.signInWithPassword({ email: userEmail, password: oldPass })
+    if (signErr) {
+      setOldWrong(true)
+      setChangeMsg('❌ كلمة المرور الحالية غير صحيحة. يمكنك تعيينها عبر رابط يُرسَل لبريدك.')
+      setChanging(false)
+      return
+    }
+    const { error: updErr } = await supabase.auth.updateUser({ password: newPass })
+    setChanging(false)
+    if (updErr) { setChangeMsg(`❌ ${updErr.message}`); return }
+    setOldPass(''); setNewPass(''); setConfirmPass('')
+    setChangeMsg('✅ تم تغيير كلمة المرور بنجاح')
+    setTimeout(() => setChangeMsg(''), 6000)
   }
 
   const initial = (firstNameAr || userEmail || 'م')[0]
@@ -390,25 +421,50 @@ export default function ProfilePage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
           <h2 className="font-bold text-slate-800">🔑 كلمة المرور</h2>
-          <p className="text-xs text-slate-500 mt-0.5">سيُرسل رابط تغيير كلمة المرور إلى بريدك الإلكتروني</p>
+          <p className="text-xs text-slate-500 mt-0.5">غيّر كلمة مرورك بإدخال الحالية، أو اطلب رابطاً عبر بريدك.</p>
         </div>
         <div className="p-5">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-1 bg-slate-50 rounded-xl px-4 py-3">
-              <p className="text-xs text-slate-400">البريد الإلكتروني</p>
-              <p className="text-sm font-medium text-slate-700 font-latin">{userEmail}</p>
+          <form onSubmit={changePassword} className="space-y-3 max-w-md">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">كلمة المرور الحالية</label>
+              <input type="password" value={oldPass} onChange={e => setOldPass(e.target.value)} required dir="ltr"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm bg-slate-50" />
             </div>
-            <button onClick={sendPasswordReset} disabled={sendingReset}
-              className="flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
-              {sendingReset ? '⏳ جارٍ الإرسال...' : '📧 إرسال رابط التغيير'}
-            </button>
-          </div>
-          {resetMsg && (
-            <div className={`mt-3 px-4 py-3 rounded-xl text-sm
-              ${resetMsg.startsWith('✅') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-              {resetMsg}
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">الجديدة (8+ حروف وأرقام)</label>
+                <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} required dir="ltr"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm bg-slate-50" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">تأكيد الجديدة</label>
+                <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} required dir="ltr"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm bg-slate-50" />
+              </div>
             </div>
-          )}
+            {changeMsg && (
+              <div className={`px-4 py-3 rounded-xl text-sm ${changeMsg.startsWith('✅') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {changeMsg}
+              </div>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button type="submit" disabled={changing}
+                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
+                {changing ? 'جارٍ التغيير...' : '🔒 تغيير كلمة المرور'}
+              </button>
+              {/* رابط احتياطي — يظهر دائماً، ويُبرَز عند خطأ كلمة المرور الحالية */}
+              <button type="button" onClick={sendPasswordReset} disabled={sendingReset}
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50
+                  ${oldWrong ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {sendingReset ? '⏳ جارٍ الإرسال...' : '📧 نسيت كلمتي — أرسل رابطاً لبريدي'}
+              </button>
+            </div>
+            {resetMsg && (
+              <div className={`px-4 py-3 rounded-xl text-sm ${resetMsg.startsWith('✅') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {resetMsg}
+              </div>
+            )}
+          </form>
         </div>
       </div>
 

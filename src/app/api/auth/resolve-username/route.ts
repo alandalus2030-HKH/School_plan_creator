@@ -53,10 +53,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ email: data.email })
     }
 
+    /* بريد المصادقة الموثوق للحساب نفسه (لا profiles.email القابل للانفصال) */
+    const authEmailFor = async (profileId: string): Promise<string | null> => {
+      const { data: au } = await admin.auth.admin.getUserById(profileId)
+      return au?.user?.email ?? null
+    }
+
     /* ── 2. بحث بـ username (غير حساس لحالة الحروف) ── */
     const { data: byUsername, error: err2 } = await admin
       .from('profiles')
-      .select('email, is_active')
+      .select('id, is_active')
       .ilike('username', input)
       .maybeSingle()
 
@@ -69,13 +75,15 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         )
       }
-      return NextResponse.json({ email: byUsername.email })
+      const email = await authEmailFor(byUsername.id)
+      if (!email) return NextResponse.json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, { status: 401 })
+      return NextResponse.json({ email })
     }
 
     /* ── 3. احتياط: بحث بالجزء الأول من البريد ── */
     const { data: byEmailPrefix, error: err3 } = await admin
       .from('profiles')
-      .select('email, is_active')
+      .select('id, is_active')
       .ilike('email', `${input}@%`)
       .maybeSingle()
 
@@ -88,7 +96,9 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         )
       }
-      return NextResponse.json({ email: byEmailPrefix.email })
+      const email = await authEmailFor(byEmailPrefix.id)
+      if (!email) return NextResponse.json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, { status: 401 })
+      return NextResponse.json({ email })
     }
 
     /* ── لم يُوجَد ── */

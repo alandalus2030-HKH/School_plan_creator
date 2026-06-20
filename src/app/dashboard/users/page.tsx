@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { toast } from '@/components/Toast'
 import * as XLSX from 'xlsx'
 import { Users, CheckCircle2, BookOpen, Crown, UserRound } from 'lucide-react'
 
@@ -124,6 +125,8 @@ export default function UsersPage() {
 
   /* ── الفرق ── */
   const [formTeams, setFormTeams] = useState<TeamMembership[]>([])
+  const [formPlans, setFormPlans] = useState<string[]>([])   // خطط مسموحة (فارغ = الكل)
+  const [inviteLink, setInviteLink] = useState('')           // رابط دعوة (إنشاء بلا كلمة مرور)
 
   /* ── حذف ── */
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
@@ -132,6 +135,7 @@ export default function UsersPage() {
 
   /* ── إعادة تعيين من القائمة ── */
   const [resetingId,   setResetingId]   = useState<string | null>(null)
+  const [confirmReset, setConfirmReset] = useState<Profile | null>(null)
   const [resetListMsg, setResetListMsg] = useState<{id:string; ok:boolean; text:string} | null>(null)
 
   /* ── استيراد / تصدير ── */
@@ -154,6 +158,7 @@ export default function UsersPage() {
     { key: 'email',         label: 'البريد الإلكتروني',       dropdown: null },
     { key: 'username',      label: 'اسم الدخول',              dropdown: null },
     { key: 'role_name',     label: 'الدور',                   dropdown: 'roles' },
+    { key: 'password',      label: 'كلمة المرور الافتراضية',  dropdown: null },
   ] as const
 
   /* ════ جلب البيانات ════ */
@@ -224,6 +229,18 @@ export default function UsersPage() {
     } catch {}
   }
 
+  /* ════ حفظ الخطط المسموحة (فارغ = كل الخطط) ════ */
+  const savePlanAccess = async (userId: string) => {
+    try {
+      await supabase.from('user_plan_access').delete().eq('profile_id', userId)
+      if (formPlans.length > 0) {
+        await supabase.from('user_plan_access').insert(
+          formPlans.map(planId => ({ profile_id: userId, plan_id: planId }))
+        )
+      }
+    } catch {}
+  }
+
   /* ════ تحقق من قائد الفريق ════ */
   const checkLeaderConflict = async (userId: string | null): Promise<string | null> => {
     for (const m of formTeams) {
@@ -247,7 +264,7 @@ export default function UsersPage() {
     setForm({ ...EMPTY_FORM })
     setFormTab(0); setFormError('')
     setFormPassword(''); setFormConfirmPass(''); setShowPass(false)
-    setFormTeams([]); setCredsMsg(''); setResetMsg('')
+    setFormTeams([]); setFormPlans([]); setCredsMsg(''); setResetMsg(''); setInviteLink('')
     setShowForm(true)
   }
 
@@ -277,6 +294,11 @@ export default function UsersPage() {
       const { data } = await supabase.from('team_members').select('team_id,is_leader').eq('profile_id', p.id)
       setFormTeams((data || []).map((m: any) => ({ team_id: m.team_id, is_leader: !!m.is_leader })))
     } catch { setFormTeams([]) }
+    // تحميل الخطط المسموحة
+    try {
+      const { data } = await supabase.from('user_plan_access').select('plan_id').eq('profile_id', p.id)
+      setFormPlans((data || []).map((r: any) => r.plan_id))
+    } catch { setFormPlans([]) }
     setShowForm(true)
   }
 
@@ -332,6 +354,7 @@ export default function UsersPage() {
       }).eq('id', editProfile.id)
       if (error) { setFormError(error.message); setSaving(false); return }
       await saveTeams(editProfile.id)
+      await savePlanAccess(editProfile.id)
     } else {
       const { ok: createOk, json } = await safePost('/api/users/create', {
         email:         form.email,
@@ -348,7 +371,17 @@ export default function UsersPage() {
         password:      formPassword || undefined,
       })
       if (!createOk) { setFormError(json.error || 'حدث خطأ'); setSaving(false); return }
-      if (json.id) await saveTeams(json.id)
+      if (json.id) { await saveTeams(json.id); await savePlanAccess(json.id) }
+
+      /* نموذج الدعوة: أُنشئ بلا كلمة مرور → ولّد رابط دعوة ليضبط كلمته بنفسه، وأبقِ النافذة لعرضه */
+      if (json.id && !formPassword) {
+        const { ok: lok, json: lj } = await safePost('/api/auth/reset-link', { userId: json.id })
+        if (lok && lj.link) {
+          setInviteLink(lj.link)
+          setSaving(false); await loadAll()
+          return  // النافذة تبقى مفتوحة لعرض الرابط
+        }
+      }
     }
 
     setSaving(false); setShowForm(false); await loadAll()
@@ -400,14 +433,18 @@ export default function UsersPage() {
     setSendingReset(false)
   }
 
-  /* ════ إعادة تعيين من القائمة ════ */
+  /* ════ إعادة تعيين من القائمة — توليد رابط ونسخه (بلا بريد → بلا حدّ إرسال) ════ */
   const resetPasswordList = async (p: Profile) => {
-    if (!p.email) { alert('لا يوجد بريد إلكتروني'); return }
     setResetingId(p.id); setResetListMsg(null)
-    const { ok, json } = await safePost('/api/auth/reset-password', { email: p.email })
-    setResetListMsg({ id: p.id, ok, text: ok ? `✅ أُرسل الرابط إلى ${p.email}` : `❌ ${json.error || 'حدث خطأ'}` })
-    setResetingId(null)
-    if (ok) setTimeout(() => setResetListMsg(null), 5000)
+    const { ok, json } = await safePost('/api/auth/reset-link', { userId: p.id })
+    if (ok && json.link) {
+      try { await navigator.clipboard.writeText(json.link) } catch {}
+      setResetListMsg({ id: p.id, ok: true, text: `✅ تم توليد رابط التعيين ونسخه — سلّمه لـ ${p.name_ar || p.email}` })
+    } else {
+      setResetListMsg({ id: p.id, ok: false, text: `❌ ${json.error || 'تعذّر التوليد'}` })
+    }
+    setResetingId(null); setConfirmReset(null)
+    if (ok) setTimeout(() => setResetListMsg(null), 8000)
   }
 
   /* ════ تفعيل / تعطيل ════ */
@@ -587,7 +624,11 @@ export default function UsersPage() {
     const reader = new FileReader()
     reader.onload = ev => {
       const wb   = XLSX.read(ev.target?.result, { type: 'array' })
-      const ws   = wb.Sheets[wb.SheetNames[0]]
+      // ورقة البيانات هي «المستخدمون» — لا الورقة الأولى (قد تكون _ref للقوائم المرجعية)
+      const sheetName = wb.SheetNames.includes('المستخدمون')
+        ? 'المستخدمون'
+        : (wb.SheetNames.find(n => n !== '_ref') || wb.SheetNames[0])
+      const ws   = wb.Sheets[sheetName]
       const rows = XLSX.utils.sheet_to_json(ws) as any[]
       setImportRows(rows); setImportErrors(validateImportRows(rows))
       setShowImport(true); setImportMsg('')
@@ -609,6 +650,8 @@ export default function UsersPage() {
       if (row['القسم / المادة'] && !departments.includes(row['القسم / المادة'])) rowErrs.push(`القسم "${row['القسم / المادة']}" غير موجود`)
       if (row['المسمى الوظيفي'] && !jobTitles.includes(row['المسمى الوظيفي'])) rowErrs.push(`المسمى "${row['المسمى الوظيفي']}" غير موجود`)
       if (row['الدور'] && !roleNames.includes(row['الدور'])) rowErrs.push(`الدور "${row['الدور']}" غير موجود`)
+      const pw = row['كلمة المرور الافتراضية']?.toString().trim()
+      if (pw && pw.length < 8) rowErrs.push('كلمة المرور الافتراضية يجب أن تكون 8 أحرف على الأقل')
       if (rowErrs.length) errs[i] = rowErrs
     })
     return errs
@@ -619,14 +662,17 @@ export default function UsersPage() {
     const validRows = importRows.filter((_, i) => !importErrors[i])
     if (validRows.length === 0) { setImportMsg('❌ لا توجد صفوف صالحة للاستيراد'); return }
     setImporting(true); setImportMsg('')
-    let ok = 0; let fail = 0
+    let ok = 0
+    const dup: string[] = []      // مرفوض لبريد مكرّر
+    const other: string[] = []    // فشل لأسباب أخرى
 
     for (const row of validRows) {
       const roleCode = roles.find(r => r.name_ar === row['الدور'])?.code || 'teacher'
+      const email = row['البريد الإلكتروني']?.toString().trim() || ''
       const res = await fetch('/api/users/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email:         row['البريد الإلكتروني']?.toString().trim(),
+          email,
           first_name_ar: row['الاسم الأول بالعربية']?.toString().trim() || '',
           last_name_ar:  row['الاسم الأخير بالعربية']?.toString().trim() || '',
           nationality:   row['الجنسية']             || null,
@@ -636,12 +682,21 @@ export default function UsersPage() {
           phone:         row['الهاتف']?.toString()   || null,
           username:      row['اسم الدخول']?.toString().trim().toLowerCase() || null,
           role:          roleCode,
+          password:      row['كلمة المرور الافتراضية']?.toString().trim() || undefined,
         }),
       })
-      res.ok ? ok++ : fail++
+      if (res.ok) { ok++; continue }
+      const j = await res.json().catch(() => ({}))
+      const msg = (j.error || '').toString()
+      // بريد مكرّر (في القاعدة أو حساب مصادقة موجود)
+      if (msg.includes('البريد') && (msg.includes('مستخدم بالفعل') || msg.includes('مرتبط بحساب'))) dup.push(email || '؟')
+      else other.push(`${email || '؟'}${msg ? ` (${msg})` : ''}`)
     }
 
-    setImportMsg(`✅ تم استيراد ${ok} مستخدم${fail > 0 ? ` · ❌ فشل ${fail}` : ''}`)
+    const parts: string[] = [`✅ تم إضافة ${ok} مستخدم`]
+    if (dup.length)   parts.push(`⚠️ رُفض ${dup.length} لتكرار البريد: ${dup.join('، ')}`)
+    if (other.length) parts.push(`❌ فشل ${other.length}: ${other.join(' · ')}`)
+    setImportMsg(parts.join('  '))
     setImporting(false); await loadAll()
   }
 
@@ -858,7 +913,7 @@ export default function UsersPage() {
                         {/* إجراءات — زر التفعيل/التعطيل دائماً ظاهر */}
                         <div className="col-span-2 flex items-center gap-1 justify-end">
                           {/* زر إعادة تعيين كلمة المرور — يظهر عند hover */}
-                          <button onClick={() => resetPasswordList(p)} disabled={resetingId === p.id}
+                          <button onClick={() => setConfirmReset(p)} disabled={resetingId === p.id}
                             title="إعادة تعيين كلمة المرور"
                             className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors text-sm disabled:opacity-40 opacity-0 group-hover:opacity-100">
                             {resetingId === p.id ? '⏳' : '🔑'}
@@ -920,6 +975,21 @@ export default function UsersPage() {
         )
       })()}
 
+      {/* ══ تأكيد إعادة تعيين كلمة المرور ══ */}
+      <ConfirmDialog
+        open={!!confirmReset}
+        title="إعادة تعيين كلمة المرور"
+        danger={false}
+        icon="🔑"
+        confirmLabel="توليد ونسخ الرابط"
+        loading={!!resetingId}
+        message={confirmReset ? (
+          <>سيتم توليد <strong>رابط تعيين كلمة مرور جديدة</strong> لـ «<strong>{confirmReset.name_ar || confirmReset.email}</strong>» ونسخه — سلّمه للمستخدم ليضبط كلمته. (لا يُلغي كلمته الحالية حتى يستخدم الرابط.)</>
+        ) : null}
+        onConfirm={() => confirmReset && resetPasswordList(confirmReset)}
+        onCancel={() => setConfirmReset(null)}
+      />
+
       {/* ══════════════════════ مودال الإضافة / التعديل ══════════════════════ */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -934,6 +1004,23 @@ export default function UsersPage() {
               </h3>
               <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
+
+            {/* رابط الدعوة — يظهر بعد إنشاء مستخدم بلا كلمة مرور */}
+            {inviteLink && (
+              <div className="mx-5 mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                <p className="text-sm font-bold text-emerald-800 mb-1">✅ تم إنشاء المستخدم — شارك رابط الدعوة</p>
+                <p className="text-xs text-emerald-700 mb-2">يفتح المستخدم هذا الرابط ليضبط كلمة مروره بنفسه (لا يلزم أن يعرفها أحد سواه):</p>
+                <div className="flex items-center gap-2">
+                  <input readOnly value={inviteLink} dir="ltr"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-emerald-200 bg-white text-xs text-slate-600" />
+                  <button type="button"
+                    onClick={() => { navigator.clipboard?.writeText(inviteLink); toast('تم نسخ رابط الدعوة') }}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-lg font-medium flex-shrink-0">📋 نسخ</button>
+                  <button type="button" onClick={() => { setInviteLink(''); setShowForm(false) }}
+                    className="px-3 py-2 border border-slate-200 text-slate-600 text-xs rounded-lg flex-shrink-0">تم</button>
+                </div>
+              </div>
+            )}
 
             {/* تبويبات */}
             <div className="flex border-b border-slate-100 bg-slate-50">
@@ -1003,7 +1090,12 @@ export default function UsersPage() {
                       </Field>
                       <Field label="البريد الإلكتروني *">
                         <input value={form.email} onChange={e => setForm(d => ({ ...d, email: e.target.value }))}
-                          type="email" placeholder="example@gmail.com" dir="ltr" required className={inputCls} />
+                          type="email" placeholder="example@gmail.com" dir="ltr" required
+                          readOnly={!!editProfile} disabled={!!editProfile}
+                          className={`${inputCls} ${editProfile ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
+                        {editProfile && (
+                          <p className="text-xs text-slate-400 mt-1">البريد هو هوية تسجيل الدخول — لا يمكن تغييره بعد الإنشاء.</p>
+                        )}
                       </Field>
                     </div>
                   </div>
@@ -1042,7 +1134,10 @@ export default function UsersPage() {
                     {!editProfile && (
                       <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
                         <h4 className="text-sm font-bold text-slate-700">🔒 كلمة المرور الأولية</h4>
-                        <p className="text-xs text-slate-500">اتركها فارغة لإرسال دعوة بريدية لتعيينها</p>
+                        <p className="text-xs text-slate-500">
+                          • <strong>اتركها فارغة</strong> → يظهر <strong>رابط دعوة</strong> يضبط المستخدم به كلمته بنفسه.<br />
+                          • أو عيّن <strong>كلمة مرور مؤقتة</strong> → سيُطالَب بتغييرها إجبارياً عند أول دخول.
+                        </p>
 
                         <div className="grid grid-cols-2 gap-3">
                           <Field label="كلمة المرور">
@@ -1168,21 +1263,44 @@ export default function UsersPage() {
                     </div>
 
                     {/* الخطط المسموح بها */}
-                    {allPlans.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-700 mb-2">🗺️ الخطط المسموح بالوصول إليها</h4>
-                        <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                          {allPlans.map((plan: any) => (
-                            <div key={plan.id} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-500">
-                              <span>🗺️</span>
-                              <span className="flex-1">{plan.name_ar}</span>
-                              {plan.academic_year && <span className="text-slate-400 font-latin">{plan.academic_year}</span>}
-                            </div>
-                          ))}
+                    {allPlans.length > 0 && (() => {
+                      const isAdminTarget = ['super_admin', 'school_admin', 'admin'].includes(form.role)
+                      return (
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-700 mb-2">🗺️ الخطط المسموح بالوصول إليها</h4>
+                          {isAdminTarget ? (
+                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                              هذا الدور (مدير/مشرف) يصل إلى <strong>كل الخطط</strong> بغض النظر عن التحديد.
+                            </p>
+                          ) : (
+                            <>
+                              <p className="text-xs text-slate-500 mb-2">
+                                اترك الكل بلا تحديد = وصول لكل الخطط. حدّد خططاً لقصر وصوله عليها فقط.
+                              </p>
+                              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                                {allPlans.map((plan: any) => {
+                                  const on = formPlans.includes(plan.id)
+                                  return (
+                                    <label key={plan.id}
+                                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-colors text-xs
+                                        ${on ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                                      <input type="checkbox" checked={on}
+                                        onChange={() => setFormPlans(prev => on ? prev.filter(id => id !== plan.id) : [...prev, plan.id])}
+                                        className="w-4 h-4 accent-violet-600 flex-shrink-0" />
+                                      <span className="flex-1 text-slate-700">{plan.name_ar}</span>
+                                      {plan.academic_year && <span className="text-slate-400 font-latin">{plan.academic_year}</span>}
+                                    </label>
+                                  )
+                                })}
+                              </div>
+                              <p className="text-xs text-slate-400 mt-1.5">
+                                {formPlans.length === 0 ? 'الحالي: كل الخطط (بلا تقييد)' : `الحالي: مقصور على ${formPlans.length} خطة`}
+                              </p>
+                            </>
+                          )}
                         </div>
-                        <p className="text-xs text-slate-400 mt-1.5">ضبط الوصول للخطط قيد التطوير</p>
-                      </div>
-                    )}
+                      )
+                    })()}
 
                     {/* الفرق */}
                     <div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { LEVEL_PRESETS } from '@/lib/planLevels'
 
 /**
  * POST /api/onboarding  (multipart/form-data)
@@ -16,11 +17,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 const LOGO_BUCKET = 'school-logos'
 const MAX_LOGO = 2 * 1024 * 1024
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp']
-const LEVEL_PRESETS: Record<number, string[]> = {
-  2: ['المحور', 'المبادرة'],
-  3: ['المحور', 'المبادرة', 'الهدف'],
-  4: ['المحور', 'الهدف الاستراتيجي', 'الهدف العام', 'الهدف الفرعي'],
-}
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth()
@@ -149,7 +145,7 @@ export async function POST(req: NextRequest) {
     /* ── 4) خطة أولى (اختياري) ── */
     let planId: string | null = null
     if (plan_name) {
-      const lc = [2, 3, 4].includes(plan_levels) ? plan_levels : 3
+      const lc = [2, 3, 4, 5].includes(plan_levels) ? plan_levels : 4
       const { data: plan } = await admin
         .from('plans')
         .insert({

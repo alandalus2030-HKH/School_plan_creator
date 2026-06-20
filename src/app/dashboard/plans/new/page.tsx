@@ -5,15 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Target, TrendingUp, Package, BarChart3 } from 'lucide-react'
+import { LEVEL_PRESETS } from '@/lib/planLevels'
 
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => `${2024 + i}-${2025 + i}`)
-
-const LEVEL_PRESETS: Record<number, string[]> = {
-  2: ['المحور', 'المبادرة'],
-  3: ['المحور', 'المبادرة', 'الهدف'],
-  4: ['المعيار الرئيس', 'الجانب', 'المعيار الفرعي', 'الهدف'],
-  5: ['المجال', 'البرنامج', 'المبادرة', 'الهدف', 'النشاط'],
-}
 
 const KPI_TYPES = [
   {

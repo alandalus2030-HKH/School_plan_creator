@@ -74,6 +74,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `اسم الدخول "${uname}" مستخدم بالفعل` }, { status: 400 })
     }
 
+    /* ── منع تكرار البريد: البريد هو هوية تسجيل الدخول (حساب مصادقة واحد لكل بريد) ──
+       تكراره عبر حسابين يسبّب تصادم تسجيل الدخول (الدخول يصل للحساب الخطأ). */
+    const emailNorm = email.toString().trim().toLowerCase()
+    const { data: existingEmail } = await admin
+      .from('profiles')
+      .select('id, name_ar')
+      .ilike('email', emailNorm)
+      .maybeSingle()
+    if (existingEmail) {
+      return NextResponse.json({
+        error: `البريد "${email}" مستخدم بالفعل لحساب آخر${existingEmail.name_ar ? ` (${existingEmail.name_ar})` : ''} — استخدم بريداً فريداً لكل مستخدم.`,
+      }, { status: 400 })
+    }
+
     /* ── إنشاء مستخدم في Supabase Auth ── */
     const { data, error } = await admin.auth.admin.createUser({
       email,
@@ -85,29 +99,27 @@ export async function POST(req: NextRequest) {
     let userId: string | null = null
 
     if (error) {
-      /* المستخدم موجود مسبقاً → ابحث عنه وحدّثه */
+      /* البريد موجود في حساب مصادقة آخر (حتى لو بلا ملف) → ارفض بوضوح بدل إعادة الاستخدام
+         (إعادة الاستخدام تربط الملف الجديد بحساب موجود فيحدث تصادم تسجيل الدخول). */
       const errMsg = error.message.toLowerCase()
-      if (errMsg.includes('already') || errMsg.includes('exists') || errMsg.includes('duplicate')) {
-        const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 })
-        const found = list?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
-        if (!found) return NextResponse.json({ error: error.message }, { status: 400 })
-
-        userId = found.id
-        if (password && password.length >= 8) {
-          await admin.auth.admin.updateUserById(found.id, { password })
-        }
-      } else {
-        return NextResponse.json({ error: error.message }, { status: 400 })
+      if (errMsg.includes('already') || errMsg.includes('exists') || errMsg.includes('registered') || errMsg.includes('duplicate')) {
+        return NextResponse.json({
+          error: `البريد "${email}" مرتبط بحساب مصادقة موجود مسبقاً — استخدم بريداً فريداً لكل مستخدم.`,
+        }, { status: 400 })
       }
-    } else {
-      userId = data.user?.id ?? null
+      return NextResponse.json({ error: error.message }, { status: 400 })
     }
+    userId = data.user?.id ?? null
 
     if (!userId) return NextResponse.json({ error: 'فشل إنشاء المستخدم' }, { status: 500 })
 
     /* ── المستخدم الجديد ينتمي للمدرسة الفعّالة للمُنشئ ──
        تحترم تقمّص مشرف النظام (active_school_id) وتضمن العزل المدرسي */
     const autoSchoolId = effectiveSchoolId
+
+    /* كلمة مرور مؤقتة ضبطها المدير → يُلزَم المستخدم بتغييرها أول دخول.
+       (نموذج الدعوة بالرابط: بلا كلمة مرور → يضبطها المستخدم بنفسه → لا إلزام) */
+    const mustChange = !!(password && password.length >= 8)
 
     /* ── upsert الملف الشخصي (حقول مُعتمدة فقط) ── */
     const allowedProfileData = {
@@ -130,6 +142,7 @@ export async function POST(req: NextRequest) {
       marital_status,
       notif_enabled,
       notif_email,
+      must_change_password: mustChange,
     }
 
     const { error: upsertErr } = await admin

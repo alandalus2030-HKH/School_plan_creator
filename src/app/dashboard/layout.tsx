@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
 import { PermissionsProvider } from '@/lib/PermissionsContext'
@@ -40,7 +41,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [lang,      setLang]      = useState<'ar' | 'en'>('ar')
   const [collapsed, setCollapsed] = useState(false)
   const pathname  = usePathname()
+  const router    = useRouter()
   const pageTitle = getTitle(pathname, lang)
+
+  /* حارس: إلزام تغيير كلمة المرور عند أول دخول → تحويل لصفحة التعيين */
+  useEffect(() => {
+    ;(async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase.from('profiles').select('must_change_password').eq('id', user.id).maybeSingle()
+      if (data?.must_change_password) router.replace('/auth/update-password?forced=1')
+    })()
+  }, [])
 
   /* احفظ الحالة في localStorage */
   useEffect(() => {

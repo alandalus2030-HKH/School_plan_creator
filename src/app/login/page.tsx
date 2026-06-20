@@ -23,6 +23,11 @@ function LoginForm() {
   const [loading,      setLoading]      = useState(false)
   const [quote,        setQuote]        = useState('')
   const [lang,         setLang]         = useState<'ar' | 'en'>('ar')
+  /* نسيت كلمة المرور */
+  const [forgot,       setForgot]       = useState(false)
+  const [forgotEmail,  setForgotEmail]  = useState('')
+  const [forgotMsg,    setForgotMsg]    = useState('')
+  const [forgotLoad,   setForgotLoad]   = useState(false)
 
   const router       = useRouter()
   const searchParams = useSearchParams()
@@ -111,6 +116,25 @@ function LoginForm() {
       setError(msg)
       setLoading(false)
     }
+  }
+
+  const submitForgot = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!forgotEmail.trim()) return
+    setForgotLoad(true); setForgotMsg('')
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      })
+      const j = await res.json().catch(() => ({}))
+      setForgotMsg(res.ok
+        ? (isAr ? `✅ إن كان البريد مسجّلاً، فسيصلك رابط إعادة التعيين إلى ${forgotEmail.trim()}` : `✅ If registered, a reset link was sent to ${forgotEmail.trim()}`)
+        : `❌ ${j.error || (isAr ? 'تعذّر الإرسال' : 'Failed')}`)
+    } catch {
+      setForgotMsg(isAr ? '❌ تعذّر الاتصال بالخادم' : '❌ Cannot reach server')
+    }
+    setForgotLoad(false)
   }
 
   return (
@@ -231,11 +255,40 @@ function LoginForm() {
             </form>
           </div>
 
-          <p className="text-center text-xs text-slate-400 mt-6">
-            {isAr
-              ? 'إذا نسيت كلمة المرور تواصل مع مشرف النظام'
-              : 'Forgot your password? Contact your system administrator'}
-          </p>
+          {/* نسيت كلمة المرور */}
+          <div className="text-center mt-5">
+            {!forgot ? (
+              <button type="button" onClick={() => { setForgot(true); setForgotMsg('') }}
+                className="text-sm text-violet-600 hover:underline font-medium">
+                {isAr ? 'نسيت كلمة المرور؟' : 'Forgot your password?'}
+              </button>
+            ) : (
+              <form onSubmit={submitForgot} className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-right space-y-3">
+                <p className="text-sm font-semibold text-slate-700">
+                  {isAr ? 'إعادة تعيين كلمة المرور' : 'Reset password'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {isAr ? 'أدخل بريدك الإلكتروني وسيصلك رابط لتعيين كلمة مرور جديدة.' : 'Enter your email to receive a reset link.'}
+                </p>
+                <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required
+                  dir="ltr" placeholder="example@gmail.com"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm bg-white" />
+                {forgotMsg && (
+                  <p className={`text-xs px-3 py-2 rounded-lg ${forgotMsg.startsWith('✅') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{forgotMsg}</p>
+                )}
+                <div className="flex gap-2">
+                  <button type="submit" disabled={forgotLoad || !forgotEmail.trim()}
+                    className="flex-1 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
+                    {forgotLoad ? (isAr ? 'جارٍ الإرسال...' : 'Sending...') : (isAr ? 'إرسال الرابط' : 'Send link')}
+                  </button>
+                  <button type="button" onClick={() => setForgot(false)}
+                    className="px-4 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-white">
+                    {isAr ? 'إلغاء' : 'Cancel'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
 
           <div className="flex items-center justify-center gap-3 mt-4 text-xs text-slate-400">
             <Link href="/privacy" className="hover:text-violet-600 transition-colors">

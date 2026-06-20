@@ -1,0 +1,275 @@
+'use client'
+
+/* ════════════════════════════════════════════════════════════
+   دليل الاختبار التفاعلي قبل الإطلاق — قائمة تحقّق قابلة للنقر.
+   - الحالات تُحفظ محلياً (localStorage) فلا تضيع عند التحديث.
+   - شريط تقدّم عام + لكل قسم.
+   - زر «طباعة / حفظ PDF» يُصدّرها (الصناديق المؤشّرة تظهر في الـPDF).
+   مصدر المحتوى: TEST_PLAN.md
+   ════════════════════════════════════════════════════════════ */
+
+import { useState, useEffect } from 'react'
+import { Printer, RotateCcw, CheckCircle2 } from 'lucide-react'
+
+type Section = { id: string; title: string; items: string[] }
+
+const SECTIONS: Section[] = [
+  { id: '0', title: '0) تجهيزات الاختبار', items: [
+    'جهّز 3 حسابات: موظف (مكلَّف)، منسق/مقيّم، مدير المدرسة.',
+    'جهّز خطة تجريبية واحدة على الأقل (هيكل رباعي يُفضَّل).',
+    'افتح الإنتاج وسجّل الدخول بكل دور في نافذة منفصلة.',
+    'جرّب على متصفح حديث + جهاز موبايل أو نافذة ~375px.',
+  ]},
+  { id: '1', title: '1) الدخول والمصادقة', items: [
+    'تسجيل الدخول بالاسم/البريد + كلمة المرور ينجح.',
+    'كلمة مرور خاطئة → رسالة خطأ واضحة.',
+    '«نسيت كلمة المرور» / إعادة التعيين تعمل (أو «نسخ رابط إعادة التعيين» 👑).',
+    'الخروج يُنهي الجلسة ويعيد لصفحة الدخول.',
+    'فتح صفحة داخلية بلا تسجيل دخول → تحويل لصفحة الدخول.',
+  ]},
+  { id: '2', title: '2) إنشاء الخطة (الطريقتان + الافتراضات) 👑', items: [
+    'الخطوة 1: الاسم + العام + تاريخا البدء/الانتهاء إلزاميان.',
+    'الخطوة 2: الهيكل الرباعي افتراضياً (المعيار الرئيس · الجانب · المعيار الفرعي · الهدف).',
+    'تغيير عدد المستويات (2–5) يحدّث المسمّيات والمعاينة.',
+    'الخطوة 3 (KPI): المعيار الفرعي مُفعَّل افتراضياً فقط.',
+    'يظهر زرّان: «📋 القوائم» (AI Powered) و«🌳 العقد الهرمية».',
+    'زر القوائم يفتح صفحة البناء بالقوائم؛ زر الهرمية يفتح العرض الشجري.',
+  ]},
+  { id: '3', title: '3) بناء الخطة — العرض الهرمي 👑', items: [
+    'إضافة «معيار رئيس» من كتالوج الاعتماد أو «بند مخصّص».',
+    'تتابع المستويات: جانب → معيار فرعي → هدف.',
+    'المستويات 1–3 من الكتالوج؛ الهدف نص حر.',
+    'تعديل اسم عقدة · توسيع/طيّ الشجرة.',
+    'الترقيم يظهر بجانب كل عنصر (رسمي للمعايير، هرمي للأهداف).',
+    'مؤشرات KPI على المعيار الفرعي: إضافة يدوية + توليد AI.',
+  ]},
+  { id: '4', title: '4) بناء الخطة — عرض القوائم (جديد) 👑', items: [
+    'فتح قائمة المعيار الرئيس تعرض كتالوج الاعتماد مباشرةً + «مخصّص».',
+    'اختيار معيار من الكتالوج يضيفه ويُحدّده وينتقل للتالي.',
+    'التتابع حتى الهدف ثم يظهر قسم المهام.',
+    'اقتراح أهداف بالـAI (المعيار الفرعي): توليد → اختيار → إضافة مرقّمة.',
+    'اقتراح مهام بالـAI (الهدف): توليد → اختيار → إضافة.',
+    'الإدخال السريع: اسم + Enter يُضيف مهمة ويُفرّغ الحقل (عدة مهام).',
+    '«فتح النموذج الكامل» ينقل لإنشاء المهمة بالتفاصيل.',
+    'المحتوى موسَّط واسم الخطة على سطر واحد.',
+  ]},
+  { id: '5', title: '5) الترقيم الهرمي + الحذف المتسلسل (جديد) 👑', items: [
+    'الهدف/المهمة الجديدة تأخذ رقماً هرمياً تلقائياً.',
+    'حذف مهمة → إعادة ترقيم باقي مهام الهدف بلا فجوات.',
+    'حذف هدف → نافذة تأكيد تذكر عدد المهام التي ستُحذف معه.',
+    'بعد حذف الهدف → إعادة ترقيم الأهداف الباقية تلقائياً.',
+    'حذف معيار/جانب → يحذف كل ما تحته (تحقّق أنها اختفت).',
+  ]},
+  { id: '6', title: '6) التكافؤ بين العرضين + التحويل (جديد) 👑', items: [
+    'صفحة الخطط: زرّان «🌳 الهيكل الهرمي» و«📋 القوائم» بنفس النمط واللون.',
+    'رأس الخطة في القوائم يطابق الهرمي (إنجاز/تقدير/تصدير/استيراد/KPI/QNSA/اعتماد/تعديل/حذف).',
+    'زر التحويل يعمل في الاتجاهين لنفس الخطة.',
+    'التعديل/الاستيراد/إعدادات KPI من داخل عرض القوائم يعمل.',
+  ]},
+  { id: '7', title: '7) سير عمل المهمة (آلة الحالات)', items: [
+    '👤 «لم تبدأ → جارية» (بدء العمل).',
+    '👤 رفع دليل ثم «رفع للتقييم».',
+    '👤 لا يستطيع اعتماد/رفض دليله (منع التقييم الذاتي).',
+    '🧑‍⚖️ اعتماد/رفض الدليل + سبب الرفض.',
+    '🧑‍⚖️ اعتماد المهمة + تقييم (1–5) → منجزة.',
+    '🧑‍⚖️ «إعادة للتعديل» + سبب → ترجع جارية + إشعار.',
+    'منع التقييم الذاتي للمهمة (المقيّم ≠ المكلَّف).',
+    '👑 «إعادة فتح» مهمة منجزة → تُصفَّر دورة التقييم.',
+    'كل انتقال يُسجَّل ويظهر في تقرير QNSA.',
+    'المهمة المنجزة مقفلة من التعديل (عدا التعليقات).',
+  ]},
+  { id: '8', title: '8) بوّابة الإنجاز + الأدلة', items: [
+    'تحديد «أنواع الأدلة المطلوبة» عند الإنشاء/التعديل.',
+    'بطاقة البوّابة (مقبول/قيد المراجعة/ناقص) + شارة الاكتمال.',
+    'لا اعتماد قبل قبول دليل لكل نوع مطلوب.',
+    'لا اعتماد إن كانت كل الأدلة مرفوضة.',
+    'أدلة متنوعة: ملفات متعددة · فيديو يوتيوب · وصف AI.',
+    'تعديل الدليل + صفحة الغلاف/الطباعة الذكية.',
+  ]},
+  { id: '9', title: '9) التقويم المدرسي + التواريخ', items: [
+    'تاريخ البدء (افتراضي اليوم) + الانتهاء إلزاميان.',
+    'تاريخ ضمن عطلة «منع» → يُرفض؛ 👑 يتجاوز بتأكيد.',
+    'تاريخ ضمن اختبارات/نهاية أسبوع → تنبيه يسمح بالمتابعة.',
+    'عدسة التقويم تُظلّل العطلات/الاختبارات/نهاية الأسبوع.',
+    '👑 إدارة التقويم من الإعدادات + ضبط نهاية الأسبوع.',
+  ]},
+  { id: '10', title: '10) العدسات الثلاث', items: [
+    'مهامي: التبويبات + بحث + فرز + «المتأخرة فقط».',
+    'كل المهام: بطاقات الحالة في صف + الفلاتر + «إزالة الفلاتر».',
+    'فلتر التقييم: «لم تُقيَّم» يُعطّل صفّ الدرجات.',
+    'فلتر القسم + ترقيم الصفحات.',
+    'كانبان: السحب لم تبدأ→جارية؛ →منجزة يفتح المهمة؛ نقلة ممنوعة → رسالة.',
+    'جانت/التقويم: يعرضان المُصفّى؛ المهام بلا تواريخ لا تظهر في جانت.',
+    'رقم المهمة الهرمي يظهر في القوائم (جديد).',
+  ]},
+  { id: '11', title: '11) لوحة التجميع + الاتجاه 🧑‍⚖️/👑', items: [
+    'تثبيت الأعلى + الفلاتر المضغوطة.',
+    'التجميع حسب القسم/النوع/المالك.',
+    '«أدلة مقبولة» تَعدّ المقبول فقط.',
+    'روابط الغوص تفتح «كل المهام» مُفلتراً.',
+    'تصدير CSV يفتح عربياً في Excel.',
+    'قسم «اتجاه نسبة الإنجاز» يرسم الخط.',
+    'العزل: مشرف=الكل · نائب=أقسامه · منسق=قسمه.',
+  ]},
+  { id: '12', title: '12) التقارير الرسمية + QNSA 👑', items: [
+    'بيانات المدرسة: رفع شعار + توقيع المدير + الختم.',
+    'المُشغّل: اختيار تقرير + منتقي الفترة + «إصدار».',
+    'كل تقرير يطبع/يُحفظ PDF بالترويسة والتوقيع والختم.',
+    'تقرير QNSA يُظهر «سجل الاعتماد والمراجعة».',
+    'التقارير الزمنية تحترم الفترة.',
+  ]},
+  { id: '13', title: '13) نوافذ تأكيد الحذف الموحّدة (جديد)', items: [
+    'كل حذف يفتح نافذة منبثقة موحّدة (لا نص مضمَّن): الخطط/العقد/المهام/الأدلة/المستخدمون/الفرق/الأوسمة/المدارس/الاجتماعات/الإعدادات/الأماكن/التقويم/المجموعات.',
+    'النافذة تُغلق بـ Esc أو النقر خارجها وتعرض اسم العنصر (وعدد المهام للعقد).',
+  ]},
+  { id: '14', title: '14) الإعدادات (التنظيم الجديد) 👑', items: [
+    'بيانات المدرسة هي الصفحة الافتراضية.',
+    'مجموعتان قابلتان للطيّ (البنية التنظيمية · القوائم والتصنيفات) بعدّادات.',
+    'مربع البحث أعلى الصفحة يرشّح كل العناصر.',
+    'فتح مجموعة يطوي الأخرى؛ آخر قسم مفتوح يُحفظ.',
+    'إدارة كل قسم تعمل (بيانات/أماكن/إشراف/أعضاء/تقويم/قوائم/أدوار/إشعار).',
+  ]},
+  { id: '15', title: '15) المستخدمون + الأدوار 👑', items: [
+    'إنشاء مستخدم + دور + عضوية فرق (بلا خطأ).',
+    'تعديل اسم المستخدم يحدّثه في كل الواجهة.',
+    'حذف مستخدم عبر النافذة الموحّدة؛ منع حذف الحسابات المميّزة/الذات.',
+    'الأدوار: إنشاء/تعديل + ضبط الصلاحيات؛ منع التصعيد غير المخوّل.',
+  ]},
+  { id: '16', title: '16) العزل وتعدد المدارس والتقمّص (أمني) 👑', items: [
+    'حجب الصفحات حسب الصلاحية (تجميع/خطط/تقارير).',
+    'التقمّص: البيانات تخصّ المدرسة الفعّالة فقط (لا تسرّب).',
+    'الإنشاء/الحذف أثناء التقمّص يُسند للمدرسة الصحيحة.',
+    'استدعاء API لعنصر خارج المدرسة → 403.',
+  ]},
+  { id: '17', title: '17) الموبايل والمتصفحات والطباعة', items: [
+    'شاشة ~375px: لا فيض أفقي، أزرار قابلة للنقر، جداول قابلة للتمرير.',
+    'Chrome · Edge · Safari: العرض والطباعة سليمة.',
+    'RTL سليم في كل الصفحات.',
+    'طباعة الأدلة/التقارير: ترويسة/توقيع/ختم سليمة بلا واجهة التطبيق.',
+  ]},
+  { id: '18', title: '18) عمليات قبل الإطلاق (إعداد/بيانات)', items: [
+    'بريد: تأكيد إشعارات Resend + مسار إعادة التعيين.',
+    'التقويم: إضافة عطلتي العيدين فور إعلان الوزارة.',
+    '(مؤجَّل Pro): حماية كلمات المرور المسرّبة — غير مانع.',
+    'اختياري: رفع حد طول كلمة المرور إلى 8 + متطلباتها.',
+  ]},
+]
+
+const TOTAL = SECTIONS.reduce((n, s) => n + s.items.length, 0)
+const STORAGE_KEY = 'test_plan_checks_v1'
+const NOTES_KEY   = 'test_plan_notes_v1'
+
+export default function TestPlanPage() {
+  const [checks, setChecks] = useState<Record<string, boolean>>({})
+  const [notes,  setNotes]  = useState<Record<string, string>>({})
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    try { setChecks(JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')) } catch {}
+    try { setNotes(JSON.parse(localStorage.getItem(NOTES_KEY) || '{}')) } catch {}
+    setLoaded(true)
+  }, [])
+  useEffect(() => { if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(checks)) }, [checks, loaded])
+  useEffect(() => { if (loaded) localStorage.setItem(NOTES_KEY, JSON.stringify(notes)) }, [notes, loaded])
+
+  const toggle = (id: string) => setChecks(c => ({ ...c, [id]: !c[id] }))
+  const setNote = (id: string, v: string) => setNotes(n => ({ ...n, [id]: v }))
+  const reset  = () => { if (confirm('تصفير كل علامات الاختبار والملاحظات؟')) { setChecks({}); setNotes({}) } }
+
+  const doneCount = Object.values(checks).filter(Boolean).length
+  const pct = TOTAL ? Math.round((doneCount / TOTAL) * 100) : 0
+  const secDone = (s: Section) => s.items.filter((_, i) => checks[`${s.id}-${i}`]).length
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .tp-sheet { box-shadow: none !important; border: none !important; }
+          @page { size: A4; margin: 14mm; }
+        }
+      `}</style>
+
+      {/* رأس */}
+      <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white rounded-2xl p-6 mb-4 tp-sheet">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold">دليل الاختبار قبل الإطلاق</h1>
+            <p className="text-violet-200 text-sm mt-1">قائمة تحقّق تفاعلية · تُحفظ محلياً · قابلة للطباعة PDF</p>
+          </div>
+          <div className="text-left">
+            <div className="text-4xl font-bold">{pct}%</div>
+            <div className="text-violet-200 text-xs mt-1">{doneCount} / {TOTAL} بند</div>
+          </div>
+        </div>
+        <div className="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
+          <div className="h-full bg-white rounded-full transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
+      {/* أدوات (لا تُطبع) */}
+      <div className="no-print flex items-center gap-2 mb-4 flex-wrap">
+        <button onClick={() => window.print()}
+          className="inline-flex items-center gap-2 text-sm text-white px-4 py-2 rounded-xl font-medium"
+          style={{ background: 'var(--gradient-button, #8a1538)' }}>
+          <Printer size={16} /> طباعة / حفظ PDF
+        </button>
+        <button onClick={reset}
+          className="inline-flex items-center gap-2 text-sm text-slate-600 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50">
+          <RotateCcw size={15} /> تصفير
+        </button>
+        <span className="text-xs text-slate-400">للحصول على PDF: اختر «حفظ كـ PDF» في وجهة الطباعة.</span>
+      </div>
+
+      {/* الأقسام */}
+      <div className="space-y-4">
+        {SECTIONS.map(s => {
+          const d = secDone(s)
+          const full = d === s.items.length
+          return (
+            <div key={s.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm tp-sheet break-inside-avoid">
+              <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-100">
+                <h2 className="font-bold text-slate-800 flex items-center gap-2">
+                  {full && <CheckCircle2 size={16} className="text-emerald-500" />}
+                  {s.title}
+                </h2>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${full ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                  {d}/{s.items.length}
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {s.items.map((item, i) => {
+                  const id = `${s.id}-${i}`
+                  const on = !!checks[id]
+                  return (
+                    <div key={id} className="p-2 rounded-lg hover:bg-slate-50 break-inside-avoid">
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" checked={on} onChange={() => toggle(id)}
+                          className="mt-0.5 w-4 h-4 accent-violet-600 flex-shrink-0" />
+                        <span className={`text-sm leading-relaxed ${on ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{item}</span>
+                      </label>
+                      {/* حقل الملاحظة (يظهر على الشاشة) */}
+                      <input
+                        value={notes[id] || ''}
+                        onChange={e => setNote(id, e.target.value)}
+                        placeholder="📝 ملاحظة (اختياري)..."
+                        className="no-print mt-1 mr-6 w-[calc(100%-1.75rem)] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                      {/* نسخة الطباعة للملاحظة (تظهر في الـPDF فقط عند وجود نص) */}
+                      {notes[id]?.trim() && (
+                        <p className="hidden print:block mt-1 mr-6 text-xs text-slate-600">📝 {notes[id]}</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <p className="text-xs text-slate-400 text-center mt-6">
+        معيار الجاهزية: اجتياز الأقسام 1–17 + إنهاء عمليات القسم 18 (عدا المؤجَّل لـPro).
+      </p>
+    </div>
+  )
+}
