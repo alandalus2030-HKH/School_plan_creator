@@ -24,7 +24,7 @@ import Breadcrumb from '@/components/Breadcrumb'
 import ConflictWarning from '@/components/ConflictWarning'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { findConflicts, type ConflictResult } from '@/lib/conflicts'
-import MentionInput, { extractMentions } from '@/components/MentionInput'
+import MentionInput from '@/components/MentionInput'
 import Subtasks from '@/components/Subtasks'
 
 /* ══ تعريف كلاسات التقييم كنصوص كاملة حتى يتعرف عليها Tailwind ══
@@ -514,19 +514,14 @@ export default function TaskPage() {
       .single()
     if (data) setComments(prev => [{ ...data, profiles: { id: userId, full_name_ar: userName } }, ...prev])
 
-    /* ── إشعار المستخدمين المذكورين بـ @ ── */
-    const mentioned = extractMentions(content, profiles)
-    for (const u of mentioned) {
-      if (u.id === userId) continue   // لا تُشعر نفسك
-      createNotification({
-        recipientId: u.id,
-        senderId:    userId,
-        type:        'task_comment',
-        title:       `ذكرك ${userName} في تعليق`,
-        body:        content.length > 80 ? content.slice(0, 80) + '…' : content,
-        link:        `/dashboard/tasks/${taskId}`,
+    /* ── إشعار أصحاب العلاقة (المكلّف + المقيّم + صاحب الخطة) والمذكورين بـ @
+          عبر مسار خادمي — يتولّى توزيع القسم/الفريق واحترام التفضيلات ── */
+    try {
+      await fetch(`/api/tasks/${taskId}/comment-notify`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
       })
-    }
+    } catch { /* تجاهل أخطاء الإشعار — لا تُوقف نشر التعليق */ }
 
     setComment('')
     setSendingCmt(false)
@@ -792,7 +787,10 @@ export default function TaskPage() {
   // بيانات التقدير الحالي — من المصفوفة المحلية الثابتة
   const currentRating = task.rating ? RATING_INFO[task.rating as RatingValue] : null
 
-  /* بوابة الإنجاز: كل دليل مملوك للمهمة يجب أن يكون «معتمداً» قبل الاعتماد (لا مرفوض ولا قيد مراجعة) */
+  /* بوابة الأدلة: كل مهمة تتطلب دليلاً (لا رفع بلا دليل، ولا إنجاز بلا دليل معتمد).
+     كذلك كل دليل مملوك يجب أن يكون «معتمداً» قبل الاعتماد (لا مرفوض ولا قيد مراجعة). */
+  const hasEvidence = (evidence || []).length > 0
+  const acceptedCount = (evidence || []).filter((e: any) => e.status === 'accepted').length
   const unresolvedEvidence = (evidence || []).filter((e: any) => e.status !== 'accepted')
   const nRejected = unresolvedEvidence.filter((e: any) => e.status === 'rejected').length
   const nPending  = unresolvedEvidence.length - nRejected
@@ -1018,12 +1016,16 @@ export default function TaskPage() {
                   <Play size={14} /> بدء العمل
                 </button>
               )}
-              <button onClick={() => doTransition('submit')} disabled={transitioning}
+              <button onClick={() => doTransition('submit')} disabled={transitioning || !hasEvidence}
+                title={!hasEvidence ? 'أضف دليلاً واحداً على الأقل قبل الرفع' : undefined}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold hover:brightness-110 disabled:opacity-50"
                 style={{ background: 'var(--gradient-button)' }}>
                 <span className="inline-flex">{transitioning ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}</span>
                 رفع للتقييم
               </button>
+              {!hasEvidence && (
+                <p className="w-full text-xs text-red-600 mt-1">🔒 يجب إضافة دليل واحد على الأقل قبل رفع المهمة للتقييم.</p>
+              )}
             </div>
           )}
 
@@ -1453,6 +1455,13 @@ export default function TaskPage() {
 
             {wfError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">{wfError}</div>}
 
+            {/* تنبيه: لا دليل أصلاً يمنع الإنجاز */}
+            {unresolvedEvidence.length === 0 && acceptedCount === 0 && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
+                <span className="font-semibold">🔒 لا يمكن إنجاز المهمة:</span> لا يوجد أي دليل. يلزم دليل معتمد واحد على الأقل — أعِد المهمة للتعديل ليرفع المكلّف دليلاً.
+              </div>
+            )}
+
             {/* تنبيه: أدلة غير معتمدة تمنع الإنجاز */}
             {unresolvedEvidence.length > 0 && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
@@ -1464,8 +1473,8 @@ export default function TaskPage() {
 
             {/* اعتماد */}
             <button onClick={() => doTransition('approve', { rating: ratingValue, note: ratingNote })}
-              disabled={transitioning || !ratingValue || unresolvedEvidence.length > 0}
-              title={unresolvedEvidence.length > 0 ? 'يلزم اعتماد كل الأدلة أولاً' : undefined}
+              disabled={transitioning || !ratingValue || unresolvedEvidence.length > 0 || acceptedCount === 0}
+              title={acceptedCount === 0 ? 'يلزم دليل معتمد واحد على الأقل' : unresolvedEvidence.length > 0 ? 'يلزم اعتماد كل الأدلة أولاً' : undefined}
               className="w-full flex items-center justify-center gap-2 py-2.5 text-white font-semibold rounded-xl text-sm disabled:opacity-50 hover:brightness-110"
               style={{ background: 'var(--gradient-button)' }}>
               <span className="inline-flex">{transitioning ? <Loader2 size={16} className="animate-spin" /> : <CircleCheckBig size={16} />}</span>

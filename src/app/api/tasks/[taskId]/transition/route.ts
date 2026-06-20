@@ -137,8 +137,12 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     if (!['not_started', 'in_progress', 'returned'].includes(task.status)) {
       return NextResponse.json({ error: 'لا يمكن رفع المهمة من حالتها الحالية' }, { status: 400 })
     }
+    /* لا رفع للتقييم بلا دليل — كل مهمة تتطلب دليلاً واحداً على الأقل */
+    const ev = await evidenceByType()
+    if (ev.length === 0) {
+      return NextResponse.json({ error: 'يجب رفع دليل واحد على الأقل قبل رفع المهمة للتقييم' }, { status: 400 })
+    }
     if (requiredTypes.length > 0) {
-      const ev = await evidenceByType()
       const present = new Set(ev.map((e: any) => e.evidence_type))
       const missing = requiredTypes.filter(t => !present.has(t))
       if (missing.length) return NextResponse.json({ error: `يجب رفع أدلة الأنواع: ${missing.join('، ')}` }, { status: 400 })
@@ -178,6 +182,10 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
       const nPen = notAccepted.length - nRej
       const parts = [nRej ? `${nRej} مرفوض` : null, nPen ? `${nPen} قيد المراجعة` : null].filter(Boolean).join(' و')
       return NextResponse.json({ error: `لا يمكن إنجاز المهمة — يوجد دليل ${parts}. اعتمد كل الأدلة أو احذفها أو أعِد المهمة للتعديل قبل الإنجاز.` }, { status: 400 })
+    }
+    /* لا إنجاز بلا دليل معتمد واحد على الأقل (يحجب المهام بصفر أدلة) */
+    if (ev.filter((e: any) => e.status === 'accepted').length === 0) {
+      return NextResponse.json({ error: 'لا يمكن إنجاز المهمة بدون دليل معتمد واحد على الأقل' }, { status: 400 })
     }
     return logAndRespond('completed',
       { rating, rating_note: body.note?.toString().trim() || null, rated_at: new Date().toISOString(), reviewer_id: task.reviewer_id || userId },

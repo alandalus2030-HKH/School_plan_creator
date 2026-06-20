@@ -50,6 +50,7 @@ type Task = {
   reviewer_id: string | null
   rating: number | null
   rated_at: string | null
+  created_at: string | null
   /* مصدر ظهور المهمة للمستخدم */
   _source?: 'assigned' | 'team' | 'reviewer' | 'department'
 }
@@ -70,7 +71,7 @@ export default function MyTasksPage() {
   const [savingId,  setSavingId]  = useState<string | null>(null)
   /* أدوات القائمة: بحث + فرز + تصفية المتأخرة فقط */
   const [q,          setQ]          = useState('')
-  const [sortBy,     setSortBy]     = useState<'deadline' | 'priority'>('deadline')
+  const [sortBy,     setSortBy]     = useState<'newest' | 'deadline' | 'priority'>('newest')
   const [overdueOnly, setOverdueOnly] = useState(false)
 
   useEffect(() => {
@@ -111,7 +112,7 @@ export default function MyTasksPage() {
       /* المهام المكلَّف بها مباشرة */
       const { data: directTasks } = await supabase
         .from('tasks')
-        .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at')
+        .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
         .eq('assigned_to_user_id', user.id)
         .order('end_date', { ascending: true, nullsFirst: false })
       ;(directTasks || []).forEach(t => {
@@ -122,7 +123,7 @@ export default function MyTasksPage() {
       /* المهام المكلَّف بها كمقيّم */
       const { data: reviewerTasks } = await supabase
         .from('tasks')
-        .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at')
+        .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
         .eq('reviewer_id', user.id)
         .order('end_date', { ascending: true, nullsFirst: false })
       ;(reviewerTasks || []).forEach(t => {
@@ -134,7 +135,7 @@ export default function MyTasksPage() {
       if (myDept) {
         const { data: deptTasks } = await supabase
           .from('tasks')
-          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at')
+          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
           .eq('assigned_to_department', myDept)
           .order('end_date', { ascending: true, nullsFirst: false })
         ;(deptTasks || []).forEach(t => {
@@ -149,7 +150,7 @@ export default function MyTasksPage() {
       if (isAdminUser) {
         const { data: noReviewerTasks } = await supabase
           .from('tasks')
-          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at')
+          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
           .eq('status', 'submitted')
           .is('reviewer_id', null)
           .order('end_date', { ascending: true, nullsFirst: false })
@@ -163,7 +164,7 @@ export default function MyTasksPage() {
       if (allTeamIds.length > 0) {
         const { data: teamTasks } = await supabase
           .from('tasks')
-          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at')
+          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
           .in('assigned_to_team_id', allTeamIds)
           .order('end_date', { ascending: true, nullsFirst: false })
         ;(teamTasks || []).forEach(t => {
@@ -249,10 +250,16 @@ export default function MyTasksPage() {
       if (sortBy === 'priority') {
         return (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9)
       }
-      /* deadline: الأقرب موعداً أولاً، وما بلا موعد في الآخر */
-      const da = a.end_date ? new Date(a.end_date).getTime() : Infinity
-      const db = b.end_date ? new Date(b.end_date).getTime() : Infinity
-      return da - db
+      if (sortBy === 'deadline') {
+        /* deadline: الأقرب موعداً أولاً، وما بلا موعد في الآخر */
+        const da = a.end_date ? new Date(a.end_date).getTime() : Infinity
+        const db = b.end_date ? new Date(b.end_date).getTime() : Infinity
+        return da - db
+      }
+      /* newest (افتراضي): الأحدث إنشاءً أولاً */
+      const ca = a.created_at ? new Date(a.created_at).getTime() : 0
+      const cb = b.created_at ? new Date(b.created_at).getTime() : 0
+      return cb - ca
     })
 
   if (loading) return (
@@ -341,8 +348,9 @@ export default function MyTasksPage() {
               <input value={q} onChange={e => setQ(e.target.value)} placeholder="بحث في المهام..."
                 className="w-full pr-9 pl-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white" />
             </div>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value as 'deadline' | 'priority')}
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as 'newest' | 'deadline' | 'priority')}
               className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300">
+              <option value="newest">الأحدث أولاً</option>
               <option value="deadline">الأقرب موعداً</option>
               <option value="priority">الأعلى أولوية</option>
             </select>
