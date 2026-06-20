@@ -42,6 +42,15 @@ function LoginForm() {
     } else if (reason === 'school_suspended') {
       setError(isAr ? 'تم تعطيل اشتراك مدرستك، تواصل مع مشرف النظام' : 'Your school subscription has been suspended, contact the system administrator')
     }
+
+    /* رابط استرجاع كلمة المرور قد يهبط هنا (في hash) → وجّه لصفحة التعيين مع الحفاظ على الرمز */
+    if (typeof window !== 'undefined' && /type=recovery|access_token=/.test(window.location.hash)) {
+      router.replace('/auth/update-password' + window.location.hash)
+    }
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') router.replace('/auth/update-password')
+    })
+    return () => sub.subscription.unsubscribe()
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
