@@ -170,9 +170,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
       const notAccepted = requiredTypes.filter(t => !accepted.has(t))
       if (notAccepted.length) return NextResponse.json({ error: `لا يمكن الاعتماد قبل قبول أدلة الأنواع: ${notAccepted.join('، ')}` }, { status: 400 })
     }
-    /* حجب الاعتماد إن كانت كل الأدلة مرفوضة ولا يوجد مقبول واحد */
-    if (ev.length > 0 && ev.every((e: any) => e.status === 'rejected')) {
-      return NextResponse.json({ error: 'لا يمكن اعتماد المهمة — جميع الأدلة مرفوضة. اقبل دليلاً أو أعِد المهمة للتعديل.' }, { status: 400 })
+    /* الإنجاز يتطلب محفظة أدلة نظيفة: كل دليل مملوك للمهمة يجب أن يكون «معتمداً».
+       أي دليل «مرفوض» أو «قيد المراجعة» يمنع الإنجاز (اعتمده/احذفه/أعِد المهمة). */
+    const notAccepted = ev.filter((e: any) => e.status !== 'accepted')
+    if (notAccepted.length > 0) {
+      const nRej = notAccepted.filter((e: any) => e.status === 'rejected').length
+      const nPen = notAccepted.length - nRej
+      const parts = [nRej ? `${nRej} مرفوض` : null, nPen ? `${nPen} قيد المراجعة` : null].filter(Boolean).join(' و')
+      return NextResponse.json({ error: `لا يمكن إنجاز المهمة — يوجد دليل ${parts}. اعتمد كل الأدلة أو احذفها أو أعِد المهمة للتعديل قبل الإنجاز.` }, { status: 400 })
     }
     return logAndRespond('completed',
       { rating, rating_note: body.note?.toString().trim() || null, rated_at: new Date().toISOString(), reviewer_id: task.reviewer_id || userId },

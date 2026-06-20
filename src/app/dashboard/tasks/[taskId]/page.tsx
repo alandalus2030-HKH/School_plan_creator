@@ -183,7 +183,7 @@ export default function TaskPage() {
         budget_qar, other_resources, evidence_required, required_evidence_types,
         depends_on_task_id,
         task_locations ( location_id, school_locations ( id, name_ar ) ),
-        evidence ( id, name, description, evidence_number, status, evidence_type, file_url, video_url, file_type, created_at,
+        evidence ( id, name, description, evidence_number, status, review_note, evidence_type, file_url, video_url, file_type, created_at,
           evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) ),
         task_comments (
           id, content, created_at,
@@ -206,7 +206,7 @@ export default function TaskPage() {
     /* الأدلة المشتركة (المرتبطة من مهام أخرى عبر evidence_links) — استعلام متسامح */
     const { data: links } = await supabase
       .from('evidence_links')
-      .select('evidence_number, evidence:evidence_id ( id, name, description, evidence_number, status, file_url, video_url, file_type, created_at, task_id, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) )')
+      .select('evidence_number, evidence:evidence_id ( id, name, description, evidence_number, status, review_note, file_url, video_url, file_type, created_at, task_id, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ) )')
       .eq('task_id', taskId)
     setLinkedEvidence((links || [])
       .map((l: any) => l.evidence ? { ...l.evidence, _linkNumber: l.evidence_number } : null)
@@ -776,6 +776,8 @@ export default function TaskPage() {
 
   /* المهمة المنجزة مقفلة: لا تعديلات (عدا التعليقات) إلا بعد إعادة فتحها */
   const isCompleted    = status === 'completed'
+  /* مرفوعة للتقييم → الأدلة مقفلة (المقيّم يعتمد/يرفض لا يحذف؛ المكلّف يُعيدها للتعديل أولاً) */
+  const isUnderReview  = status === 'submitted'
   /* المكلَّف = مباشرةً، أو عضو في القسم المُكلَّف (تكليف القسم كله) */
   const isAssignee     = task.assigned_to_user_id === userId
     || (!!task.assigned_to_department && task.assigned_to_department === myDept)
@@ -789,6 +791,11 @@ export default function TaskPage() {
 
   // بيانات التقدير الحالي — من المصفوفة المحلية الثابتة
   const currentRating = task.rating ? RATING_INFO[task.rating as RatingValue] : null
+
+  /* بوابة الإنجاز: كل دليل مملوك للمهمة يجب أن يكون «معتمداً» قبل الاعتماد (لا مرفوض ولا قيد مراجعة) */
+  const unresolvedEvidence = (evidence || []).filter((e: any) => e.status !== 'accepted')
+  const nRejected = unresolvedEvidence.filter((e: any) => e.status === 'rejected').length
+  const nPending  = unresolvedEvidence.length - nRejected
 
   /* إجراء الشريط اللاصق الأساسي حسب الدور والحالة */
   const scrollToHeader = () =>
@@ -1130,7 +1137,7 @@ export default function TaskPage() {
             📎 الأدلة والإثباتات
             <span className="text-xs font-normal text-slate-400 mr-2">({evidence.length})</span>
           </h2>
-          {!isCompleted && canManageEvidence && (
+          {!isCompleted && !isUnderReview && canManageEvidence && (
             <div className="flex items-center gap-2">
               <button onClick={() => setShowEvPicker(v => !v)}
                 className="text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors">
@@ -1142,10 +1149,13 @@ export default function TaskPage() {
               </Link>
             </div>
           )}
+          {isUnderReview && (
+            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">🔒 الأدلة مقفلة أثناء المراجعة</span>
+          )}
         </div>
 
         {/* أداة إرفاق دليل موجود (مشترك) */}
-        {showEvPicker && !isCompleted && canManageEvidence && (
+        {showEvPicker && !isCompleted && !isUnderReview && canManageEvidence && (
           <div className="mb-4 border border-slate-200 rounded-xl p-3 bg-slate-50/60">
             <input value={evSearch} onChange={e => searchEvidence(e.target.value)}
               placeholder="ابحث عن دليل بالاسم أو الرقم لإرفاقه..."
@@ -1223,7 +1233,7 @@ export default function TaskPage() {
                         </span>
                       )}
                       {/* المملوك غير المعتمد: تعديل (المعتمد سجلّ موثّق يلزم إلغاء اعتماده أولاً) */}
-                      {!isCompleted && !ev._shared && canManageEvidence && ev.status !== 'accepted' && (
+                      {!isCompleted && !isUnderReview && !ev._shared && canManageEvidence && ev.status !== 'accepted' && (
                         <Link href={`/dashboard/tasks/${taskId}/evidence/${ev.id}/edit`}
                           className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
                           ✏️
@@ -1240,8 +1250,8 @@ export default function TaskPage() {
                           🔗✕
                         </button>
                       )}
-                      {/* المملوك غير المعتمد: حذف (المعتمد محميّ — يلزم إلغاء اعتماده أولاً) */}
-                      {!isCompleted && !ev._shared && canManageEvidence && ev.status !== 'accepted' && (
+                      {/* المملوك غير المعتمد: حذف (المعتمد محميّ + مقفل أثناء المراجعة/بعد الإنجاز) */}
+                      {!isCompleted && !isUnderReview && !ev._shared && canManageEvidence && ev.status !== 'accepted' && (
                         deletingEvId === ev.id ? (
                           <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
                         ) : (
@@ -1277,6 +1287,14 @@ export default function TaskPage() {
                       )
                     })}
                   </div>
+
+                  {/* سبب الرفض كإرشاد — يظهر على المرفوض، ويبقى كملاحظة سابقة بعد إعادته لقيد المراجعة */}
+                  {ev.review_note && (ev.status === 'rejected' || ev.status === 'pending') && (
+                    <div className={`mt-2 text-xs rounded-lg p-2 border ${ev.status === 'rejected' ? 'bg-red-50/60 border-red-100 text-red-700' : 'bg-amber-50/60 border-amber-100 text-amber-700'}`}>
+                      <span className="font-semibold">{ev.status === 'rejected' ? '✕ سبب الرفض: ' : '↩️ ملاحظة المراجع السابقة (يُرجى معالجتها): '}</span>
+                      {ev.review_note}
+                    </div>
+                  )}
 
                   {/* رفض الدليل مع سبب اختياري */}
                   {rejectingEvId === ev.id && (
@@ -1435,9 +1453,19 @@ export default function TaskPage() {
 
             {wfError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">{wfError}</div>}
 
+            {/* تنبيه: أدلة غير معتمدة تمنع الإنجاز */}
+            {unresolvedEvidence.length > 0 && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
+                <span className="font-semibold">🔒 لا يمكن إنجاز المهمة بعد:</span> يوجد دليل
+                {[nRejected ? ` ${nRejected} مرفوض` : '', nPending ? `${nRejected ? ' و' : ' '}${nPending} قيد المراجعة` : ''].join('')}.
+                اعتمد كل الأدلة أو احذفها أو أعِد المهمة للتعديل قبل الإنجاز.
+              </div>
+            )}
+
             {/* اعتماد */}
             <button onClick={() => doTransition('approve', { rating: ratingValue, note: ratingNote })}
-              disabled={transitioning || !ratingValue}
+              disabled={transitioning || !ratingValue || unresolvedEvidence.length > 0}
+              title={unresolvedEvidence.length > 0 ? 'يلزم اعتماد كل الأدلة أولاً' : undefined}
               className="w-full flex items-center justify-center gap-2 py-2.5 text-white font-semibold rounded-xl text-sm disabled:opacity-50 hover:brightness-110"
               style={{ background: 'var(--gradient-button)' }}>
               <span className="inline-flex">{transitioning ? <Loader2 size={16} className="animate-spin" /> : <CircleCheckBig size={16} />}</span>

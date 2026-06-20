@@ -47,8 +47,17 @@ export async function DELETE(
   }
 
   const { data: task } = await admin
-    .from('tasks').select('node_id').eq('id', taskId).maybeSingle()
+    .from('tasks').select('node_id, status').eq('id', taskId).maybeSingle()
   if (!task) return NextResponse.json({ error: 'المهمة غير موجودة' }, { status: 404 })
+
+  /* قفل الأدلة أثناء المراجعة/بعد الإنجاز — لا حذف إلا في حالة قابلة للتعديل
+     (لم تبدأ/جارية/مُعادة). المقيّم يعتمد/يرفض الدليل لا يحذفه. */
+  if (task.status === 'submitted') {
+    return NextResponse.json({ error: 'المهمة مرفوعة للتقييم — لا يمكن حذف الأدلة. أعِد المهمة للتعديل أولاً.' }, { status: 409 })
+  }
+  if (task.status === 'completed') {
+    return NextResponse.json({ error: 'المهمة منجزة ومقفلة — أعِد فتحها أولاً إن لزم الحذف.' }, { status: 409 })
+  }
 
   /* حذف فعلي */
   const { error: delError } = await admin.from('evidence').delete().eq('id', evidenceId)

@@ -65,6 +65,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
 
   const { error } = await admin.from('evidence').update({
     status,
+    /* سبب الرفض يُحفظ كإرشاد لصاحب المهمة؛ يُمسح عند الاعتماد أو إلغاء الرفض يدوياً */
+    review_note: status === 'rejected' ? (note?.trim() || null) : null,
     reviewed_by: status === 'pending' ? null : auth.user.id,
     reviewed_at: status === 'pending' ? null : new Date().toISOString(),
   }).eq('id', evidenceId)

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
 import { FolderOpen, Lock, PlayCircle, Loader2, X, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 function extractYouTubeId(url: string): string | null {
   const pattern = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&\n?#]+)/
@@ -33,10 +34,16 @@ export default function EditEvidencePage() {
   const [saving,     setSaving]     = useState(false)
   const [error,      setError]      = useState('')
   const [taskLocked, setTaskLocked] = useState(false)
+  const [underReview, setUnderReview] = useState(false)
 
   /* بيانات الدليل */
   const [name,        setName]        = useState('')
   const [description, setDescription] = useState('')
+  const [evStatus,    setEvStatus]    = useState<string>('')
+  const [reviewNote,  setReviewNote]  = useState<string | null>(null)
+
+  /* تأكيد حذف مرفق */
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
 
   /* المرفقات الحالية + المحذوفة + الجديدة */
   const [existing,   setExisting]   = useState<any[]>([])
@@ -55,15 +62,18 @@ export default function EditEvidencePage() {
       /* قفل المهمة المنجزة */
       const { data: t } = await supabase.from('tasks').select('status').eq('id', taskId).single()
       if (t?.status === 'completed') setTaskLocked(true)
+      if (t?.status === 'submitted') { setTaskLocked(true); setUnderReview(true) }
 
       const { data } = await supabase
         .from('evidence')
-        .select('id, name, description, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num )')
+        .select('id, name, description, status, review_note, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num )')
         .eq('id', evidenceId)
         .single()
       if (data) {
         setName(data.name || '')
         setDescription(data.description || '')
+        setEvStatus(data.status || '')
+        setReviewNote(data.review_note || null)
         const files = (data.evidence_files || []).sort((a: any, b: any) => (a.order_num || 0) - (b.order_num || 0))
         setExisting(files)
       }
@@ -117,9 +127,14 @@ export default function EditEvidencePage() {
     setSaving(true)
     setError('')
     try {
-      /* 1) تحديث بيانات الدليل */
+      /* 1) تحديث بيانات الدليل — الدليل المرفوض يعود تلقائياً لـ«قيد المراجعة» بعد
+         تعديله (نمط راجِع وأعِد التقديم)، مع إبقاء سبب الرفض كإرشاد (review_note). */
       const { error: upErr } = await supabase.from('evidence')
-        .update({ name: name.trim(), description: description.trim() || null })
+        .update({
+          name: name.trim(),
+          description: description.trim() || null,
+          ...(evStatus === 'rejected' ? { status: 'pending' } : {}),
+        })
         .eq('id', evidenceId)
       if (upErr) throw upErr
 
@@ -204,14 +219,28 @@ export default function EditEvidencePage() {
       {taskLocked ? (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
           <Lock size={36} className="mx-auto mb-3" style={{ color: 'var(--maroon-300)' }} />
-          <p className="text-sm font-semibold text-slate-700 mb-1">المهمة منجزة ومقفلة</p>
-          <p className="text-xs text-slate-400 mb-4">لا يمكن تعديل أدلة مهمة معتمدة — اطلب إعادة فتحها أولاً.</p>
+          <p className="text-sm font-semibold text-slate-700 mb-1">{underReview ? 'المهمة مرفوعة للتقييم — الأدلة مقفلة' : 'المهمة منجزة ومقفلة'}</p>
+          <p className="text-xs text-slate-400 mb-4">{underReview ? 'لا يمكن تعديل الأدلة أثناء المراجعة — أعِد المهمة للتعديل أولاً.' : 'لا يمكن تعديل أدلة مهمة معتمدة — اطلب إعادة فتحها أولاً.'}</p>
           <Link href={`/dashboard/tasks/${taskId}`} className="inline-block px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">
             ← العودة للمهمة
           </Link>
         </div>
       ) : (
         <form onSubmit={handleSave} className="space-y-5">
+
+          {/* إرشاد: سبب الرفض السابق + توضيح أن الدليل سيعود لقيد المراجعة بعد الحفظ */}
+          {evStatus === 'rejected' && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm">
+              <p className="font-semibold text-red-700 mb-1">✕ هذا الدليل مرفوض</p>
+              {reviewNote && <p className="text-red-700 mb-1"><span className="font-medium">سبب الرفض:</span> {reviewNote}</p>}
+              <p className="text-red-600/80 text-xs">عالِج الملاحظة (احذف/أضف مرفقات)، وعند الحفظ ستعود حالة الدليل تلقائياً إلى «قيد المراجعة» لإعادة تقييمه.</p>
+            </div>
+          )}
+          {evStatus === 'pending' && reviewNote && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm">
+              <p className="text-amber-700"><span className="font-medium">↩️ ملاحظة المراجع السابقة:</span> {reviewNote}</p>
+            </div>
+          )}
 
           {/* المرفقات الحالية */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
@@ -240,7 +269,7 @@ export default function EditEvidencePage() {
                     {removed ? (
                       <button type="button" onClick={() => undoRemove(f.id)} className="text-xs px-2.5 py-1.5 border border-slate-200 text-slate-500 rounded-lg">تراجع</button>
                     ) : (
-                      <button type="button" onClick={() => removeExisting(f.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="حذف المرفق">
+                      <button type="button" onClick={() => setConfirmRemoveId(f.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="حذف المرفق">
                         <Trash2 size={16} />
                       </button>
                     )}
@@ -339,6 +368,16 @@ export default function EditEvidencePage() {
           </div>
         </form>
       )}
+
+      <ConfirmDialog
+        open={!!confirmRemoveId}
+        title="حذف المرفق"
+        icon="🗑️"
+        message={<>سيُحذف المرفق «<strong>{existing.find(f => f.id === confirmRemoveId)?.name || ''}</strong>» عند حفظ التعديلات. يمكنك التراجع قبل الحفظ.</>}
+        confirmLabel="نعم، احذف"
+        onConfirm={() => { if (confirmRemoveId) removeExisting(confirmRemoveId); setConfirmRemoveId(null) }}
+        onCancel={() => setConfirmRemoveId(null)}
+      />
     </div>
   )
 }

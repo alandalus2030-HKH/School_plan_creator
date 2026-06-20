@@ -97,6 +97,7 @@ export default function NewEvidencePage() {
 
   /* بيانات المهمة لحساب رقم الدليل */
   const [taskLocked,   setTaskLocked]   = useState(false)
+  const [underReview,  setUnderReview]  = useState(false)
   const [taskNodeId,   setTaskNodeId]   = useState<string | null>(null)
   const [taskOrderNum, setTaskOrderNum] = useState<number>(1)
 
@@ -112,6 +113,7 @@ export default function NewEvidencePage() {
         supabase.from('dropdown_options').select('value').eq('category', 'evidence_type').eq('is_active', true).order('sort_order'),
       ])
       if (data?.status === 'completed') setTaskLocked(true)
+      if (data?.status === 'submitted') { setTaskLocked(true); setUnderReview(true) }
       if (data?.node_id)   setTaskNodeId(data.node_id)
       if (data?.order_num) setTaskOrderNum(data.order_num)
       if (Array.isArray(data?.required_evidence_types)) setRequiredTypes(data.required_evidence_types)
@@ -338,8 +340,8 @@ export default function NewEvidencePage() {
       {taskLocked ? (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
           <Lock size={36} className="mx-auto mb-3" style={{ color: 'var(--maroon-300)' }} />
-          <p className="text-sm font-semibold text-slate-700 mb-1">المهمة منجزة ومقفلة</p>
-          <p className="text-xs text-slate-400 mb-4">لا يمكن رفع أدلة على مهمة معتمدة — اطلب إعادة فتحها من صفحة المهمة.</p>
+          <p className="text-sm font-semibold text-slate-700 mb-1">{underReview ? 'المهمة مرفوعة للتقييم — الأدلة مقفلة' : 'المهمة منجزة ومقفلة'}</p>
+          <p className="text-xs text-slate-400 mb-4">{underReview ? 'لا يمكن إضافة أدلة أثناء المراجعة — أعِد المهمة للتعديل أولاً من صفحة المهمة.' : 'لا يمكن رفع أدلة على مهمة معتمدة — اطلب إعادة فتحها من صفحة المهمة.'}</p>
           <Link href={`/dashboard/tasks/${taskId}`}
             className="inline-block px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors">
             ← العودة للمهمة
