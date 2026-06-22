@@ -17,10 +17,17 @@ function UpdatePasswordForm() {
   const [checking, setChecking] = useState(true)
   const [linkError, setLinkError] = useState(false)
 
-  /* التأكد من وجود جلسة استرجاع قبل عرض النموذج:
-     - تدفّق PKCE: code في الاستعلام → نبادله بجلسة.
-     - تدفّق ضمني: detectSessionInUrl يلتقط الـ hash تلقائياً (getSession ينتظر التهيئة).
-     - لا جلسة ولا دخول إجباري ⇒ رابط منتهٍ/غير صالح. */
+  /* هل وصلنا برمز استرجاع فعلي في الرابط؟ (يُلتقط قبل أن يستهلكه supabase) */
+  const [hadRecoveryToken] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return /access_token=|type=recovery/.test(window.location.hash)
+      || new URLSearchParams(window.location.search).has('code')
+  })
+
+  /* حماية حرجة: لا يُعرض النموذج إلا في حالتين، وإلا فالرابط منتهٍ/غير مشروع.
+     يمنع أن يُغيّر مشرفٌ مسجَّلُ الدخول كلمتَه بالخطأ عبر رابط استرجاع ميّت لمستخدم آخر:
+     1) تغيير إجباري (?forced=1) مع جلسة دخول قائمة.
+     2) جلسة استرجاع حقيقية أنشأها رمز في الرابط (hash/code). */
   useEffect(() => {
     let active = true
     ;(async () => {
@@ -28,7 +35,8 @@ function UpdatePasswordForm() {
       if (code) { try { await supabase.auth.exchangeCodeForSession(code) } catch {} }
       const { data: { session } } = await supabase.auth.getSession()
       if (!active) return
-      if (!session && !forced) setLinkError(true)
+      const allowed = (forced && !!session) || (hadRecoveryToken && !!session)
+      if (!allowed) setLinkError(true)
       setChecking(false)
     })()
     return () => { active = false }

@@ -125,7 +125,7 @@ export default function UsersPage() {
 
   /* ── الفرق ── */
   const [formTeams, setFormTeams] = useState<TeamMembership[]>([])
-  const [inviteLink, setInviteLink] = useState('')           // رابط دعوة (إنشاء بلا كلمة مرور)
+  const [inviteCreds, setInviteCreds] = useState<{ username: string | null; tempPassword: string; name: string | null } | null>(null)  // بيانات دخول مؤقتة (إنشاء بلا كلمة مرور)
 
   /* ── حذف ── */
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
@@ -251,7 +251,7 @@ export default function UsersPage() {
     setForm({ ...EMPTY_FORM })
     setFormTab(0); setFormError('')
     setFormPassword(''); setFormConfirmPass(''); setShowPass(false)
-    setFormTeams([]); setCredsMsg(''); setResetMsg(''); setInviteLink('')
+    setFormTeams([]); setCredsMsg(''); setResetMsg(''); setInviteCreds(null)
     setShowForm(true)
   }
 
@@ -354,13 +354,13 @@ export default function UsersPage() {
       if (!createOk) { setFormError(json.error || 'حدث خطأ'); setSaving(false); return }
       if (json.id) { await saveTeams(json.id) }
 
-      /* نموذج الدعوة: أُنشئ بلا كلمة مرور → ولّد رابط دعوة ليضبط كلمته بنفسه، وأبقِ النافذة لعرضه */
+      /* إنشاء بلا كلمة مرور → ضبط كلمة مرور مؤقتة (مرتبطة بالمستخدم) + تغيير إجباري، وأبقِ النافذة لعرضها */
       if (json.id && !formPassword) {
-        const { ok: lok, json: lj } = await safePost('/api/auth/reset-link', { userId: json.id })
-        if (lok && lj.link) {
-          setInviteLink(lj.link)
+        const { ok: lok, json: lj } = await safePost('/api/auth/admin-reset', { userId: json.id })
+        if (lok && lj.tempPassword) {
+          setInviteCreds({ username: lj.username ?? (form.username || null), tempPassword: lj.tempPassword, name: lj.name ?? (form.first_name_ar || null) })
           setSaving(false); await loadAll()
-          return  // النافذة تبقى مفتوحة لعرض الرابط
+          return  // النافذة تبقى مفتوحة لعرض بيانات الدخول المؤقتة
         }
       }
     }
@@ -400,32 +400,35 @@ export default function UsersPage() {
     setSendingReset(false)
   }
 
-  /* ════ توليد رابط إعادة تعيين ونسخه (دون بريد — يتجاوز حدّ الإرسال) ════ */
+  /* ════ إعادة تعيين بكلمة مرور مؤقتة + تغيير إجباري (مرتبطة بالمستخدم، دون بريد/رابط) ════ */
   const copyResetLink = async () => {
     if (!editProfile?.id) return
     setSendingReset(true); setResetMsg('')
-    const { ok, json } = await safePost('/api/auth/reset-link', { userId: editProfile.id })
-    if (ok && json.link) {
-      try { await navigator.clipboard.writeText(json.link); setResetMsg('✅ نُسخ رابط إعادة التعيين — سلّمه للمستخدم') }
-      catch { setResetMsg(`✅ الرابط: ${json.link}`) }
+    const { ok, json } = await safePost('/api/auth/admin-reset', { userId: editProfile.id })
+    if (ok && json.tempPassword) {
+      try { await navigator.clipboard.writeText(json.tempPassword) } catch {}
+      const uname = json.username ? ` · اسم المستخدم: ${json.username}` : ''
+      setResetMsg(`✅ كلمة مرور مؤقتة: «${json.tempPassword}» (نُسخت)${uname} — سلّمها للمستخدم؛ سيُطلب تغييرها عند أول دخول.`)
     } else {
-      setResetMsg(`❌ ${json.error || 'تعذّر توليد الرابط'}`)
+      setResetMsg(`❌ ${json.error || 'تعذّر إعادة التعيين'}`)
     }
     setSendingReset(false)
   }
 
-  /* ════ إعادة تعيين من القائمة — توليد رابط ونسخه (بلا بريد → بلا حدّ إرسال) ════ */
+  /* ════ إعادة تعيين من القائمة — كلمة مرور مؤقتة + تغيير إجباري (مرتبطة بالمستخدم) ════ */
   const resetPasswordList = async (p: Profile) => {
     setResetingId(p.id); setResetListMsg(null)
-    const { ok, json } = await safePost('/api/auth/reset-link', { userId: p.id })
-    if (ok && json.link) {
-      try { await navigator.clipboard.writeText(json.link) } catch {}
-      setResetListMsg({ id: p.id, ok: true, text: `✅ تم توليد رابط التعيين ونسخه — سلّمه لـ ${p.name_ar || p.email}` })
+    const { ok, json } = await safePost('/api/auth/admin-reset', { userId: p.id })
+    if (ok && json.tempPassword) {
+      try { await navigator.clipboard.writeText(json.tempPassword) } catch {}
+      const uname = json.username ? `اسم المستخدم: ${json.username} · ` : ''
+      setResetListMsg({ id: p.id, ok: true,
+        text: `✅ كلمة مرور مؤقتة لـ ${p.name_ar || p.email}: «${json.tempPassword}» (نُسخت) · ${uname}سيُطلب منه تغييرها عند أول دخول.` })
     } else {
-      setResetListMsg({ id: p.id, ok: false, text: `❌ ${json.error || 'تعذّر التوليد'}` })
+      setResetListMsg({ id: p.id, ok: false, text: `❌ ${json.error || 'تعذّر إعادة التعيين'}` })
     }
     setResetingId(null); setConfirmReset(null)
-    if (ok) setTimeout(() => setResetListMsg(null), 8000)
+    /* لا نُخفيها تلقائياً — تحوي كلمة المرور المؤقتة ليتمكن المشرف من تسليمها */
   }
 
   /* ════ تفعيل / تعطيل ════ */
@@ -962,10 +965,10 @@ export default function UsersPage() {
         title="إعادة تعيين كلمة المرور"
         danger={false}
         icon="🔑"
-        confirmLabel="توليد ونسخ الرابط"
+        confirmLabel="توليد كلمة مرور مؤقتة"
         loading={!!resetingId}
         message={confirmReset ? (
-          <>سيتم توليد <strong>رابط تعيين كلمة مرور جديدة</strong> لـ «<strong>{confirmReset.name_ar || confirmReset.email}</strong>» ونسخه — سلّمه للمستخدم ليضبط كلمته. (لا يُلغي كلمته الحالية حتى يستخدم الرابط.)</>
+          <>سيتم ضبط <strong>كلمة مرور مؤقتة</strong> لـ «<strong>{confirmReset.name_ar || confirmReset.email}</strong>» ونسخها — سلّمها للمستخدم. <strong>سيُطلب منه تغييرها عند أول دخول.</strong> (تُلغى كلمته الحالية فوراً.)</>
         ) : null}
         onConfirm={() => confirmReset && resetPasswordList(confirmReset)}
         onCancel={() => setConfirmReset(null)}
@@ -986,19 +989,27 @@ export default function UsersPage() {
               <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
 
-            {/* رابط الدعوة — يظهر بعد إنشاء مستخدم بلا كلمة مرور */}
-            {inviteLink && (
+            {/* بيانات الدخول المؤقتة — تظهر بعد إنشاء مستخدم بلا كلمة مرور */}
+            {inviteCreds && (
               <div className="mx-5 mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-                <p className="text-sm font-bold text-emerald-800 mb-1">✅ تم إنشاء المستخدم — شارك رابط الدعوة</p>
-                <p className="text-xs text-emerald-700 mb-2">يفتح المستخدم هذا الرابط ليضبط كلمة مروره بنفسه (لا يلزم أن يعرفها أحد سواه):</p>
-                <div className="flex items-center gap-2">
-                  <input readOnly value={inviteLink} dir="ltr"
-                    className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-emerald-200 bg-white text-xs text-slate-600" />
+                <p className="text-sm font-bold text-emerald-800 mb-1">✅ تم إنشاء المستخدم — سلّمه بيانات الدخول المؤقتة</p>
+                <p className="text-xs text-emerald-700 mb-3">يدخل بها ثم يُطلب منه تغيير كلمة المرور إجبارياً عند أول دخول:</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 w-24 flex-shrink-0">اسم المستخدم:</span>
+                    <code className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-emerald-200 bg-white text-xs text-slate-700 font-latin" dir="ltr">{inviteCreds.username || '—'}</code>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 w-24 flex-shrink-0">كلمة المرور المؤقتة:</span>
+                    <code className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-emerald-200 bg-white text-xs text-slate-700 font-latin font-bold" dir="ltr">{inviteCreds.tempPassword}</code>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
                   <button type="button"
-                    onClick={() => { navigator.clipboard?.writeText(inviteLink); toast('تم نسخ رابط الدعوة') }}
-                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-lg font-medium flex-shrink-0">📋 نسخ</button>
-                  <button type="button" onClick={() => { setInviteLink(''); setShowForm(false) }}
-                    className="px-3 py-2 border border-slate-200 text-slate-600 text-xs rounded-lg flex-shrink-0">تم</button>
+                    onClick={() => { navigator.clipboard?.writeText(`اسم المستخدم: ${inviteCreds.username || ''} | كلمة المرور المؤقتة: ${inviteCreds.tempPassword}`); toast('تم نسخ بيانات الدخول') }}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-lg font-medium">📋 نسخ البيانات</button>
+                  <button type="button" onClick={() => { setInviteCreds(null); setShowForm(false) }}
+                    className="px-3 py-2 border border-slate-200 text-slate-600 text-xs rounded-lg">تم</button>
                 </div>
               </div>
             )}
@@ -1116,8 +1127,9 @@ export default function UsersPage() {
                       <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
                         <h4 className="text-sm font-bold text-slate-700">🔒 كلمة المرور الأولية</h4>
                         <p className="text-xs text-slate-500">
-                          • <strong>اتركها فارغة</strong> → يظهر <strong>رابط دعوة</strong> يضبط المستخدم به كلمته بنفسه.<br />
-                          • أو عيّن <strong>كلمة مرور مؤقتة</strong> → سيُطالَب بتغييرها إجبارياً عند أول دخول.
+                          • <strong>اتركها فارغة</strong> → تُولَّد <strong>كلمة مرور مؤقتة</strong> تظهر لك لتسلّمها للمستخدم.<br />
+                          • أو عيّن <strong>كلمة مرور مؤقتة</strong> بنفسك.<br />
+                          في الحالتين يُطالَب المستخدم بتغييرها إجبارياً عند أول دخول.
                         </p>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -1168,20 +1180,21 @@ export default function UsersPage() {
                       <div className="bg-amber-50 rounded-2xl p-4 space-y-3 border border-amber-200">
                         <h4 className="text-sm font-bold text-amber-800">🔑 إعادة تعيين كلمة المرور</h4>
                         <p className="text-xs text-amber-700">
-                          سيصل رابط تعيين كلمة مرور جديدة إلى:
-                          <span className="font-semibold mr-1 font-latin" dir="ltr">{editProfile.email}</span>
+                          يُنشئ كلمة مرور مؤقتة لهذا المستخدم بالذات، ويُطلب منه تغييرها عند أول دخول.
+                          (أو إرسال رابط استرجاع بالبريد ليفتحه المستخدم على جهازه.)
                         </p>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <button type="button" onClick={resetPasswordForm}
-                            disabled={sendingReset || !editProfile.email}
-                            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs rounded-xl transition-colors">
-                            {sendingReset ? '⏳ جارٍ...' : '📧 إرسال رابط بالبريد'}
-                          </button>
                           <button type="button" onClick={copyResetLink}
                             disabled={sendingReset}
-                            title="يولّد الرابط وينسخه دون إرسال بريد (يتجاوز حدّ الإرسال)"
+                            title="يضبط كلمة مرور مؤقتة وينسخها — مرتبطة بهذا المستخدم، بلا رابط/بريد"
+                            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs rounded-xl transition-colors">
+                            {sendingReset ? '⏳ جارٍ...' : '🔑 كلمة مرور مؤقتة (نسخ)'}
+                          </button>
+                          <button type="button" onClick={resetPasswordForm}
+                            disabled={sendingReset || !editProfile.email}
+                            title="يرسل رابط استرجاع إلى بريد المستخدم ليفتحه بنفسه على جهازه"
                             className="flex items-center gap-2 px-4 py-2 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 text-xs rounded-xl transition-colors">
-                            🔗 نسخ رابط إعادة التعيين
+                            📧 إرسال رابط بالبريد
                           </button>
                         </div>
                         {resetMsg && (

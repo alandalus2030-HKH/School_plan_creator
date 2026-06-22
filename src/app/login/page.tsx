@@ -46,6 +46,12 @@ function LoginForm() {
     /* رابط استرجاع كلمة المرور قد يهبط هنا (في hash) → وجّه لصفحة التعيين مع الحفاظ على الرمز */
     if (typeof window !== 'undefined' && /type=recovery|access_token=/.test(window.location.hash)) {
       router.replace('/auth/update-password' + window.location.hash)
+    } else if (typeof window !== 'undefined' && /error_code=otp_expired|error=access_denied/.test(window.location.hash)) {
+      /* رابط استرجاع منتهٍ/مستخدَم → رسالة واضحة بدل عنوان غامض */
+      setError(isAr
+        ? 'انتهت صلاحية رابط إعادة التعيين أو أنه استُخدم. اطلب من المشرف رابطاً/كلمة مرور مؤقتة جديدة.'
+        : 'The reset link is invalid or has expired. Ask your administrator for a new one.')
+      history.replaceState(null, '', window.location.pathname)
     }
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') router.replace('/auth/update-password')
