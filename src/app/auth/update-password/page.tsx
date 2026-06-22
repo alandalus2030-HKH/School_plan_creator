@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -14,6 +14,26 @@ function UpdatePasswordForm() {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const [success,  setSuccess]  = useState(false)
+  const [checking, setChecking] = useState(true)
+  const [linkError, setLinkError] = useState(false)
+
+  /* التأكد من وجود جلسة استرجاع قبل عرض النموذج:
+     - تدفّق PKCE: code في الاستعلام → نبادله بجلسة.
+     - تدفّق ضمني: detectSessionInUrl يلتقط الـ hash تلقائياً (getSession ينتظر التهيئة).
+     - لا جلسة ولا دخول إجباري ⇒ رابط منتهٍ/غير صالح. */
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const code = search.get('code')
+      if (code) { try { await supabase.auth.exchangeCodeForSession(code) } catch {} }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!active) return
+      if (!session && !forced) setLinkError(true)
+      setChecking(false)
+    })()
+    return () => { active = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +52,31 @@ function UpdatePasswordForm() {
 
     setSuccess(true)
     setTimeout(() => router.replace('/dashboard'), 2000)
+  }
+
+  /* أثناء التحقق من جلسة الاسترجاع */
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+      </div>
+    )
+  }
+
+  /* رابط منتهٍ أو غير صالح */
+  if (linkError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-indigo-50 flex items-center justify-center p-4" dir="rtl">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="text-5xl mb-3">⏳</div>
+          <h1 className="text-xl font-bold text-slate-800 mb-2">انتهت صلاحية الرابط</h1>
+          <p className="text-slate-500 text-sm mb-5">رابط إعادة تعيين كلمة المرور منتهٍ أو غير صالح (يُستخدم مرة واحدة وضمن مهلة محدودة). اطلب رابطاً جديداً.</p>
+          <a href="/login" className="inline-block px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-colors">
+            العودة لتسجيل الدخول
+          </a>
+        </div>
+      </div>
+    )
   }
 
   return (

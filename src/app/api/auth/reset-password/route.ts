@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
   const { error } = await admin.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/auth/callback?next=/auth/update-password`,
+    /* الجلسة تُسلَّم في hash → صفحة عميل مباشرة (لا مسار خادمي يفقد الـ hash) */
+    redirectTo: `${siteUrl}/auth/update-password`,
   })
 
   if (error) {

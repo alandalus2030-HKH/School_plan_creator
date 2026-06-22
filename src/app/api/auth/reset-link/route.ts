@@ -39,7 +39,9 @@ export async function POST(req: NextRequest) {
   const { data, error } = await admin.auth.admin.generateLink({
     type: 'recovery',
     email: target.email,
-    options: { redirectTo: `${siteUrl}/auth/callback?next=/auth/update-password` },
+    /* رابط الاسترجاع يسلّم الجلسة في hash (تدفّق ضمني) → يجب أن يهبط على صفحة
+       عميل (update-password) لا على مسار خادمي يفقد الـ hash. */
+    options: { redirectTo: `${siteUrl}/auth/update-password` },
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 

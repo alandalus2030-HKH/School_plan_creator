@@ -1343,7 +1343,7 @@ export default function TaskPage() {
           return (
             <div className={`mt-3 p-3 rounded-xl border ${allMet ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
               <p className={`text-xs font-semibold mb-2 ${allMet ? 'text-emerald-700' : 'text-amber-700'}`}>
-                ✅ بوّابة الإنجاز — أنواع الأدلة المطلوبة {allMet ? '(مكتملة)' : '(غير مكتملة)'}
+                {allMet ? '✅' : '📋'} بوّابة الإنجاز — أنواع الأدلة المطلوبة {allMet ? '(مكتملة)' : '(غير مكتملة — تكتمل باعتماد المقيّم لكل نوع)'}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {task.required_evidence_types.map((t: string) => {

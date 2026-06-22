@@ -116,7 +116,11 @@ export default function NewEvidencePage() {
       if (data?.status === 'submitted') { setTaskLocked(true); setUnderReview(true) }
       if (data?.node_id)   setTaskNodeId(data.node_id)
       if (data?.order_num) setTaskOrderNum(data.order_num)
-      if (Array.isArray(data?.required_evidence_types)) setRequiredTypes(data.required_evidence_types)
+      if (Array.isArray(data?.required_evidence_types)) {
+        setRequiredTypes(data.required_evidence_types)
+        /* تعبئة افتراضية: إن كان نوع مطلوب واحد فقط نختاره تلقائياً تيسيراً على المستخدم */
+        if (data.required_evidence_types.length === 1) setEvidenceType(data.required_evidence_types[0])
+      }
       setTypeOptions((opts || []).map((o: any) => o.value))
     })()
   }, [taskId])
@@ -201,6 +205,10 @@ export default function NewEvidencePage() {
     e.preventDefault()
     if (attachments.length === 0) { setError('أضف ملفاً أو فيديو واحداً على الأقل'); return }
     if (!name.trim())             { setError('اسم الدليل مطلوب'); return }
+    /* للمهام ذات أنواع أدلة مطلوبة: تحديد نوع الدليل إلزامي (لا «بدون تصنيف») */
+    if (requiredTypes.length > 0 && !evidenceType) {
+      setError('حدّد نوع الدليل من القائمة — هذه المهمة تتطلب أنواعاً محددة من الأدلة'); return
+    }
 
     setLoading(true)
     setError('')
@@ -511,11 +519,13 @@ export default function NewEvidencePage() {
             {typeOptions.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  نوع الدليل {requiredTypes.length > 0 && <span className="text-slate-400 font-normal text-xs">(مطلوب لهذه المهمة: {requiredTypes.join('، ')})</span>}
+                  نوع الدليل {requiredTypes.length > 0
+                    ? <span className="text-red-500">* <span className="text-slate-400 font-normal text-xs">(مطلوب لهذه المهمة: {requiredTypes.join('، ')})</span></span>
+                    : null}
                 </label>
                 <select value={evidenceType} onChange={e => setEvidenceType(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800">
-                  <option value="">— بدون تصنيف —</option>
+                  <option value="">{requiredTypes.length > 0 ? '— اختر نوع الدليل —' : '— بدون تصنيف —'}</option>
                   {typeOptions.map(t => <option key={t} value={t}>{t}{requiredTypes.includes(t) ? ' ⭐' : ''}</option>)}
                 </select>
               </div>

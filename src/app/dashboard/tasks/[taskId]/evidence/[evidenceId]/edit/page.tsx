@@ -42,6 +42,11 @@ export default function EditEvidencePage() {
   const [evStatus,    setEvStatus]    = useState<string>('')
   const [reviewNote,  setReviewNote]  = useState<string | null>(null)
 
+  /* نوع الدليل (تصنيف) + الأنواع المطلوبة للمهمة */
+  const [evidenceType,  setEvidenceType]  = useState('')
+  const [typeOptions,   setTypeOptions]   = useState<string[]>([])
+  const [requiredTypes, setRequiredTypes] = useState<string[]>([])
+
   /* تأكيد حذف مرفق */
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
 
@@ -59,14 +64,19 @@ export default function EditEvidencePage() {
 
   useEffect(() => {
     ;(async () => {
-      /* قفل المهمة المنجزة */
-      const { data: t } = await supabase.from('tasks').select('status').eq('id', taskId).single()
+      /* قفل المهمة المنجزة + الأنواع المطلوبة + قائمة أنواع الأدلة */
+      const [{ data: t }, { data: opts }] = await Promise.all([
+        supabase.from('tasks').select('status, required_evidence_types').eq('id', taskId).single(),
+        supabase.from('dropdown_options').select('value').eq('category', 'evidence_type').eq('is_active', true).order('sort_order'),
+      ])
       if (t?.status === 'completed') setTaskLocked(true)
       if (t?.status === 'submitted') { setTaskLocked(true); setUnderReview(true) }
+      if (Array.isArray(t?.required_evidence_types)) setRequiredTypes(t.required_evidence_types)
+      setTypeOptions((opts || []).map((o: any) => o.value))
 
       const { data } = await supabase
         .from('evidence')
-        .select('id, name, description, status, review_note, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num )')
+        .select('id, name, description, status, review_note, evidence_type, evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num )')
         .eq('id', evidenceId)
         .single()
       if (data) {
@@ -74,6 +84,7 @@ export default function EditEvidencePage() {
         setDescription(data.description || '')
         setEvStatus(data.status || '')
         setReviewNote(data.review_note || null)
+        setEvidenceType(data.evidence_type || '')
         const files = (data.evidence_files || []).sort((a: any, b: any) => (a.order_num || 0) - (b.order_num || 0))
         setExisting(files)
       }
@@ -123,6 +134,9 @@ export default function EditEvidencePage() {
     e.preventDefault()
     if (!name.trim())     { setError('اسم الدليل مطلوب'); return }
     if (totalCount === 0) { setError('يجب أن يبقى مرفق واحد على الأقل'); return }
+    if (requiredTypes.length > 0 && !evidenceType) {
+      setError('حدّد نوع الدليل من القائمة — هذه المهمة تتطلب أنواعاً محددة من الأدلة'); return
+    }
 
     setSaving(true)
     setError('')
@@ -133,6 +147,7 @@ export default function EditEvidencePage() {
         .update({
           name: name.trim(),
           description: description.trim() || null,
+          evidence_type: evidenceType || null,
           ...(evStatus === 'rejected' ? { status: 'pending' } : {}),
         })
         .eq('id', evidenceId)
@@ -349,6 +364,22 @@ export default function EditEvidencePage() {
               <input type="text" value={name} onChange={e => setName(e.target.value)} required
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800" />
             </div>
+
+            {/* نوع الدليل (تصنيف) */}
+            {typeOptions.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  نوع الدليل {requiredTypes.length > 0
+                    ? <span className="text-red-500">* <span className="text-slate-400 font-normal text-xs">(مطلوب لهذه المهمة: {requiredTypes.join('، ')})</span></span>
+                    : null}
+                </label>
+                <select value={evidenceType} onChange={e => setEvidenceType(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800">
+                  <option value="">{requiredTypes.length > 0 ? '— اختر نوع الدليل —' : '— بدون تصنيف —'}</option>
+                  {typeOptions.map(t => <option key={t} value={t}>{t}{requiredTypes.includes(t) ? ' ⭐' : ''}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">الوصف (اختياري)</label>
               <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2}
