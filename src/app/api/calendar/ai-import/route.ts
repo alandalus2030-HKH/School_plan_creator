@@ -76,9 +76,14 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const errText = await res.text().catch(() => '')
       console.error('[calendar/ai-import] Gemini error:', res.status, errText)
-      const detail = errText.slice(0, 300)
+      if (res.status === 429) {
+        return NextResponse.json(
+          { error: 'تجاوزت الحصة المجانية لمفتاح Gemini — جرّب لاحقاً أو فعّل الفوترة، أو استخدم استيراد Excel' },
+          { status: 429 },
+        )
+      }
       return NextResponse.json(
-        { error: `تعذّر التحليل (Gemini ${res.status}): ${detail}` },
+        { error: 'تعذّر تحليل الصورة — حاول بصورة أوضح أو استخدم استيراد Excel' },
         { status: 500 },
       )
     }
@@ -104,7 +109,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('[calendar/ai-import]', err?.message || err)
     return NextResponse.json(
-      { error: `تعذّر التحليل (استثناء): ${String(err?.message || err).slice(0, 300)}` },
+      { error: 'تعذّر تحليل الصورة — حاول بصورة أوضح أو استخدم استيراد Excel' },
       { status: 500 },
     )
   }
