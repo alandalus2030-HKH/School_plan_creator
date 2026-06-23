@@ -80,27 +80,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ email })
     }
 
-    /* ── 3. احتياط: بحث بالجزء الأول من البريد ── */
-    const { data: byEmailPrefix, error: err3 } = await admin
-      .from('profiles')
-      .select('id, is_active')
-      .ilike('email', `${input}@%`)
-      .maybeSingle()
-
-    if (err3) console.error('[resolve-username] email-prefix lookup error:', err3.message)
-
-    if (byEmailPrefix) {
-      if (byEmailPrefix.is_active === false) {
-        return NextResponse.json(
-          { error: 'الحساب معطَّل، تواصل مع مشرف النظام' },
-          { status: 403 }
-        )
-      }
-      const email = await authEmailFor(byEmailPrefix.id)
-      if (!email) return NextResponse.json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, { status: 401 })
-      return NextResponse.json({ email })
-    }
-
     /* ── لم يُوجَد ── */
     return NextResponse.json(
       { error: 'اسم المستخدم أو كلمة المرور غير صحيحة' },
