@@ -83,6 +83,13 @@ async function downloadTemplate() {
 const fmt = (d: string) =>
   d ? new Date(d + 'T00:00:00').toLocaleDateString('ar-QA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
+/* ── ترتيب تصاعدي حسب تاريخ البدء (الصفوف بلا تاريخ في النهاية) ── */
+const byStart = (a: { start_date: string }, b: { start_date: string }) => {
+  if (!a.start_date) return 1
+  if (!b.start_date) return -1
+  return a.start_date.localeCompare(b.start_date)
+}
+
 export default function CalendarManager() {
   const [events,     setEvents]     = useState<CalendarEvent[]>([])
   const [weekend,    setWeekend]    = useState<number[]>([5, 6])
@@ -90,6 +97,8 @@ export default function CalendarManager() {
   const [form,       setForm]       = useState<FormState | null>(null)
   const [saving,     setSaving]     = useState(false)
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
+  const [confirmClearAll, setConfirmClearAll] = useState(false)
+  const [clearing,   setClearing]   = useState(false)
 
   /* ── حالة الاستيراد ── */
   const [importMode,   setImportMode]   = useState<null | 'excel' | 'ai'>(null)
@@ -104,7 +113,7 @@ export default function CalendarManager() {
     setLoading(true)
     const res = await fetch('/api/calendar')
     const j = await res.json().catch(() => ({ events: [], weekend: [5, 6] }))
-    setEvents(j.events || [])
+    setEvents((j.events || []).slice().sort(byStart))
     setWeekend(j.weekend || [5, 6])
     setLoading(false)
   }
@@ -136,6 +145,20 @@ export default function CalendarManager() {
     const j = await res.json().catch(() => ({}))
     if (!res.ok) { toast(j.error || 'تعذّر الحذف', 'error'); return }
     toast('تم الحذف'); setConfirmDel(null); load()
+  }
+
+  /* ════ مسح جميع الأحداث ════ */
+  const clearAll = async () => {
+    setClearing(true)
+    let ok = 0
+    for (const ev of events) {
+      const res = await fetch(`/api/calendar/${ev.id}`, { method: 'DELETE' })
+      if (res.ok) ok++
+    }
+    setClearing(false)
+    setConfirmClearAll(false)
+    toast(`تم مسح ${ok} حدثاً`)
+    load()
   }
 
   /* ════ أيام نهاية الأسبوع ════ */
@@ -184,7 +207,7 @@ export default function CalendarManager() {
       }
 
       if (!parsed.length) { toast('لم يُعثر على صفوف في الملف', 'error'); return }
-      setImportEvents(parsed)
+      setImportEvents(parsed.sort(byStart))
       setImportMode('excel')
     } catch (err) {
       console.error('[excel-import]', err)
@@ -215,7 +238,7 @@ export default function CalendarManager() {
         toast('لم يُستخرج أي حدث — جرّب صورة أوضح أو استخدم Excel', 'error')
         setImportMode(null); setAiLoading(false); return
       }
-      setImportEvents(events)
+      setImportEvents(events.sort(byStart))
     } catch {
       toast('تعذّر التحليل', 'error'); setImportMode(null)
     }
@@ -294,6 +317,15 @@ export default function CalendarManager() {
               style={{ background: 'var(--gradient-button)' }}>
               <Plus size={15} /> إضافة فترة
             </button>
+
+            {/* مسح جميع الأحداث */}
+            {events.length > 0 && (
+              <button onClick={() => setConfirmClearAll(true)}
+                title="حذف جميع أحداث التقويم"
+                className="inline-flex items-center gap-1.5 text-xs text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl font-medium transition-colors">
+                <Trash2 size={14} /> مسح الكل
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -521,6 +553,16 @@ export default function CalendarManager() {
           />
         )
       })()}
+
+      <ConfirmDialog
+        open={confirmClearAll}
+        title="مسح جميع الأحداث"
+        message={<>سيتم حذف <strong>{events.length}</strong> حدثاً من التقويم نهائياً، وتُلغى كل قيوده على المهام. لا يمكن التراجع.</>}
+        confirmLabel="مسح الكل"
+        loading={clearing}
+        onConfirm={clearAll}
+        onCancel={() => setConfirmClearAll(false)}
+      />
     </div>
   )
 }
