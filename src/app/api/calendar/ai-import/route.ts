@@ -5,15 +5,16 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'im
 const MAX_SIZE_MB = 10
 
 const PROMPT = `أنت نظام استخراج بيانات متخصص في التقاويم الدراسية القطرية.
-استخرج جميع الفترات والأحداث من هذه الصورة (عطلات، إجازات، اختبارات، أيام وطنية، أعياد).
+استخرج جميع الفترات والأحداث من هذه الصورة (عطلات، إجازات، اختبارات، أيام وطنية، أعياد، بدء/نهاية دوام).
 
 قواعد الاستخراج:
-- kind: اختر من: holiday (عطلة/إجازة), break (استراحة/منتصف فصل), national (وطني), eid (عيد), exam (اختبار/امتحان/اختبارات), other
-- enforcement: block للعطلات والأعياد والاختبارات، warn للتنبيه فقط
+- title: نص "البيان" أو وصف الحدث كما هو في الصورة
+- kind: اختر من: holiday (عطلة/إجازة), break (استراحة/منتصف فصل), national (وطني), eid (عيد), exam (اختبار/امتحان/اختبارات), other (بدء دوام/نهاية دوام/غير ذلك)
+- enforcement: block للعطلات والأعياد والاختبارات، warn لغيرها
 - start_date و end_date: صيغة YYYY-MM-DD حصراً
 - إن كان الحدث يوماً واحداً: اجعل start_date = end_date
-- تجاهل أيام الدراسة العادية والفترات غير المحددة
-- إذا رأيت عاماً هجرياً حوّله لميلادي تقريبياً
+- انتبه لتنسيق التواريخ العربية (يوم / شهر / سنة) وأسماء الأشهر العربية (يناير=01 ... ديسمبر=12)
+- استخرج كل صف في الجدول
 
 أعد JSON فقط (مصفوفة) بدون أي نص إضافي قبله أو بعده:
 [{"title":"اسم الحدث","kind":"holiday","start_date":"YYYY-MM-DD","end_date":"YYYY-MM-DD","enforcement":"block"}]
@@ -24,10 +25,10 @@ export async function POST(req: NextRequest) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'ميزة الذكاء الاصطناعي غير مفعّلة — يرجى إضافة ANTHROPIC_API_KEY في إعدادات الخادم' },
+      { error: 'ميزة الذكاء الاصطناعي غير مفعّلة — يرجى إضافة GROQ_API_KEY في إعدادات الخادم' },
       { status: 503 },
     )
   }
@@ -56,56 +57,46 @@ export async function POST(req: NextRequest) {
   const mimeType = file.type === 'image/jpg' ? 'image/jpeg' : file.type
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 1024,
+        model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
         messages: [
           {
             role: 'user',
             content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mimeType,
-                  data: base64,
-                },
-              },
-              {
-                type: 'text',
-                text: PROMPT,
-              },
+              { type: 'text', text: PROMPT },
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } },
             ],
           },
         ],
+        temperature: 0.1,
+        max_tokens: 4000,
       }),
     })
 
     if (!res.ok) {
       const errText = await res.text().catch(() => '')
-      console.error('[calendar/ai-import] Claude error:', res.status, errText)
+      console.error('[calendar/ai-import] Groq error:', res.status, errText)
       if (res.status === 429) {
         return NextResponse.json(
-          { error: 'تجاوزت الحصة — جرّب لاحقاً أو استخدم استيراد Excel' },
+          { error: 'تجاوزت الحصة المجانية مؤقتاً — جرّب بعد دقيقة أو استخدم استيراد Excel' },
           { status: 429 },
         )
       }
       const detail = errText.slice(0, 200)
       return NextResponse.json(
-        { error: `Claude ${res.status}: ${detail || 'خطأ غير معروف'}` },
+        { error: `Groq ${res.status}: ${detail || 'خطأ غير معروف'}` },
         { status: 500 },
       )
     }
 
     const data = await res.json()
-    const content = data?.content?.[0]?.text || '[]'
+    const content = data?.choices?.[0]?.message?.content || '[]'
     const match = content.match(/\[[\s\S]*\]/)
     if (!match) return NextResponse.json({ events: [] })
 
