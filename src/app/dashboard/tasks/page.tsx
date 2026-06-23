@@ -9,7 +9,7 @@ import GanttChart   from '@/components/GanttChart'
 import {
   BookOpen, Archive, Pin, AlertTriangle, Lock, Unlock, Users,
   CheckCircle2, List, LayoutGrid, GanttChartSquare, Star,
-  CheckCheck, Circle, UserRound, CalendarDays,
+  UserRound, CalendarDays,
 } from 'lucide-react'
 import TaskCalendar from '@/components/TaskCalendar'
 import {
@@ -71,6 +71,8 @@ export default function TasksPage() {
   const [ratingF,   setRatingF]   = useState(savedFilters.ratingF   || '')
   /* فلتر طلبات إعادة الفتح — لا يُحفظ (فلتر إجرائي مؤقت)، ويُفعَّل من ?filter=reopen */
   const [reopenF,   setReopenF]   = useState(false)
+  /* فلتر «محجوبة» — مهام تنتظر تبعية غير منجزة (محسوب، لا يُحفظ) */
+  const [blockedF,  setBlockedF]  = useState(false)
 
   /* ── ترقيم عرض القائمة ── */
   const PAGE_SIZE = 50
@@ -93,7 +95,7 @@ export default function TasksPage() {
   }, [statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF])
 
   /* العودة للصفحة الأولى عند تغيّر أي مرشّح/بحث */
-  useEffect(() => { setPage(1) }, [search, statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF, reopenF])
+  useEffect(() => { setPage(1) }, [search, statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF, reopenF, blockedF])
 
   useEffect(() => {
     if (permsLoading) return   // انتظر تحميل الصلاحيات أولاً
@@ -214,10 +216,18 @@ export default function TasksPage() {
     return path.join('.')
   }
 
+  /* ── هل المهمة محجوبة؟ (تنتظر تبعية غير منجزة) ── */
+  const isBlocked = (t: any) => {
+    if (!t.depends_on_task_id) return false
+    const dep = tasks.find(x => x.id === t.depends_on_task_id)
+    return !!dep && dep.status !== 'completed'
+  }
+
   /* ── تصفية ── */
   const filtered = tasks.filter(t => {
     if (search    && !t.name_ar.toLowerCase().includes(search.toLowerCase())) return false
     if (statusF   && t.status   !== statusF)   return false
+    if (blockedF  && !isBlocked(t))            return false
     if (priorityF && t.priority !== priorityF) return false
     if (deptF     && (t as any).assigned_to_department !== deptF) return false
     if (onlyMine) {
@@ -256,16 +266,22 @@ export default function TasksPage() {
   const stats = STATUS_LIST.map(s => ({
     ...s, count: tasks.filter(t => t.status === s.value).length
   }))
+  const statByValue = (v: string) => stats.find(s => s.value === v)
+  /* بطاقات مجمّعة حسب الموضوع (بترتيب ثابت) */
+  const completionCards = ['not_started', 'in_progress', 'completed'].map(statByValue).filter(Boolean) as typeof stats
+  const reviewCards     = ['submitted', 'returned'].map(statByValue).filter(Boolean) as typeof stats
+  const blockedCount    = tasks.filter(isBlocked).length
+  const reopenCount     = tasks.filter(t => (t as any).reopen_requested_by).length
 
   /* ── هل المهمة متأخرة؟ ── */
   const isOverdue = (t: any) =>
     t.status !== 'completed' && t.end_date && new Date(t.end_date) < new Date()
 
   /* ── إدارة الفلاتر ── */
-  const anyFilter = !!(search || statusF || priorityF || planF || teamF || deptF || onlyMine || ratingF || reopenF)
+  const anyFilter = !!(search || statusF || priorityF || planF || teamF || deptF || onlyMine || ratingF || reopenF || blockedF)
   const clearAllFilters = () => {
     setSearch(''); setStatusF(''); setPriorityF(''); setPlanF(''); setTeamF('')
-    setDeptF(''); setOnlyMine(false); setRatingF(''); setReopenF(false)
+    setDeptF(''); setOnlyMine(false); setRatingF(''); setReopenF(false); setBlockedF(false)
   }
 
   /* تغيير الحالة يُدار حصراً من صفحة المهمة عبر آلة الحالات (سير العمل + بوّابة الأدلة) */
@@ -344,17 +360,98 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* ── بطاقات الحالة (فلاتر بالنقر) — كلها في صفّ واحد ── */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-        {stats.map(s => (
-          <button key={s.value}
-            onClick={() => setStatusF(statusF === s.value ? '' : s.value)}
-            className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
-              ${statusF === s.value ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
-            <div className="text-xl font-bold text-slate-800 leading-none">{s.count}</div>
-            <div className={`text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block ${s.bg}`}>{s.label}</div>
-          </button>
-        ))}
+      {/* ── فلاتر الحالة مجمّعة حسب الموضوع (بالنقر) ── */}
+      <div className="space-y-3">
+
+        {/* حالة الإنجاز */}
+        <div>
+          <span className="block text-xs font-bold text-slate-400 mb-1.5">حالة الإنجاز</span>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            {completionCards.map(s => (
+              <button key={s.value}
+                onClick={() => setStatusF(statusF === s.value ? '' : s.value)}
+                className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
+                  ${statusF === s.value ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
+                <div className="text-xl font-bold text-slate-800 leading-none">{s.count}</div>
+                <div className={`text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block ${s.bg}`}>{s.label}</div>
+              </button>
+            ))}
+            {/* محجوبة (تنتظر تبعية) */}
+            <button onClick={() => setBlockedF(!blockedF)}
+              className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
+                ${blockedF ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
+              <div className="text-xl font-bold text-slate-800 leading-none">{blockedCount}</div>
+              <div className="text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block bg-orange-50 text-orange-600">محجوبة</div>
+            </button>
+            {/* بانتظار إعادة فتح — لمن يملك إدارة المهام */}
+            {canManage && (
+              <button onClick={() => setReopenF(!reopenF)}
+                className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
+                  ${reopenF ? 'border-amber-400 ring-2 ring-amber-200' : 'bg-white border-slate-200 hover:border-amber-200'}`}>
+                <div className="text-xl font-bold text-slate-800 leading-none">{reopenCount}</div>
+                <div className="text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block bg-amber-50 text-amber-700">بانتظار إعادة فتح</div>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* حالة التقييم */}
+        <div>
+          <span className="block text-xs font-bold text-slate-400 mb-1.5">حالة التقييم</span>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            {/* لم تُقيّم */}
+            <button onClick={() => setRatingF(ratingF === 'unrated' ? '' : 'unrated')}
+              className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
+                ${ratingF === 'unrated' ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
+              <div className="text-xl font-bold text-slate-800 leading-none">{unratedCount}</div>
+              <div className="text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block bg-slate-100 text-slate-500">لم تُقيَّم</div>
+            </button>
+            {/* مرفوعة للتقييم + معادة للتعديل */}
+            {reviewCards.map(s => (
+              <button key={s.value}
+                onClick={() => setStatusF(statusF === s.value ? '' : s.value)}
+                className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
+                  ${statusF === s.value ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
+                <div className="text-xl font-bold text-slate-800 leading-none">{s.count}</div>
+                <div className={`text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block ${s.bg}`}>{s.label}</div>
+              </button>
+            ))}
+            {/* مُقيَّمة */}
+            <button onClick={() => setRatingF(ratingF === 'rated' ? '' : 'rated')}
+              className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
+                ${ratingF === 'rated' ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
+              <div className="text-xl font-bold text-slate-800 leading-none">{ratedCount}</div>
+              <div className="text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block" style={{ background: 'var(--maroon-50)', color: 'var(--maroon-700)' }}>مُقيَّمة</div>
+            </button>
+          </div>
+
+          {/* درجة التقييم (فرعي — يُعطَّل عند اختيار «لم تُقيَّم») */}
+          {ratedCount > 0 && (() => {
+            const gradesDisabled = ratingF === 'unrated'
+            return (
+              <div className={`flex items-center gap-2 flex-wrap mt-2 ${gradesDisabled ? 'opacity-40' : ''}`}>
+                <span className="text-xs font-bold text-slate-400 flex-shrink-0">درجة التقييم:</span>
+                {[5,4,3,2,1].map(r => {
+                  const cnt = tasks.filter(t => t.rating === r).length
+                  if (cnt === 0) return null
+                  const info = RATING_INFO[r]
+                  return (
+                    <button key={r} disabled={gradesDisabled}
+                      onClick={() => setRatingF(ratingF === String(r) ? '' : String(r))}
+                      className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium border transition-all disabled:cursor-not-allowed enabled:hover:scale-105"
+                      style={{
+                        background: info.bg, color: info.fg, borderColor: info.bg,
+                        outline: ratingF === String(r) ? `2px solid ${info.bg}` : 'none',
+                        outlineOffset: '2px',
+                      }}>
+                      <Star size={10} /> {info.label} <span className="font-bold">{cnt}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })()}
+        </div>
       </div>
 
       {/* ── فلاتر ── */}
@@ -395,21 +492,6 @@ export default function TasksPage() {
           <UserRound size={14} /> المكلّفة لي
         </button>
 
-        {/* طلبات إعادة الفتح المعلّقة — لمن يملك manage_tasks */}
-        {canManage && (() => {
-          const reopenCount = tasks.filter(t => (t as any).reopen_requested_by).length
-          return (
-            <button onClick={() => setReopenF(!reopenF)}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors
-                ${reopenF ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'}`}>
-              <Unlock size={14} /> بانتظار إعادة فتح
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${reopenF ? 'bg-white/25' : 'bg-amber-100'}`}>
-                {reopenCount}
-              </span>
-            </button>
-          )
-        })()}
-
         {anyFilter && (
           <button onClick={clearAllFilters}
             className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
@@ -417,53 +499,6 @@ export default function TasksPage() {
           </button>
         )}
       </div>
-
-      {/* ── فلتر حالة التقييم (الفلتر الأب) ── */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs font-bold text-slate-400 w-20 flex-shrink-0">حالة التقييم:</span>
-        <button onClick={() => setRatingF(ratingF === 'rated' ? '' : 'rated')}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
-          style={ratingF === 'rated'
-            ? { background: 'var(--maroon-700)', color: '#fff', borderColor: 'var(--maroon-700)' }
-            : { background: 'var(--maroon-50)', color: 'var(--maroon-700)', borderColor: 'var(--maroon-200)' }}>
-          <CheckCheck size={14} /> مُقيَّمة <span className="font-bold">{ratedCount}</span>
-        </button>
-        <button onClick={() => setRatingF(ratingF === 'unrated' ? '' : 'unrated')}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
-          style={ratingF === 'unrated'
-            ? { background: '#475569', color: '#fff', borderColor: '#475569' }
-            : { background: '#f8fafc', color: '#64748b', borderColor: '#e2e8f0' }}>
-          <Circle size={14} /> لم تُقيَّم <span className="font-bold">{unratedCount}</span>
-        </button>
-      </div>
-
-      {/* ── فلتر درجة التقييم (فرعي — يُعطَّل عند اختيار «لم تُقيَّم») ── */}
-      {ratedCount > 0 && (() => {
-        const gradesDisabled = ratingF === 'unrated'
-        return (
-          <div className={`flex items-center gap-2 flex-wrap ${gradesDisabled ? 'opacity-40' : ''}`}>
-            <span className="text-xs font-bold text-slate-400 w-20 flex-shrink-0">درجة التقييم:</span>
-            {gradesDisabled && <span className="text-[11px] text-slate-400">(غير متاحة — المهام غير المقيَّمة بلا درجة)</span>}
-            {[5,4,3,2,1].map(r => {
-              const cnt = tasks.filter(t => t.rating === r).length
-              if (cnt === 0) return null
-              const info = RATING_INFO[r]
-              return (
-                <button key={r} disabled={gradesDisabled}
-                  onClick={() => setRatingF(ratingF === String(r) ? '' : String(r))}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium border transition-all disabled:cursor-not-allowed enabled:hover:scale-105"
-                  style={{
-                    background: info.bg, color: info.fg, borderColor: info.bg,
-                    outline: ratingF === String(r) ? `2px solid ${info.bg}` : 'none',
-                    outlineOffset: '2px',
-                  }}>
-                  <Star size={10} /> {info.label} <span className="font-bold">{cnt}</span>
-                </button>
-              )
-            })}
-          </div>
-        )
-      })()}
 
       {/* ── عرض جانت ── */}
       {viewMode === 'gantt' && (
