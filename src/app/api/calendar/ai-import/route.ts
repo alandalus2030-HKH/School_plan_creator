@@ -4,42 +4,23 @@ import { requireAuth } from '@/lib/supabase/server'
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 const MAX_SIZE_MB = 10
 
-const PROMPT = `You are an AI system specialized in structured data extraction.
+const PROMPT = `أنت نظام استخراج بيانات متخصص في التقاويم الدراسية القطرية.
+استخرج جميع الفترات والأحداث من هذه الصورة (عطلات، إجازات، اختبارات، أيام وطنية، أعياد، بدء/نهاية دوام).
 
-Task:
-- Convert the attached image of the school calendar (academic year 2026/2027) into a clean, error-free digital table.
-- Ensure accuracy of all dates and event descriptions.
+قواعد الاستخراج:
+- title: نص "البيان" أو وصف الحدث كما هو في الصورة
+- kind: اختر من: holiday (عطلة/إجازة), break (استراحة/منتصف فصل), national (وطني), eid (عيد), exam (اختبار/امتحان/اختبارات), other (بدء دوام/نهاية دوام/غير ذلك)
+- enforcement: block للعطلات والأعياد والاختبارات، warn لغيرها
+- start_date و end_date: صيغة YYYY-MM-DD حصراً
+- لو كان عمود "الفترة الزمنية" مقسوماً إلى خليتين في أحد الفعاليات: استخرج التاريخ في الخلية اليمنى ليكون تاريخ البدء (start_date)، والتاريخ في الخلية اليسرى ليكون تاريخ الانتهاء (end_date).
+- في حال كان عمود "الفترة الزمنية" غير مقسوم إلى خليتين (تاريخ واحد فقط): اجعل تاريخ البدء هو نفسه تاريخ الانتهاء (start_date = end_date).
+- انتبه لتنسيق التواريخ العربية (يوم / شهر / سنة) وأسماء الأشهر العربية (يناير=01 ... ديسمبر=12)
+- استخرج كل صف في الجدول
 
-Validation Rules:
-1. Each row must contain:
-   - "event": Arabic text exactly as in the image (do not translate).
-   - "date_range": normalized ISO format. Single date: "YYYY-MM-DD". Range: "YYYY-MM-DD to YYYY-MM-DD".
-   - "kind": one of: holiday (عطلة/إجازة), break (استراحة/منتصف فصل), national (وطني), eid (عيد), exam (اختبار/امتحان/اختبارات), other (بدء دوام/نهاية دوام/غير ذلك).
-   - "enforcement": "block" for holidays, eid, exams; "warn" otherwise.
-2. If start date = end date → store as single date. Example: "2026-08-23"
-3. If start date ≠ end date → store as range. Example: "2026-08-23 to 2026-08-27"
-4. Verify chronological order of events from August 2026 to August 2027.
-5. If a date is unclear, set date_range to "ERROR: date not recognized".
-6. Arabic month names: يناير=01 فبراير=02 مارس=03 أبريل=04 مايو=05 يونيو=06 يوليو=07 أغسطس=08 سبتمبر=09 أكتوبر=10 نوفمبر=11 ديسمبر=12.
-7. Extract every row in the table.
+أعد JSON فقط (مصفوفة) بدون أي نص إضافي قبله أو بعده:
+[{"title":"اسم الحدث","kind":"holiday","start_date":"YYYY-MM-DD","end_date":"YYYY-MM-DD","enforcement":"block"}]
 
-Output JSON array only, no text before or after:
-[
-  {"event":"بدء دوام الموظفين في المدارس للعام الأكاديمي 2026/2027","date_range":"2026-08-23","kind":"other","enforcement":"warn"},
-  {"event":"اختبارات الدور الثاني لجميع الصفوف","date_range":"2026-08-23 to 2026-08-27","kind":"exam","enforcement":"block"}
-]
-
-If no events: []`
-
-/* تحويل date_range ("YYYY-MM-DD" أو "YYYY-MM-DD to YYYY-MM-DD") إلى بداية/نهاية */
-function parseRange(dr: any): { start: string; end: string } {
-  const s = String(dr || '').trim()
-  if (!s || /^ERROR/i.test(s)) return { start: '', end: '' }
-  const parts = s.split(/\s+to\s+/i)
-  const start = (parts[0] || '').slice(0, 10)
-  const end = (parts[1] || parts[0] || '').slice(0, 10)
-  return { start, end }
-}
+إن لم تجد أي أحداث: []`
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth()
@@ -122,17 +103,14 @@ export async function POST(req: NextRequest) {
     const raw: any[] = JSON.parse(match[0])
     const VALID_KINDS = ['holiday', 'break', 'national', 'eid', 'exam', 'other']
     const events = raw
-      .filter(e => e && typeof e.event === 'string' && e.event.trim())
-      .map(e => {
-        const { start, end } = parseRange(e.date_range)
-        return {
-          title:       String(e.event).trim(),
-          kind:        VALID_KINDS.includes(e.kind) ? e.kind : 'other',
-          start_date:  start,
-          end_date:    end,
-          enforcement: e.enforcement === 'warn' ? 'warn' : 'block',
-        }
-      })
+      .filter(e => e && typeof e.title === 'string' && e.title.trim())
+      .map(e => ({
+        title:       String(e.title).trim(),
+        kind:        VALID_KINDS.includes(e.kind) ? e.kind : 'other',
+        start_date:  String(e.start_date || '').slice(0, 10),
+        end_date:    String(e.end_date || e.start_date || '').slice(0, 10),
+        enforcement: e.enforcement === 'warn' ? 'warn' : 'block',
+      }))
 
     return NextResponse.json({ events })
   } catch (err: any) {
