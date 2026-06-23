@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { CalendarDays, Plus, Trash2, Pencil, X, Save, FileSpreadsheet, Sparkles, Upload, AlertTriangle, Loader2 } from 'lucide-react'
+import { CalendarDays, Plus, Trash2, Pencil, X, Save, FileSpreadsheet, Sparkles, Upload, AlertTriangle, Loader2, Download } from 'lucide-react'
 import { toast } from '@/components/Toast'
 import { KIND_LABEL, KIND_COLOR, type CalendarEvent } from '@/lib/calendar'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -58,6 +58,25 @@ function parseDate(val: any): string {
   const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/)
   if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
   return ''
+}
+
+/* ── تنزيل قالب Excel ── */
+async function downloadTemplate() {
+  const XLSX = await import('xlsx')
+  const rows = [
+    ['العنوان', 'النوع', 'من (DD/MM/YYYY)', 'إلى (DD/MM/YYYY)', 'الإلزام'],
+    ['إجازة منتصف الفصل الأول', 'عطلة', '10/11/2025', '14/11/2025', 'منع'],
+    ['اختبارات الفصل الأول', 'اختبار', '15/12/2025', '26/12/2025', 'منع'],
+    ['عيد الفطر المبارك', 'عيد', '01/04/2026', '07/04/2026', 'منع'],
+    ['اليوم الوطني القطري', 'وطني', '18/12/2025', '18/12/2025', 'تنبيه'],
+    ['إجازة منتصف الفصل الثاني', 'استراحة', '09/02/2026', '13/02/2026', 'منع'],
+  ]
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+  /* عرض الأعمدة */
+  ws['!cols'] = [{ wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 10 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'التقويم')
+  XLSX.writeFile(wb, 'قالب_التقويم_المدرسي.xlsx')
 }
 
 /* ── تنسيق التاريخ للعرض ── */
@@ -241,6 +260,14 @@ export default function CalendarManager() {
         </div>
         {!form && !importMode && (
           <div className="flex items-center gap-2 flex-wrap">
+            {/* تنزيل قالب Excel */}
+            <button
+              onClick={downloadTemplate}
+              title="تنزيل قالب Excel جاهز للتعبئة"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-600 border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl font-medium transition-colors">
+              <Download size={14} /> قالب
+            </button>
+
             {/* استيراد Excel */}
             <button
               onClick={() => excelRef.current?.click()}

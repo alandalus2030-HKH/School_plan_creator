@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
-import Groq from 'groq-sdk'
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 const MAX_SIZE_MB = 10
@@ -27,6 +24,14 @@ export async function POST(req: NextRequest) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
 
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: 'ميزة الذكاء الاصطناعي غير مفعّلة — يرجى إضافة GEMINI_API_KEY في إعدادات الخادم' },
+      { status: 503 },
+    )
+  }
+
   let formData: FormData
   try { formData = await req.formData() } catch {
     return NextResponse.json({ error: 'تعذّر قراءة البيانات المرسلة' }, { status: 400 })
@@ -36,9 +41,10 @@ export async function POST(req: NextRequest) {
   if (!file) return NextResponse.json({ error: 'الملف مطلوب' }, { status: 400 })
 
   if (!ALLOWED_TYPES.includes(file.type)) {
-    return NextResponse.json({
-      error: 'يُقبل فقط: JPG، PNG، WebP — للـPDF التقطِ صورة للصفحة أو استخدم استيراد Excel',
-    }, { status: 415 })
+    return NextResponse.json(
+      { error: 'يُقبل فقط: JPG، PNG، WebP — للـPDF التقطِ صورة للصفحة أو استخدم استيراد Excel' },
+      { status: 415 },
+    )
   }
 
   if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -47,27 +53,34 @@ export async function POST(req: NextRequest) {
 
   const bytes = await file.arrayBuffer()
   const base64 = Buffer.from(bytes).toString('base64')
+  const mimeType = file.type === 'image/jpg' ? 'image/jpeg' : file.type
+
+  const body = {
+    contents: [
+      {
+        parts: [
+          { inline_data: { mime_type: mimeType, data: base64 } },
+          { text: PROMPT },
+        ],
+      },
+    ],
+    generationConfig: { temperature: 0.1, maxOutputTokens: 4000 },
+  }
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.2-11b-vision-preview',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: `data:${file.type};base64,${base64}` },
-            },
-            { type: 'text', text: PROMPT },
-          ] as any,
-        },
-      ],
-      temperature: 0.1,
-      max_tokens: 4000,
-    })
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+    )
 
-    const content = completion.choices[0]?.message?.content || '[]'
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      console.error('[calendar/ai-import] Gemini error:', err)
+      return NextResponse.json({ error: 'تعذّر تحليل الصورة — حاول بصورة أوضح أو استخدم Excel' }, { status: 500 })
+    }
+
+    const data = await res.json()
+    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
     const match = content.match(/\[[\s\S]*\]/)
     if (!match) return NextResponse.json({ events: [] })
 
@@ -79,13 +92,16 @@ export async function POST(req: NextRequest) {
         title:       String(e.title).trim(),
         kind:        VALID_KINDS.includes(e.kind) ? e.kind : 'other',
         start_date:  String(e.start_date || '').slice(0, 10),
-        end_date:    String(e.end_date   || e.start_date || '').slice(0, 10),
+        end_date:    String(e.end_date || e.start_date || '').slice(0, 10),
         enforcement: e.enforcement === 'warn' ? 'warn' : 'block',
       }))
 
     return NextResponse.json({ events })
   } catch (err: any) {
     console.error('[calendar/ai-import]', err?.message || err)
-    return NextResponse.json({ error: 'تعذّر تحليل الصورة — حاول بصورة أوضح أو استخدم Excel' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'تعذّر تحليل الصورة — حاول بصورة أوضح أو استخدم Excel' },
+      { status: 500 },
+    )
   }
 }
