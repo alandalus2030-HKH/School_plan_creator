@@ -107,7 +107,7 @@ export default function RecognitionPodium() {
     if (res.ok) { toast('عاد الاختيار للتلقائي'); await load() } else toast('تعذّر الإلغاء', 'error')
   }
 
-  if (loading || podium.length === 0) return null
+  if (loading) return null
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 overflow-hidden">
@@ -130,36 +130,49 @@ export default function RecognitionPodium() {
         )}
       </div>
 
-      {/* المنصة */}
-      <div className="flex items-end justify-center gap-3 sm:gap-6">
-        {ORDER.map(pos => {
-          const e = podium[pos]
-          if (!e) return <div key={pos} className="flex-1 max-w-[120px]" />
-          const size = pos === 0 ? 76 : 60
-          const podiumH = pos === 0 ? 'h-20' : pos === 1 ? 'h-14' : 'h-10'
-          return (
-            <div key={pos} className="flex-1 max-w-[140px] flex flex-col items-center">
-              {pos === 0 && <span className="inline-flex mb-1"><Crown size={20} style={{ color: MEDAL[0] }} /></span>}
-              <div className="relative">
-                <div className="rounded-full p-0.5" style={{ background: MEDAL[pos] }}>
-                  <Avatar name={e.name} url={e.avatar} size={size} />
+      {podium.length === 0 ? (
+        /* حالة فارغة تشجيعية — لا أوسمة هذا الشهر بعد */
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--maroon-50)' }}>
+            <Trophy size={28} style={{ color: 'var(--maroon-400)' }} />
+          </div>
+          <p className="font-semibold text-slate-700">كن أول من يتصدّر هذا الشهر 🏆</p>
+          <p className="text-xs text-slate-500 mt-1 max-w-xs">أنجز مهامك واكسب الأوسمة لتظهر هنا في صدارة الشهر.</p>
+        </div>
+      ) : (
+        <>
+          {/* المنصة */}
+          <div className="flex items-end justify-center gap-3 sm:gap-6">
+            {ORDER.map(pos => {
+              const e = podium[pos]
+              if (!e) return <div key={pos} className="flex-1 max-w-[120px]" />
+              const size = pos === 0 ? 76 : 60
+              const podiumH = pos === 0 ? 'h-20' : pos === 1 ? 'h-14' : 'h-10'
+              return (
+                <div key={pos} className="flex-1 max-w-[140px] flex flex-col items-center">
+                  {pos === 0 && <span className="inline-flex mb-1"><Crown size={20} style={{ color: MEDAL[0] }} /></span>}
+                  <div className="relative">
+                    <div className="rounded-full p-0.5" style={{ background: MEDAL[pos] }}>
+                      <Avatar name={e.name} url={e.avatar} size={size} />
+                    </div>
+                    <span className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white"
+                      style={{ background: MEDAL[pos] }}>{pos + 1}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700 mt-2 text-center truncate w-full">{e.name}</p>
+                  <p className="text-xs flex items-center gap-1" style={{ color: 'var(--maroon-600)' }}>
+                    <Star size={11} className="fill-amber-400 text-amber-400" /> {e.points}
+                  </p>
+                  {e.featured && (
+                    <span className="text-[10px] mt-1 px-2 py-0.5 rounded-full bg-violet-50 text-violet-700">اختيار الإدارة</span>
+                  )}
+                  <div className={`w-full ${podiumH} mt-2 rounded-t-lg`} style={{ background: `${MEDAL[pos]}22` }} />
                 </div>
-                <span className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white"
-                  style={{ background: MEDAL[pos] }}>{pos + 1}</span>
-              </div>
-              <p className="text-sm font-semibold text-slate-700 mt-2 text-center truncate w-full">{e.name}</p>
-              <p className="text-xs flex items-center gap-1" style={{ color: 'var(--maroon-600)' }}>
-                <Star size={11} className="fill-amber-400 text-amber-400" /> {e.points}
-              </p>
-              {e.featured && (
-                <span className="text-[10px] mt-1 px-2 py-0.5 rounded-full bg-violet-50 text-violet-700">اختيار الإدارة</span>
-              )}
-              <div className={`w-full ${podiumH} mt-2 rounded-t-lg`} style={{ background: `${MEDAL[pos]}22` }} />
-            </div>
-          )
-        })}
-      </div>
-      {note && <p className="text-center text-xs text-slate-500 mt-3 italic">“{note}”</p>}
+              )
+            })}
+          </div>
+          {note && <p className="text-center text-xs text-slate-500 mt-3 italic">“{note}”</p>}
+        </>
+      )}
 
       {/* نافذة التعيين */}
       {showSet && (
