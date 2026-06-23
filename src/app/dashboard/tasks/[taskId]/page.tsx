@@ -471,11 +471,11 @@ export default function TaskPage() {
     if (!editStart) { toast('تاريخ البدء مطلوب', 'error'); return }
     if (!editEnd) { toast('تاريخ الانتهاء (الموعد النهائي) مطلوب', 'error'); return }
     if (editEnd < editStart) { toast('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء', 'error'); return }
-    /* أيام محجوزة في التقويم المدرسي — منع قابل لتجاوز مدير المهام بتأكيد */
+    /* أيام محجوزة في التقويم المدرسي — المنع يخص تاريخ البدء فقط (الجدولة).
+       تاريخ الانتهاء (الموعد النهائي) يُكتفى بتنبيهه — قد يقع منطقياً قرب/داخل عطلة. */
     {
       const blocked = [
         { d: editStart, label: 'البدء', s: dayStatus(editStart, cal) },
-        { d: editEnd,   label: 'الانتهاء', s: dayStatus(editEnd, cal) },
       ].filter(x => x.s?.level === 'block')
       if (blocked.length) {
         const msg = blocked.map(b => `تاريخ ${b.label} (${b.d}) ضمن «${b.s!.reason}»`).join('، ')
@@ -934,7 +934,8 @@ export default function TaskPage() {
                   <input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} dir="ltr" required min={editStart || undefined}
                     className={`w-full px-3 py-2 rounded-xl bg-white/10 border text-white focus:outline-none text-sm ${editEnd ? 'border-white/20' : 'border-amber-300/70'}`} />
                   {(() => { const s = dayStatus(editEnd, cal); if (!s) return null
-                    return <p className={`text-[11px] mt-1 ${s.level === 'block' ? 'text-red-200' : 'text-amber-200'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
+                    /* الانتهاء تنبيه دائماً (لا يمنع) */
+                    return <p className="text-[11px] mt-1 text-amber-200">⚠️ {s.reason}</p> })()}
                 </div>
               </div>
               {/* أنواع الأدلة المطلوبة — بوّابة الإنجاز */}

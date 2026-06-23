@@ -165,10 +165,10 @@ function NewTaskForm() {
     if (!startDate) { setError('تاريخ البدء مطلوب'); return }
     if (!endDate) { setError('تاريخ الانتهاء (الموعد النهائي) مطلوب'); return }
     if (endDate < startDate) { setError('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'); return }
-    /* أيام محجوزة في التقويم المدرسي: منع (قابل لتجاوز المدير بتأكيد) */
+    /* أيام محجوزة في التقويم المدرسي: المنع يخص تاريخ البدء فقط (الجدولة).
+       تاريخ الانتهاء (الموعد النهائي) يُكتفى بتنبيهه — قد يقع منطقياً قرب/داخل عطلة. */
     const blocked = [
       { d: startDate, label: 'البدء', s: dayStatus(startDate, cal) },
-      { d: endDate,   label: 'الانتهاء', s: dayStatus(endDate, cal) },
     ].filter(x => x.s?.level === 'block')
     if (blocked.length) {
       const msg = blocked.map(b => `تاريخ ${b.label} (${b.d}) ضمن «${b.s!.reason}»`).join('، ')
@@ -423,7 +423,8 @@ function NewTaskForm() {
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} dir="ltr" required min={startDate || undefined}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
               {(() => { const s = dayStatus(endDate, cal); if (!s) return null
-                return <p className={`text-xs mt-1 ${s.level === 'block' ? 'text-red-600' : 'text-amber-600'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
+                /* الانتهاء تنبيه دائماً (لا يمنع) */
+                return <p className="text-xs mt-1 text-amber-600">⚠️ {s.reason}</p> })()}
             </div>
           </div>
 
