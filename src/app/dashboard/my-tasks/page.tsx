@@ -73,6 +73,8 @@ export default function MyTasksPage() {
   const [q,          setQ]          = useState('')
   const [sortBy,     setSortBy]     = useState<'newest' | 'deadline' | 'priority'>('newest')
   const [overdueOnly, setOverdueOnly] = useState(false)
+  /* تصفية حسب بطاقة الحالة العلوية ('' = الكل) */
+  const [statusFilter, setStatusFilter] = useState<'' | 'in_progress' | 'completed' | 'overdue'>('')
 
   useEffect(() => {
     ;(async () => {
@@ -245,6 +247,11 @@ export default function MyTasksPage() {
   const displayTasks = currentTasks
     .filter(t => !q || t.name_ar.toLowerCase().includes(q.toLowerCase()))
     .filter(t => !overdueOnly || isLate(t))
+    .filter(t => {
+      if (!statusFilter) return true
+      if (statusFilter === 'overdue') return isLate(t)
+      return t.status === statusFilter
+    })
     .slice()
     .sort((a, b) => {
       if (sortBy === 'priority') {
@@ -288,22 +295,34 @@ export default function MyTasksPage() {
       {/* ══ صدارة الشهر ══ */}
       <RecognitionPodium />
 
-      {/* ══ بطاقات الإحصائيات ══ */}
+      {/* ══ بطاقات الإحصائيات (قابلة للنقر لتصفية القائمة) ══ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'إجمالي مهامي', value: mineAll.length, Icon: ClipboardList,  bg: 'linear-gradient(135deg,#5a0d22,#8a1538)', fg: '#fff',     iconFg: 'rgba(255,255,255,0.8)' },
-          { label: 'جارية',         value: inProgress,     Icon: Zap,            bg: '#f4dde2',                                  fg: '#8a1538',  iconFg: '#c25c74' },
-          { label: 'منجزة',         value: done,           Icon: CheckCircle2,   bg: '#fbf2f4',                                  fg: '#8a1538',  iconFg: '#d98ea0' },
-          { label: 'متأخرة',        value: overdue,        Icon: AlertTriangle,  bg: '#f4dde2',                                  fg: '#6f1029',  iconFg: '#a83356' },
-        ].map(s => (
-          <div key={s.label} className="rounded-2xl border border-transparent p-4 text-center"
-            style={{ background: s.bg, color: s.fg }}>
-            <s.Icon size={24} style={{ color: s.iconFg, margin: '0 auto 6px' }} />
-            <div className="text-2xl font-bold">{s.value}</div>
-            <div className="text-xs font-medium mt-0.5 opacity-80">{s.label}</div>
-          </div>
-        ))}
+          { key: ''            as const, label: 'إجمالي مهامي', value: mineAll.length, Icon: ClipboardList,  bg: 'linear-gradient(135deg,#5a0d22,#8a1538)', fg: '#fff',     iconFg: 'rgba(255,255,255,0.8)' },
+          { key: 'in_progress' as const, label: 'جارية',         value: inProgress,     Icon: Zap,            bg: '#f4dde2',                                  fg: '#8a1538',  iconFg: '#c25c74' },
+          { key: 'completed'   as const, label: 'منجزة',         value: done,           Icon: CheckCircle2,   bg: '#fbf2f4',                                  fg: '#8a1538',  iconFg: '#d98ea0' },
+          { key: 'overdue'     as const, label: 'متأخرة',        value: overdue,        Icon: AlertTriangle,  bg: '#f4dde2',                                  fg: '#6f1029',  iconFg: '#a83356' },
+        ].map(s => {
+          const active = statusFilter === s.key
+          return (
+            <button key={s.label} type="button"
+              onClick={() => setStatusFilter(active && s.key !== '' ? '' : s.key)}
+              title={s.key === '' ? 'عرض كل المهام' : `تصفية: ${s.label}`}
+              className="rounded-2xl p-4 text-center transition-all hover:brightness-95 focus:outline-none"
+              style={{ background: s.bg, color: s.fg, boxShadow: active ? '0 0 0 2.5px var(--maroon-600)' : undefined }}>
+              <s.Icon size={24} style={{ color: s.iconFg, margin: '0 auto 6px' }} />
+              <div className="text-2xl font-bold">{s.value}</div>
+              <div className="text-xs font-medium mt-0.5 opacity-80">{s.label}</div>
+            </button>
+          )
+        })}
       </div>
+      {statusFilter && (
+        <p className="text-xs text-slate-500 -mt-2">
+          عرض المهام {statusFilter === 'overdue' ? 'المتأخرة' : statusFilter === 'completed' ? 'المنجزة' : 'الجارية'} —{' '}
+          <button onClick={() => setStatusFilter('')} className="text-violet-600 hover:underline font-medium">إلغاء التصفية</button>
+        </p>
+      )}
 
       {/* تنبيه انتظار التقييم */}
       {toReview > 0 && (
@@ -447,10 +466,13 @@ export default function MyTasksPage() {
                         style={{ background: 'var(--gradient-button)' }}>
                         فتح المهمة لإدارة الحالة ←
                       </Link>
-                      <Link href={`/dashboard/tasks/${task.id}/evidence/new`}
-                        className="mr-auto flex items-center gap-1 text-xs text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl border border-violet-200 transition-colors">
-                        📎 رفع دليل
-                      </Link>
+                      {/* رفع الدليل يُخفى للمهام المنجزة/المرفوعة (مقفلة لرفع الأدلة) */}
+                      {task.status !== 'completed' && task.status !== 'submitted' && (
+                        <Link href={`/dashboard/tasks/${task.id}/evidence/new`}
+                          className="mr-auto flex items-center gap-1 text-xs text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl border border-violet-200 transition-colors">
+                          📎 رفع دليل
+                        </Link>
+                      )}
                     </div>
                   )}
 
