@@ -88,6 +88,17 @@ export async function POST(req: NextRequest) {
           { status: 429 },
         )
       }
+      /* تشخيص: إن كان النموذج غير موجود، اعرض النماذج المتاحة لهذا المفتاح */
+      if (res.status === 404) {
+        const list = await fetch('https://api.groq.com/openai/v1/models', {
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+        }).then(r => r.json()).catch(() => null)
+        const ids = (list?.data || []).map((m: any) => m.id).join(' | ')
+        return NextResponse.json(
+          { error: `النماذج المتاحة: ${ids.slice(0, 400) || 'تعذّر الجلب'}` },
+          { status: 500 },
+        )
+      }
       const detail = errText.slice(0, 200)
       return NextResponse.json(
         { error: `Groq ${res.status}: ${detail || 'خطأ غير معروف'}` },
