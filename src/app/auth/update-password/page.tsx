@@ -59,7 +59,15 @@ function UpdatePasswordForm() {
     try { await fetch('/api/auth/clear-must-change', { method: 'POST' }) } catch {}
 
     setSuccess(true)
-    setTimeout(() => router.replace('/dashboard'), 2000)
+    if (forced) {
+      /* كلمة مرور مؤقتة → تسجيل خروج ثم إعادة الدخول بالكلمة الجديدة */
+      setTimeout(async () => {
+        await supabase.auth.signOut()
+        router.replace('/login?reason=password_changed')
+      }, 2000)
+    } else {
+      setTimeout(() => router.replace('/dashboard'), 2000)
+    }
   }
 
   /* أثناء التحقق من جلسة الاسترجاع */

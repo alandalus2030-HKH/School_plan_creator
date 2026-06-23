@@ -125,7 +125,7 @@ export default function UsersPage() {
 
   /* ── الفرق ── */
   const [formTeams, setFormTeams] = useState<TeamMembership[]>([])
-  const [credsModal, setCredsModal] = useState<{ username: string | null; tempPassword: string; name: string | null } | null>(null)  // نافذة منبثقة لبيانات الدخول المؤقتة
+  const [credsModal, setCredsModal] = useState<{ email: string | null; tempPassword: string; name: string | null } | null>(null)  // نافذة منبثقة لبيانات الدخول المؤقتة
   const [credsCopied, setCredsCopied] = useState(false)
 
   /* ── حذف ── */
@@ -360,7 +360,7 @@ export default function UsersPage() {
         const { ok: lok, json: lj } = await safePost('/api/auth/admin-reset', { userId: json.id })
         if (lok && lj.tempPassword) {
           setCredsCopied(false)
-          setCredsModal({ username: lj.username ?? (form.username || null), tempPassword: lj.tempPassword, name: lj.name ?? (form.first_name_ar || null) })
+          setCredsModal({ email: lj.email ?? null, tempPassword: lj.tempPassword, name: lj.name ?? (form.first_name_ar || null) })
           setSaving(false); setShowForm(false); await loadAll()
           return  // تظهر النافذة المنبثقة لبيانات الدخول المؤقتة
         }
@@ -409,7 +409,7 @@ export default function UsersPage() {
     const { ok, json } = await safePost('/api/auth/admin-reset', { userId: editProfile.id })
     if (ok && json.tempPassword) {
       setCredsCopied(false)
-      setCredsModal({ username: json.username ?? editProfile.username ?? null, tempPassword: json.tempPassword, name: json.name ?? editProfile.name_ar ?? editProfile.email ?? null })
+      setCredsModal({ email: json.email ?? editProfile.email ?? null, tempPassword: json.tempPassword, name: json.name ?? editProfile.name_ar ?? editProfile.email ?? null })
     } else {
       setResetMsg(`❌ ${json.error || 'تعذّر إعادة التعيين'}`)
     }
@@ -422,7 +422,7 @@ export default function UsersPage() {
     const { ok, json } = await safePost('/api/auth/admin-reset', { userId: p.id })
     if (ok && json.tempPassword) {
       setCredsCopied(false)
-      setCredsModal({ username: json.username ?? p.username ?? null, tempPassword: json.tempPassword, name: json.name ?? p.name_ar ?? p.email ?? null })
+      setCredsModal({ email: json.email ?? p.email ?? null, tempPassword: json.tempPassword, name: json.name ?? p.name_ar ?? p.email ?? null })
     } else {
       setResetListMsg({ id: p.id, ok: false, text: `❌ ${json.error || 'تعذّر إعادة التعيين'}` })
     }
@@ -988,8 +988,8 @@ export default function UsersPage() {
             </p>
             <div className="space-y-2 mb-4">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 w-28 flex-shrink-0">اسم المستخدم:</span>
-                <code className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 font-latin truncate" dir="ltr">{credsModal.username || '—'}</code>
+                <span className="text-xs text-slate-500 w-28 flex-shrink-0">بريد الدخول:</span>
+                <code className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 font-latin truncate" dir="ltr">{credsModal.email || '—'}</code>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500 w-28 flex-shrink-0">كلمة المرور المؤقتة:</span>

@@ -20,6 +20,7 @@ function LoginForm() {
   const [password,     setPassword]     = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error,        setError]        = useState('')
+  const [notice,       setNotice]       = useState('')
   const [loading,      setLoading]      = useState(false)
   const [quote,        setQuote]        = useState('')
   const [lang,         setLang]         = useState<'ar' | 'en'>('ar')
@@ -41,6 +42,8 @@ function LoginForm() {
       setError(isAr ? 'تم تعطيل حسابك، تواصل مع مشرف النظام' : 'Your account has been deactivated, contact your administrator')
     } else if (reason === 'school_suspended') {
       setError(isAr ? 'تم تعطيل اشتراك مدرستك، تواصل مع مشرف النظام' : 'Your school subscription has been suspended, contact the system administrator')
+    } else if (reason === 'password_changed') {
+      setNotice(isAr ? '✅ تم تغيير كلمة المرور بنجاح. سجّل دخولك بكلمة المرور الجديدة.' : 'Password changed successfully. Please sign in with your new password.')
     }
 
     /* رابط استرجاع كلمة المرور قد يهبط هنا (في hash) → وجّه لصفحة التعيين مع الحفاظ على الرمز */
@@ -254,6 +257,12 @@ function LoginForm() {
                   </button>
                 </div>
               </div>
+
+              {notice && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                  {notice}
+                </div>
+              )}
 
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">

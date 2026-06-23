@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   /* ضبط كلمة مرور مؤقتة لحساب المستخدم المحدد بالذات */
   const tempPassword = genTempPassword()
-  const { error: upErr } = await admin.auth.admin.updateUserById(userId, { password: tempPassword })
+  const { data: authUserData, error: upErr } = await admin.auth.admin.updateUserById(userId, { password: tempPassword })
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 400 })
 
   /* تفعيل التغيير الإجباري عند أول دخول */
@@ -63,8 +63,12 @@ export async function POST(req: NextRequest) {
     .from('profiles').update({ must_change_password: true }).eq('id', userId)
   if (profErr) return NextResponse.json({ error: 'تم ضبط الكلمة لكن تعذّر تفعيل التغيير الإجباري: ' + profErr.message }, { status: 500 })
 
+  /* البريد الفعلي المستخدم في Supabase Auth (المرجع الموثوق لتسجيل الدخول) */
+  const authEmail = authUserData?.user?.email || target.email || null
+
   return NextResponse.json({
     tempPassword,
+    email: authEmail,
     username: target.username || null,
     name: target.name_ar || target.email || null,
   })

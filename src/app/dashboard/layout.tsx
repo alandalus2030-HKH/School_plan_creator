@@ -40,18 +40,24 @@ function getTitle(pathname: string, lang: 'ar' | 'en'): string {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [lang,      setLang]      = useState<'ar' | 'en'>('ar')
   const [collapsed, setCollapsed] = useState(false)
+  const [checking,  setChecking]  = useState(true)
   const pathname  = usePathname()
   const router    = useRouter()
   const pageTitle = getTitle(pathname, lang)
 
-  /* حارس: إلزام تغيير كلمة المرور عند أول دخول → تحويل لصفحة التعيين */
+  /* حارس: إلزام تغيير كلمة المرور عند أول دخول → تحويل لصفحة التعيين.
+     يُخفي المحتوى حتى انتهاء الفحص لمنع الوميض. */
   useEffect(() => {
     ;(async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { setChecking(false); return }
       const { data } = await supabase.from('profiles').select('must_change_password').eq('id', user.id).maybeSingle()
-      if (data?.must_change_password) router.replace('/auth/update-password?forced=1')
+      if (data?.must_change_password) {
+        router.replace('/auth/update-password?forced=1')
+        return // لا نُنهي checking — الصفحة ستتغير
+      }
+      setChecking(false)
     })()
   }, [])
 
@@ -71,6 +77,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       localStorage.setItem(SIDEBAR_KEY, String(!prev))
       return !prev
     })
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin w-8 h-8 border-4 border-[#8a1538] border-t-transparent rounded-full" />
+      </div>
+    )
   }
 
   return (
