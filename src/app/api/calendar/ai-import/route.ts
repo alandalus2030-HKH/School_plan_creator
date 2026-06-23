@@ -74,9 +74,13 @@ export async function POST(req: NextRequest) {
     )
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      console.error('[calendar/ai-import] Gemini error:', err)
-      return NextResponse.json({ error: 'تعذّر تحليل الصورة — حاول بصورة أوضح أو استخدم Excel' }, { status: 500 })
+      const errText = await res.text().catch(() => '')
+      console.error('[calendar/ai-import] Gemini error:', res.status, errText)
+      const detail = errText.slice(0, 300)
+      return NextResponse.json(
+        { error: `تعذّر التحليل (Gemini ${res.status}): ${detail}` },
+        { status: 500 },
+      )
     }
 
     const data = await res.json()
@@ -100,7 +104,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('[calendar/ai-import]', err?.message || err)
     return NextResponse.json(
-      { error: 'تعذّر تحليل الصورة — حاول بصورة أوضح أو استخدم Excel' },
+      { error: `تعذّر التحليل (استثناء): ${String(err?.message || err).slice(0, 300)}` },
       { status: 500 },
     )
   }
