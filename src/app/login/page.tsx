@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import { Eye, EyeOff, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -240,6 +241,9 @@ function LoginForm() {
                   {isAr ? 'كلمة المرور' : 'Password'}
                 </label>
                 <div className="relative">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none">
+                    <Lock size={16} />
+                  </span>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -248,12 +252,12 @@ function LoginForm() {
                     autoComplete="current-password"
                     placeholder="••••••••"
                     dir="ltr"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all text-slate-800 bg-slate-50"
+                    className="w-full pr-9 pl-10 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all text-slate-800 bg-slate-50"
                   />
                   <button type="button"
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors text-sm">
-                    {showPassword ? '🙈' : '👁️'}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
