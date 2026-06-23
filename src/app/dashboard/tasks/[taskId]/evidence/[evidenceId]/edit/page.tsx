@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { FolderOpen, Lock, PlayCircle, Loader2, X, Plus, Trash2 } from 'lucide-react'
+import { FolderOpen, Lock, PlayCircle, Loader2, X, Plus, Trash2, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
@@ -264,21 +264,34 @@ export default function EditEvidencePage() {
               {existing.map((f: any) => {
                 const removed = removedIds.includes(f.id)
                 const isVid = f.file_type === 'video/youtube'
+                const isImg = f.file_type?.startsWith('image')
+                const previewHref = isVid ? (f.video_url || f.file_url) : f.file_url
                 return (
                   <div key={f.id} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
                     removed ? 'border-red-200 bg-red-50 opacity-60' : isVid ? 'border-red-100 bg-red-50/40' : 'border-slate-100 bg-slate-50'}`}>
-                    {isVid && f.file_url ? (
-                      <span className="relative w-12 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-slate-200">
+                    {/* مصغّرة قابلة للنقر لمعاينة الملف */}
+                    <a href={previewHref} target="_blank" rel="noopener noreferrer"
+                      className="relative flex-shrink-0 w-12 h-9 rounded-lg overflow-hidden bg-slate-200 hover:opacity-80 transition-opacity"
+                      title="معاينة">
+                      {isVid && f.file_url ? (
+                        <>
+                          <img src={f.file_url} alt="" className="w-full h-full object-cover" />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-[10px]">▶</span>
+                        </>
+                      ) : isImg ? (
                         <img src={f.file_url} alt="" className="w-full h-full object-cover" />
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-[10px]">▶</span>
-                      </span>
-                    ) : (
-                      <span className="text-2xl w-12 text-center flex-shrink-0">
-                        {f.file_type?.startsWith('image') ? '🖼️' : f.file_type === 'application/pdf' ? '📄' : '📎'}
-                      </span>
-                    )}
+                      ) : (
+                        <span className="flex items-center justify-center w-full h-full text-xl">
+                          {f.file_type === 'application/pdf' ? '📄' : '📎'}
+                        </span>
+                      )}
+                    </a>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${removed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{f.name}</p>
+                      <a href={previewHref} target="_blank" rel="noopener noreferrer"
+                        className={`flex items-center gap-1 text-sm font-medium truncate hover:underline ${removed ? 'line-through text-slate-400 pointer-events-none' : 'text-slate-700'}`}>
+                        {f.name}
+                        {!removed && <ExternalLink size={11} className="text-slate-400 flex-shrink-0" />}
+                      </a>
                       {removed && <p className="text-xs text-red-500">سيُحذف عند الحفظ</p>}
                     </div>
                     {removed ? (
