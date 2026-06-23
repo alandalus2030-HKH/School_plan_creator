@@ -999,10 +999,10 @@ export default function UsersPage() {
             <div className="flex gap-3">
               <button type="button"
                 onClick={async () => {
-                  try { await navigator.clipboard.writeText(`اسم المستخدم: ${credsModal.username || ''} | كلمة المرور المؤقتة: ${credsModal.tempPassword}`); setCredsCopied(true) } catch {}
+                  try { await navigator.clipboard.writeText(credsModal.tempPassword); setCredsCopied(true) } catch {}
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
-                {credsCopied ? '✓ تم النسخ' : '📋 نسخ البيانات'}
+                {credsCopied ? '✓ تم النسخ' : '📋 نسخ كلمة المرور'}
               </button>
               <button type="button" onClick={() => setCredsModal(null)}
                 className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
