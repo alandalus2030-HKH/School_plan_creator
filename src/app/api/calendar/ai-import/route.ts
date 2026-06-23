@@ -89,16 +89,17 @@ export async function POST(req: NextRequest) {
     })
 
     if (!res.ok) {
-      const err = await res.text().catch(() => '')
-      console.error('[calendar/ai-import] Claude error:', res.status, err)
+      const errText = await res.text().catch(() => '')
+      console.error('[calendar/ai-import] Claude error:', res.status, errText)
       if (res.status === 429) {
         return NextResponse.json(
           { error: 'تجاوزت الحصة — جرّب لاحقاً أو استخدم استيراد Excel' },
           { status: 429 },
         )
       }
+      const detail = errText.slice(0, 200)
       return NextResponse.json(
-        { error: 'تعذّر تحليل الصورة — حاول بصورة أوضح أو استخدم استيراد Excel' },
+        { error: `Claude ${res.status}: ${detail || 'خطأ غير معروف'}` },
         { status: 500 },
       )
     }
