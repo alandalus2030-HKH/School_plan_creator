@@ -260,7 +260,6 @@ export default function TasksPage() {
 
   /* ── إحصائيات التقييم ── */
   const ratedCount   = tasks.filter(t => t.rating != null).length
-  const unratedCount = tasks.length - ratedCount
 
   /* ── إحصائيات ── */
   const stats = STATUS_LIST.map(s => ({
@@ -395,17 +394,10 @@ export default function TasksPage() {
           </div>
         </div>
 
-        {/* حالة التقييم */}
+        {/* حالة التقييم — المراجعة فقط (المنجزة ≡ المقيّمة، فلا تكرار) */}
         <div>
           <span className="block text-xs font-bold text-slate-400 mb-1.5">حالة التقييم</span>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            {/* لم تُقيّم */}
-            <button onClick={() => setRatingF(ratingF === 'unrated' ? '' : 'unrated')}
-              className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
-                ${ratingF === 'unrated' ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
-              <div className="text-xl font-bold text-slate-800 leading-none">{unratedCount}</div>
-              <div className="text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block bg-slate-100 text-slate-500">لم تُقيَّم</div>
-            </button>
             {/* مرفوعة للتقييم + معادة للتعديل */}
             {reviewCards.map(s => (
               <button key={s.value}
@@ -416,41 +408,31 @@ export default function TasksPage() {
                 <div className={`text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block ${s.bg}`}>{s.label}</div>
               </button>
             ))}
-            {/* مُقيَّمة */}
-            <button onClick={() => setRatingF(ratingF === 'rated' ? '' : 'rated')}
-              className={`rounded-xl border px-2 py-2.5 text-center transition-all shadow-sm
-                ${ratingF === 'rated' ? 'border-violet-400 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-violet-200'}`}>
-              <div className="text-xl font-bold text-slate-800 leading-none">{ratedCount}</div>
-              <div className="text-[11px] font-medium mt-1.5 px-1.5 py-0.5 rounded-full inline-block" style={{ background: 'var(--maroon-50)', color: 'var(--maroon-700)' }}>مُقيَّمة</div>
-            </button>
           </div>
 
-          {/* درجة التقييم (فرعي — يُعطَّل عند اختيار «لم تُقيَّم») */}
-          {ratedCount > 0 && (() => {
-            const gradesDisabled = ratingF === 'unrated'
-            return (
-              <div className={`flex items-center gap-2 flex-wrap mt-2 ${gradesDisabled ? 'opacity-40' : ''}`}>
-                <span className="text-xs font-bold text-slate-400 flex-shrink-0">درجة التقييم:</span>
-                {[5,4,3,2,1].map(r => {
-                  const cnt = tasks.filter(t => t.rating === r).length
-                  if (cnt === 0) return null
-                  const info = RATING_INFO[r]
-                  return (
-                    <button key={r} disabled={gradesDisabled}
-                      onClick={() => setRatingF(ratingF === String(r) ? '' : String(r))}
-                      className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium border transition-all disabled:cursor-not-allowed enabled:hover:scale-105"
-                      style={{
-                        background: info.bg, color: info.fg, borderColor: info.bg,
-                        outline: ratingF === String(r) ? `2px solid ${info.bg}` : 'none',
-                        outlineOffset: '2px',
-                      }}>
-                      <Star size={10} /> {info.label} <span className="font-bold">{cnt}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          })()}
+          {/* درجة تقييم المهام المنجزة (تصفية المنجزة حسب الدرجة) */}
+          {ratedCount > 0 && (
+            <div className="flex items-center gap-2 flex-wrap mt-2">
+              <span className="text-xs font-bold text-slate-400 flex-shrink-0">درجة التقييم:</span>
+              {[5,4,3,2,1].map(r => {
+                const cnt = tasks.filter(t => t.rating === r).length
+                if (cnt === 0) return null
+                const info = RATING_INFO[r]
+                return (
+                  <button key={r}
+                    onClick={() => setRatingF(ratingF === String(r) ? '' : String(r))}
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium border transition-all hover:scale-105"
+                    style={{
+                      background: info.bg, color: info.fg, borderColor: info.bg,
+                      outline: ratingF === String(r) ? `2px solid ${info.bg}` : 'none',
+                      outlineOffset: '2px',
+                    }}>
+                    <Star size={10} /> {info.label} <span className="font-bold">{cnt}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
