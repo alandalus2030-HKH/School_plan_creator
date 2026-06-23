@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
 
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'ميزة الذكاء الاصطناعي غير مفعّلة — يرجى إضافة GEMINI_API_KEY في إعدادات الخادم' },
+      { error: 'ميزة الذكاء الاصطناعي غير مفعّلة — يرجى إضافة ANTHROPIC_API_KEY في إعدادات الخادم' },
       { status: 503 },
     )
   }
@@ -55,30 +55,45 @@ export async function POST(req: NextRequest) {
   const base64 = Buffer.from(bytes).toString('base64')
   const mimeType = file.type === 'image/jpg' ? 'image/jpeg' : file.type
 
-  const body = {
-    contents: [
-      {
-        parts: [
-          { inline_data: { mime_type: mimeType, data: base64 } },
-          { text: PROMPT },
-        ],
-      },
-    ],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 4000 },
-  }
-
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
-    )
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mimeType,
+                  data: base64,
+                },
+              },
+              {
+                type: 'text',
+                text: PROMPT,
+              },
+            ],
+          },
+        ],
+      }),
+    })
 
     if (!res.ok) {
-      const errText = await res.text().catch(() => '')
-      console.error('[calendar/ai-import] Gemini error:', res.status, errText)
+      const err = await res.text().catch(() => '')
+      console.error('[calendar/ai-import] Claude error:', res.status, err)
       if (res.status === 429) {
         return NextResponse.json(
-          { error: 'تجاوزت الحصة المجانية لمفتاح Gemini — جرّب لاحقاً أو فعّل الفوترة، أو استخدم استيراد Excel' },
+          { error: 'تجاوزت الحصة — جرّب لاحقاً أو استخدم استيراد Excel' },
           { status: 429 },
         )
       }
@@ -89,7 +104,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
-    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+    const content = data?.content?.[0]?.text || '[]'
     const match = content.match(/\[[\s\S]*\]/)
     if (!match) return NextResponse.json({ events: [] })
 
