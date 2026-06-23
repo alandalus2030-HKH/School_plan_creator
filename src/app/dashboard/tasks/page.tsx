@@ -146,7 +146,7 @@ export default function TasksPage() {
         { data: deptOpts },
       ] = await Promise.all([
         fetchAllTasks(),
-        supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num').limit(5000),
+        supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num, standard_code').limit(5000),
         supabase.from('plans').select('id, name_ar').limit(200),
         supabase.from('profiles').select('id, name_ar').limit(1000),
         supabase.from('teams').select('id, name_ar, color').limit(200),
@@ -186,6 +186,32 @@ export default function TasksPage() {
     const plan = plans.find(p => p.id === nodes.find(n => n.id === nodeId)?.plan_id)
     if (plan) path.unshift(plan.name_ar)
     return path.join(' › ')
+  }
+
+  /* ── الرقم الهرمي الفريد للمهمة (نفس منطق صفحة التفاصيل، محلياً بلا استعلام) ──
+     أعمق سلف له كود معيار رسمي يؤسس البادئة، وما بعده بترتيب العقد ثم المهمة */
+  const taskNumber = (nodeId: string | null | undefined, taskOrderNum: number | null | undefined): string | null => {
+    if (!nodeId) return null
+    const chain: { order_num: number; standard_code: string | null }[] = []
+    let cur: any = nodes.find(n => n.id === nodeId)
+    while (cur) {
+      chain.unshift({ order_num: cur.order_num ?? 0, standard_code: (cur as any).standard_code || null })
+      cur = nodes.find(n => n.id === cur.parent_id)
+    }
+    if (chain.length === 0) return null
+    let baseIdx = -1
+    for (let i = chain.length - 1; i >= 0; i--) {
+      if (chain[i].standard_code) { baseIdx = i; break }
+    }
+    const path: (string | number)[] = []
+    if (baseIdx >= 0) {
+      path.push(chain[baseIdx].standard_code as string)
+      for (let i = baseIdx + 1; i < chain.length; i++) path.push(chain[i].order_num)
+    } else {
+      for (const n of chain) path.push(n.order_num)
+    }
+    path.push(taskOrderNum ?? 0)
+    return path.join('.')
   }
 
   /* ── تصفية ── */
@@ -490,10 +516,20 @@ export default function TasksPage() {
                 <Link key={task.id} href={`/dashboard/tasks/${task.id}`}
                   className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors group">
 
-                  {/* الرقم التسلسلي */}
-                  <span className="flex-shrink-0 w-7 text-center text-xs font-semibold text-slate-400 tabular-nums">
-                    {pageStart + idx + 1}
-                  </span>
+                  {/* الرقم الهرمي الفريد للمهمة (مثل 1.1.2.2) */}
+                  {(() => {
+                    const num = taskNumber(task.node_id ?? null, (task as any).order_num)
+                    return num ? (
+                      <span className="flex-shrink-0 min-w-[2.5rem] text-center text-xs font-bold text-violet-700 bg-violet-50 border border-violet-100 rounded-md px-1.5 py-0.5 tabular-nums"
+                        title="رقم المهمة في الخطة">
+                        {num}
+                      </span>
+                    ) : (
+                      <span className="flex-shrink-0 w-7 text-center text-xs font-semibold text-slate-300 tabular-nums">
+                        {pageStart + idx + 1}
+                      </span>
+                    )
+                  })()}
 
                   {/* نوع المهمة */}
                   <TaskTypeIcon type={task.task_type} />
