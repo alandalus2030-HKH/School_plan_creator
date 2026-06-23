@@ -478,7 +478,7 @@ export default function TasksPage() {
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="divide-y divide-slate-50">
-            {pageTasks.map(task => {
+            {pageTasks.map((task, idx) => {
               const statusInfo  = STATUS_LIST.find(s => s.value === task.status)
               const assignee    = profiles.find(p => p.id === task.assigned_to_user_id)
               const assignTeam  = teams.find(t => t.id === task.assigned_to_team_id)
@@ -489,6 +489,11 @@ export default function TasksPage() {
               return (
                 <Link key={task.id} href={`/dashboard/tasks/${task.id}`}
                   className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors group">
+
+                  {/* الرقم التسلسلي */}
+                  <span className="flex-shrink-0 w-7 text-center text-xs font-semibold text-slate-400 tabular-nums">
+                    {pageStart + idx + 1}
+                  </span>
 
                   {/* نوع المهمة */}
                   <TaskTypeIcon type={task.task_type} />
