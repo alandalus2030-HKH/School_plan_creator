@@ -131,6 +131,7 @@ export default function AggregatePage() {
   const [status,   setStatus]   = useState<StatusFilter>('all')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [mineOnly, setMineOnly] = useState(false)   // مرشّح «خططي»
+  const [planState, setPlanState] = useState<'all' | 'approved' | 'unapproved' | 'frozen' | 'active'>('all')  // حالة الخطة
   const [notifying, setNotifying] = useState<string | null>(null)
   const [groupBy,  setGroupBy]  = useState<'department' | 'plan_category' | 'owner' | 'approval' | 'freeze'>('department')
   const [trend,    setTrend]    = useState<TrendPoint[]>([])
@@ -170,6 +171,13 @@ export default function AggregatePage() {
   const shown = plans
     .filter(p => selDepts.length === 0 || selDepts.includes(p.department || NO_DEPT))
     .filter(p => !mineOnly || p.owner_id === userId)
+    .filter(p => {
+      if (planState === 'approved')   return !!p.approved_at
+      if (planState === 'unapproved') return !p.approved_at
+      if (planState === 'frozen')     return !!p.frozen_at
+      if (planState === 'active')     return !p.frozen_at
+      return true
+    })
   const overall = useMemo(() => rollup(shown), [shown])
 
   /* عدد المهام المطابقة لمرشّح الحالة عبر الخطط المعروضة */
@@ -343,6 +351,14 @@ export default function AggregatePage() {
               {STATUS_FILTERS.map(f => (
                 <option key={f.key} value={f.key}>{f.key === 'all' ? 'كل الحالات' : f.label}</option>
               ))}
+            </select>
+            <select value={planState} onChange={e => setPlanState(e.target.value as 'all' | 'approved' | 'unapproved' | 'frozen' | 'active')}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
+              <option value="all">حالة الخطة: الكل</option>
+              <option value="approved">معتمدة</option>
+              <option value="unapproved">غير معتمدة</option>
+              <option value="frozen">مجمّدة</option>
+              <option value="active">نشطة (غير مجمّدة)</option>
             </select>
             {ownsAny && (
               <button onClick={() => setMineOnly(v => !v)}
