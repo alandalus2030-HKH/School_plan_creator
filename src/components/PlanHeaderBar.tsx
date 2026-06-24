@@ -345,21 +345,19 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                   </span>
                 )}
               </div>
-              {(plan.department || plan.owner_id) && (
-                <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                  {plan.department && <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">🏷️ {plan.department}</span>}
-                  {plan.owner_id && <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">👤 {dimOwners.find((o: any) => o.id === plan.owner_id)?.name_ar || 'صاحب الخطة'}</span>}
-                </div>
-              )}
-              <p className="text-violet-200 text-sm mt-1">العام الدراسي: <span className="font-latin">{plan.academic_year}</span></p>
-              <div className="flex items-center gap-4 mt-3 text-sm text-violet-200">
-                <span>{topNodes.length} {level1Name}</span>
-                <span>·</span><span>{nodes.length} عقدة</span>
-                <span>·</span><span>{totalTasks} مهمة</span>
+              {/* القسم + المالك + العام — صفّ أفقي واحد يلتفّ كمجموعة (لا تكدّس عمودي) */}
+              <div className="flex items-center gap-1.5 flex-wrap mt-2 text-violet-100">
+                {plan.department && <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">🏷️ {plan.department}</span>}
+                {plan.owner_id && <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">👤 {dimOwners.find((o: any) => o.id === plan.owner_id)?.name_ar || 'صاحب الخطة'}</span>}
+                <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">📅 <span className="font-latin">{plan.academic_year}</span></span>
+              </div>
+              <div className="flex items-center gap-3 mt-2 text-sm text-violet-200 flex-wrap">
+                <span className="whitespace-nowrap">{topNodes.length} {level1Name}</span>
+                <span>·</span><span className="whitespace-nowrap">{nodes.length} عقدة</span>
+                <span>·</span><span className="whitespace-nowrap">{totalTasks} مهمة</span>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className="flex items-end gap-4">
+            <div className="flex items-end gap-4 flex-shrink-0">
                 {planRatingInfo && (
                   <div className="text-left">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 text-white font-bold text-sm">
@@ -376,8 +374,11 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                   <div className="text-4xl font-bold">{progress}%</div>
                   <div className="text-violet-200 text-xs mt-1">نسبة الإنجاز</div>
                 </div>
-              </div>
-              <div className="flex gap-2 mt-1 flex-wrap justify-end">
+            </div>
+          </div>
+
+          {/* صفّ الأزرار — عرض كامل أسفل البيانات (لا يضغط عمود البيانات) */}
+          <div className="flex gap-2 mt-4 flex-wrap">
                 {/* زر التحويل بين العرضين */}
                 <Link href={otherView.href}
                   className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1.5 rounded-lg transition-colors font-medium">
@@ -428,8 +429,6 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                     <Trash2 size={14} /> حذف
                   </button>
                 )}
-              </div>
-            </div>
           </div>
 
           <div className="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
