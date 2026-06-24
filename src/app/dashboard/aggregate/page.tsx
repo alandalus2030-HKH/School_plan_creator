@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell, Download, ListChecks, TrendingUp } from 'lucide-react'
+import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell, Download, ListChecks, TrendingUp, Lock } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -15,7 +15,7 @@ type Metrics = {
 }
 type PlanRow = {
   id: string; name_ar: string; department: string | null; plan_category: string | null
-  owner_id: string | null; owner_name: string | null; approved_at: string | null
+  owner_id: string | null; owner_name: string | null; approved_at: string | null; frozen_at: string | null
   tasks: TaskRow[]; metrics: Metrics
 }
 
@@ -132,7 +132,7 @@ export default function AggregatePage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [mineOnly, setMineOnly] = useState(false)   // مرشّح «خططي»
   const [notifying, setNotifying] = useState<string | null>(null)
-  const [groupBy,  setGroupBy]  = useState<'department' | 'plan_category' | 'owner' | 'approval'>('department')
+  const [groupBy,  setGroupBy]  = useState<'department' | 'plan_category' | 'owner' | 'approval' | 'freeze'>('department')
   const [trend,    setTrend]    = useState<TrendPoint[]>([])
 
   useEffect(() => {
@@ -183,6 +183,7 @@ export default function AggregatePage() {
     if (groupBy === 'plan_category') return p.plan_category || 'بلا نوع'
     if (groupBy === 'owner')         return p.owner_name || 'بلا صاحب'
     if (groupBy === 'approval')      return p.approved_at ? 'خطط معتمدة' : 'خطط غير معتمدة'
+    if (groupBy === 'freeze')        return p.frozen_at ? 'خطط مجمّدة' : 'خطط نشطة'
     return p.department || NO_DEPT
   }
 
@@ -219,12 +220,12 @@ export default function AggregatePage() {
 
   /* تصدير الخطط المعروضة CSV (للتقارير) — BOM لدعم العربية في Excel */
   const exportCsv = () => {
-    const headers = ['القسم', 'الخطة', 'النوع', 'صاحب الخطة', 'نسبة الإنجاز %', 'منجزة', 'إجمالي المهام', 'متأخرة', 'متوسط التقييم', 'أدلة مقبولة', 'معتمدة']
+    const headers = ['القسم', 'الخطة', 'النوع', 'صاحب الخطة', 'نسبة الإنجاز %', 'منجزة', 'إجمالي المهام', 'متأخرة', 'متوسط التقييم', 'أدلة مقبولة', 'معتمدة', 'مجمّدة']
     const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`
     const rows = shown.map(p => [
       p.department || NO_DEPT, p.name_ar, p.plan_category || '', p.owner_name || '',
       p.metrics.progress, p.metrics.completed, p.metrics.total, p.metrics.overdue,
-      p.metrics.avgRating ?? '', p.metrics.evidence, p.approved_at ? 'نعم' : 'لا',
+      p.metrics.avgRating ?? '', p.metrics.evidence, p.approved_at ? 'نعم' : 'لا', p.frozen_at ? 'نعم' : 'لا',
     ].map(esc).join(','))
     const csv = '﻿' + [headers.map(esc).join(','), ...rows].join('\r\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -329,12 +330,13 @@ export default function AggregatePage() {
 
           {/* فلاتر مضغوطة — صفّ واحد (قوائم منسدلة) */}
           <div className="flex flex-wrap items-center gap-2">
-            <select value={groupBy} onChange={e => setGroupBy(e.target.value as 'department' | 'plan_category' | 'owner' | 'approval')}
+            <select value={groupBy} onChange={e => setGroupBy(e.target.value as 'department' | 'plan_category' | 'owner' | 'approval' | 'freeze')}
               className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
               <option value="department">التجميع: حسب القسم</option>
               <option value="plan_category">التجميع: حسب النوع</option>
               <option value="owner">التجميع: حسب صاحب الخطة</option>
               <option value="approval">التجميع: حسب الاعتماد</option>
+              <option value="freeze">التجميع: حسب التجميد</option>
             </select>
             <select value={status} onChange={e => setStatus(e.target.value as StatusFilter)}
               className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
@@ -446,6 +448,7 @@ export default function AggregatePage() {
                                   <span className="text-sm font-semibold text-slate-800 truncate">{p.name_ar}</span>
                                   {p.plan_category && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{p.plan_category}</span>}
                                   {p.approved_at && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 inline-flex items-center gap-1"><BadgeCheck size={11} /> معتمدة</span>}
+                                  {p.frozen_at && <span className="text-[11px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 inline-flex items-center gap-1"><Lock size={11} /> مجمّدة</span>}
                                   {p.metrics.total === 0 && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">⚠️ لا مهام</span>}
                                 </div>
                                 <div className="flex items-center gap-3">

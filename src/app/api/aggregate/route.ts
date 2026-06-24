@@ -49,7 +49,7 @@ export async function GET() {
 
   /* الخطط (غير المؤرشفة) */
   let planQ = admin.from('plans')
-    .select('id, name_ar, department, plan_category, owner_id, approved_at, is_archived')
+    .select('id, name_ar, department, plan_category, owner_id, approved_at, frozen_at, is_archived')
     .eq('school_id', schoolId)
   const { data: allPlans } = await planQ
   let plans = (allPlans || []).filter((p: any) => !p.is_archived)
@@ -133,6 +133,7 @@ export async function GET() {
       owner_id: p.owner_id || null,
       owner_name: p.owner_id ? (owners[p.owner_id] || null) : null,
       approved_at: p.approved_at || null,
+      frozen_at: p.frozen_at || null,
       tasks,
       metrics: {
         total, completed, inProgress, notStarted, overdue,
