@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   LayoutGrid, GanttChartSquare, CalendarDays, HelpCircle, ArrowLeft,
-  ClipboardList, CircleCheckBig,
+  ClipboardList, CircleCheckBig, BadgeCheck, Lock, Archive,
 } from 'lucide-react'
 
 /* بطاقة (عدسة أو طريقة عرض) */
@@ -137,6 +137,65 @@ const VIEW_TABLE: { dim: string; kanban: string; gantt: string; calendar: string
   { dim: 'مهمة بلا تاريخ', kanban: 'تظهر طبيعياً',        gantt: 'لا تظهر (تحتاج تواريخ)', calendar: 'لا تظهر (تحتاج موعداً)' },
 ]
 
+/* ════ حالات الخطة: اعتماد · تجميد · أرشفة ════ */
+const PLAN_STATES: Card[] = [
+  {
+    key: 'approve',
+    Icon: BadgeCheck,
+    title: 'الاعتماد',
+    tone: '#059669',
+    question: '«هل هذه الخطة مُقرّة رسمياً؟»',
+    axis: 'ختم رسمي يُثبت إقرار الخطة — يحمي من الحذف، لكنه ليس قفلاً للتعديل',
+    points: [
+      'يضع شارة «معتمدة» على الخطة وفي التقارير ولوحة التجميع.',
+      'يمنع حذف الخطة وحذف عناصرها (محاور/أهداف) حفاظاً على مصداقية السجل.',
+      'التعديل والإضافة يبقيان متاحَين — الخطة تظل قابلة للتحديث.',
+      'يُلغى بنقرة (إلغاء الاعتماد) لمن يملك صلاحية «اعتماد الخطط».',
+    ],
+    whenTo: 'عند إقرار الخطة رسمياً (مثل ملف اعتماد QNSA) مع إبقاء إمكانية تحديثها.',
+  },
+  {
+    key: 'freeze',
+    Icon: Lock,
+    title: 'التجميد',
+    tone: '#0284c7',
+    question: '«أريد قفل الخطة تماماً فلا تتغيّر؟»',
+    axis: 'قفل كامل — لا تعديل ولا إضافة ولا حذف ولا تنفيذ، مفروض في قاعدة البيانات',
+    points: [
+      'يمنع كل تغيير: المحاور والأهداف والمهام والمؤشرات والقراءات والأدلة وحالات المهام.',
+      'مفروض على مستوى القاعدة — يغطي كل المسارات لا الواجهة فقط.',
+      'الخطة تبقى ظاهرة وقابلة للقراءة والتقارير، لكنها مقفلة للتحرير.',
+      'يُلغى بـ«إلغاء التجميد» لاستئناف العمل، لمن يملك صلاحية «تجميد الخطط».',
+    ],
+    whenTo: 'لتثبيت نسخة نهائية/مرجعية (نهاية فصل، تدقيق، حماية مؤقتة) دون حذفها.',
+  },
+  {
+    key: 'archive',
+    Icon: Archive,
+    title: 'الأرشفة',
+    tone: '#64748b',
+    question: '«انتهى دور الخطة، أُبعدها عن العرض؟»',
+    axis: 'إخفاء من القوائم النشطة ولوحة التجميع — للتنظيم لا للحماية',
+    points: [
+      'تختفي الخطة من قائمة الخطط النشطة ومن لوحة التجميع.',
+      'تبقى محفوظة ويمكن استرجاعها بـ«إلغاء الأرشفة» في أي وقت.',
+      'لا تقفل التعديل بذاتها — وظيفتها تقليل الزحام وترتيب المساحة.',
+      'متاحة لمن يملك صلاحية «حذف وأرشفة الخطط».',
+    ],
+    whenTo: 'للخطط المكتملة أو القديمة التي لم تعد قيد المتابعة اليومية.',
+  },
+]
+
+const STATE_TABLE: { dim: string; approve: string; freeze: string; archive: string }[] = [
+  { dim: 'الغرض',           approve: 'إقرار رسمي',       freeze: 'قفل كامل',          archive: 'إخفاء وتنظيم' },
+  { dim: 'تعديل المحتوى',   approve: 'متاح ✅',          freeze: 'ممنوع تماماً ⛔',    archive: 'متاح ✅' },
+  { dim: 'الحذف',           approve: 'ممنوع ⛔',         freeze: 'ممنوع ⛔',          archive: 'متاح ✅' },
+  { dim: 'تنفيذ المهام',    approve: 'مستمر ✅',         freeze: 'متوقّف ⛔',          archive: 'مستمر ✅' },
+  { dim: 'الظهور في اللوحات', approve: 'يظهر',           freeze: 'يظهر',              archive: 'مخفي' },
+  { dim: 'قابل للتراجع',    approve: 'نعم',              freeze: 'نعم',               archive: 'نعم' },
+  { dim: 'الصلاحية',        approve: 'اعتماد الخطط',     freeze: 'تجميد الخطط',       archive: 'حذف وأرشفة الخطط' },
+]
+
 /* ════ مكوّنات مساعدة ════ */
 function CardGrid({ items }: { items: Card[] }) {
   return (
@@ -193,7 +252,7 @@ export default function HelpPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-800">دليل الاستخدام</h1>
-          <p className="text-sm text-slate-500">عدسات المهام الثلاث، وطرق عرض المهام — مميزات كل طريقة ومتى تستخدمها</p>
+          <p className="text-sm text-slate-500">عدسات المهام، وطرق عرضها، وحالات الخطة (اعتماد/تجميد/أرشفة) — الفرق بينها ومتى تستخدم كلاً منها</p>
         </div>
       </div>
 
@@ -289,6 +348,52 @@ export default function HelpPage() {
           style={{ background: 'var(--gradient-button, #8a1538)' }}>
           جرّب العدسات في «كل المهام» <ArrowLeft size={15} />
         </Link>
+      </section>
+
+      {/* ═══════════ القسم الثالث: حالات الخطة ═══════════ */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-6 rounded-full" style={{ background: 'var(--maroon-600, #8a1538)' }} />
+          <h2 className="text-lg font-bold text-slate-800">حالات الخطة: اعتماد · تجميد · أرشفة</h2>
+        </div>
+
+        <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4 text-sm text-violet-900">
+          ثلاثة إجراءات تبدو متشابهة لكنها تخدم أغراضاً مختلفة:
+          <strong> الاعتماد</strong> ختمٌ رسمي يحمي من الحذف، و<strong>التجميد</strong> قفلٌ كامل يمنع أي تغيير،
+          و<strong>الأرشفة</strong> إخفاءٌ للتنظيم. كلها <strong>قابلة للتراجع</strong> ولا تحذف الخطة.
+        </div>
+
+        <CardGrid items={PLAN_STATES} />
+
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <h3 className="font-bold text-slate-800 p-4 border-b border-slate-100">مقارنة سريعة</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-right">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500">
+                  <th className="px-4 py-2.5 font-medium">البُعد</th>
+                  <th className="px-4 py-2.5 font-medium">✅ الاعتماد</th>
+                  <th className="px-4 py-2.5 font-medium">🔒 التجميد</th>
+                  <th className="px-4 py-2.5 font-medium">🗄️ الأرشفة</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {STATE_TABLE.map((r, i) => (
+                  <tr key={i} className="hover:bg-slate-50/60">
+                    <td className="px-4 py-2.5 font-medium text-slate-700">{r.dim}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.approve}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.freeze}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.archive}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-400">
+          ملاحظة: هذه الإجراءات تتطلب صلاحيات مختلفة (اعتماد/تجميد/حذف الخطط)، وتُدار من رأس الخطة أو قائمة الخطط (⋮).
+        </p>
       </section>
     </div>
   )
