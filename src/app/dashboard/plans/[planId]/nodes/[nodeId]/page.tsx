@@ -10,6 +10,7 @@ import { FolderOpen } from 'lucide-react'
 import StandardPicker from '@/components/StandardPicker'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
+import { usePermissions } from '@/lib/PermissionsContext'
 
 /* كلاسات التقييم كنصوص ثابتة لضمان إدراجها في CSS */
 function ratingBadgeClass(avg: number): { label: string; icon: string; cls: string } {
@@ -57,8 +58,8 @@ type KpiSuggestion = {
   _editing?:      boolean
 }
 
-function KpiSection({ nodeId, kpiConf, nodeName, planName }: {
-  nodeId: string; kpiConf: KpiLevelConf; nodeName: string; planName: string
+function KpiSection({ nodeId, kpiConf, nodeName, planName, canManage=false }: {
+  nodeId: string; kpiConf: KpiLevelConf; nodeName: string; planName: string; canManage?: boolean
 }) {
   const supabase  = createClient()
   const [mounted, setMounted] = useState(false)   // لـ createPortal
@@ -257,6 +258,7 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName }: {
             {KPI_TYPE_LABEL[kpiConf.kpiType] || kpiConf.kpiType} · {KPI_FREQ_LABEL[kpiConf.frequency] || kpiConf.frequency}
           </span>
         </div>
+        {canManage && (
         <div className="flex items-center gap-1.5">
           {/* زر التوليد بالذكاء الاصطناعي */}
           <button
@@ -279,6 +281,7 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName }: {
             </button>
           )}
         </div>
+        )}
       </div>
 
       {/* ══ لوحة اقتراحات الذكاء الاصطناعي ══ */}
@@ -459,7 +462,8 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName }: {
                 )}
               </div>
 
-              {/* أزرار */}
+              {/* أزرار — تتطلب صلاحية الإنشاء/التعديل */}
+              {canManage && (
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
                   onClick={() => openReadingModal(kpi.id)}
@@ -480,6 +484,7 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName }: {
                   </button>
                 )}
               </div>
+              )}
             </div>
           ))}
         </div>
@@ -703,7 +708,7 @@ function buildTree(nodes: PlanNode[], tasks: Task[], parentId: string|null, leve
 }
 
 /* ── مكوّن العقدة القابلة للتوسع ── */
-function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, kpiLevelConfigs, codes, taskCodes, officialCodes, planApproved=false, depth=0 }: {
+function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, kpiLevelConfigs, codes, taskCodes, officialCodes, planApproved=false, canManage=false, canDelete=false, depth=0 }: {
   node: any; levelNames: string[]; levelCount: number
   planId: string; planName: string; onRefresh: ()=>void
   kpiLevelConfigs: KpiLevelConf[]
@@ -711,6 +716,8 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
   taskCodes: Record<string,string>
   officialCodes: Set<string>
   planApproved?: boolean
+  canManage?: boolean
+  canDelete?: boolean
   depth?: number
 }) {
   const supabase = createClient()
@@ -835,14 +842,14 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
                 </div>
               )}
               <span className="text-xs text-slate-400">{totalTasks} مهمة</span>
-              {isOfficial ? (
+              {canManage && (isOfficial ? (
                 <span title="معيار من الإطار المرجعي QNSA — غير قابل للتعديل"
                   className="w-6 h-6 flex items-center justify-center text-slate-300 text-xs">🔒</span>
               ) : (
                 <button onClick={() => { setEditing(true); setEditName(node.name_ar) }}
                   className="w-6 h-6 flex items-center justify-center hover:text-amber-500 text-slate-300 rounded transition-colors text-xs">✏️</button>
-              )}
-              {!planApproved && (
+              ))}
+              {!planApproved && canDelete && (
                 <button onClick={() => setConfirming(true)}
                   className="w-6 h-6 flex items-center justify-center hover:text-red-500 text-slate-300 rounded transition-colors text-xs">🗑️</button>
               )}
@@ -862,6 +869,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
             kpiConf={kpiConf}
             nodeName={node.name_ar}
             planName={planName}
+            canManage={canManage}
           />
         )}
 
@@ -869,7 +877,8 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
         {node.children.map((child: any) => (
           <NodeItem key={child.id} node={child} levelNames={levelNames} levelCount={levelCount}
             planId={planId} planName={planName} onRefresh={onRefresh} kpiLevelConfigs={kpiLevelConfigs}
-            codes={codes} taskCodes={taskCodes} officialCodes={officialCodes} planApproved={planApproved} depth={depth + 1} />
+            codes={codes} taskCodes={taskCodes} officialCodes={officialCodes} planApproved={planApproved}
+            canManage={canManage} canDelete={canDelete} depth={depth + 1} />
         ))}
 
         {/* المهام (في المستوى الأخير) */}
@@ -899,7 +908,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
                     {statusAr[task.status]}
                   </span>
                 </Link>
-                {!planApproved && (
+                {!planApproved && canDelete && (
                   <button onClick={() => setConfirmDelTask(task)} title="حذف المهمة"
                     className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0 opacity-0 group-hover/task:opacity-100 text-xs">🗑️</button>
                 )}
@@ -908,8 +917,8 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
           </div>
         )}
 
-        {/* زر إضافة */}
-        {!adding ? (
+        {/* زر إضافة — يتطلب صلاحية الإنشاء/التعديل */}
+        {canManage && (!adding ? (
           <button onClick={() => setAdding(true)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors w-full
               ${isLeaf
@@ -938,7 +947,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
             onSubmit={addChild}
             onCancel={() => setAdding(false)}
           />
-        )}
+        ))}
       </div>
       )}
 
@@ -989,6 +998,9 @@ export default function NodePage() {
   const nodeId   = params.nodeId as string
   const router   = useRouter()
   const supabase = createClient()
+  const { can, isSuperAdmin } = usePermissions()
+  const canManagePlans = isSuperAdmin || can('manage_plans')
+  const canDeletePlans = isSuperAdmin || can('delete_plans')
 
   const [plan,           setPlan]           = useState<any>(null)
   const [rootNode,       setRootNode]       = useState<any>(null)
@@ -1101,6 +1113,8 @@ export default function NodePage() {
               taskCodes={taskCodes}
               officialCodes={officialCodes}
               planApproved={!!plan.approved_at}
+              canManage={canManagePlans}
+              canDelete={canDeletePlans}
             />
           ))
         ) : (
@@ -1110,12 +1124,14 @@ export default function NodePage() {
           </div>
         )}
 
-        {/* إضافة على المستوى الأول */}
-        <AddChildToRoot planId={planId} parentId={nodeId} levelNum={rootNode.level_num + 1}
-          levelName={levelNames[rootNode.level_num] || `المستوى ${rootNode.level_num + 1}`}
-          parentStandardCode={rootNode.standard_code || null}
-          excludeCodes={tree.map((n: any) => n.standard_code).filter(Boolean)}
-          onRefresh={load} />
+        {/* إضافة على المستوى الأول — تتطلب صلاحية الإنشاء/التعديل */}
+        {canManagePlans && (
+          <AddChildToRoot planId={planId} parentId={nodeId} levelNum={rootNode.level_num + 1}
+            levelName={levelNames[rootNode.level_num] || `المستوى ${rootNode.level_num + 1}`}
+            parentStandardCode={rootNode.standard_code || null}
+            excludeCodes={tree.map((n: any) => n.standard_code).filter(Boolean)}
+            onRefresh={load} />
+        )}
       </div>
     </div>
   )

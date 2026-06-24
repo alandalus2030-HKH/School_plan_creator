@@ -17,6 +17,8 @@ import { Flag, Plus, ListTree, Trash2, Sparkles, X } from 'lucide-react'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
+import { usePermissions } from '@/lib/PermissionsContext'
+import NoAccess from '@/components/NoAccess'
 
 /* ═══ لوحة اقتراح أهداف/مهام بالذكاء الاصطناعي (Groq) ═══ */
 function AiSuggest({ kind, contextName, contextCode, planName, existing, onAdd }: {
@@ -221,6 +223,7 @@ export default function PlanBuildPage() {
   const params   = useParams()
   const planId   = params.planId as string
   const supabase = createClient()
+  const { can, isSuperAdmin, loading: permsLoading } = usePermissions()
 
   const [plan,    setPlan]    = useState<any>(null)
   const [nodes,   setNodes]   = useState<PlanNode[]>([])
@@ -353,6 +356,9 @@ export default function PlanBuildPage() {
     await load()
   }
 
+  if (!permsLoading && !isSuperAdmin && !can('manage_plans')) {
+    return <NoAccess message="بناء الخطط يتطلب صلاحية إنشاء/تعديل الخطط." />
+  }
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full" />

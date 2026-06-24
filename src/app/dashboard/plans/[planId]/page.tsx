@@ -622,10 +622,12 @@ export default function PlanOverviewPage() {
                   className="flex items-center gap-1.5 bg-violet-500/25 hover:bg-violet-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                   <BarChart3 size={14} /> لوحة KPI
                 </Link>
-                <button onClick={openKpiSettings}
-                  className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <Settings size={14} /> إعدادات KPI
-                </button>
+                {(isSuperAdmin || can('manage_plans')) && (
+                  <button onClick={openKpiSettings}
+                    className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
+                    <Settings size={14} /> إعدادات KPI
+                  </button>
+                )}
                 {/* اعتماد / إلغاء الاعتماد — مشرف النظام أو من يملك صلاحية اعتماد الخطط */}
                 {(isSuperAdmin || can('approve_plans')) && (
                   <button onClick={() => certifyPlan(!plan.approved_at)} disabled={certifying}
@@ -648,12 +650,14 @@ export default function PlanOverviewPage() {
                     <Bell size={14} /> {notifyingOwner ? 'جارٍ...' : 'تنبيه صاحب الخطة'}
                   </button>
                 )}
-                <button onClick={openEditPlan}
-                  className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <Pencil size={14} /> تعديل
-                </button>
-                {/* حذف — مخفي للخطط المعتمدة */}
-                {!plan.approved_at && (
+                {(isSuperAdmin || can('manage_plans')) && (
+                  <button onClick={openEditPlan}
+                    className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
+                    <Pencil size={14} /> تعديل
+                  </button>
+                )}
+                {/* حذف — مخفي للخطط المعتمدة، ويتطلب صلاحية الحذف */}
+                {!plan.approved_at && (isSuperAdmin || can('delete_plans')) && (
                   <button onClick={() => setConfirmDelPlan(true)}
                     className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                     <Trash2 size={14} /> حذف
@@ -791,11 +795,13 @@ export default function PlanOverviewPage() {
           <h3 className="font-bold text-slate-700">{level1Name} ({topNodes.length})</h3>
           <div className="flex items-center gap-2 flex-wrap">
             {/* التصدير/الاستيراد والتحويل أصبحت في رأس الخطة المشترك أعلاه */}
-            {/* إضافة يدوية */}
-            <button onClick={() => setAdding(true)}
-              className="flex items-center gap-2 text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-              ➕ إضافة {level1Name}
-            </button>
+            {/* إضافة يدوية — تتطلب صلاحية الإنشاء/التعديل */}
+            {(isSuperAdmin || can('manage_plans')) && (
+              <button onClick={() => setAdding(true)}
+                className="flex items-center gap-2 text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+                ➕ إضافة {level1Name}
+              </button>
+            )}
           </div>
         </div>
 
@@ -871,24 +877,28 @@ export default function PlanOverviewPage() {
                         <span className="text-slate-300 group-hover:text-violet-400 text-xl flex-shrink-0">←</span>
                       </Link>
 
-                      {/* أزرار التعديل والحذف — زر الحذف مخفي للخطط المعتمدة */}
+                      {/* أزرار التعديل والحذف — التعديل يتطلب manage_plans، الحذف delete_plans */}
+                      {(isSuperAdmin || can('manage_plans') || can('delete_plans')) && (
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                        {node.standard_code && officialCodes.has(node.standard_code) ? (
-                          <span title="معيار من الإطار المرجعي QNSA — غير قابل للتعديل"
-                            className="w-8 h-8 flex items-center justify-center text-slate-300">🔒</span>
-                        ) : (
-                          <button
-                            onClick={() => { setEditNodeId(node.id); setEditNodeName(node.name_ar) }}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
-                            title="تعديل">✏️</button>
+                        {(isSuperAdmin || can('manage_plans')) && (
+                          node.standard_code && officialCodes.has(node.standard_code) ? (
+                            <span title="معيار من الإطار المرجعي QNSA — غير قابل للتعديل"
+                              className="w-8 h-8 flex items-center justify-center text-slate-300">🔒</span>
+                          ) : (
+                            <button
+                              onClick={() => { setEditNodeId(node.id); setEditNodeName(node.name_ar) }}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+                              title="تعديل">✏️</button>
+                          )
                         )}
-                        {!plan.approved_at && (
+                        {!plan.approved_at && (isSuperAdmin || can('delete_plans')) && (
                           <button
                             onClick={() => setConfirmDelId(node.id)}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                             title="حذف">🗑️</button>
                         )}
                       </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -899,9 +909,11 @@ export default function PlanOverviewPage() {
           <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center">
             <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><ClipboardList size={36} /></div>
             <p className="text-slate-500 font-medium">لا يوجد {level1Name} بعد</p>
-            <button onClick={() => setAdding(true)} className="mt-4 text-sm text-violet-600 hover:underline">
-              ➕ إضافة أول {level1Name}
-            </button>
+            {(isSuperAdmin || can('manage_plans')) && (
+              <button onClick={() => setAdding(true)} className="mt-4 text-sm text-violet-600 hover:underline">
+                ➕ إضافة أول {level1Name}
+              </button>
+            )}
           </div>
         )}
       </div>

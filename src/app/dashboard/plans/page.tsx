@@ -40,7 +40,7 @@ export default function PlansPage() {
 
 function PlansPageInner() {
   const { can, loading: permsLoading, isSuperAdmin } = usePermissions()
-  if (!permsLoading && !can('manage_plans')) return <NoAccess message="إدارة الخطط متاحة للمديرين فقط. للاطلاع على مهامك انتقل إلى صفحة مهامي." />
+  if (!permsLoading && !can('view_plans') && !can('manage_plans')) return <NoAccess message="عرض الخطط غير متاح لك. للاطلاع على مهامك انتقل إلى صفحة مهامي." />
   const supabase = createClient()
   const router       = useRouter()
   const searchParams = useSearchParams()
@@ -217,10 +217,12 @@ function PlansPageInner() {
               📊 المتابعة في لوحة التجميع
             </Link>
           )}
-          <Link href="/dashboard/plans/new"
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-violet-200">
-            ➕ خطة جديدة
-          </Link>
+          {can('manage_plans') && (
+            <Link href="/dashboard/plans/new"
+              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-violet-200">
+              ➕ خطة جديدة
+            </Link>
+          )}
         </div>
       </div>
 
@@ -392,7 +394,8 @@ function PlansPageInner() {
                         <div className={`text-xs ${plan.is_archived ? 'text-slate-300' : 'text-violet-200'}`}>نسبة الإنجاز</div>
                       </div>
 
-                      {/* قائمة الخيارات ⋮ — خارج overflow-hidden بعد إصلاح البطاقة */}
+                      {/* قائمة الخيارات ⋮ — تظهر فقط لمن يملك إجراءً (اعتماد/حذف/أرشفة) */}
+                      {(isSuperAdmin || can('approve_plans') || can('delete_plans')) && (
                       <div className="relative" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => setMenuOpen(menuOpen === plan.id ? null : plan.id)}
@@ -415,16 +418,18 @@ function PlansPageInner() {
                               </button>
                             )}
 
-                            {/* أرشفة / إلغاء أرشفة */}
-                            <button
-                              onClick={() => toggleArchive(plan)}
-                              className="w-full text-right px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                              <span className="inline-flex">{plan.is_archived ? <Eye size={14} /> : <Archive size={14} />}</span>
-                              <span>{plan.is_archived ? 'إلغاء الأرشفة' : 'أرشفة الخطة'}</span>
-                            </button>
+                            {/* أرشفة / إلغاء أرشفة — يتطلب صلاحية الحذف/الأرشفة */}
+                            {(isSuperAdmin || can('delete_plans')) && (
+                              <button
+                                onClick={() => toggleArchive(plan)}
+                                className="w-full text-right px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                <span className="inline-flex">{plan.is_archived ? <Eye size={14} /> : <Archive size={14} />}</span>
+                                <span>{plan.is_archived ? 'إلغاء الأرشفة' : 'أرشفة الخطة'}</span>
+                              </button>
+                            )}
 
-                            {/* حذف — مخفي للخطط المعتمدة */}
-                            {!isCertified && (
+                            {/* حذف — مخفي للخطط المعتمدة، ويتطلب صلاحية الحذف */}
+                            {!isCertified && (isSuperAdmin || can('delete_plans')) && (
                               <>
                                 <div className="border-t border-slate-100 my-1" />
                                 <button
@@ -437,6 +442,7 @@ function PlansPageInner() {
                           </div>
                         )}
                       </div>
+                      )}
                     </div>
                   </div>
 
@@ -491,7 +497,7 @@ function PlansPageInner() {
           <p className="text-slate-400 text-sm mb-5">
             {showArchived ? '' : `أنشئ خطة جديدة للعام الدراسي ${selectedYear}`}
           </p>
-          {!showArchived && (
+          {!showArchived && can('manage_plans') && (
             <Link href="/dashboard/plans/new"
               className="inline-flex items-center gap-2 bg-violet-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-violet-700 transition-colors">
               ➕ إنشاء خطة لعام {selectedYear}

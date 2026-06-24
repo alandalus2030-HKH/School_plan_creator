@@ -20,10 +20,10 @@ async function getContext(userId: string) {
   return { admin, me, schoolId }
 }
 
-async function canManagePlans(admin: any, role: string, isSuper: boolean) {
+async function canDeletePlans(admin: any, role: string, isSuper: boolean) {
   const { data: roleData } = await admin.from('roles').select('permissions').eq('code', role).maybeSingle()
   const perms: string[] = Array.isArray(roleData?.permissions) ? roleData!.permissions : []
-  return perms.includes('all') || perms.includes('manage_plans') || ADMIN_ROLES.includes(role) || isSuper
+  return perms.includes('all') || perms.includes('delete_plans') || ADMIN_ROLES.includes(role) || isSuper
 }
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ planId: string }> }) {
@@ -33,8 +33,8 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ plan
   const ctx = await getContext(auth.user.id)
   if (!ctx?.schoolId) return NextResponse.json({ error: 'لا توجد مدرسة مرتبطة' }, { status: 400 })
 
-  if (!(await canManagePlans(ctx.admin, ctx.me.role, ctx.me.is_super_admin))) {
-    return NextResponse.json({ error: 'لا تملك صلاحية إدارة الخطط' }, { status: 403 })
+  if (!(await canDeletePlans(ctx.admin, ctx.me.role, ctx.me.is_super_admin))) {
+    return NextResponse.json({ error: 'لا تملك صلاحية حذف الخطط' }, { status: 403 })
   }
 
   const { data: plan } = await ctx.admin

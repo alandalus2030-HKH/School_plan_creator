@@ -384,8 +384,10 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                   {otherView.label}
                 </Link>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
-                <button onClick={() => fileRef.current?.click()}
-                  className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">📥 استيراد</button>
+                {(isSuperAdmin || can('manage_plans')) && (
+                  <button onClick={() => fileRef.current?.click()}
+                    className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">📥 استيراد</button>
+                )}
                 <button onClick={exportExcel}
                   className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">📤 تصدير</button>
                 <button onClick={() => generateQnsaReport(planId)}
@@ -396,10 +398,12 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                   className="flex items-center gap-1.5 bg-violet-500/25 hover:bg-violet-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                   <BarChart3 size={14} /> لوحة KPI
                 </Link>
-                <button onClick={openKpiSettings}
-                  className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <Settings size={14} /> إعدادات KPI
-                </button>
+                {(isSuperAdmin || can('manage_plans')) && (
+                  <button onClick={openKpiSettings}
+                    className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
+                    <Settings size={14} /> إعدادات KPI
+                  </button>
+                )}
                 {(isSuperAdmin || can('approve_plans')) && (
                   <button onClick={() => certifyPlan(!plan.approved_at)} disabled={certifying}
                     className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60
