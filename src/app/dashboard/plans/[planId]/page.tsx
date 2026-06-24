@@ -626,8 +626,8 @@ export default function PlanOverviewPage() {
                   className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                   <Settings size={14} /> إعدادات KPI
                 </button>
-                {/* اعتماد / إلغاء الاعتماد — للمشرف العام فقط */}
-                {isSuperAdmin && (
+                {/* اعتماد / إلغاء الاعتماد — مشرف النظام أو من يملك صلاحية اعتماد الخطط */}
+                {(isSuperAdmin || can('approve_plans')) && (
                   <button onClick={() => certifyPlan(!plan.approved_at)} disabled={certifying}
                     className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60
                       ${plan.approved_at

@@ -22,14 +22,23 @@ export async function PATCH(
 
   const admin = createAdminClient()
 
-  /* ── التحقق من أن المستخدم مشرف نظام ── */
+  /* ── التحقق من الصلاحية: مشرف النظام أو دور يملك approve_plans ── */
   const { data: me } = await admin
     .from('profiles')
-    .select('is_super_admin, active_school_id, school_id')
+    .select('is_super_admin, active_school_id, school_id, role')
     .eq('id', auth.user.id)
     .single()
-  if (!me?.is_super_admin) {
-    return NextResponse.json({ error: 'اعتماد الخطط متاح لمشرف النظام فقط' }, { status: 403 })
+
+  if (!me) return NextResponse.json({ error: 'تعذّر تحديد المستخدم' }, { status: 403 })
+
+  let allowed = me.is_super_admin === true
+  if (!allowed && me.role) {
+    const { data: roleData } = await admin.from('roles').select('permissions').eq('code', me.role).maybeSingle()
+    const perms: string[] = Array.isArray(roleData?.permissions) ? roleData!.permissions : []
+    allowed = perms.includes('all') || perms.includes('approve_plans')
+  }
+  if (!allowed) {
+    return NextResponse.json({ error: 'لا تملك صلاحية اعتماد الخطط' }, { status: 403 })
   }
 
   /* ── التحقق من وجود الخطة وعزل المدرسة ── */

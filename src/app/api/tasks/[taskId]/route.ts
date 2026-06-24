@@ -32,23 +32,25 @@ async function canManageTasks(admin: any, role: string, isSuper: boolean) {
   return perms.includes('all') || perms.includes('manage_tasks') || ADMIN_ROLES.includes(role) || isSuper
 }
 
-/** يرجع المهمة + مدرستها، أو رد خطأ */
+/** يرجع المهمة + مدرستها + حالة اعتماد خطتها، أو رد خطأ */
 async function loadScoped(admin: any, taskId: string, schoolId: string) {
   const { data: task } = await admin
     .from('tasks').select('id, node_id, created_by, deleted_at, status').eq('id', taskId).maybeSingle()
   if (!task || task.deleted_at) return { error: NextResponse.json({ error: 'المهمة غير موجودة' }, { status: 404 }) }
   let taskSchool: string | null = null
+  let planApproved = false
   if (task.node_id) {
     const { data: node } = await admin.from('plan_nodes').select('plan_id').eq('id', task.node_id).maybeSingle()
     if (node?.plan_id) {
-      const { data: plan } = await admin.from('plans').select('school_id').eq('id', node.plan_id).maybeSingle()
+      const { data: plan } = await admin.from('plans').select('school_id, approved_at').eq('id', node.plan_id).maybeSingle()
       taskSchool = plan?.school_id ?? null
+      planApproved = !!plan?.approved_at
     }
   }
   if (taskSchool && taskSchool !== schoolId) {
     return { error: NextResponse.json({ error: 'المهمة خارج نطاق مدرستك' }, { status: 403 }) }
   }
-  return { task }
+  return { task, planApproved }
 }
 
 export async function PATCH(req: NextRequest, context: { params: Promise<{ taskId: string }> }) {
@@ -89,6 +91,11 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ task
 
   const scoped = await loadScoped(ctx.admin, taskId, ctx.schoolId)
   if (scoped.error) return scoped.error
+
+  /* خطة معتمدة → عناصرها محمية من الحذف (مصداقية سجل الاعتماد) */
+  if (scoped.planApproved) {
+    return NextResponse.json({ error: 'المهمة تابعة لخطة معتمدة — ألغِ اعتماد الخطة أولاً إن لزم الحذف' }, { status: 403 })
+  }
 
   /* المهمة المنجزة مقفلة — الحذف يتطلب إعادة فتحها أولاً */
   if (scoped.task!.status === 'completed') {

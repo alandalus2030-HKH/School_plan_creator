@@ -402,8 +402,8 @@ function PlansPageInner() {
                         {menuOpen === plan.id && (
                           <div className="absolute left-0 top-10 bg-white rounded-xl shadow-xl border border-slate-200 py-1 w-52 z-50">
 
-                            {/* اعتماد / إلغاء اعتماد — للمشرف العام فقط */}
-                            {isSuperAdmin && (
+                            {/* اعتماد / إلغاء اعتماد — مشرف النظام أو من يملك صلاحية اعتماد الخطط */}
+                            {(isSuperAdmin || can('approve_plans')) && (
                               <button
                                 onClick={() => certifyPlan(plan, !isCertified)}
                                 className={`w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-slate-50

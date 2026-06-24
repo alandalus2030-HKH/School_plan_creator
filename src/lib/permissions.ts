@@ -9,6 +9,7 @@ export const ALL_PERMISSIONS = [
   { code: 'manage_teams',          label: 'إدارة الفرق',               icon: 'UsersRound'     },
   // الخطط
   { code: 'manage_plans',          label: 'إدارة الخطط والمحاور',      icon: 'ClipboardList'  },
+  { code: 'approve_plans',         label: 'اعتماد الخطط',              icon: 'BadgeCheck'     },
   // المهام
   { code: 'manage_tasks',          label: 'إدارة المهام',              icon: 'CircleCheckBig' },
   { code: 'view_tasks',            label: 'عرض المهام',                icon: 'Eye'            },
@@ -37,7 +38,7 @@ export type PermissionCode = typeof ALL_PERMISSIONS[number]['code']
 /** تجميع الصلاحيات تحت عناوين رئيسية (لتنظيم واجهة الأدوار) */
 export const PERMISSION_GROUPS: { title: string; codes: string[] }[] = [
   { title: 'المستخدمون والفِرق',   codes: ['manage_users', 'manage_teams'] },
-  { title: 'الخطط',                 codes: ['manage_plans'] },
+  { title: 'الخطط',                 codes: ['manage_plans', 'approve_plans'] },
   { title: 'المهام',                codes: ['manage_tasks', 'view_tasks', 'rate_tasks'] },
   { title: 'الأدلة',                codes: ['manage_evidence', 'review_evidence', 'view_evidence'] },
   { title: 'المتابعة والتقارير',    codes: ['view_reports', 'view_aggregate'] },
