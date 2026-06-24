@@ -65,9 +65,9 @@ export async function GET() {
 
   const planIds = plans.map((p: any) => p.id)
 
-  /* العقد → ربط المهام بالخطط */
+  /* العقد → ربط المهام بالخطط (العقد غير المحذوفة فقط) */
   const { data: nodes } = await admin.from('plan_nodes')
-    .select('id, plan_id').in('plan_id', planIds)
+    .select('id, plan_id').in('plan_id', planIds).is('deleted_at', null)
   const nodeToPlan = new Map<string, string>()
   for (const n of nodes || []) nodeToPlan.set(n.id, n.plan_id)
   const nodeIds = (nodes || []).map((n: any) => n.id)
@@ -79,7 +79,7 @@ export async function GET() {
   if (nodeIds.length > 0) {
     const { data: tasks } = await admin.from('tasks')
       .select('id, node_id, name_ar, status, end_date, rating')
-      .in('node_id', nodeIds)
+      .in('node_id', nodeIds).is('deleted_at', null)
     for (const t of tasks || []) {
       const pid = nodeToPlan.get(t.node_id)
       if (!pid) continue

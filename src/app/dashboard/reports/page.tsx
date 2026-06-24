@@ -19,6 +19,10 @@ import {
 import { SkeletonDashboard } from '@/components/Skeleton'
 import type { Task, Plan, PlanNode, Profile, Kpi } from '@/lib/types'
 
+/* «متأخرة» وسم محسوب لا حالة: غير منجزة وتجاوزت موعد الانتهاء (دليل المشروع) */
+const isOverdue = (t: any) =>
+  t.status !== 'completed' && !!t.end_date && new Date(t.end_date) < new Date()
+
 /* ══════════════════ دالة الطباعة المشتركة ══════════════════ */
 function printContent(html: string, title: string) {
   const win = window.open('', '_blank', 'width=960,height=720')
@@ -479,7 +483,7 @@ function NodeRow({
 
   const total     = allTasks.length
   const done      = allTasks.filter(t => t.status === 'completed').length
-  const delayed   = allTasks.filter(t => t.status === 'delayed').length
+  const delayed   = allTasks.filter(isOverdue).length
   const inProg    = allTasks.filter(t => t.status === 'in_progress').length
   const notStart  = allTasks.filter(t => t.status === 'not_started').length
   const rate      = total > 0 ? Math.round((done / total) * 100) : 0
@@ -737,7 +741,7 @@ export default function ReportsPage() {
   const stats = useMemo(() => {
     const total      = filtered.length
     const completed  = filtered.filter(t => t.status === 'completed').length
-    const delayed    = filtered.filter(t => t.status === 'delayed').length
+    const delayed    = filtered.filter(isOverdue).length
     const inProgress = filtered.filter(t => t.status === 'in_progress').length
     const notStarted = filtered.filter(t => t.status === 'not_started').length
     const rated      = filtered.filter(t => t.rating != null)
@@ -783,7 +787,7 @@ export default function ReportsPage() {
       if (!map[uid]) map[uid] = { name: p?.name_ar||'—', dept: p?.department||'', total:0, done:0, delayed:0 }
       map[uid].total++
       if (t.status==='completed') map[uid].done++
-      if (t.status==='delayed')   map[uid].delayed++
+      if (isOverdue(t))           map[uid].delayed++
     })
     return Object.values(map)
       .map(u => ({ ...u, rate: u.total>0 ? Math.round(u.done/u.total*100):0 }))
@@ -798,7 +802,7 @@ export default function ReportsPage() {
       if (!map[dept]) map[dept] = { total:0, done:0, delayed:0 }
       map[dept].total++
       if (t.status==='completed') map[dept].done++
-      if (t.status==='delayed')   map[dept].delayed++
+      if (isOverdue(t))           map[dept].delayed++
     })
     return Object.entries(map)
       .map(([name,v]) => ({ name, ...(v as any), rate: (v as any).total>0 ? Math.round((v as any).done/(v as any).total*100):0 }))
@@ -807,7 +811,7 @@ export default function ReportsPage() {
 
   /* ══ المتأخرات ══ */
   const delayedTasks = useMemo(() => filtered
-    .filter(t => t.status==='delayed')
+    .filter(isOverdue)
     .map(t => ({
       ...t,
       assigneeName: profiles.find(p=>p.id===t.assigned_to_user_id)?.name_ar || '—',
@@ -1169,7 +1173,7 @@ export default function ReportsPage() {
                 {plans.map(p => {
                   const pts     = tasks.filter(t => t.plan_id===p.id)
                   const done    = pts.filter(t => t.status==='completed').length
-                  const delayed = pts.filter(t => t.status==='delayed').length
+                  const delayed = pts.filter(isOverdue).length
                   const rate    = pts.length>0 ? Math.round(done/pts.length*100):0
                   if (pts.length===0) return null
                   return (
