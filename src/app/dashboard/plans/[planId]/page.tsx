@@ -118,7 +118,7 @@ export default function PlanOverviewPage() {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, approved_by, department, plan_category, owner_id').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, approved_by, frozen_at, department, plan_category, owner_id').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
     const { data: stds } = await supabase.from('qnsa_standards').select('code').eq('is_active', true)
@@ -795,8 +795,8 @@ export default function PlanOverviewPage() {
           <h3 className="font-bold text-slate-700">{level1Name} ({topNodes.length})</h3>
           <div className="flex items-center gap-2 flex-wrap">
             {/* التصدير/الاستيراد والتحويل أصبحت في رأس الخطة المشترك أعلاه */}
-            {/* إضافة يدوية — تتطلب صلاحية الإنشاء/التعديل */}
-            {(isSuperAdmin || can('manage_plans')) && (
+            {/* إضافة يدوية — تتطلب صلاحية الإنشاء/التعديل، وتُخفى للخطة المجمّدة */}
+            {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
               <button onClick={() => setAdding(true)}
                 className="flex items-center gap-2 text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
                 ➕ إضافة {level1Name}
@@ -877,8 +877,8 @@ export default function PlanOverviewPage() {
                         <span className="text-slate-300 group-hover:text-violet-400 text-xl flex-shrink-0">←</span>
                       </Link>
 
-                      {/* أزرار التعديل والحذف — التعديل يتطلب manage_plans، الحذف delete_plans */}
-                      {(isSuperAdmin || can('manage_plans') || can('delete_plans')) && (
+                      {/* أزرار التعديل والحذف — تُخفى للخطة المجمّدة */}
+                      {!plan.frozen_at && (isSuperAdmin || can('manage_plans') || can('delete_plans')) && (
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                         {(isSuperAdmin || can('manage_plans')) && (
                           node.standard_code && officialCodes.has(node.standard_code) ? (
@@ -909,7 +909,7 @@ export default function PlanOverviewPage() {
           <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center">
             <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><ClipboardList size={36} /></div>
             <p className="text-slate-500 font-medium">لا يوجد {level1Name} بعد</p>
-            {(isSuperAdmin || can('manage_plans')) && (
+            {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
               <button onClick={() => setAdding(true)} className="mt-4 text-sm text-violet-600 hover:underline">
                 ➕ إضافة أول {level1Name}
               </button>

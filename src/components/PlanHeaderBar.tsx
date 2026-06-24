@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
-import { Award, BarChart3, Star, Settings, Pencil, Trash2, BadgeCheck, ShieldOff, Bell, ListTree, ClipboardList } from 'lucide-react'
+import { Award, BarChart3, Star, Settings, Pencil, Trash2, BadgeCheck, ShieldOff, Bell, ListTree, ClipboardList, Lock, LockOpen } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
 import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -98,7 +98,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, department, plan_category, owner_id').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, frozen_at, department, plan_category, owner_id').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
     setPlan(planData)
@@ -174,6 +174,17 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
     const json = await res.json().catch(() => ({}))
     setCertifying(false)
     if (!res.ok) { alert(`تعذّر ${approve ? 'اعتماد' : 'إلغاء اعتماد'} الخطة: ${json.error || res.status}`); return }
+    await load(); onChanged()
+  }
+
+  const freezePlan = async (freeze: boolean) => {
+    setCertifying(true)
+    const res  = await fetch(`/api/plans/${planId}/freeze`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ freeze }),
+    })
+    const json = await res.json().catch(() => ({}))
+    setCertifying(false)
+    if (!res.ok) { alert(`تعذّر ${freeze ? 'تجميد' : 'إلغاء تجميد'} الخطة: ${json.error || res.status}`); return }
     await load(); onChanged()
   }
 
@@ -344,6 +355,11 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                     <BadgeCheck size={14} /> معتمدة
                   </span>
                 )}
+                {plan.frozen_at && (
+                  <span className="inline-flex items-center gap-1.5 bg-sky-400/25 px-3 py-1 rounded-full text-sm font-medium border border-sky-200/40">
+                    <Lock size={14} /> مجمّدة
+                  </span>
+                )}
               </div>
               {/* القسم + المالك + العام — صفّ أفقي واحد يلتفّ كمجموعة (لا تكدّس عمودي) */}
               <div className="flex items-center gap-1.5 flex-wrap mt-2 text-violet-100">
@@ -385,7 +401,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                   {otherView.label}
                 </Link>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
-                {(isSuperAdmin || can('manage_plans')) && (
+                {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
                   <button onClick={() => fileRef.current?.click()}
                     className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">📥 استيراد</button>
                 )}
@@ -399,7 +415,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                   className="flex items-center gap-1.5 bg-violet-500/25 hover:bg-violet-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                   <BarChart3 size={14} /> لوحة KPI
                 </Link>
-                {(isSuperAdmin || can('manage_plans')) && (
+                {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
                   <button onClick={openKpiSettings}
                     className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                     <Settings size={14} /> إعدادات KPI
@@ -413,17 +429,27 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                     <span>{plan.approved_at ? 'إلغاء الاعتماد' : 'اعتماد الخطة'}</span>
                   </button>
                 )}
+                {(isSuperAdmin || can('freeze_plans')) && (
+                  <button onClick={() => freezePlan(!plan.frozen_at)} disabled={certifying}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60
+                      ${plan.frozen_at ? 'bg-amber-400/25 hover:bg-amber-400/40 text-white' : 'bg-sky-500/20 hover:bg-sky-500/35 text-white'}`}>
+                    <span className="inline-flex">{plan.frozen_at ? <LockOpen size={14} /> : <Lock size={14} />}</span>
+                    <span>{plan.frozen_at ? 'إلغاء التجميد' : 'تجميد الخطة'}</span>
+                  </button>
+                )}
                 {plan.owner_id && plan.owner_id !== userId && (isSuperAdmin || can('manage_plans') || can('view_aggregate')) && (
                   <button onClick={notifyOwner} disabled={notifyingOwner}
                     className="flex items-center gap-1.5 bg-amber-400/25 hover:bg-amber-400/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60" title="تنبيه صاحب الخطة">
                     <Bell size={14} /> {notifyingOwner ? 'جارٍ...' : 'تنبيه صاحب الخطة'}
                   </button>
                 )}
-                <button onClick={openEditPlan}
-                  className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <Pencil size={14} /> تعديل
-                </button>
-                {!plan.approved_at && (
+                {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
+                  <button onClick={openEditPlan}
+                    className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
+                    <Pencil size={14} /> تعديل
+                  </button>
+                )}
+                {!plan.approved_at && !plan.frozen_at && (isSuperAdmin || can('delete_plans')) && (
                   <button onClick={() => setConfirmDelPlan(true)}
                     className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
                     <Trash2 size={14} /> حذف

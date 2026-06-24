@@ -240,7 +240,7 @@ export default function PlanBuildPage() {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, level_count, level_names, approved_at').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, level_count, level_names, approved_at, frozen_at').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, plan_id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
     setPlan(planData)
@@ -358,6 +358,9 @@ export default function PlanBuildPage() {
 
   if (!permsLoading && !isSuperAdmin && !can('manage_plans')) {
     return <NoAccess message="بناء الخطط يتطلب صلاحية إنشاء/تعديل الخطط." />
+  }
+  if (!loading && plan?.frozen_at) {
+    return <NoAccess message="الخطة مجمّدة — ألغِ التجميد أولاً لتعديل بنيتها." />
   }
   if (loading) return (
     <div className="flex items-center justify-center h-64">

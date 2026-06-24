@@ -1013,7 +1013,7 @@ export default function NodePage() {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: allNodes }, { data: allTasks }, { data: stds }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, level_count, level_names, kpi_levels, approved_at').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, level_count, level_names, kpi_levels, approved_at, frozen_at').eq('id', planId).single(),
       supabase.from('plan_nodes').select('*').eq('plan_id', planId).order('order_num'),
       supabase.from('tasks').select('id, name_ar, status, priority, end_date, task_type, node_id, rating, order_num, created_at')
         .in('node_id', (await supabase.from('plan_nodes').select('id').eq('plan_id', planId)).data?.map(n=>n.id) || []),
@@ -1113,8 +1113,8 @@ export default function NodePage() {
               taskCodes={taskCodes}
               officialCodes={officialCodes}
               planApproved={!!plan.approved_at}
-              canManage={canManagePlans}
-              canDelete={canDeletePlans}
+              canManage={canManagePlans && !plan.frozen_at}
+              canDelete={canDeletePlans && !plan.frozen_at}
             />
           ))
         ) : (
@@ -1124,8 +1124,8 @@ export default function NodePage() {
           </div>
         )}
 
-        {/* إضافة على المستوى الأول — تتطلب صلاحية الإنشاء/التعديل */}
-        {canManagePlans && (
+        {/* إضافة على المستوى الأول — تتطلب صلاحية الإنشاء/التعديل، وتُخفى للخطة المجمّدة */}
+        {canManagePlans && !plan.frozen_at && (
           <AddChildToRoot planId={planId} parentId={nodeId} levelNum={rootNode.level_num + 1}
             levelName={levelNames[rootNode.level_num] || `المستوى ${rootNode.level_num + 1}`}
             parentStandardCode={rootNode.standard_code || null}

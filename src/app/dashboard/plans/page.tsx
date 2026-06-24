@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, Archive, ClipboardList, FolderOpen, BadgeCheck, ShieldOff, ChevronDown } from 'lucide-react'
+import { Eye, Archive, ClipboardList, FolderOpen, BadgeCheck, ShieldOff, ChevronDown, Lock, LockOpen } from 'lucide-react'
 import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -25,6 +25,7 @@ type Plan = {
   end_date: string | null
   is_archived: boolean
   approved_at: string | null
+  frozen_at: string | null
   level_count?: number
   level_names?: string[]
 }
@@ -65,7 +66,7 @@ function PlansPageInner() {
   const loadPlans = async () => {
     const { data } = await supabase
       .from('plans')
-      .select('id, name_ar, academic_year, start_date, end_date, is_archived, approved_at, level_count, level_names, department, owner_id')
+      .select('id, name_ar, academic_year, start_date, end_date, is_archived, approved_at, frozen_at, level_count, level_names, department, owner_id')
       .order('created_at', { ascending: false })
     const rows = (data || []) as any[]
     /* أسماء أصحاب الخطط */
@@ -135,6 +136,25 @@ function PlansPageInner() {
       p.id === plan.id ? { ...p, approved_at: json.approved_at } : p
     ))
     toast(approve ? '✓ تم اعتماد الخطة بنجاح' : 'تم إلغاء الاعتماد', 'success')
+  }
+
+  /* ─── تجميد / إلغاء تجميد خطة (صلاحية freeze_plans) ─── */
+  const freezePlan = async (plan: Plan, freeze: boolean) => {
+    setMenuOpen(null)
+    const res = await fetch(`/api/plans/${plan.id}/freeze`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ freeze }),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      toast(`تعذّر ${freeze ? 'تجميد' : 'إلغاء تجميد'} الخطة: ${json.error || res.status}`, 'error')
+      return
+    }
+    setPlans(prev => prev.map(p =>
+      p.id === plan.id ? { ...p, frozen_at: json.frozen_at } : p
+    ))
+    toast(freeze ? '🔒 تم تجميد الخطة' : 'تم إلغاء التجميد', 'success')
   }
 
   /* ─── حذف خطة — عبر API خادمي (الحذف الناعم من العميل ترفضه سياسة القراءة) ─── */
@@ -362,6 +382,13 @@ function PlansPageInner() {
                             معتمدة
                           </span>
                         )}
+                        {/* شارة التجميد */}
+                        {plan.frozen_at && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-sky-400/25 px-2.5 py-0.5 rounded-full font-medium border border-sky-200/40">
+                            <Lock size={12} />
+                            مجمّدة
+                          </span>
+                        )}
                         {plan.is_archived && (
                           <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">مؤرشفة</span>
                         )}
@@ -395,7 +422,7 @@ function PlansPageInner() {
                       </div>
 
                       {/* قائمة الخيارات ⋮ — تظهر فقط لمن يملك إجراءً (اعتماد/حذف/أرشفة) */}
-                      {(isSuperAdmin || can('approve_plans') || can('delete_plans')) && (
+                      {(isSuperAdmin || can('approve_plans') || can('freeze_plans') || can('delete_plans')) && (
                       <div className="relative" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => setMenuOpen(menuOpen === plan.id ? null : plan.id)}
@@ -405,8 +432,8 @@ function PlansPageInner() {
                         {menuOpen === plan.id && (
                           <div className="absolute left-0 top-10 bg-white rounded-xl shadow-xl border border-slate-200 py-1 w-52 z-50">
 
-                            {/* اعتماد / إلغاء اعتماد — مشرف النظام أو من يملك صلاحية اعتماد الخطط */}
-                            {(isSuperAdmin || can('approve_plans')) && (
+                            {/* اعتماد / إلغاء اعتماد — يُخفى للخطة المجمّدة */}
+                            {(isSuperAdmin || can('approve_plans')) && !plan.frozen_at && (
                               <button
                                 onClick={() => certifyPlan(plan, !isCertified)}
                                 className={`w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-slate-50
@@ -418,8 +445,21 @@ function PlansPageInner() {
                               </button>
                             )}
 
-                            {/* أرشفة / إلغاء أرشفة — يتطلب صلاحية الحذف/الأرشفة */}
-                            {(isSuperAdmin || can('delete_plans')) && (
+                            {/* تجميد / إلغاء تجميد — يتطلب صلاحية التجميد */}
+                            {(isSuperAdmin || can('freeze_plans')) && (
+                              <button
+                                onClick={() => freezePlan(plan, !plan.frozen_at)}
+                                className={`w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-slate-50
+                                  ${plan.frozen_at ? 'text-amber-600' : 'text-sky-700'}`}>
+                                <span className="inline-flex">
+                                  {plan.frozen_at ? <LockOpen size={14} /> : <Lock size={14} />}
+                                </span>
+                                <span>{plan.frozen_at ? 'إلغاء التجميد' : 'تجميد الخطة'}</span>
+                              </button>
+                            )}
+
+                            {/* أرشفة / إلغاء أرشفة — يتطلب صلاحية الحذف، ويُخفى للخطة المجمّدة */}
+                            {(isSuperAdmin || can('delete_plans')) && !plan.frozen_at && (
                               <button
                                 onClick={() => toggleArchive(plan)}
                                 className="w-full text-right px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
@@ -428,8 +468,8 @@ function PlansPageInner() {
                               </button>
                             )}
 
-                            {/* حذف — مخفي للخطط المعتمدة، ويتطلب صلاحية الحذف */}
-                            {!isCertified && (isSuperAdmin || can('delete_plans')) && (
+                            {/* حذف — مخفي للخطط المعتمدة والمجمّدة، ويتطلب صلاحية الحذف */}
+                            {!isCertified && !plan.frozen_at && (isSuperAdmin || can('delete_plans')) && (
                               <>
                                 <div className="border-t border-slate-100 my-1" />
                                 <button
