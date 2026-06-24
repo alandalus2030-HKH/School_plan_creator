@@ -133,7 +133,7 @@ export default function AggregatePage() {
   const [mineOnly, setMineOnly] = useState(false)   // مرشّح «خططي»
   const [planState, setPlanState] = useState<'all' | 'approved' | 'unapproved' | 'frozen' | 'active'>('all')  // حالة الخطة
   const [notifying, setNotifying] = useState<string | null>(null)
-  const [groupBy,  setGroupBy]  = useState<'department' | 'plan_category' | 'owner' | 'approval' | 'freeze'>('department')
+  const [groupBy,  setGroupBy]  = useState<'department' | 'plan_category' | 'owner' | 'approval'>('department')
   const [trend,    setTrend]    = useState<TrendPoint[]>([])
 
   useEffect(() => {
@@ -191,7 +191,6 @@ export default function AggregatePage() {
     if (groupBy === 'plan_category') return p.plan_category || 'بلا نوع'
     if (groupBy === 'owner')         return p.owner_name || 'بلا صاحب'
     if (groupBy === 'approval')      return p.approved_at ? 'خطط معتمدة' : 'خطط غير معتمدة'
-    if (groupBy === 'freeze')        return p.frozen_at ? 'خطط مجمّدة' : 'خطط نشطة'
     return p.department || NO_DEPT
   }
 
@@ -338,13 +337,12 @@ export default function AggregatePage() {
 
           {/* فلاتر مضغوطة — صفّ واحد (قوائم منسدلة) */}
           <div className="flex flex-wrap items-center gap-2">
-            <select value={groupBy} onChange={e => setGroupBy(e.target.value as 'department' | 'plan_category' | 'owner' | 'approval' | 'freeze')}
+            <select value={groupBy} onChange={e => setGroupBy(e.target.value as 'department' | 'plan_category' | 'owner' | 'approval')}
               className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
               <option value="department">التجميع: حسب القسم</option>
               <option value="plan_category">التجميع: حسب النوع</option>
               <option value="owner">التجميع: حسب صاحب الخطة</option>
               <option value="approval">التجميع: حسب الاعتماد</option>
-              <option value="freeze">التجميع: حسب التجميد</option>
             </select>
             <select value={status} onChange={e => setStatus(e.target.value as StatusFilter)}
               className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
