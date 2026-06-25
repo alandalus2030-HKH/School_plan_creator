@@ -64,7 +64,7 @@ export default function SchoolsOverview() {
   /* بيانات الرسم — مرتّبة حسب الإنجاز */
   const chartData = [...rows]
     .sort((a, b) => b.completion - a.completion)
-    .map(r => ({ name: r.name_ar.length > 16 ? r.name_ar.slice(0, 16) + '…' : r.name_ar, completion: r.completion, raw: r }))
+    .map(r => ({ name: r.name_ar.length > 22 ? r.name_ar.slice(0, 22) + '…' : r.name_ar, completion: r.completion, raw: r }))
 
   return (
     <div className="space-y-5">
@@ -95,17 +95,21 @@ export default function SchoolsOverview() {
       {/* رسم المقارنة */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <h4 className="font-bold text-slate-700 mb-4 text-sm">مقارنة نسبة الإنجاز بين المدارس</h4>
-        <ResponsiveContainer width="100%" height={Math.max(200, rows.length * 46)}>
-          <BarChart data={chartData} layout="vertical" margin={{ right: 40, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} />
-            <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={120} />
-            <Tooltip formatter={(v: any) => [`${v}%`, 'الإنجاز']} />
-            <Bar dataKey="completion" name="الإنجاز" radius={[0, 6, 6, 0]}>
-              {chartData.map((d, i) => <Cell key={i} fill={barColor(d.completion)} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        {/* dir=ltr يمنع تداخل تسميات المحور مع الأعمدة في صفحة RTL (recharts لا يدعم RTL) */}
+        <div dir="ltr">
+          <ResponsiveContainer width="100%" height={Math.max(200, rows.length * 46)}>
+            <BarChart data={chartData} layout="vertical" margin={{ right: 50, left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} />
+              <YAxis dataKey="name" type="category" interval={0} width={170}
+                tick={{ fontSize: 11, textAnchor: 'end' }} />
+              <Tooltip formatter={(v: any) => [`${v}%`, 'الإنجاز']} />
+              <Bar dataKey="completion" name="الإنجاز" radius={[0, 6, 6, 0]}>
+                {chartData.map((d, i) => <Cell key={i} fill={barColor(d.completion)} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* جدول تفصيلي مُجمَّع */}
