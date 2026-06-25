@@ -95,8 +95,8 @@ export default function ReportShell({
             <div className="text-center flex-1">
               <p className="text-xs text-slate-500 mb-1">مدير المدرسة</p>
               {school?.signature_url
-                ? <img src={school.signature_url} alt="توقيع" className="h-12 mx-auto object-contain" />
-                : <div className="h-12" />}
+                ? <img src={school.signature_url} alt="توقيع" className="h-20 mx-auto object-contain" />
+                : <div className="h-20" />}
               <p className="text-sm font-semibold text-slate-800 border-t border-slate-300 pt-1 mt-1 inline-block px-6">
                 {school?.principal_name || '............................'}
               </p>
@@ -104,8 +104,8 @@ export default function ReportShell({
             <div className="text-center flex-shrink-0">
               <p className="text-xs text-slate-500 mb-1">ختم المدرسة</p>
               {school?.stamp_url
-                ? <img src={school.stamp_url} alt="ختم" className="h-20 w-20 mx-auto object-contain" />
-                : <div className="h-20 w-20 border border-dashed border-slate-300 rounded-full" />}
+                ? <img src={school.stamp_url} alt="ختم" className="h-28 w-28 mx-auto object-contain" />
+                : <div className="h-28 w-28 border border-dashed border-slate-300 rounded-full" />}
             </div>
           </div>
         </footer>
