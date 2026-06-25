@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 const STATUS_AR: Record<string, string> = {
@@ -23,7 +24,7 @@ export default function TaskStatusReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=task-status')
+      const res = await fetch('/api/reports?type=task-status' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       setD(await res.json().catch(() => null))
       setLoading(false)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Row = { task_id: string; name_ar: string; plan: string | null; count: number; lastNote: string | null; lastActor: string | null; lastAt: string | null }
@@ -18,7 +19,7 @@ export default function ReworkReport() {
       const q = new URLSearchParams(window.location.search)
       const from = q.get('from') || undefined, to = q.get('to') || undefined
       setPeriod({ from, to })
-      const res = await fetch(`/api/reports?type=rework${from ? `&from=${from}` : ''}${to ? `&to=${to}` : ''}`)
+      const res = await fetch(`/api/reports?type=rework${reportQuery()}`)
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ rows: [], totalReturns: 0 }))
       setRows(j.rows || []); setTotal(j.totalReturns || 0)

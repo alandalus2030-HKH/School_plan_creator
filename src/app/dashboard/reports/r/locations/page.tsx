@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Row = { id: string; name_ar: string; taskCount: number }
@@ -13,7 +14,7 @@ export default function LocationsReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=locations')
+      const res = await fetch('/api/reports?type=locations' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ rows: [] }))
       setRows(j.rows || [])

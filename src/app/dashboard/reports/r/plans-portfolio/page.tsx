@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Row = {
@@ -18,7 +19,7 @@ export default function PlansPortfolioReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=plans-portfolio')
+      const res = await fetch('/api/reports?type=plans-portfolio' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ plans: [] }))
       setRows(j.plans || [])

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type ByPlan = { plan: string; budget: number; count: number }
@@ -15,7 +16,7 @@ export default function ResourcesReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=resources')
+      const res = await fetch('/api/reports?type=resources' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       setD(await res.json().catch(() => null))
       setLoading(false)

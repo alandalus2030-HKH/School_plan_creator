@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 const STATUS_AR: Record<string, string> = {
@@ -20,7 +21,7 @@ export default function OverdueReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=overdue')
+      const res = await fetch('/api/reports?type=overdue' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ rows: [] }))
       setRows(j.rows || [])

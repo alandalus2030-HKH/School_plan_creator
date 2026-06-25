@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Pt = { date: string; completed: number; total: number; overdue: number; progress: number }
@@ -47,7 +48,7 @@ export default function TrendReport() {
       const q = new URLSearchParams(window.location.search)
       const from = q.get('from') || undefined, to = q.get('to') || undefined
       setPeriod({ from, to })
-      const res = await fetch(`/api/reports?type=trend${from ? `&from=${from}` : ''}${to ? `&to=${to}` : ''}`)
+      const res = await fetch(`/api/reports?type=trend${reportQuery()}`)
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ series: [] }))
       setSeries(j.series || [])

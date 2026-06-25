@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 const ACTION_AR: Record<string, string> = {
@@ -27,7 +28,7 @@ export default function AuditReport() {
       const q = new URLSearchParams(window.location.search)
       const from = q.get('from') || undefined, to = q.get('to') || undefined
       setPeriod({ from, to })
-      const res = await fetch(`/api/reports?type=audit${from ? `&from=${from}` : ''}${to ? `&to=${to}` : ''}`)
+      const res = await fetch(`/api/reports?type=audit${reportQuery()}`)
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ rows: [] }))
       setRows(j.rows || [])

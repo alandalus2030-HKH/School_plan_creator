@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Std = { code: string | null; name: string; plan: string; department: string | null; total: number; covered: number; coverage: number }
@@ -14,7 +15,7 @@ export default function AccreditationReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=coverage')
+      const res = await fetch('/api/reports?type=coverage' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       setD(await res.json().catch(() => null))
       setLoading(false)

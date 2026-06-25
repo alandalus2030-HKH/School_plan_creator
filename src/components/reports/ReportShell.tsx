@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Printer, ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { readReportParams } from '@/lib/reportParams'
 
 /**
  * غلاف التقارير الرسمية: ترويسة (شعار + مدرسة + عنوان + فترة + تاريخ إصدار)
@@ -34,13 +35,19 @@ export default function ReportShell({
   children: React.ReactNode
 }) {
   const [school, setSchool] = useState<School | null>(null)
+  const [urlParams, setUrlParams] = useState<{ planLabel?: string; from?: string; to?: string }>({})
   const issuedAt = new Date().toLocaleDateString('ar-QA', { day: 'numeric', month: 'long', year: 'numeric' })
 
   useEffect(() => {
     fetch('/api/school-profile').then(r => r.ok ? r.json() : null).then(j => setSchool(j?.school || null)).catch(() => {})
+    const p = readReportParams()
+    setUrlParams({ planLabel: p.planLabel, from: p.from, to: p.to })
   }, [])
 
-  const hasPeriod = period && (period.from || period.to)
+  /* الفترة: من الخاصية المُمرَّرة أو من الرابط؛ والخطة من الرابط */
+  const effPeriod = period && (period.from || period.to) ? period : { from: urlParams.from, to: urlParams.to }
+  const hasPeriod = !!(effPeriod.from || effPeriod.to)
+  const planLabel = urlParams.planLabel
 
   return (
     <div className="max-w-[820px] mx-auto">
@@ -71,7 +78,8 @@ export default function ReportShell({
           </div>
           <div className="text-left text-[11px] text-slate-500 flex-shrink-0">
             <p>تاريخ الإصدار: {issuedAt}</p>
-            {hasPeriod && <p>الفترة: {period!.from ? fmtDate(period!.from) : '—'} ← {period!.to ? fmtDate(period!.to) : '—'}</p>}
+            {hasPeriod && <p>الفترة: {effPeriod.from ? fmtDate(effPeriod.from) : '—'} ← {effPeriod.to ? fmtDate(effPeriod.to) : '—'}</p>}
+            {planLabel && <p>الخطة: {planLabel}</p>}
           </div>
         </header>
 

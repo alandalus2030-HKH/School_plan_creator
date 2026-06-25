@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Row = {
@@ -17,7 +18,7 @@ export default function StaffPerformanceReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=staff-performance')
+      const res = await fetch('/api/reports?type=staff-performance' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ rows: [] }))
       setRows((j.rows || []).filter((r: Row) => r.total > 0))

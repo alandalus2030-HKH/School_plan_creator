@@ -29,10 +29,12 @@ async function canViewReports(admin: any, role: string, isSuper: boolean) {
 const today = () => new Date().toISOString().slice(0, 10)
 
 /* ════ محفظة الخطط ════ */
-async function plansPortfolio(admin: any, schoolId: string) {
-  const { data: allPlans } = await admin.from('plans')
+async function plansPortfolio(admin: any, schoolId: string, planId?: string) {
+  let pq = admin.from('plans')
     .select('id, name_ar, department, plan_category, owner_id, approved_at, is_archived')
     .eq('school_id', schoolId)
+  if (planId) pq = pq.eq('id', planId)
+  const { data: allPlans } = await pq
   const plans = (allPlans || []).filter((p: any) => !p.is_archived)
   if (plans.length === 0) return { plans: [] }
 
@@ -92,9 +94,11 @@ async function plansPortfolio(admin: any, schoolId: string) {
 }
 
 /* مُحمِّل مشترك: مهام المدرسة (غير المحذوفة) مع ربط الخطة/القسم + ملفات الأعضاء */
-async function loadSchoolTasks(admin: any, schoolId: string) {
-  const { data: allPlans } = await admin.from('plans')
+async function loadSchoolTasks(admin: any, schoolId: string, planId?: string, from?: string, to?: string) {
+  let pq = admin.from('plans')
     .select('id, name_ar, department, is_archived').eq('school_id', schoolId)
+  if (planId) pq = pq.eq('id', planId)
+  const { data: allPlans } = await pq
   const plans = (allPlans || []).filter((p: any) => !p.is_archived)
   const planMeta = new Map<string, { name: string; dept: string | null }>()
   for (const p of plans) planMeta.set(p.id, { name: p.name_ar, dept: p.department || null })
@@ -119,6 +123,11 @@ async function loadSchoolTasks(admin: any, schoolId: string) {
     })
   }
 
+  /* فلتر فترة اختياري: مهام موعدها النهائي ضمن المدى (لا يُطبَّق إن لم تُحدَّد فترة) */
+  if (from || to) {
+    tasks = tasks.filter((t: any) => t.end_date && (!from || t.end_date >= from) && (!to || t.end_date <= to))
+  }
+
   const { data: profiles } = await admin.from('profiles')
     .select('id, name_ar, department, job_title').eq('school_id', schoolId).eq('is_active', true)
 
@@ -129,8 +138,8 @@ const STATUS_KEYS = ['not_started', 'in_progress', 'submitted', 'returned', 'com
 const isOverdue = (t: any, td: string) => t.status !== 'completed' && !!t.end_date && t.end_date < td
 
 /* ════ حالة المهام ════ */
-async function taskStatus(admin: any, schoolId: string) {
-  const { tasks } = await loadSchoolTasks(admin, schoolId)
+async function taskStatus(admin: any, schoolId: string, planId?: string, from?: string, to?: string) {
+  const { tasks } = await loadSchoolTasks(admin, schoolId, planId, from, to)
   const td = today()
   const counts: Record<string, number> = {}
   for (const k of STATUS_KEYS) counts[k] = 0
@@ -151,8 +160,8 @@ async function taskStatus(admin: any, schoolId: string) {
 }
 
 /* ════ المهام المتأخرة ════ */
-async function overdueReport(admin: any, schoolId: string) {
-  const { tasks, profiles } = await loadSchoolTasks(admin, schoolId)
+async function overdueReport(admin: any, schoolId: string, planId?: string, from?: string, to?: string) {
+  const { tasks, profiles } = await loadSchoolTasks(admin, schoolId, planId, from, to)
   const td = today()
   const pname = new Map<string, string>(profiles.map((p: any) => [p.id, p.name_ar]))
   const rows = tasks.filter((t: any) => isOverdue(t, td)).map((t: any) => ({
@@ -165,8 +174,8 @@ async function overdueReport(admin: any, schoolId: string) {
 }
 
 /* ════ أداء الموظفين + عبء العمل ════ */
-async function staffStats(admin: any, schoolId: string) {
-  const { tasks, profiles } = await loadSchoolTasks(admin, schoolId)
+async function staffStats(admin: any, schoolId: string, planId?: string, from?: string, to?: string) {
+  const { tasks, profiles } = await loadSchoolTasks(admin, schoolId, planId, from, to)
   const td = today()
   const stat = new Map<string, any>()
   for (const p of profiles) stat.set(p.id, {
@@ -191,8 +200,8 @@ async function staffStats(admin: any, schoolId: string) {
 }
 
 /* ════ المهام المُعادة (Rework) ════ */
-async function reworkReport(admin: any, schoolId: string, from?: string, to?: string) {
-  const { tasks } = await loadSchoolTasks(admin, schoolId)
+async function reworkReport(admin: any, schoolId: string, planId?: string, from?: string, to?: string) {
+  const { tasks } = await loadSchoolTasks(admin, schoolId, planId)
   const taskMap = new Map(tasks.map((t: any) => [t.id, t]))
   const ids = tasks.map((t: any) => t.id)
   if (!ids.length) return { rows: [], totalReturns: 0 }
@@ -224,8 +233,8 @@ async function reworkReport(admin: any, schoolId: string, from?: string, to?: st
 }
 
 /* ════ الموارد والميزانية ════ */
-async function resourcesReport(admin: any, schoolId: string) {
-  const { tasks } = await loadSchoolTasks(admin, schoolId)
+async function resourcesReport(admin: any, schoolId: string, planId?: string, from?: string, to?: string) {
+  const { tasks } = await loadSchoolTasks(admin, schoolId, planId, from, to)
   const byPlan = new Map<string, { plan: string; budget: number; count: number }>()
   const items: any[] = []
   let total = 0
@@ -244,9 +253,9 @@ async function resourcesReport(admin: any, schoolId: string) {
 }
 
 /* ════ استخدام الأماكن ════ */
-async function locationsReport(admin: any, schoolId: string) {
+async function locationsReport(admin: any, schoolId: string, planId?: string, from?: string, to?: string) {
   const { data: locs } = await admin.from('school_locations').select('id, name_ar').eq('school_id', schoolId).eq('is_active', true)
-  const { tasks } = await loadSchoolTasks(admin, schoolId)
+  const { tasks } = await loadSchoolTasks(admin, schoolId, planId, from, to)
   const ids = tasks.map((t: any) => t.id)
   const counts = new Map<string, number>()
   if (ids.length) {
@@ -334,8 +343,8 @@ async function auditReport(admin: any, schoolId: string, from?: string, to?: str
 }
 
 /* ════ تحليل الأداء (إنجاز + جودة حسب القسم) ════ */
-async function performanceReport(admin: any, schoolId: string) {
-  const { tasks } = await loadSchoolTasks(admin, schoolId)
+async function performanceReport(admin: any, schoolId: string, planId?: string, from?: string, to?: string) {
+  const { tasks } = await loadSchoolTasks(admin, schoolId, planId, from, to)
   const td = today()
   const mk = () => ({ total: 0, completed: 0, overdue: 0, ratingSum: 0, ratingCount: 0 })
   const overall = mk()
@@ -361,9 +370,11 @@ async function performanceReport(admin: any, schoolId: string) {
 }
 
 /* ════ تغطية المعايير بالأدلة + الفجوات (لجاهزية الاعتماد) ════ */
-async function coverageReport(admin: any, schoolId: string) {
-  const { data: plansRaw } = await admin.from('plans')
+async function coverageReport(admin: any, schoolId: string, planId?: string) {
+  let pq = admin.from('plans')
     .select('id, name_ar, department, is_archived').eq('school_id', schoolId)
+  if (planId) pq = pq.eq('id', planId)
+  const { data: plansRaw } = await pq
   const plans = (plansRaw || []).filter((p: any) => !p.is_archived)
   if (plans.length === 0) return { standards: [], overall: { totalTasks: 0, coveredTasks: 0, coverage: 0 } }
   const planIds = plans.map((p: any) => p.id)
@@ -486,20 +497,21 @@ export async function GET(req: NextRequest) {
   const type = req.nextUrl.searchParams.get('type')
   const from = req.nextUrl.searchParams.get('from') || undefined
   const to   = req.nextUrl.searchParams.get('to')   || undefined
+  const plan = req.nextUrl.searchParams.get('plan') || undefined
   switch (type) {
-    case 'plans-portfolio':    return NextResponse.json(await plansPortfolio(admin, schoolId))
-    case 'task-status':        return NextResponse.json(await taskStatus(admin, schoolId))
-    case 'overdue':            return NextResponse.json(await overdueReport(admin, schoolId))
-    case 'staff-performance':  return NextResponse.json(await staffStats(admin, schoolId))
-    case 'workload':           return NextResponse.json(await staffStats(admin, schoolId))
-    case 'rework':             return NextResponse.json(await reworkReport(admin, schoolId, from, to))
-    case 'resources':          return NextResponse.json(await resourcesReport(admin, schoolId))
-    case 'locations':          return NextResponse.json(await locationsReport(admin, schoolId))
+    case 'plans-portfolio':    return NextResponse.json(await plansPortfolio(admin, schoolId, plan))
+    case 'task-status':        return NextResponse.json(await taskStatus(admin, schoolId, plan, from, to))
+    case 'overdue':            return NextResponse.json(await overdueReport(admin, schoolId, plan, from, to))
+    case 'staff-performance':  return NextResponse.json(await staffStats(admin, schoolId, plan, from, to))
+    case 'workload':           return NextResponse.json(await staffStats(admin, schoolId, plan, from, to))
+    case 'rework':             return NextResponse.json(await reworkReport(admin, schoolId, plan, from, to))
+    case 'resources':          return NextResponse.json(await resourcesReport(admin, schoolId, plan, from, to))
+    case 'locations':          return NextResponse.json(await locationsReport(admin, schoolId, plan, from, to))
     case 'trend':              return NextResponse.json(await trendReport(admin, schoolId, from, to))
     case 'recognition':        return NextResponse.json(await recognitionReport(admin, schoolId, from, to))
     case 'audit':              return NextResponse.json(await auditReport(admin, schoolId, from, to))
-    case 'performance':        return NextResponse.json(await performanceReport(admin, schoolId))
-    case 'coverage':           return NextResponse.json(await coverageReport(admin, schoolId))
+    case 'performance':        return NextResponse.json(await performanceReport(admin, schoolId, plan, from, to))
+    case 'coverage':           return NextResponse.json(await coverageReport(admin, schoolId, plan))
     case 'plans-list':         return NextResponse.json(await plansList(admin, schoolId))
     case 'plan-progress': {
       const planId = req.nextUrl.searchParams.get('planId')

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Row = { id: string; name_ar: string; department: string | null; badges: number; points: number }
@@ -18,7 +19,7 @@ export default function RecognitionReport() {
       const q = new URLSearchParams(window.location.search)
       const from = q.get('from') || undefined, to = q.get('to') || undefined
       setPeriod({ from, to })
-      const res = await fetch(`/api/reports?type=recognition${from ? `&from=${from}` : ''}${to ? `&to=${to}` : ''}`)
+      const res = await fetch(`/api/reports?type=recognition${reportQuery()}`)
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       setD(await res.json().catch(() => null))
       setLoading(false)

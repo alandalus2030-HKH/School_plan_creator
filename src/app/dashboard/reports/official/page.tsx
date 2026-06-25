@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
@@ -15,7 +15,7 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-type Report = { key: string; title: string; desc: string; href?: string; timeBased?: boolean }
+type Report = { key: string; title: string; desc: string; href?: string; timeBased?: boolean; schoolWide?: boolean }
 type Group = { label: string; Icon: any; reports: Report[] }
 
 /* الكتالوج — href = جاهز، بدونه = قريباً */
@@ -49,15 +49,15 @@ const GROUPS: Group[] = [
   {
     label: 'الأداء والتحسين', Icon: TrendingUp, reports: [
       { key: 'performance', title: 'تحليل الأداء', desc: 'الإنجاز والجودة حسب القسم', href: '/dashboard/reports/r/performance' },
-      { key: 'trend', title: 'الاتجاه الزمني', desc: 'تطوّر الإنجاز عبر الوقت', href: '/dashboard/reports/r/trend', timeBased: true },
+      { key: 'trend', title: 'الاتجاه الزمني', desc: 'تطوّر الإنجاز عبر الوقت', href: '/dashboard/reports/r/trend', timeBased: true, schoolWide: true },
       { key: 'coverage', title: 'التغطية والفجوات', desc: 'تغطية المعايير بالأدلة', href: '/dashboard/reports/r/coverage' },
       { key: 'accreditation', title: 'جاهزية الاعتماد', desc: 'الفجوات قبل الاعتماد', href: '/dashboard/reports/r/accreditation' },
     ],
   },
   {
     label: 'الحوكمة والتحفيز', Icon: ShieldCheck, reports: [
-      { key: 'audit', title: 'سجل التدقيق', desc: 'من فعل ماذا ومتى', href: '/dashboard/reports/r/audit', timeBased: true },
-      { key: 'recognition', title: 'التقدير والصدارة', desc: 'الأوسمة والنقاط وموظف الشهر', href: '/dashboard/reports/r/recognition', timeBased: true },
+      { key: 'audit', title: 'سجل التدقيق', desc: 'من فعل ماذا ومتى', href: '/dashboard/reports/r/audit', timeBased: true, schoolWide: true },
+      { key: 'recognition', title: 'التقدير والصدارة', desc: 'الأوسمة والنقاط وموظف الشهر', href: '/dashboard/reports/r/recognition', timeBased: true, schoolWide: true },
     ],
   },
 ]
@@ -69,8 +69,16 @@ export default function OfficialReportsCatalog() {
   const [sel, setSel] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState(todayStr())
+  const [plans, setPlans] = useState<{ id: string; name_ar: string }[]>([])
+  const [planId, setPlanId] = useState('')
   const selReport = runnable.find(r => r.key === sel)
   const isTime = !!selReport?.timeBased
+  const isSchoolWide = !!selReport?.schoolWide
+
+  useEffect(() => {
+    fetch('/api/reports?type=plans-list').then(r => r.ok ? r.json() : { plans: [] })
+      .then(j => setPlans(j.plans || [])).catch(() => {})
+  }, [])
 
   const preset = (days: number) => {
     const d = new Date(); d.setDate(d.getDate() - days)
@@ -80,8 +88,15 @@ export default function OfficialReportsCatalog() {
   const run = () => {
     if (!selReport?.href) return
     const p = new URLSearchParams()
-    if (isTime && from) p.set('from', from)
-    if (isTime && to)   p.set('to', to)
+    /* الخطة — للتقارير غير المدرسية الطابع */
+    if (!isSchoolWide && planId) {
+      p.set('plan', planId)
+      const pl = plans.find(x => x.id === planId)
+      if (pl) p.set('pl', pl.name_ar)
+    }
+    /* الفترة — للتقارير الزمنية دائماً، وللقطية فقط عند تحديد «من» صراحةً (حفاظاً على لقطة الوضع الحالي) */
+    if (from) p.set('from', from)
+    if (to && (isTime || from)) p.set('to', to)
     const qs = p.toString()
     router.push(selReport.href + (qs ? `?${qs}` : ''))
   }
@@ -121,7 +136,20 @@ export default function OfficialReportsCatalog() {
             </select>
           </div>
 
-          {isTime && (
+          {/* منتقي الخطة — للتقارير غير المدرسية الطابع */}
+          {selReport && !isSchoolWide && (
+            <div className="min-w-[180px]">
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">الخطة</label>
+              <select value={planId} onChange={e => setPlanId(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300">
+                <option value="">كل الخطط</option>
+                {plans.map(p => <option key={p.id} value={p.id}>{p.name_ar}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* الفترة — لكل التقارير (للقطية: تُترك فارغة للوضع الحالي) */}
+          {selReport && (
             <>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">من</label>
@@ -143,7 +171,7 @@ export default function OfficialReportsCatalog() {
           </button>
         </div>
 
-        {isTime ? (
+        {selReport && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             <CalendarRange size={14} className="text-slate-400" />
             <span className="text-xs text-slate-400">فترات سريعة:</span>
@@ -153,10 +181,17 @@ export default function OfficialReportsCatalog() {
                 {label as string}
               </button>
             ))}
+            <button onClick={() => { setFrom(''); setTo(todayStr()) }}
+              className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 hover:border-violet-300 transition-colors">
+              مسح الفترة
+            </button>
           </div>
-        ) : selReport ? (
-          <p className="text-xs text-slate-400 mt-3">تقرير لقطة للوضع الحالي «حتى تاريخه» — لا يحتاج فترة زمنية.</p>
-        ) : null}
+        )}
+        {selReport && !isTime && (
+          <p className="text-xs text-slate-400 mt-2">
+            اتركْ الفترة فارغة للحصول على لقطة الوضع الحالي، أو حدّد «من» لتصفية المهام حسب الموعد النهائي ضمن المدى.
+          </p>
+        )}
       </div>
 
       {GROUPS.map(g => (

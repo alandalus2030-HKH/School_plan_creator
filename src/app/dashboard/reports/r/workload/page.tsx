@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Row = {
@@ -18,7 +19,7 @@ export default function WorkloadReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=workload')
+      const res = await fetch('/api/reports?type=workload' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       const j = await res.json().catch(() => ({ rows: [] }))
       setRows((j.rows || []).sort((a: Row, b: Row) => b.active - a.active))

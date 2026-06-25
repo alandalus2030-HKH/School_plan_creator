@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
+import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
 
 type Metrics = { total: number; completed: number; overdue: number; progress: number; avgRating: number | null }
@@ -14,7 +15,7 @@ export default function PerformanceReport() {
 
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/reports?type=performance')
+      const res = await fetch('/api/reports?type=performance' + reportQuery())
       if (res.status === 403) { setDenied(true); setLoading(false); return }
       setD(await res.json().catch(() => null))
       setLoading(false)
