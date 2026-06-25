@@ -95,7 +95,7 @@ export default function ReportShell({
             <div className="text-center flex-1">
               <p className="text-xs text-slate-500 mb-1">مدير المدرسة</p>
               {school?.signature_url
-                ? <img src={school.signature_url} alt="توقيع" className="h-[200px] mx-auto object-contain" />
+                ? <img src={school.signature_url} alt="توقيع" className="report-signature h-[200px] mx-auto object-contain" />
                 : <div className="h-[200px]" />}
               <p className="text-sm font-semibold text-slate-800 border-t border-slate-300 pt-1 mt-1 inline-block px-6">
                 {school?.principal_name || '............................'}
@@ -104,7 +104,7 @@ export default function ReportShell({
             <div className="text-center flex-shrink-0">
               <p className="text-xs text-slate-500 mb-1">ختم المدرسة</p>
               {school?.stamp_url
-                ? <img src={school.stamp_url} alt="ختم" className="h-[280px] w-[280px] mx-auto object-contain" />
+                ? <img src={school.stamp_url} alt="ختم" className="report-stamp h-[280px] w-[280px] mx-auto object-contain" />
                 : <div className="h-[280px] w-[280px] border border-dashed border-slate-300 rounded-full" />}
             </div>
           </div>
@@ -118,6 +118,9 @@ export default function ReportShell({
           @page { size: A4; margin: 14mm; }
           body { background: #fff !important; }
           .report-sheet { box-shadow: none !important; border: 0 !important; }
+          /* أبعاد فيزيائية ثابتة عند الطباعة (لا تتأثر بمقياس المتصفح) */
+          .report-signature { height: 50mm !important; max-height: 50mm !important; width: auto !important; }
+          .report-stamp { height: 65mm !important; width: 65mm !important; max-height: 65mm !important; }
         }
         .break-inside-avoid { break-inside: avoid; }
       `}</style>
