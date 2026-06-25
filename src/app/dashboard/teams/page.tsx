@@ -51,7 +51,7 @@ export default function TeamsPage() {
 
   /* ── إضافة عضو ── */
   const [addingTo,    setAddingTo]    = useState<string | null>(null)
-  const [selUser,     setSelUser]     = useState('')
+  const [selUsers,    setSelUsers]    = useState<string[]>([])
 
   const load = async () => {
     const [{ data: teamsData }, { data: membersData }, { data: profilesData }] = await Promise.all([
@@ -141,13 +141,17 @@ export default function TeamsPage() {
 
   /* ── إضافة عضو ── */
   const addMember = async (teamId: string) => {
-    if (!selUser) return
+    if (selUsers.length === 0) return
+    const rows = selUsers.map(uid => ({ team_id: teamId, profile_id: uid }))
     const { error } = await supabase
       .from('team_members')
-      .upsert({ team_id: teamId, profile_id: selUser }, { onConflict: 'team_id,profile_id' })
-    if (error) { alert('خطأ في إضافة العضو: ' + error.message); return }
-    setSelUser(''); setAddingTo(null); await load()
+      .upsert(rows, { onConflict: 'team_id,profile_id' })
+    if (error) { alert('خطأ في إضافة الأعضاء: ' + error.message); return }
+    setSelUsers([]); setAddingTo(null); await load()
   }
+
+  const toggleSelUser = (uid: string) =>
+    setSelUsers(prev => prev.includes(uid) ? prev.filter(x => x !== uid) : [...prev, uid])
 
   /* ── حذف عضو ── */
   const removeMember = async (teamId: string, userId: string) => {
@@ -360,29 +364,50 @@ export default function TeamsPage() {
                       </div>
                     )}
 
-                    {/* إضافة عضو — لمن يملك manage_teams */}
+                    {/* إضافة أعضاء — لمن يملك manage_teams (اختيار متعدد بمربعات) */}
                     {!canManage ? null : addingTo === team.id ? (
-                      <div className="flex items-center gap-2">
-                        <select value={selUser} onChange={e => setSelUser(e.target.value)}
-                          className="flex-1 px-3 py-2 rounded-xl border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm">
-                          <option value="">— اختر مستخدماً —</option>
-                          {membersNotInTeam.map(p => (
-                            <option key={p.id} value={p.id}>{p.name_ar}</option>
-                          ))}
-                        </select>
-                        <button onClick={() => addMember(team.id)} disabled={!selUser}
-                          className="px-4 py-2 bg-violet-600 text-white text-sm rounded-xl font-medium disabled:opacity-50 hover:bg-violet-700 transition-colors">
-                          إضافة
-                        </button>
-                        <button onClick={() => { setAddingTo(null); setSelUser('') }}
-                          className="px-3 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-white transition-colors">
-                          إلغاء
-                        </button>
+                      <div className="space-y-2">
+                        {membersNotInTeam.length === 0 ? (
+                          <p className="text-xs text-slate-400 py-2">كل المستخدمين أعضاء في هذا الفريق.</p>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between px-1">
+                              <span className="text-xs text-slate-500">اختر عضواً أو أكثر ({selUsers.length} محدّد)</span>
+                              <button
+                                onClick={() => setSelUsers(
+                                  selUsers.length === membersNotInTeam.length ? [] : membersNotInTeam.map(p => p.id)
+                                )}
+                                className="text-xs text-violet-600 hover:underline font-medium">
+                                {selUsers.length === membersNotInTeam.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                              </button>
+                            </div>
+                            <div className="max-h-52 overflow-y-auto rounded-xl border border-violet-200 bg-white divide-y divide-slate-50">
+                              {membersNotInTeam.map(p => (
+                                <label key={p.id}
+                                  className="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-violet-50 cursor-pointer">
+                                  <input type="checkbox" checked={selUsers.includes(p.id)}
+                                    onChange={() => toggleSelUser(p.id)} className="accent-violet-600" />
+                                  <span>{p.name_ar}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => addMember(team.id)} disabled={selUsers.length === 0}
+                            className="px-4 py-2 bg-violet-600 text-white text-sm rounded-xl font-medium disabled:opacity-50 hover:bg-violet-700 transition-colors">
+                            إضافة {selUsers.length > 0 ? `(${selUsers.length})` : ''}
+                          </button>
+                          <button onClick={() => { setAddingTo(null); setSelUsers([]) }}
+                            className="px-3 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-white transition-colors">
+                            إلغاء
+                          </button>
+                        </div>
                       </div>
                     ) : (
-                      <button onClick={() => { setAddingTo(team.id); setSelUser('') }}
+                      <button onClick={() => { setAddingTo(team.id); setSelUsers([]) }}
                         className="flex items-center gap-2 text-sm text-violet-600 hover:text-violet-800 font-medium transition-colors">
-                        ➕ إضافة عضو
+                        ➕ إضافة أعضاء
                       </button>
                     )}
                   </div>
