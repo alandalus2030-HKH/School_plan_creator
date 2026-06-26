@@ -491,11 +491,36 @@ export default function SettingsPage() {
 
                 {/* الرابط */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">الرابط عند الضغط (اختياري)</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">الوجهة عند الضغط (اختياري)</label>
+                  {(() => {
+                    const DEST = [
+                      { path: '/dashboard/my-tasks',  label: 'مهامي' },
+                      { path: '/dashboard/tasks',     label: 'كل المهام' },
+                      { path: '/dashboard/plans',     label: 'الخطط' },
+                      { path: '/dashboard/aggregate', label: 'لوحة التجميع' },
+                      { path: '/dashboard/reports',   label: 'التقارير' },
+                      { path: '/dashboard/meetings',  label: 'الاجتماعات' },
+                      { path: '/dashboard/evidence',  label: 'خزانة الأدلة' },
+                      { path: '/dashboard/badges',    label: 'الأوسمة' },
+                      { path: '/dashboard/teams',     label: 'الفرق' },
+                    ]
+                    const known = DEST.some(d => d.path === notifLink)
+                    const selVal = notifLink === '' ? '' : (known ? notifLink : '__custom__')
+                    return (
+                      <select value={selVal}
+                        onChange={e => { const v = e.target.value; if (v !== '__custom__') setNotifLink(v) }}
+                        className="w-full px-4 py-2.5 mb-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
+                        <option value="">— بدون وجهة —</option>
+                        {DEST.map(d => <option key={d.path} value={d.path}>{d.label}</option>)}
+                        <option value="__custom__">مسار مخصّص (اكتبه أدناه)…</option>
+                      </select>
+                    )
+                  })()}
                   <input type="text" value={notifLink} onChange={e => setNotifLink(e.target.value)}
-                    placeholder="مثال: /dashboard/plans"
+                    placeholder="مسار مخصّص — مثال: /dashboard/tasks/<معرّف المهمة>"
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                     dir="ltr" />
+                  <p className="text-[11px] text-slate-400 mt-1">اختر وجهة جاهزة، أو اكتب مساراً داخلياً يبدأ بـ <span className="font-mono">/dashboard/</span> لصفحة بعينها.</p>
                 </div>
 
                 {/* رسالة النتيجة */}
