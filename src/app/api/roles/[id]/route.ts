@@ -34,13 +34,22 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     return NextResponse.json({ error: 'لا يمكن حذف دور نظامي' }, { status: 403 })
   }
 
-  /* الحارس: عدّ المستخدمين الحاملين لهذا الدور (عبر كل المدارس — service role) */
-  const { count, error: cntErr } = await admin
-    .from('profiles').select('id', { count: 'exact', head: true }).eq('role', role.code)
+  /* الحارس: المستخدمون الحاملون لهذا الدور (عبر كل المدارس — service role) */
+  const { data: holders, error: cntErr } = await admin
+    .from('profiles').select('id, name_ar, school:schools!school_id(name_ar)')
+    .eq('role', role.code).order('name_ar')
   if (cntErr) return NextResponse.json({ error: 'تعذّر التحقق من المستخدمين' }, { status: 500 })
-  if ((count || 0) > 0) {
+  if ((holders?.length || 0) > 0) {
+    const users = (holders || []).map((h: any) => ({
+      name: h.name_ar || '—',
+      school: h.school?.name_ar || null,
+    }))
     return NextResponse.json(
-      { error: `لا يمكن حذف الدور — مُسنَد إلى ${count} مستخدم. انقلهم إلى دور آخر أولاً ثم احذفه.`, inUse: count },
+      {
+        error: `لا يمكن حذف الدور — مُسنَد إلى ${users.length} مستخدم. انقلهم إلى دور آخر أولاً ثم احذفه.`,
+        inUse: users.length,
+        users,
+      },
       { status: 409 },
     )
   }

@@ -81,6 +81,7 @@ export default function SettingsPage() {
   const [roleSaving,     setRoleSaving]     = useState(false)
   const [roleFormError,  setRoleFormError]  = useState('')
   const [confirmDelRole, setConfirmDelRole] = useState<string | null>(null)
+  const [blockedRole, setBlockedRole] = useState<{ name: string; users: { name: string; school: string | null }[] } | null>(null)
 
   /* ══ إرسال إشعار ══ */
   const [notifTitle,         setNotifTitle]         = useState('')
@@ -196,10 +197,20 @@ export default function SettingsPage() {
     setRoleSaving(false); setShowRoleForm(false); await loadRoles()
   }
   const deleteRole = async (id: string) => {
+    const role = roles.find(r => r.id === id)
     const res = await fetch(`/api/roles/${id}`, { method: 'DELETE' })
     const j = await res.json().catch(() => ({}))
-    if (!res.ok) { toast(j.error || 'تعذّر حذف الدور', 'error'); setConfirmDelRole(null); return }
-    toast('تم حذف الدور'); setConfirmDelRole(null); await loadRoles()
+    setConfirmDelRole(null)
+    if (!res.ok) {
+      /* دور مُستخدَم → نافذة بأسماء المستخدمين المطلوب نقلهم */
+      if (res.status === 409 && Array.isArray(j.users)) {
+        setBlockedRole({ name: role?.name_ar || 'الدور', users: j.users })
+      } else {
+        toast(j.error || 'تعذّر حذف الدور', 'error')
+      }
+      return
+    }
+    toast('تم حذف الدور'); await loadRoles()
   }
 
   /* ══ loading / access guard ══ */
@@ -891,6 +902,47 @@ export default function SettingsPage() {
           />
         )
       })()}
+
+      {/* ══ نافذة منع الحذف: الدور مُستخدَم — أسماء المستخدمين المطلوب نقلهم ══ */}
+      {blockedRole && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4"
+          onClick={() => setBlockedRole(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3 p-5 border-b border-slate-100">
+              <div className="w-11 h-11 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={22} className="text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-slate-800">تعذّر حذف الدور</h3>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  دور «<strong className="text-slate-700">{blockedRole.name}</strong>» مُسنَد إلى{' '}
+                  <strong className="text-amber-600">{blockedRole.users.length}</strong> مستخدم.
+                  انقلهم إلى دور آخر أولاً ثم احذفه.
+                </p>
+              </div>
+            </div>
+            <div className="max-h-72 overflow-y-auto p-2 divide-y divide-slate-50">
+              {blockedRole.users.map((u, i) => (
+                <div key={i} className="flex items-center justify-between px-3 py-2 text-sm">
+                  <span className="text-slate-700">{u.name}</span>
+                  {u.school && <span className="text-xs text-slate-400">{u.school}</span>}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-100">
+              <a href="/dashboard/users"
+                className="text-sm text-white px-4 py-2 rounded-xl font-medium transition-all hover:brightness-110"
+                style={{ background: 'var(--gradient-button, #8a1538)' }}>
+                إدارة المستخدمين
+              </a>
+              <button onClick={() => setBlockedRole(null)}
+                className="text-sm border border-slate-200 text-slate-600 px-4 py-2 rounded-xl hover:bg-slate-50">
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {(() => {
         const o = confirmDel ? options.find(x => x.id === confirmDel) : null
         return (
