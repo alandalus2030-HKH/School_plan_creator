@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE, PERMISSION_GROUPS } from '@/lib/permissions'
+import { toast } from '@/components/Toast'
 import {
   Bell, Crown, Briefcase, BookOpen, GraduationCap,
   Globe, Heart, ClipboardList, MessageCircle, Users,
@@ -195,8 +196,10 @@ export default function SettingsPage() {
     setRoleSaving(false); setShowRoleForm(false); await loadRoles()
   }
   const deleteRole = async (id: string) => {
-    await supabase.from('roles').delete().eq('id', id)
-    setConfirmDelRole(null); await loadRoles()
+    const res = await fetch(`/api/roles/${id}`, { method: 'DELETE' })
+    const j = await res.json().catch(() => ({}))
+    if (!res.ok) { toast(j.error || 'تعذّر حذف الدور', 'error'); setConfirmDelRole(null); return }
+    toast('تم حذف الدور'); setConfirmDelRole(null); await loadRoles()
   }
 
   /* ══ loading / access guard ══ */
