@@ -155,7 +155,11 @@ export default function SettingsPage() {
   /* ══ عمليات الأدوار ══ */
   const openCreateRole = () => {
     setEditRole(null)
-    setRoleFormName(''); setRoleFormCode(''); setRoleFormColor(ROLE_COLORS_PALETTE[0])
+    /* تعيين تلقائي: أول لون غير مستخدم من اللوحة (وإلا التدوير حسب العدد) */
+    const used = new Set(roles.map(r => r.color))
+    const nextColor = ROLE_COLORS_PALETTE.find(c => !used.has(c))
+      || ROLE_COLORS_PALETTE[roles.length % ROLE_COLORS_PALETTE.length]
+    setRoleFormName(''); setRoleFormCode(''); setRoleFormColor(nextColor)
     setRoleFormPerms([]); setRoleFormError('')
     setShowRoleForm(true)
   }
