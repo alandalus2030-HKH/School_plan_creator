@@ -7,6 +7,7 @@ import {
   Bell, Crown, Briefcase, BookOpen, GraduationCap,
   Globe, Heart, ClipboardList, MessageCircle, Users,
   Unlock, AlertTriangle, Save, CircleCheckBig, Building2, Loader2,
+  Pencil, Trash2, Eye, EyeOff, Plus, Send, Lock,
 } from 'lucide-react'
 import SchoolProfile from '@/components/SchoolProfile'
 import LocationsManager from '@/components/LocationsManager'
@@ -216,7 +217,7 @@ export default function SettingsPage() {
     e.preventDefault()
     if (!notifTitle.trim()) return
     if (notifRecipient === 'selected' && notifSelectedUsers.length === 0) {
-      setNotifMsg({ ok: false, text: '⚠️ اختر مستخدماً واحداً على الأقل' }); return
+      setNotifMsg({ ok: false, text: 'اختر مستخدماً واحداً على الأقل' }); return
     }
     setSendingNotif(true); setNotifMsg(null)
 
@@ -240,10 +241,10 @@ export default function SettingsPage() {
     const json = await res.json()
     setSendingNotif(false)
     if (res.ok) {
-      setNotifMsg({ ok: true, text: `✅ تم الإرسال بنجاح (${json.count} مستخدم)` })
+      setNotifMsg({ ok: true, text: `تم الإرسال بنجاح (${json.count} مستخدم)` })
       setNotifTitle(''); setNotifBody(''); setNotifLink(''); setNotifSelectedUsers([])
     } else {
-      setNotifMsg({ ok: false, text: `⚠️ ${json.error}` })
+      setNotifMsg({ ok: false, text: `${json.error}` })
     }
   }
 
@@ -407,7 +408,7 @@ export default function SettingsPage() {
                       <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100">
                         <span className="text-xs text-slate-500">
                           {notifSelectedUsers.length > 0
-                            ? `✅ تم اختيار ${notifSelectedUsers.length} مستخدم`
+                            ? `تم اختيار ${notifSelectedUsers.length} مستخدم`
                             : 'اختر المستخدمين المستهدفين'}
                         </span>
                         <div className="flex gap-2">
@@ -499,19 +500,23 @@ export default function SettingsPage() {
 
                 {/* رسالة النتيجة */}
                 {notifMsg && (
-                  <div className={`px-4 py-3 rounded-xl text-sm font-medium border
+                  <div className={`px-4 py-3 rounded-xl text-sm font-medium border flex items-center gap-2
                     ${notifMsg.ok
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : 'bg-red-50 text-red-700 border-red-200'}`}>
-                    {notifMsg.text}
+                    <span className="inline-flex flex-shrink-0">
+                      {notifMsg.ok ? <CircleCheckBig size={16} /> : <AlertTriangle size={16} />}
+                    </span>
+                    <span>{notifMsg.text}</span>
                   </div>
                 )}
 
                 {/* زر الإرسال */}
                 <button type="submit" disabled={sendingNotif || !notifTitle.trim()}
                   className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl
-                             transition-colors disabled:opacity-50 shadow-lg shadow-violet-200">
-                  {sendingNotif ? '⏳ جارٍ الإرسال...' : '📤 إرسال الإشعار'}
+                             transition-colors disabled:opacity-50 shadow-lg shadow-violet-200 flex items-center justify-center gap-2">
+                  <span className="inline-flex">{sendingNotif ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}</span>
+                  <span>{sendingNotif ? 'جارٍ الإرسال...' : 'إرسال الإشعار'}</span>
                 </button>
               </form>
             </div>
@@ -531,7 +536,7 @@ export default function SettingsPage() {
                   </div>
                   <button onClick={openCreateRole}
                     className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-                    ➕ دور جديد
+                    <Plus size={15} /> دور جديد
                   </button>
                 </div>
 
@@ -552,7 +557,7 @@ export default function SettingsPage() {
                               <span className="font-bold text-slate-800">{role.name_ar}</span>
                               <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">{role.code}</span>
                               {role.is_system && (
-                                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">🔒 نظامي</span>
+                                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 inline-flex items-center gap-1"><Lock size={11} /> نظامي</span>
                               )}
                             </div>
 
@@ -575,11 +580,11 @@ export default function SettingsPage() {
 
                           {/* الأزرار */}
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                            <button onClick={() => openEditRole(role)}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors">✏️</button>
+                            <button onClick={() => openEditRole(role)} title="تعديل"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"><Pencil size={15} /></button>
                             {!role.is_system && (
-                              <button onClick={() => setConfirmDelRole(role.id)}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">🗑️</button>
+                              <button onClick={() => setConfirmDelRole(role.id)} title="حذف"
+                                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>
                             )}
                           </div>
                         </div>
@@ -638,7 +643,7 @@ export default function SettingsPage() {
               <form onSubmit={addOption} className="flex items-center gap-3 p-4 bg-violet-50 border-b border-violet-100">
                 <input
                   value={newValue} onChange={e => setNewValue(e.target.value)}
-                  placeholder={`➕ أضف بنداً جديداً إلى "${activeCatInfo.label}"...`}
+                  placeholder={`أضف بنداً جديداً إلى "${activeCatInfo.label}"...`}
                   className="flex-1 px-4 py-2.5 rounded-xl border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm"
                 />
                 <button type="submit" disabled={adding || !newValue.trim()}
@@ -662,8 +667,9 @@ export default function SettingsPage() {
                             onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditId(null) }}
                             className="flex-1 px-3 py-2 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-sm" />
                           <button onClick={saveEdit} disabled={saving}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm rounded-xl font-medium disabled:opacity-50">
-                            {saving ? '...' : '💾 حفظ'}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm rounded-xl font-medium disabled:opacity-50 inline-flex items-center gap-1.5">
+                            <span className="inline-flex">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span>
+                            <span>{saving ? 'جارٍ...' : 'حفظ'}</span>
                           </button>
                           <button onClick={() => setEditId(null)}
                             className="px-3 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-white">إلغاء</button>
@@ -685,13 +691,13 @@ export default function SettingsPage() {
                           )}
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => toggleActive(opt)} title={opt.is_active ? 'إخفاء' : 'إظهار'}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg text-sm hover:bg-slate-100 transition-colors">
-                              {opt.is_active ? '👁️' : '🚫'}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                              <span className="inline-flex">{opt.is_active ? <Eye size={15} /> : <EyeOff size={15} />}</span>
                             </button>
-                            <button onClick={() => { setEditId(opt.id); setEditValue(opt.value) }}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors">✏️</button>
-                            <button onClick={() => setConfirmDel(opt.id)}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">🗑️</button>
+                            <button onClick={() => { setEditId(opt.id); setEditValue(opt.value) }} title="تعديل"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"><Pencil size={15} /></button>
+                            <button onClick={() => setConfirmDel(opt.id)} title="حذف"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>
                           </div>
                         </div>
                       )}
@@ -711,8 +717,9 @@ export default function SettingsPage() {
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
 
-            <h3 className="text-lg font-bold text-slate-800 mb-5">
-              {editRole ? '✏️ تعديل الدور' : '➕ دور جديد'}
+            <h3 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
+              <span className="inline-flex">{editRole ? <Pencil size={18} /> : <Plus size={18} />}</span>
+              <span>{editRole ? 'تعديل الدور' : 'دور جديد'}</span>
             </h3>
 
             <form onSubmit={saveRole} className="space-y-5">
