@@ -241,6 +241,45 @@ function CardGrid({ items }: { items: Card[] }) {
   )
 }
 
+/* ════ كتالوج الأدوار ومصفوفة الصلاحيات (يطابق ترحيل 055) ════ */
+const ROLE_CATALOG: { name: string; tier: string; purpose: string }[] = [
+  { name: 'مشرف المنصة',          tier: 'حوكمة عليا', purpose: 'مالك المنصة عبر كل المدارس (كل الصلاحيات).' },
+  { name: 'مدير المدرسة',          tier: 'حوكمة',      purpose: 'الإدارة الكاملة للمدرسة + الحوكمة (أدوار/إعدادات/اعتماد/حذف).' },
+  { name: 'نائب المدير',           tier: 'قيادة',      purpose: 'إشراف تشغيلي واسع بلا حوكمة.' },
+  { name: 'منسّق الجودة والتطوير', tier: 'قيادة',      purpose: 'بناء وإدارة الخطط والاعتماد والمتابعة.' },
+  { name: 'رئيس قسم',              tier: 'تشغيل',      purpose: 'يدير ويقيّم مهام قسمه + ينفّذ مهامه.' },
+  { name: 'مقيّم',                 tier: 'تشغيل',      purpose: 'تقييم المهام ومراجعة الأدلة فقط (فصل واجبات).' },
+  { name: 'موظف',                  tier: 'تشغيل',      purpose: 'ينفّذ المهام المكلّف بها ويرفع أدلتها.' },
+  { name: 'مُطّلِع',               tier: 'قراءة',      purpose: 'عرض فقط (مجلس/وزارة/قيادة).' },
+]
+
+const ROLE_COLS = ['مشرف المنصة', 'مدير المدرسة', 'نائب المدير', 'منسّق الجودة', 'رئيس قسم', 'مقيّم', 'موظف', 'مُطّلِع']
+
+/* لكل صلاحية: مصفوفة ✓/✗ بترتيب الأعمدة أعلاه */
+const PERM_MATRIX: { label: string; on: boolean[] }[] = [
+  /*                          منصة  مدير  نائب  جودة  قسم   مقيّم موظف مطّلع */
+  { label: 'إدارة المستخدمين',   on: [1,1,0,0,0,0,0,0].map(Boolean) },
+  { label: 'إدارة الأدوار',      on: [1,1,0,0,0,0,0,0].map(Boolean) },
+  { label: 'إدارة الإعدادات',    on: [1,1,0,0,0,0,0,0].map(Boolean) },
+  { label: 'إدارة الفرق',        on: [1,1,1,0,1,0,0,0].map(Boolean) },
+  { label: 'عرض الخطط',          on: [1,1,1,1,1,0,0,1].map(Boolean) },
+  { label: 'إنشاء/تعديل الخطط',  on: [1,1,1,1,0,0,0,0].map(Boolean) },
+  { label: 'اعتماد الخطط',       on: [1,1,1,0,0,0,0,0].map(Boolean) },
+  { label: 'تجميد الخطط',        on: [1,1,0,0,0,0,0,0].map(Boolean) },
+  { label: 'حذف/أرشفة الخطط',    on: [1,1,0,0,0,0,0,0].map(Boolean) },
+  { label: 'عرض المهام',         on: [1,1,1,1,1,1,1,0].map(Boolean) },
+  { label: 'إدارة المهام',       on: [1,1,1,1,1,0,0,0].map(Boolean) },
+  { label: 'تقييم المهام',       on: [1,1,1,0,1,1,0,0].map(Boolean) },
+  { label: 'عرض الأدلة',         on: [1,1,1,1,1,1,0,1].map(Boolean) },
+  { label: 'إضافة/تعديل الأدلة', on: [1,1,1,1,1,0,1,0].map(Boolean) },
+  { label: 'اعتماد/رفض الأدلة',  on: [1,1,1,1,1,1,0,0].map(Boolean) },
+  { label: 'عرض التقارير',       on: [1,1,1,1,1,1,0,1].map(Boolean) },
+  { label: 'عرض لوحة التجميع',   on: [1,1,1,1,1,0,0,1].map(Boolean) },
+  { label: 'إدارة الاجتماعات',   on: [1,1,1,1,0,0,0,0].map(Boolean) },
+  { label: 'إدارة الأوسمة',      on: [1,1,0,0,0,0,0,0].map(Boolean) },
+  { label: 'منح الأوسمة',        on: [1,1,1,0,1,0,0,0].map(Boolean) },
+]
+
 export default function HelpPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -393,6 +432,79 @@ export default function HelpPage() {
 
         <p className="text-xs text-slate-400">
           ملاحظة: هذه الإجراءات تتطلب صلاحيات مختلفة (اعتماد/تجميد/حذف الخطط)، وتُدار من رأس الخطة أو قائمة الخطط (⋮).
+        </p>
+      </section>
+
+      {/* ═══════════ القسم الرابع: الأدوار والصلاحيات ═══════════ */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-6 rounded-full" style={{ background: 'var(--maroon-600, #8a1538)' }} />
+          <h2 className="text-lg font-bold text-slate-800">الأدوار والصلاحيات</h2>
+        </div>
+
+        <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4 text-sm text-violet-900">
+          ثمانية أدوار مبنية على <strong>أقل صلاحية</strong> و<strong>فصل الواجبات</strong> و<strong>حصر الحوكمة</strong> في مدير المدرسة.
+          المنفّذ لا يقيّم، والمقيّم لا ينفّذ، ولا أحد يقيّم مهمته (يُمنع تلقائياً). تُدار الأدوار من
+          <span className="font-semibold mx-1">الإعدادات ← الأدوار والصلاحيات</span>.
+        </div>
+
+        {/* كتالوج الأدوار */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <h3 className="font-bold text-slate-800 p-4 border-b border-slate-100">كتالوج الأدوار</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-right">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500">
+                  <th className="px-4 py-2.5 font-medium">الدور</th>
+                  <th className="px-4 py-2.5 font-medium">الطبقة</th>
+                  <th className="px-4 py-2.5 font-medium">الغرض</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {ROLE_CATALOG.map((r, i) => (
+                  <tr key={i} className="hover:bg-slate-50/60">
+                    <td className="px-4 py-2.5 font-semibold text-slate-800 whitespace-nowrap">{r.name}</td>
+                    <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap">{r.tier}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.purpose}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* مصفوفة الصلاحيات */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <h3 className="font-bold text-slate-800 p-4 border-b border-slate-100">مصفوفة الصلاحيات</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-center border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500">
+                  <th className="px-3 py-2.5 font-medium text-right sticky right-0 bg-slate-50">الصلاحية</th>
+                  {ROLE_COLS.map(c => (
+                    <th key={c} className="px-2 py-2.5 font-medium whitespace-nowrap">{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {PERM_MATRIX.map((row, i) => (
+                  <tr key={i} className="hover:bg-slate-50/60">
+                    <td className="px-3 py-2 text-right text-slate-700 whitespace-nowrap sticky right-0 bg-white">{row.label}</td>
+                    {row.on.map((v, j) => (
+                      <td key={j} className="px-2 py-2">
+                        {v
+                          ? <span className="inline-flex"><CircleCheckBig size={15} className="text-emerald-600 mx-auto" /></span>
+                          : <span className="text-slate-200">—</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p className="text-xs text-slate-400">
+          ملاحظة: «رئيس قسم» يقيّم مهام قسمه عند تسجيله <strong>مشرف قسم</strong> (الإعدادات ← البنية التنظيمية). «مشرف المنصة» و«مدير المدرسة» دوران نظاميان محميّان من الحذف.
         </p>
       </section>
     </div>
