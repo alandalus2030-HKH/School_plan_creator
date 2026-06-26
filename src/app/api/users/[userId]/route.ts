@@ -59,7 +59,9 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ user
   /* حذف حساب auth (يتسلسل إلى profiles عبر ON DELETE CASCADE) */
   const { error: authErr } = await ctx.admin.auth.admin.deleteUser(userId)
   if (authErr && !/not[ _-]?found/i.test(authErr.message)) {
-    const isFk = /foreign key|constraint|violates/i.test(authErr.message)
+    /* رسالة Supabase العامة «Database error deleting user» تغلّف غالباً انتهاك FK
+       (مستخدم مرتبط بسجلات) — نعاملها كحالة ارتباط ونعرض الإرشاد العربي */
+    const isFk = /foreign key|constraint|violates|database error/i.test(authErr.message)
     return NextResponse.json({ error: isFk ? FK_MSG : authErr.message }, { status: isFk ? 409 : 500 })
   }
 
