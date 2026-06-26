@@ -650,7 +650,7 @@ export default function UsersPage() {
     const other: string[] = []    // فشل لأسباب أخرى
 
     for (const row of validRows) {
-      const roleCode = roles.find(r => r.name_ar === row['الدور'])?.code || 'task_assigned_employee'
+      const roleCode = roles.find(r => r.name_ar === row['الدور'])?.code || 'staff'
       const email = row['البريد الإلكتروني']?.toString().trim() || ''
       const res = await fetch('/api/users/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
