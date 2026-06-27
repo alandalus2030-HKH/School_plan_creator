@@ -7,7 +7,8 @@ import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
 import { ClipboardList, Target, TrendingUp, Package, BarChart3, Star,
-  Settings, Pencil, Trash2, Award, BadgeCheck, ShieldOff, Bell } from 'lucide-react'
+  Settings, Pencil, Trash2, Award, BadgeCheck, ShieldOff, Bell,
+  Tag, User, CircleCheckBig, X, Calendar, Layers, FolderTree, Save, Plus, ArrowLeft, Lock, Upload, Lightbulb, AlertTriangle, Loader2 } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
 import { toast } from '@/components/Toast'
 import StandardPicker from '@/components/StandardPicker'
@@ -575,11 +576,11 @@ export default function PlanOverviewPage() {
               {(plan.department || plan.owner_id) && (
                 <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                   {plan.department && (
-                    <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">🏷️ {plan.department}</span>
+                    <span className="inline-flex items-center gap-1 text-[11px] bg-white/15 px-2 py-0.5 rounded-full"><Tag size={11} /> {plan.department}</span>
                   )}
                   {plan.owner_id && (
-                    <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">
-                      👤 {dimOwners.find((o: any) => o.id === plan.owner_id)?.name_ar || 'صاحب الخطة'}
+                    <span className="inline-flex items-center gap-1 text-[11px] bg-white/15 px-2 py-0.5 rounded-full">
+                      <User size={11} /> {dimOwners.find((o: any) => o.id === plan.owner_id)?.name_ar || 'صاحب الخطة'}
                     </span>
                   )}
                 </div>
@@ -686,7 +687,7 @@ export default function PlanOverviewPage() {
                 </span>
               )
             })}
-            <span className="bg-green-400/20 px-2.5 py-1 rounded-lg text-xs font-medium text-green-100">✅ المهمة</span>
+            <span className="inline-flex items-center gap-1 bg-green-400/20 px-2.5 py-1 rounded-lg text-xs font-medium text-green-100"><CircleCheckBig size={12} /> المهمة</span>
           </div>
         </div>
       )}
@@ -698,7 +699,7 @@ export default function PlanOverviewPage() {
           <form onSubmit={savePlan} className="space-y-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-white font-bold">تعديل بيانات الخطة</span>
-              <button type="button" onClick={() => setEditingPlan(false)} className="text-white/60 hover:text-white text-sm">✕ إلغاء</button>
+              <button type="button" onClick={() => setEditingPlan(false)} className="inline-flex items-center gap-1 text-white/60 hover:text-white text-sm"><X size={13} /> إلغاء</button>
             </div>
 
             {/* اسم الخطة */}
@@ -709,12 +710,12 @@ export default function PlanOverviewPage() {
             {/* العام الدراسي */}
             <select value={editPlanYear} onChange={e => setEditPlanYear(e.target.value)}
               className="w-full px-4 py-3 rounded-xl bg-white/15 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/40">
-              {ACADEMIC_YEARS.map(y => <option key={y} value={y} className="text-slate-800">📅 {y}</option>)}
+              {ACADEMIC_YEARS.map(y => <option key={y} value={y} className="text-slate-800">{y}</option>)}
             </select>
 
             {/* عدد المستويات */}
             <div className="bg-white/10 rounded-xl p-4 space-y-3">
-              <p className="text-white text-sm font-bold">🏗️ عدد مستويات الهيكل الهرمي</p>
+              <p className="inline-flex items-center gap-1.5 text-white text-sm font-bold"><Layers size={14} /> عدد مستويات الهيكل الهرمي</p>
               <div className="flex gap-2">
                 {[2, 3, 4, 5].map(n => (
                   <button key={n} type="button"
@@ -755,13 +756,13 @@ export default function PlanOverviewPage() {
                     <span className="text-white/40 text-xs">›</span>
                   </span>
                 ))}
-                <span className="bg-green-300/30 text-green-100 text-xs px-2 py-0.5 rounded-full">✅ المهمة</span>
+                <span className="inline-flex items-center gap-1 bg-green-300/30 text-green-100 text-xs px-2 py-0.5 rounded-full"><CircleCheckBig size={11} /> المهمة</span>
               </div>
             </div>
 
             {/* تصنيف الخطة (للوحات التجميع) */}
             <div className="bg-white/10 rounded-xl p-4 space-y-3">
-              <p className="text-white text-sm font-bold">🗂️ تصنيف الخطة (للوحات التجميع)</p>
+              <p className="inline-flex items-center gap-1.5 text-white text-sm font-bold"><FolderTree size={14} /> تصنيف الخطة (للوحات التجميع)</p>
               <div className="grid grid-cols-2 gap-2">
                 <select value={editDept} onChange={e => setEditDept(e.target.value)}
                   className="px-3 py-2 rounded-lg bg-white/15 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
@@ -783,7 +784,7 @@ export default function PlanOverviewPage() {
 
             <button type="submit" disabled={savingPlan}
               className="w-full py-3 bg-white text-violet-700 font-bold rounded-xl disabled:opacity-60">
-              {savingPlan ? 'جارٍ الحفظ...' : '💾 حفظ التعديلات'}
+              <span className="inline-flex items-center justify-center gap-1.5">{savingPlan ? 'جارٍ الحفظ...' : <><Save size={14} /> حفظ التعديلات</>}</span>
             </button>
           </form>
         </div>
@@ -798,8 +799,8 @@ export default function PlanOverviewPage() {
             {/* إضافة يدوية — تتطلب صلاحية الإنشاء/التعديل، وتُخفى للخطة المجمّدة */}
             {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
               <button onClick={() => setAdding(true)}
-                className="flex items-center gap-2 text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-                ➕ إضافة {level1Name}
+                className="flex items-center gap-1.5 text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+                <Plus size={15} /> إضافة {level1Name}
               </button>
             )}
           </div>
@@ -841,8 +842,8 @@ export default function PlanOverviewPage() {
                       <input autoFocus value={editNodeName} onChange={e => setEditNodeName(e.target.value)}
                         className="flex-1 px-3 py-2 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-sm font-medium" />
                       <button onClick={() => saveNodeEdit(node.id)} disabled={saving}
-                        className="px-4 py-2 bg-amber-500 text-white text-sm rounded-xl font-medium disabled:opacity-50">
-                        {saving ? '...' : '💾 حفظ'}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm rounded-xl font-medium disabled:opacity-50">
+                        <span className="inline-flex">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span> حفظ
                       </button>
                       <button onClick={() => setEditNodeId(null)}
                         className="px-3 py-2 border border-slate-200 text-slate-500 text-sm rounded-xl">إلغاء</button>
@@ -874,7 +875,7 @@ export default function PlanOverviewPage() {
                             </div>
                           )}
                         </div>
-                        <span className="text-slate-300 group-hover:text-violet-400 text-xl flex-shrink-0">←</span>
+                        <ArrowLeft size={20} className="text-slate-300 group-hover:text-violet-400 flex-shrink-0" />
                       </Link>
 
                       {/* أزرار التعديل والحذف — تُخفى للخطة المجمّدة */}
@@ -883,19 +884,19 @@ export default function PlanOverviewPage() {
                         {(isSuperAdmin || can('manage_plans')) && (
                           node.standard_code && officialCodes.has(node.standard_code) ? (
                             <span title="معيار من الإطار المرجعي QNSA — غير قابل للتعديل"
-                              className="w-8 h-8 flex items-center justify-center text-slate-300">🔒</span>
+                              className="w-8 h-8 flex items-center justify-center text-slate-300"><Lock size={15} /></span>
                           ) : (
                             <button
                               onClick={() => { setEditNodeId(node.id); setEditNodeName(node.name_ar) }}
                               className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
-                              title="تعديل">✏️</button>
+                              title="تعديل"><Pencil size={15} /></button>
                           )
                         )}
                         {!plan.approved_at && (isSuperAdmin || can('delete_plans')) && (
                           <button
                             onClick={() => setConfirmDelId(node.id)}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            title="حذف">🗑️</button>
+                            title="حذف"><Trash2 size={15} /></button>
                         )}
                       </div>
                       )}
@@ -910,8 +911,8 @@ export default function PlanOverviewPage() {
             <div className="flex justify-center mb-3" style={{ color: 'var(--maroon-300)' }}><ClipboardList size={36} /></div>
             <p className="text-slate-500 font-medium">لا يوجد {level1Name} بعد</p>
             {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
-              <button onClick={() => setAdding(true)} className="mt-4 text-sm text-violet-600 hover:underline">
-                ➕ إضافة أول {level1Name}
+              <button onClick={() => setAdding(true)} className="inline-flex items-center gap-1 mt-4 text-sm text-violet-600 hover:underline">
+                <Plus size={14} /> إضافة أول {level1Name}
               </button>
             )}
           </div>
@@ -928,10 +929,10 @@ export default function PlanOverviewPage() {
             {/* رأس */}
             <div className="flex items-center justify-between p-5 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">📥 استيراد هيكل الخطة</h3>
+                <h3 className="inline-flex items-center gap-1.5 text-lg font-bold text-slate-800"><Upload size={17} /> استيراد هيكل الخطة</h3>
                 <p className="text-xs text-slate-400 mt-0.5">{importRows.length} صف في الملف — العناصر الموجودة لن تُكرَّر</p>
               </div>
-              <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+              <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
 
             {/* معاينة */}
@@ -983,7 +984,7 @@ export default function PlanOverviewPage() {
               </button>
               <button onClick={runImport} disabled={importing || !!importMsg.startsWith('✅')}
                 className="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                {importing ? 'جارٍ الاستيراد...' : `✅ استيراد ${importRows.length} صف`}
+                <span className="inline-flex items-center gap-1.5">{importing ? 'جارٍ الاستيراد...' : <><Upload size={14} /> استيراد {importRows.length} صف</>}</span>
               </button>
             </div>
           </div>
@@ -1003,7 +1004,7 @@ export default function PlanOverviewPage() {
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 size={18} /> إعدادات مؤشرات الأداء KPI</h3>
                 <p className="text-xs text-slate-400 mt-0.5">فعّل أو عطّل مؤشرات الأداء لكل مستوى من مستويات الخطة</p>
               </div>
-              <button onClick={() => setShowKpiSettings(false)} className="text-slate-400 hover:text-slate-600 text-xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">✕</button>
+              <button onClick={() => setShowKpiSettings(false)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100"><X size={18} /></button>
             </div>
 
             {/* المحتوى */}
@@ -1032,7 +1033,7 @@ export default function PlanOverviewPage() {
                         <div>
                           <p className="font-semibold text-slate-700 text-sm">{lName}</p>
                           {locked && (
-                            <p className="text-xs text-slate-400">🔒 المستوى الأول — حاوٍ عام للخطة</p>
+                            <p className="inline-flex items-center gap-1 text-xs text-slate-400"><Lock size={11} /> المستوى الأول — حاوٍ عام للخطة</p>
                           )}
                         </div>
                       </div>
@@ -1124,8 +1125,9 @@ export default function PlanOverviewPage() {
               })}
 
               {/* ملاحظة */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                💡 المستوى الأول (الحاوي العام) لا يمكن إضافة KPI له. أما المهام فهي كيان منفصل يأتي تحت جميع المستويات — لذا يمكن وضع KPI على أي مستوى آخر بما فيه المستوى الأخير.
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+                <Lightbulb size={14} className="flex-shrink-0 mt-0.5" />
+                <span>المستوى الأول (الحاوي العام) لا يمكن إضافة KPI له. أما المهام فهي كيان منفصل يأتي تحت جميع المستويات — لذا يمكن وضع KPI على أي مستوى آخر بما فيه المستوى الأخير.</span>
               </div>
             </div>
 
@@ -1137,7 +1139,7 @@ export default function PlanOverviewPage() {
               </button>
               <button onClick={saveKpiSettings} disabled={savingKpi}
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                {savingKpi ? '⏳ جارٍ الحفظ...' : '💾 حفظ الإعدادات'}
+                <span className="inline-flex items-center gap-1.5">{savingKpi ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</> : <><Save size={14} /> حفظ الإعدادات</>}</span>
               </button>
             </div>
           </div>
@@ -1156,7 +1158,7 @@ export default function PlanOverviewPage() {
             message={delNode ? (
               <>
                 سيتم حذف «<strong>{delNode.name_ar}</strong>» وكل ما تحته نهائياً.
-                {cnt > 0 && <span className="block text-red-600 font-semibold mt-1">⚠️ سيُحذف معه {cnt} مهمة تابعة.</span>}
+                {cnt > 0 && <span className="inline-flex items-center gap-1 text-red-600 font-semibold mt-1"><AlertTriangle size={13} /> سيُحذف معه {cnt} مهمة تابعة.</span>}
               </>
             ) : null}
             onConfirm={() => confirmDelId && deleteNode(confirmDelId)}
