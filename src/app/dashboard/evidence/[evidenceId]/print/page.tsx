@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Printer, ArrowRight } from 'lucide-react'
+import { Printer, ArrowRight, FileText, FileSpreadsheet, Paperclip } from 'lucide-react'
 
 /** عنصر في التسلسل الهرمي للغلاف */
 type CrumbEntry = { label: string; number: string; name: string }
@@ -260,14 +260,14 @@ export default function EvidencePrintPage() {
                 {/* معاينة على الشاشة — لا تظهر في الطباعة، لذا نوفّر بطاقة طباعة بديلة */}
                 <object data={f.file_url} type="application/pdf" className="att-pdf w-full rounded-xl border border-slate-200 print:hidden" style={{ height: '70vh' }}>
                   <div className="flex flex-col items-center gap-3 p-8 text-center">
-                    <span className="text-5xl">📄</span>
+                    <FileText size={48} className="text-slate-400" />
                     <p className="text-sm text-slate-600">تعذّرت المعاينة المدمجة</p>
                     <a href={f.file_url} target="_blank" rel="noopener noreferrer" className="text-violet-600 underline text-sm">فتح ملف PDF</a>
                   </div>
                 </object>
                 {/* بطاقة بديلة للطباعة (PDF لا يُطبع من داخل object) */}
                 <div className="hidden print:flex items-center gap-5 bg-slate-50 rounded-xl p-5 border border-slate-200">
-                  <span className="text-5xl flex-shrink-0">📄</span>
+                  <FileText size={48} className="text-slate-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-base font-semibold text-slate-700 truncate">{f.name}</p>
                     <p className="text-xs text-slate-400 mb-1">ملف PDF — يُطبع من ملفه الأصلي. امسح الرمز لفتحه.</p>
@@ -279,9 +279,9 @@ export default function EvidencePrintPage() {
             ) : (
               /* وورد/إكسل/غيره — بطاقة + QR للفتح (لا يدعمها المتصفح للمعاينة المباشرة) */
               <div className="flex items-center gap-5 bg-slate-50 rounded-xl p-5 border border-slate-200">
-                <span className="text-5xl flex-shrink-0">
-                  {f.file_type?.includes('word') || f.name?.match(/\.docx?$/i) ? '📝'
-                    : f.file_type?.includes('sheet') || f.name?.match(/\.xlsx?$/i) ? '📊' : '📎'}
+                <span className="inline-flex flex-shrink-0 text-slate-400">
+                  {f.file_type?.includes('word') || f.name?.match(/\.docx?$/i) ? <FileText size={48} />
+                    : f.file_type?.includes('sheet') || f.name?.match(/\.xlsx?$/i) ? <FileSpreadsheet size={48} /> : <Paperclip size={48} />}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-base font-semibold text-slate-700 truncate">{f.name}</p>

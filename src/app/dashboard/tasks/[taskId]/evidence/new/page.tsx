@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { FileText, FolderOpen, Lock, PlayCircle, Sparkles, Loader2, X, Plus } from 'lucide-react'
+import { FileText, FolderOpen, Lock, PlayCircle, Sparkles, Loader2, X, Plus,
+  ArrowRight, Paperclip, Video, Tv, Link2 } from 'lucide-react'
 import Link from 'next/link'
 
 /** يحسب رقم المهمة الكامل من سلسلة العقد */
@@ -337,7 +338,7 @@ export default function NewEvidencePage() {
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/dashboard/tasks/${taskId}`}
           className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-violet-600 hover:border-violet-300 transition-colors">
-          ←
+          <ArrowRight size={18} />
         </Link>
         <div>
           <h2 className="text-2xl font-bold text-slate-800">إضافة دليل</h2>
@@ -351,8 +352,8 @@ export default function NewEvidencePage() {
           <p className="text-sm font-semibold text-slate-700 mb-1">{underReview ? 'المهمة مرفوعة للتقييم — الأدلة مقفلة' : 'المهمة منجزة ومقفلة'}</p>
           <p className="text-xs text-slate-400 mb-4">{underReview ? 'لا يمكن إضافة أدلة أثناء المراجعة — أعِد المهمة للتعديل أولاً من صفحة المهمة.' : 'لا يمكن رفع أدلة على مهمة معتمدة — اطلب إعادة فتحها من صفحة المهمة.'}</p>
           <Link href={`/dashboard/tasks/${taskId}`}
-            className="inline-block px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors">
-            ← العودة للمهمة
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors">
+            <ArrowRight size={15} /> العودة للمهمة
           </Link>
         </div>
       ) : (
@@ -380,14 +381,14 @@ export default function NewEvidencePage() {
                     ) : att.preview ? (
                       <img src={att.preview} alt="" className="w-12 h-9 rounded-lg object-cover flex-shrink-0" />
                     ) : (
-                      <span className="text-2xl flex-shrink-0 w-12 text-center">
-                        {att.file?.type === 'application/pdf' ? '📄' : '📎'}
+                      <span className="inline-flex flex-shrink-0 w-12 items-center justify-center text-slate-400">
+                        {att.file?.type === 'application/pdf' ? <FileText size={20} /> : <Paperclip size={20} />}
                       </span>
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-700 truncate">{att.title}</p>
-                      <p className="text-xs text-slate-400">
-                        {att.kind === 'video' ? '🎬 فيديو يوتيوب' : `${((att.file?.size || 0) / 1024).toFixed(0)} KB`}
+                      <p className="inline-flex items-center gap-1 text-xs text-slate-400">
+                        {att.kind === 'video' ? <><Video size={11} /> فيديو يوتيوب</> : `${((att.file?.size || 0) / 1024).toFixed(0)} KB`}
                         {idx === 0 && <span className="text-violet-500 mr-2">• أساسي</span>}
                       </p>
                     </div>
@@ -421,7 +422,7 @@ export default function NewEvidencePage() {
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors ${
                   mode === 'link' ? 'bg-amber-50 text-amber-700 border-b-2 border-amber-500'
                                   : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
-                🔗 إرفاق موجود
+                <Link2 size={16} /> إرفاق موجود
               </button>
             </div>
 
@@ -462,7 +463,7 @@ export default function NewEvidencePage() {
                       </div>
                     </div>
                   )}
-                  {videoTitle && <p className="text-xs text-slate-500 truncate">📺 {videoTitle}</p>}
+                  {videoTitle && <p className="inline-flex items-center gap-1 text-xs text-slate-500 truncate"><Tv size={11} className="flex-shrink-0" /> {videoTitle}</p>}
                   {videoUrl && !videoId && <p className="text-xs text-red-500">رابط غير صحيح — يجب أن يكون رابط يوتيوب</p>}
 
                   <button type="button" onClick={addVideo} disabled={!videoId}
@@ -491,7 +492,7 @@ export default function NewEvidencePage() {
                           <span className="text-sm text-slate-700 flex-1 truncate">{r.name}</span>
                           <button type="button" onClick={() => linkExisting(r.id)} disabled={linkingId === r.id}
                             className="px-3 py-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium disabled:opacity-50 flex-shrink-0">
-                            {linkingId === r.id ? '...' : '🔗 إرفاق'}
+                            <span className="inline-flex items-center gap-1">{linkingId === r.id ? '...' : <><Link2 size={12} /> إرفاق</>}</span>
                           </button>
                         </div>
                       ))}
@@ -526,7 +527,7 @@ export default function NewEvidencePage() {
                 <select value={evidenceType} onChange={e => setEvidenceType(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800">
                   <option value="">{requiredTypes.length > 0 ? '— اختر نوع الدليل —' : '— بدون تصنيف —'}</option>
-                  {typeOptions.map(t => <option key={t} value={t}>{t}{requiredTypes.includes(t) ? ' ⭐' : ''}</option>)}
+                  {typeOptions.map(t => <option key={t} value={t}>{t}{requiredTypes.includes(t) ? ' (مطلوب)' : ''}</option>)}
                 </select>
               </div>
             )}
@@ -538,7 +539,7 @@ export default function NewEvidencePage() {
                   <button type="button" onClick={generateAI} disabled={generatingAI}
                     className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors font-medium">
                     <span className="inline-flex">{generatingAI ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}</span>
-                    <span>{generatingAI ? 'جارٍ التوليد...' : '✨ اقتراح بالذكاء الاصطناعي'}</span>
+                    <span>{generatingAI ? 'جارٍ التوليد...' : 'اقتراح بالذكاء الاصطناعي'}</span>
                   </button>
                 )}
               </div>
@@ -553,8 +554,9 @@ export default function NewEvidencePage() {
 
             <div className="flex gap-3 pt-1">
               <button type="submit" disabled={loading || attachments.length === 0}
-                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
-                {loading ? 'جارٍ الحفظ...' : `📎 حفظ الدليل (${attachments.length} مرفق)`}
+                className="inline-flex items-center justify-center gap-1.5 flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
+                <span className="inline-flex">{loading ? null : <Paperclip size={16} />}</span>
+                <span>{loading ? 'جارٍ الحفظ...' : `حفظ الدليل (${attachments.length} مرفق)`}</span>
               </button>
               <button type="button" onClick={() => router.back()}
                 className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">

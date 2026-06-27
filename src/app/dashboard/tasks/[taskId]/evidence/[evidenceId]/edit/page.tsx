@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { FolderOpen, Lock, PlayCircle, Loader2, X, Plus, Trash2, ExternalLink } from 'lucide-react'
+import { FolderOpen, Lock, PlayCircle, Loader2, X, Plus, Trash2, ExternalLink,
+  ArrowRight, FileText, Paperclip, Tv, Save, Undo2 } from 'lucide-react'
 import Link from 'next/link'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
@@ -223,7 +224,7 @@ export default function EditEvidencePage() {
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/dashboard/tasks/${taskId}`}
           className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-violet-600 hover:border-violet-300 transition-colors">
-          ←
+          <ArrowRight size={18} />
         </Link>
         <div>
           <h2 className="text-2xl font-bold text-slate-800">تعديل الدليل</h2>
@@ -236,8 +237,8 @@ export default function EditEvidencePage() {
           <Lock size={36} className="mx-auto mb-3" style={{ color: 'var(--maroon-300)' }} />
           <p className="text-sm font-semibold text-slate-700 mb-1">{underReview ? 'المهمة مرفوعة للتقييم — الأدلة مقفلة' : 'المهمة منجزة ومقفلة'}</p>
           <p className="text-xs text-slate-400 mb-4">{underReview ? 'لا يمكن تعديل الأدلة أثناء المراجعة — أعِد المهمة للتعديل أولاً.' : 'لا يمكن تعديل أدلة مهمة معتمدة — اطلب إعادة فتحها أولاً.'}</p>
-          <Link href={`/dashboard/tasks/${taskId}`} className="inline-block px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">
-            ← العودة للمهمة
+          <Link href={`/dashboard/tasks/${taskId}`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">
+            <ArrowRight size={15} /> العودة للمهمة
           </Link>
         </div>
       ) : (
@@ -246,14 +247,14 @@ export default function EditEvidencePage() {
           {/* إرشاد: سبب الرفض السابق + توضيح أن الدليل سيعود لقيد المراجعة بعد الحفظ */}
           {evStatus === 'rejected' && (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm">
-              <p className="font-semibold text-red-700 mb-1">✕ هذا الدليل مرفوض</p>
+              <p className="inline-flex items-center gap-1 font-semibold text-red-700 mb-1"><X size={14} /> هذا الدليل مرفوض</p>
               {reviewNote && <p className="text-red-700 mb-1"><span className="font-medium">سبب الرفض:</span> {reviewNote}</p>}
               <p className="text-red-600/80 text-xs">عالِج الملاحظة (احذف/أضف مرفقات)، وعند الحفظ ستعود حالة الدليل تلقائياً إلى «قيد المراجعة» لإعادة تقييمه.</p>
             </div>
           )}
           {evStatus === 'pending' && reviewNote && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm">
-              <p className="text-amber-700"><span className="font-medium">↩️ ملاحظة المراجع السابقة:</span> {reviewNote}</p>
+              <p className="text-amber-700"><span className="inline-flex items-center gap-1 font-medium"><Undo2 size={13} /> ملاحظة المراجع السابقة:</span> {reviewNote}</p>
             </div>
           )}
 
@@ -281,8 +282,8 @@ export default function EditEvidencePage() {
                       ) : isImg ? (
                         <img src={f.file_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="flex items-center justify-center w-full h-full text-xl">
-                          {f.file_type === 'application/pdf' ? '📄' : '📎'}
+                        <span className="flex items-center justify-center w-full h-full text-slate-400">
+                          {f.file_type === 'application/pdf' ? <FileText size={18} /> : <Paperclip size={18} />}
                         </span>
                       )}
                     </a>
@@ -316,7 +317,7 @@ export default function EditEvidencePage() {
                   ) : att.preview ? (
                     <img src={att.preview} alt="" className="w-12 h-9 rounded-lg object-cover flex-shrink-0" />
                   ) : (
-                    <span className="text-2xl w-12 text-center flex-shrink-0">{att.file?.type === 'application/pdf' ? '📄' : '📎'}</span>
+                    <span className="inline-flex w-12 justify-center flex-shrink-0 text-slate-400">{att.file?.type === 'application/pdf' ? <FileText size={20} /> : <Paperclip size={20} />}</span>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-700 truncate">{att.title}</p>
@@ -360,7 +361,7 @@ export default function EditEvidencePage() {
                       className="w-full pr-10 pl-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-300 bg-slate-50 text-slate-800 font-latin text-sm" />
                     {fetchingMeta && <Loader2 size={16} className="absolute left-3 top-3.5 text-slate-400 animate-spin" />}
                   </div>
-                  {videoTitle && <p className="text-xs text-slate-500 truncate">📺 {videoTitle}</p>}
+                  {videoTitle && <p className="inline-flex items-center gap-1 text-xs text-slate-500 truncate"><Tv size={11} className="flex-shrink-0" /> {videoTitle}</p>}
                   <button type="button" onClick={addVideo} disabled={!videoId}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-50">
                     <Plus size={16} /> أضف الفيديو
@@ -389,7 +390,7 @@ export default function EditEvidencePage() {
                 <select value={evidenceType} onChange={e => setEvidenceType(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800">
                   <option value="">{requiredTypes.length > 0 ? '— اختر نوع الدليل —' : '— بدون تصنيف —'}</option>
-                  {typeOptions.map(t => <option key={t} value={t}>{t}{requiredTypes.includes(t) ? ' ⭐' : ''}</option>)}
+                  {typeOptions.map(t => <option key={t} value={t}>{t}{requiredTypes.includes(t) ? ' (مطلوب)' : ''}</option>)}
                 </select>
               </div>
             )}
@@ -404,7 +405,7 @@ export default function EditEvidencePage() {
             <div className="flex gap-3 pt-1">
               <button type="submit" disabled={saving || totalCount === 0}
                 className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
-                {saving ? 'جارٍ الحفظ...' : `💾 حفظ التعديلات (${totalCount} مرفق)`}
+                <span className="inline-flex items-center justify-center gap-1.5">{saving ? 'جارٍ الحفظ...' : <><Save size={16} /> حفظ التعديلات ({totalCount} مرفق)</>}</span>
               </button>
               <button type="button" onClick={() => router.back()}
                 className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">إلغاء</button>
@@ -416,7 +417,6 @@ export default function EditEvidencePage() {
       <ConfirmDialog
         open={!!confirmRemoveId}
         title="حذف المرفق"
-        icon="🗑️"
         message={<>سيُحذف المرفق «<strong>{existing.find(f => f.id === confirmRemoveId)?.name || ''}</strong>» عند حفظ التعديلات. يمكنك التراجع قبل الحفظ.</>}
         confirmLabel="نعم، احذف"
         onConfirm={() => { if (confirmRemoveId) removeExisting(confirmRemoveId); setConfirmRemoveId(null) }}
