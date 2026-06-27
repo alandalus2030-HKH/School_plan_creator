@@ -6,7 +6,8 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { type RatingValue } from '@/lib/rating'
 import { createNotification } from '@/lib/notifications'
-import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2, History, ChevronDown } from 'lucide-react'
+import { BookOpen, Archive, Pin, Folder, Lock, Star, MessageCircle, Pencil, Trash2, Send, CircleCheckBig, Undo2, Play, Clock, Loader2, History, ChevronDown,
+  X, Ban, AlertTriangle, Check, Save, Tag, Calendar, Target, Coins, Inbox, Paperclip, Link2, Plus, Printer, Unlink, Image, FileText, ClipboardList, Search, Users, MapPin, ArrowLeft } from 'lucide-react'
 import { STATUS_META, OVERDUE_META } from '@/lib/constants/tasks'
 import { toast } from '@/components/Toast'
 import { todayInput } from '@/lib/dates'
@@ -80,13 +81,13 @@ const typeAr:   Record<string, string> = { academic: 'أكاديمية', adminis
 const statusList = [
   { value: 'not_started', label: 'لم تبدأ',  ring: 'ring-slate-400',  bg: 'bg-slate-100  text-slate-700  border-slate-200  hover:bg-slate-200'  },
   { value: 'in_progress', label: 'جارية',    ring: 'ring-violet-400', bg: 'bg-violet-50  text-violet-700 border-violet-200 hover:bg-violet-100' },
-  { value: 'completed',   label: 'منجزة ✓',  ring: 'ring-violet-600', bg: 'bg-violet-100 text-violet-900 border-violet-300 hover:bg-violet-200' },
+  { value: 'completed',   label: 'منجزة',    ring: 'ring-violet-600', bg: 'bg-violet-100 text-violet-900 border-violet-300 hover:bg-violet-200' },
   { value: 'delayed',     label: 'متأخرة',   ring: 'ring-red-400',    bg: 'bg-red-50    text-red-700    border-red-200    hover:bg-red-100'    },
 ]
-const priorityInfo: Record<string, { label: string; icon: string; cls: string }> = {
-  high:   { label: 'عالية',   icon: '🔴', cls: 'text-red-600   bg-red-50   border-red-200'   },
-  medium: { label: 'متوسطة', icon: '🟡', cls: 'text-amber-600 bg-amber-50 border-amber-200' },
-  low:    { label: 'منخفضة', icon: '🟢', cls: 'text-slate-500 bg-slate-50 border-slate-200' },
+const priorityInfo: Record<string, { label: string; dot: string; cls: string }> = {
+  high:   { label: 'عالية',   dot: '#dc2626', cls: 'text-red-600   bg-red-50   border-red-200'   },
+  medium: { label: 'متوسطة', dot: '#d97706', cls: 'text-amber-600 bg-amber-50 border-amber-200' },
+  low:    { label: 'منخفضة', dot: '#64748b', cls: 'text-slate-500 bg-slate-50 border-slate-200' },
 }
 
 export default function TaskPage() {
@@ -891,8 +892,8 @@ export default function TaskPage() {
                 </span>
                 {canManageTasks && status !== 'completed' && (
                   <button onClick={openEdit}
-                    className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors">
-                    ✏️ تعديل
+                    className="inline-flex items-center gap-1 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors">
+                    <Pencil size={12} /> تعديل
                   </button>
                 )}
               </div>
@@ -901,7 +902,7 @@ export default function TaskPage() {
             <form onSubmit={saveEdit} className="space-y-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold text-white">تعديل المهمة</span>
-                <button type="button" onClick={() => setEditing(false)} className="text-white/60 hover:text-white text-sm">✕ إلغاء</button>
+                <button type="button" onClick={() => setEditing(false)} className="inline-flex items-center gap-1 text-white/60 hover:text-white text-sm"><X size={13} /> إلغاء</button>
               </div>
               <input value={editName} onChange={e => setEditName(e.target.value)} required
                 className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/40 text-sm"
@@ -912,22 +913,22 @@ export default function TaskPage() {
               <div className="grid grid-cols-2 gap-2">
                 <select value={editType} onChange={e => setEditType(e.target.value)}
                   className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm">
-                  <option value="general">📌 عامة</option>
-                  <option value="academic">📚 أكاديمية</option>
-                  <option value="administrative">🗃️ إدارية</option>
+                  <option value="general">عامة</option>
+                  <option value="academic">أكاديمية</option>
+                  <option value="administrative">إدارية</option>
                 </select>
                 <select value={editPriority} onChange={e => setEditPriority(e.target.value)}
                   className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm">
-                  <option value="low">🟢 منخفضة</option>
-                  <option value="medium">🟡 متوسطة</option>
-                  <option value="high">🔴 عالية</option>
+                  <option value="low">منخفضة</option>
+                  <option value="medium">متوسطة</option>
+                  <option value="high">عالية</option>
                 </select>
                 <div>
                   <label className="block text-[11px] text-white/70 mb-1">تاريخ البدء <span className="text-amber-300">*</span></label>
                   <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} dir="ltr" required
                     className={`w-full px-3 py-2 rounded-xl bg-white/10 border text-white focus:outline-none text-sm ${editStart ? 'border-white/20' : 'border-amber-300/70'}`} />
                   {(() => { const s = dayStatus(editStart, cal); if (!s) return null
-                    return <p className={`text-[11px] mt-1 ${s.level === 'block' ? 'text-red-200' : 'text-amber-200'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
+                    return <p className={`inline-flex items-center gap-1 text-[11px] mt-1 ${s.level === 'block' ? 'text-red-200' : 'text-amber-200'}`}><span className="inline-flex">{s.level === 'block' ? <Ban size={11} /> : <AlertTriangle size={11} />}</span> {s.reason}</p> })()}
                 </div>
                 <div>
                   <label className="block text-[11px] text-white/70 mb-1">تاريخ الانتهاء <span className="text-amber-300">*</span></label>
@@ -935,7 +936,7 @@ export default function TaskPage() {
                     className={`w-full px-3 py-2 rounded-xl bg-white/10 border text-white focus:outline-none text-sm ${editEnd ? 'border-white/20' : 'border-amber-300/70'}`} />
                   {(() => { const s = dayStatus(editEnd, cal); if (!s) return null
                     /* الانتهاء تنبيه دائماً (لا يمنع) */
-                    return <p className="text-[11px] mt-1 text-amber-200">⚠️ {s.reason}</p> })()}
+                    return <p className="inline-flex items-center gap-1 text-[11px] mt-1 text-amber-200"><AlertTriangle size={11} /> {s.reason}</p> })()}
                 </div>
               </div>
               {/* أنواع الأدلة المطلوبة — بوّابة الإنجاز */}
@@ -948,8 +949,8 @@ export default function TaskPage() {
                       return (
                         <button type="button" key={t}
                           onClick={() => setEditReqTypes(prev => on ? prev.filter(x => x !== t) : [...prev, t])}
-                          className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${on ? 'bg-white text-violet-700 border-white' : 'bg-white/10 text-white border-white/20 hover:border-white/50'}`}>
-                          {on ? '✓ ' : ''}{t}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs border transition-colors ${on ? 'bg-white text-violet-700 border-white' : 'bg-white/10 text-white border-white/20 hover:border-white/50'}`}>
+                          <span className="inline-flex">{on && <Check size={12} />}</span>{t}
                         </button>
                       )
                     })}
@@ -957,8 +958,9 @@ export default function TaskPage() {
                 </div>
               )}
               <button type="submit" disabled={savingEdit}
-                className="w-full py-2 bg-white text-violet-700 font-semibold rounded-xl text-sm disabled:opacity-50">
-                {savingEdit ? 'جارٍ الحفظ...' : '💾 حفظ التعديلات'}
+                className="inline-flex items-center justify-center gap-1.5 w-full py-2 bg-white text-violet-700 font-semibold rounded-xl text-sm disabled:opacity-50">
+                <span className="inline-flex">{savingEdit ? null : <Save size={14} />}</span>
+                <span>{savingEdit ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}</span>
               </button>
             </form>
           )}
@@ -966,21 +968,21 @@ export default function TaskPage() {
 
         {/* Meta Row */}
         <div className="flex flex-wrap items-center gap-3 px-5 py-3 bg-slate-50 border-b border-slate-100">
-          <span className={`flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium ${pInfo.cls}`}>
-            {pInfo.icon} أولوية {pInfo.label}
+          <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium ${pInfo.cls}`}>
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: pInfo.dot }} /> أولوية {pInfo.label}
           </span>
-          <span className="text-xs text-slate-500">🏷️ {typeAr[task.task_type]}</span>
+          <span className="inline-flex items-center gap-1 text-xs text-slate-500"><Tag size={12} /> {typeAr[task.task_type]}</span>
           {task.start_date && (
-            <span className="text-xs text-slate-500">📅 البدء: {new Date(task.start_date).toLocaleDateString('ar-QA')}</span>
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500"><Calendar size={12} /> البدء: {new Date(task.start_date).toLocaleDateString('ar-QA')}</span>
           )}
           {task.end_date && (
-            <span className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-500'}`}>
-              {isOverdue ? '⚠️' : '🎯'} الانتهاء: {new Date(task.end_date).toLocaleDateString('ar-QA')}
+            <span className={`inline-flex items-center gap-1 text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-500'}`}>
+              <span className="inline-flex">{isOverdue ? <AlertTriangle size={12} /> : <Target size={12} />}</span> الانتهاء: {new Date(task.end_date).toLocaleDateString('ar-QA')}
               {isOverdue && ' (متأخرة)'}
             </span>
           )}
           {task.budget_qar != null && (
-            <span className="text-xs text-slate-500">💰 {Number(task.budget_qar).toLocaleString('ar-QA')} ر.ق</span>
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500"><Coins size={12} /> {Number(task.budget_qar).toLocaleString('ar-QA')} ر.ق</span>
           )}
         </div>
 
@@ -1025,7 +1027,7 @@ export default function TaskPage() {
                 رفع للتقييم
               </button>
               {!hasEvidence && (
-                <p className="w-full text-xs text-red-600 mt-1">🔒 يجب إضافة دليل واحد على الأقل قبل رفع المهمة للتقييم.</p>
+                <p className="inline-flex items-center gap-1 w-full text-xs text-red-600 mt-1"><Lock size={12} /> يجب إضافة دليل واحد على الأقل قبل رفع المهمة للتقييم.</p>
               )}
             </div>
           )}
@@ -1052,8 +1054,8 @@ export default function TaskPage() {
                               : task.reopen_requested_by === task.reviewer_id        ? 'المقيّم' : 'مستخدم'
                 return (
                   <div className="border border-amber-200 bg-amber-50 rounded-xl p-3 space-y-1">
-                    <p className="text-sm font-semibold text-amber-800">
-                      📨 طلب إعادة فتح معلّق من {whoLabel}: {requester?.name_ar || '—'}
+                    <p className="inline-flex items-center gap-1 text-sm font-semibold text-amber-800">
+                      <Inbox size={14} /> طلب إعادة فتح معلّق من {whoLabel}: {requester?.name_ar || '—'}
                       {task.reopen_requested_at && (
                         <span className="text-xs font-normal text-amber-600 mr-2">
                           ({new Date(task.reopen_requested_at).toLocaleString('ar-QA')})
@@ -1099,8 +1101,8 @@ export default function TaskPage() {
                   <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2 space-y-1">
                     <p>
                       {task.reopen_requested_by === userId
-                        ? '✅ طلبك بإعادة فتح المهمة قيد الانتظار لدى مشرف نظام المدرسة.'
-                        : `📨 يوجد طلب إعادة فتح معلّق من ${profiles.find((p: any) => p.id === task.reopen_requested_by)?.name_ar || 'مستخدم آخر'}.`}
+                        ? 'طلبك بإعادة فتح المهمة قيد الانتظار لدى مشرف نظام المدرسة.'
+                        : `يوجد طلب إعادة فتح معلّق من ${profiles.find((p: any) => p.id === task.reopen_requested_by)?.name_ar || 'مستخدم آخر'}.`}
                     </p>
                     {task.reopen_requested_by === userId && task.reopen_request_note && (
                       <p className="text-xs text-green-600">السبب: {task.reopen_request_note}</p>
@@ -1136,24 +1138,24 @@ export default function TaskPage() {
       {/* ══ Evidence ══ */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-slate-800">
-            📎 الأدلة والإثباتات
+          <h2 className="inline-flex items-center gap-1.5 font-bold text-slate-800">
+            <Paperclip size={16} /> الأدلة والإثباتات
             <span className="text-xs font-normal text-slate-400 mr-2">({evidence.length})</span>
           </h2>
           {!isCompleted && !isUnderReview && canManageEvidence && (
             <div className="flex items-center gap-2">
               <button onClick={() => setShowEvPicker(v => !v)}
-                className="text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors">
-                🔗 إرفاق دليل موجود
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors">
+                <Link2 size={14} /> إرفاق دليل موجود
               </button>
               <Link href={`/dashboard/tasks/${taskId}/evidence/new`}
-                className="text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-                ➕ إضافة دليل
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+                <Plus size={14} /> إضافة دليل
               </Link>
             </div>
           )}
           {isUnderReview && (
-            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">🔒 الأدلة مقفلة أثناء المراجعة</span>
+            <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg"><Lock size={12} /> الأدلة مقفلة أثناء المراجعة</span>
           )}
         </div>
 
@@ -1213,8 +1215,8 @@ export default function TaskPage() {
                           <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{evNumDisplay}</span>
                         )}
                         <p className="text-sm font-semibold text-slate-700 truncate">{ev.name}</p>
-                        <span className="text-xs text-slate-400">📎 {files.length} {files.length === 1 ? 'ملف' : 'ملفات'}</span>
-                        {ev._shared && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1">🔗 مشترك</span>}
+                        <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Paperclip size={11} /> {files.length} {files.length === 1 ? 'ملف' : 'ملفات'}</span>
+                        {ev._shared && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1"><Link2 size={11} /> مشترك</span>}
                         <span className={`text-[11px] px-2 py-0.5 rounded-full ${stMeta.cls}`}>{stMeta.ar}</span>
                       </div>
                       {ev.description && <p className="text-xs text-slate-400 truncate mt-0.5">{ev.description}</p>}
@@ -1225,32 +1227,34 @@ export default function TaskPage() {
                         <span className="flex items-center gap-1 ml-1">
                           <button onClick={() => setEvidenceStatus(ev.id, ev.status === 'accepted' ? 'pending' : 'accepted')}
                             title="اعتماد الدليل"
-                            className={`px-2 py-1.5 text-xs rounded-lg transition-colors ${ev.status === 'accepted' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
-                            ✓
+                            className={`inline-flex px-2 py-1.5 text-xs rounded-lg transition-colors ${ev.status === 'accepted' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
+                            <Check size={14} />
                           </button>
                           <button onClick={() => ev.status === 'rejected' ? setEvidenceStatus(ev.id, 'pending') : (setRejectingEvId(ev.id), setRejectNote(''))}
                             title={ev.status === 'rejected' ? 'إلغاء الرفض' : 'رفض الدليل'}
-                            className={`px-2 py-1.5 text-xs rounded-lg transition-colors ${ev.status === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
-                            ✕
+                            className={`inline-flex px-2 py-1.5 text-xs rounded-lg transition-colors ${ev.status === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
+                            <X size={14} />
                           </button>
                         </span>
                       )}
                       {/* المملوك غير المعتمد: تعديل (المعتمد سجلّ موثّق يلزم إلغاء اعتماده أولاً) */}
                       {!isCompleted && !isUnderReview && !ev._shared && canManageEvidence && ev.status !== 'accepted' && (
                         <Link href={`/dashboard/tasks/${taskId}/evidence/${ev.id}/edit`}
-                          className="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
-                          ✏️
+                          title="تعديل"
+                          className="inline-flex px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">
+                          <Pencil size={14} />
                         </Link>
                       )}
                       <a href={ev._shared ? `/dashboard/evidence/${ev.id}/print?task=${taskId}` : `/dashboard/evidence/${ev.id}/print`} target="_blank"
-                        className="px-2.5 py-1.5 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors">
-                        🖨️
+                        title="طباعة"
+                        className="inline-flex px-2.5 py-1.5 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors">
+                        <Printer size={14} />
                       </a>
                       {/* المشترك: فك الارتباط فقط (لا يُحذف الدليل الأصلي) */}
                       {!isCompleted && ev._shared && canManageEvidence && (
                         <button onClick={() => unlinkEvidence(ev.id)}
-                          className="px-2.5 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors" title="فك الارتباط">
-                          🔗✕
+                          className="inline-flex px-2.5 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors" title="فك الارتباط">
+                          <Unlink size={14} />
                         </button>
                       )}
                       {/* المملوك غير المعتمد: حذف (المعتمد محميّ + مقفل أثناء المراجعة/بعد الإنجاز) */}
@@ -1258,8 +1262,8 @@ export default function TaskPage() {
                         deletingEvId === ev.id ? (
                           <span className="px-2.5 py-1.5 inline-flex"><Loader2 size={14} className="animate-spin text-red-500" /></span>
                         ) : (
-                          <button onClick={() => setConfirmEvId(ev.id)} disabled={!!deletingEvId}
-                            className="px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50">🗑️</button>
+                          <button onClick={() => setConfirmEvId(ev.id)} disabled={!!deletingEvId} title="حذف"
+                            className="inline-flex px-2.5 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50"><Trash2 size={14} /></button>
                         )
                       )}
                     </div>
@@ -1281,8 +1285,8 @@ export default function TaskPage() {
                               <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-[8px]">▶</span>
                             </span>
                           ) : (
-                            <span className="flex-shrink-0">
-                              {f.file_type?.startsWith('image') ? '🖼️' : f.file_type === 'application/pdf' ? '📄' : '📎'}
+                            <span className="inline-flex flex-shrink-0">
+                              {f.file_type?.startsWith('image') ? <Image size={13} /> : f.file_type === 'application/pdf' ? <FileText size={13} /> : <Paperclip size={13} />}
                             </span>
                           )}
                           <span className="truncate">{f.name || (isVid ? 'فيديو' : 'ملف')}</span>
@@ -1294,7 +1298,7 @@ export default function TaskPage() {
                   {/* سبب الرفض كإرشاد — يظهر على المرفوض، ويبقى كملاحظة سابقة بعد إعادته لقيد المراجعة */}
                   {ev.review_note && (ev.status === 'rejected' || ev.status === 'pending') && (
                     <div className={`mt-2 text-xs rounded-lg p-2 border ${ev.status === 'rejected' ? 'bg-red-50/60 border-red-100 text-red-700' : 'bg-amber-50/60 border-amber-100 text-amber-700'}`}>
-                      <span className="font-semibold">{ev.status === 'rejected' ? '✕ سبب الرفض: ' : '↩️ ملاحظة المراجع السابقة (يُرجى معالجتها): '}</span>
+                      <span className="font-semibold">{ev.status === 'rejected' ? 'سبب الرفض: ' : 'ملاحظة المراجع السابقة (يُرجى معالجتها): '}</span>
                       {ev.review_note}
                     </div>
                   )}
@@ -1330,7 +1334,7 @@ export default function TaskPage() {
         {/* أدلة الإنجاز المطلوبة */}
         {task.evidence_required && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-            <p className="text-xs font-semibold text-blue-700 mb-1">📋 أدلة الإنجاز المطلوبة:</p>
+            <p className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 mb-1"><ClipboardList size={12} /> أدلة الإنجاز المطلوبة:</p>
             <p className="text-xs text-blue-600 leading-relaxed">{task.evidence_required}</p>
           </div>
         )}
@@ -1343,8 +1347,8 @@ export default function TaskPage() {
           const allMet = task.required_evidence_types.every((t: string) => acceptedTypes.has(t))
           return (
             <div className={`mt-3 p-3 rounded-xl border ${allMet ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
-              <p className={`text-xs font-semibold mb-2 ${allMet ? 'text-emerald-700' : 'text-amber-700'}`}>
-                {allMet ? '✅' : '📋'} بوّابة الإنجاز — أنواع الأدلة المطلوبة {allMet ? '(مكتملة)' : '(غير مكتملة — تكتمل باعتماد المقيّم لكل نوع)'}
+              <p className={`inline-flex items-center gap-1 text-xs font-semibold mb-2 ${allMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+                <span className="inline-flex">{allMet ? <CircleCheckBig size={13} /> : <ClipboardList size={13} />}</span> بوّابة الإنجاز — أنواع الأدلة المطلوبة {allMet ? '(مكتملة)' : '(غير مكتملة — تكتمل باعتماد المقيّم لكل نوع)'}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {task.required_evidence_types.map((t: string) => {
@@ -1355,7 +1359,7 @@ export default function TaskPage() {
                       ${ok ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                         : pend ? 'bg-amber-100 text-amber-700 border-amber-200'
                         : 'bg-red-50 text-red-600 border-red-200'}`}>
-                      {ok ? '✓' : pend ? '⏳' : '✗'} {t}{ok ? ' — مقبول' : pend ? ' — قيد المراجعة' : ' — ناقص'}
+                      <span className="inline-flex">{ok ? <Check size={11} /> : pend ? <Clock size={11} /> : <X size={11} />}</span> {t}{ok ? ' — مقبول' : pend ? ' — قيد المراجعة' : ' — ناقص'}
                     </span>
                   )
                 })}
@@ -1385,8 +1389,8 @@ export default function TaskPage() {
         <div className="flex items-center gap-2 mb-4 text-xs text-slate-500">
           <span>المقيّم:</span>
           {reviewerProfile ? (
-            <span className="font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-              🔍 {reviewerProfile.name_ar}
+            <span className="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+              <Search size={12} /> {reviewerProfile.name_ar}
             </span>
           ) : (
             <span className="text-slate-400 italic">لم يُعيَّن مقيّم</span>
@@ -1459,14 +1463,14 @@ export default function TaskPage() {
             {/* تنبيه: لا دليل أصلاً يمنع الإنجاز */}
             {unresolvedEvidence.length === 0 && acceptedCount === 0 && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
-                <span className="font-semibold">🔒 لا يمكن إنجاز المهمة:</span> لا يوجد أي دليل. يلزم دليل معتمد واحد على الأقل — أعِد المهمة للتعديل ليرفع المكلّف دليلاً.
+                <span className="inline-flex items-center gap-1 font-semibold"><Lock size={13} /> لا يمكن إنجاز المهمة:</span> لا يوجد أي دليل. يلزم دليل معتمد واحد على الأقل — أعِد المهمة للتعديل ليرفع المكلّف دليلاً.
               </div>
             )}
 
             {/* تنبيه: أدلة غير معتمدة تمنع الإنجاز */}
             {unresolvedEvidence.length > 0 && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
-                <span className="font-semibold">🔒 لا يمكن إنجاز المهمة بعد:</span> يوجد دليل
+                <span className="inline-flex items-center gap-1 font-semibold"><Lock size={13} /> لا يمكن إنجاز المهمة بعد:</span> يوجد دليل
                 {[nRejected ? ` ${nRejected} مرفوض` : '', nPending ? `${nRejected ? ' و' : ' '}${nPending} قيد المراجعة` : ''].join('')}.
                 اعتمد كل الأدلة أو احذفها أو أعِد المهمة للتعديل قبل الإنجاز.
               </div>
@@ -1602,12 +1606,12 @@ export default function TaskPage() {
             : 'border-slate-200'
         }`}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-slate-800">🔗 التبعية</h2>
+            <h2 className="inline-flex items-center gap-1.5 font-bold text-slate-800"><Link2 size={16} /> التبعية</h2>
             {canManageTasks && !isCompleted && (
               <button
                 onClick={() => { setNewDependsId(task.depends_on_task_id || ''); setEditingDepends(!editingDepends) }}
-                className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-                {editingDepends ? '✕ إلغاء' : '✏️ تعديل'}
+                className="inline-flex items-center gap-1 text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+                <span className="inline-flex">{editingDepends ? <X size={13} /> : <Pencil size={13} />}</span>{editingDepends ? 'إلغاء' : 'تعديل'}
               </button>
             )}
           </div>
@@ -1619,10 +1623,10 @@ export default function TaskPage() {
                   ? 'bg-green-50 border-green-200'
                   : 'bg-orange-50 border-orange-200'
               }`}>
-                <span className="text-2xl flex-shrink-0">
-                  {dependsOnTask.status === 'completed' ? '✅' :
-                   dependsOnTask.status === 'in_progress' ? '🔄' :
-                   dependsOnTask.status === 'delayed' ? '⚠️' : '🔒'}
+                <span className="inline-flex flex-shrink-0">
+                  {dependsOnTask.status === 'completed' ? <CircleCheckBig size={22} className="text-emerald-600" /> :
+                   dependsOnTask.status === 'in_progress' ? <Loader2 size={22} className="text-violet-600" /> :
+                   dependsOnTask.status === 'delayed' ? <AlertTriangle size={22} className="text-red-500" /> : <Lock size={22} className="text-orange-500" />}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{dependsOnTask.name_ar}</p>
@@ -1630,13 +1634,13 @@ export default function TaskPage() {
                     dependsOnTask.status === 'completed' ? 'text-violet-700' : 'text-orange-600'
                   }`}>
                     {dependsOnTask.status === 'completed'
-                      ? '✓ اكتملت — هذه المهمة متاحة للبدء'
+                      ? 'اكتملت — هذه المهمة متاحة للبدء'
                       : 'هذه المهمة محجوبة حتى تكتمل المهمة أعلاه'}
                   </p>
                 </div>
                 <a href={`/dashboard/tasks/${dependsOnTask.id}`}
-                  className="text-xs text-violet-600 hover:underline flex-shrink-0 bg-violet-50 px-2 py-1 rounded-lg border border-violet-200">
-                  عرض ←
+                  className="inline-flex items-center gap-1 text-xs text-violet-600 hover:underline flex-shrink-0 bg-violet-50 px-2 py-1 rounded-lg border border-violet-200">
+                  عرض <ArrowLeft size={12} />
                 </a>
               </div>
             ) : (
@@ -1650,24 +1654,25 @@ export default function TaskPage() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800 text-sm">
                 <option value="">— لا تبعية —</option>
                 {siblingTasks.map((t: any) => {
-                  const icon =
-                    t.status === 'completed'   ? '✅' :
-                    t.status === 'in_progress' ? '🔄' :
-                    t.status === 'delayed'     ? '⚠️' : '⏳'
-                  return <option key={t.id} value={t.id}>{icon} {t.name_ar}</option>
+                  const label =
+                    t.status === 'completed'   ? 'منجزة' :
+                    t.status === 'in_progress' ? 'جارية' :
+                    t.status === 'delayed'     ? 'متأخرة' : 'لم تبدأ'
+                  return <option key={t.id} value={t.id}>{`[${label}] ${t.name_ar}`}</option>
                 })}
               </select>
               {newDependsId && newDependsId !== task.depends_on_task_id && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-700">
-                  <span>⚠️</span>
+                  <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
                   <span>ستظهر هذه المهمة بحالة محجوبة حتى تكتمل المهمة المختارة</span>
                 </div>
               )}
               <button
                 onClick={saveDepends}
                 disabled={savingDepends}
-                className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60">
-                {savingDepends ? 'جارٍ الحفظ...' : '💾 حفظ التبعية'}
+                className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60">
+                <span className="inline-flex">{savingDepends ? null : <Save size={14} />}</span>
+                <span>{savingDepends ? 'جارٍ الحفظ...' : 'حفظ التبعية'}</span>
               </button>
             </div>
           )}
@@ -1677,11 +1682,11 @@ export default function TaskPage() {
       {/* ══ التكليف والمقيّم ══ */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-slate-800">👥 التكليف والمقيّم</h2>
+          <h2 className="inline-flex items-center gap-1.5 font-bold text-slate-800"><Users size={16} /> التكليف والمقيّم</h2>
           {canManageTasks && !isCompleted && (
             <button onClick={() => setShowAssign(!showAssign)}
-              className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-              {showAssign ? '✕ إلغاء' : '✏️ تعديل'}
+              className="inline-flex items-center gap-1 text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+              <span className="inline-flex">{showAssign ? <X size={13} /> : <Pencil size={13} />}</span>{showAssign ? 'إلغاء' : 'تعديل'}
             </button>
           )}
         </div>
@@ -1712,7 +1717,7 @@ export default function TaskPage() {
               return t ? (
                 <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-white"
                   style={{ backgroundColor: t.color || '#7c3aed' }}>
-                  <span className="text-lg">👥</span>
+                  <Users size={18} className="flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold">{t.name_ar}</p>
                     <p className="text-xs opacity-75">فريق مكلَّف</p>
@@ -1724,7 +1729,7 @@ export default function TaskPage() {
             {/* القسم المكلَّف (كل أعضائه) */}
             {task.assigned_to_department && (
               <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2">
-                <span className="text-lg">🏷️</span>
+                <Tag size={18} className="text-violet-600 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-violet-800">{task.assigned_to_department}</p>
                   <p className="text-xs text-violet-500">قسم مكلَّف — كل الأعضاء</p>
@@ -1740,11 +1745,11 @@ export default function TaskPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-amber-800">{reviewerProfile.name_ar}</p>
-                  <p className="text-xs text-amber-600">🔍 مقيّم الجودة</p>
+                  <p className="inline-flex items-center gap-1 text-xs text-amber-600"><Search size={11} /> مقيّم الجودة</p>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-slate-400 flex items-center gap-1">🔍 <span>لم يُعيَّن مقيّم بعد</span></p>
+              <p className="text-sm text-slate-400 flex items-center gap-1"><Search size={13} /> <span>لم يُعيَّن مقيّم بعد</span></p>
             )}
           </div>
         ) : (
@@ -1806,7 +1811,7 @@ export default function TaskPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">🔍 مقيّم جودة التنفيذ</label>
+              <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1.5"><Search size={12} /> مقيّم جودة التنفيذ</label>
               <select value={assignReviewer} onChange={e => setAssignReviewer(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50 text-sm">
                 <option value="">— بدون مقيّم محدد —</option>
@@ -1816,8 +1821,9 @@ export default function TaskPage() {
               </select>
             </div>
             <button onClick={saveAssignment} disabled={savingAssign}
-              className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl text-sm disabled:opacity-50 transition-colors">
-              {savingAssign ? 'جارٍ الحفظ...' : '💾 حفظ'}
+              className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl text-sm disabled:opacity-50 transition-colors">
+              <span className="inline-flex">{savingAssign ? null : <Save size={14} />}</span>
+              <span>{savingAssign ? 'جارٍ الحفظ...' : 'حفظ'}</span>
             </button>
           </div>
         )}
@@ -1830,11 +1836,11 @@ export default function TaskPage() {
         return (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-slate-800">📍 الأماكن المطلوبة</h2>
+              <h2 className="inline-flex items-center gap-1.5 font-bold text-slate-800"><MapPin size={16} /> الأماكن المطلوبة</h2>
               {canManageTasks && !isCompleted && (
                 <button onClick={() => editingLoc ? setEditingLoc(false) : openLocEditor()}
-                  className="text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
-                  {editingLoc ? '✕ إلغاء' : '✏️ تعديل'}
+                  className="inline-flex items-center gap-1 text-sm text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl transition-colors">
+                  <span className="inline-flex">{editingLoc ? <X size={13} /> : <Pencil size={13} />}</span>{editingLoc ? 'إلغاء' : 'تعديل'}
                 </button>
               )}
             </div>
@@ -1843,8 +1849,8 @@ export default function TaskPage() {
               taskLocs.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {taskLocs.map((tl: any) => (
-                    <span key={tl.location_id} className="px-3 py-1.5 rounded-xl text-sm bg-violet-50 text-violet-700 border border-violet-200">
-                      📍 {tl.school_locations?.name_ar || '—'}
+                    <span key={tl.location_id} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm bg-violet-50 text-violet-700 border border-violet-200">
+                      <MapPin size={13} /> {tl.school_locations?.name_ar || '—'}
                     </span>
                   ))}
                 </div>
@@ -1862,17 +1868,18 @@ export default function TaskPage() {
                       return (
                         <button key={loc.id} type="button"
                           onClick={() => setSelLocs(prev => on ? prev.filter(x => x !== loc.id) : [...prev, loc.id])}
-                          className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm border transition-colors ${
                             on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-                          📍 {loc.name_ar}
+                          <MapPin size={13} /> {loc.name_ar}
                         </button>
                       )
                     })}
                   </div>
                 )}
                 <button onClick={saveLocations} disabled={savingLoc}
-                  className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60">
-                  {savingLoc ? 'جارٍ الحفظ...' : '💾 حفظ الأماكن'}
+                  className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60">
+                  <span className="inline-flex">{savingLoc ? null : <Save size={14} />}</span>
+                  <span>{savingLoc ? 'جارٍ الحفظ...' : 'حفظ الأماكن'}</span>
                 </button>
               </div>
             )}
@@ -1948,8 +1955,8 @@ export default function TaskPage() {
         <div className="flex items-center justify-between">
           <p className="text-xs text-slate-400">حذف هذه المهمة وجميع بياناتها نهائياً</p>
           <button onClick={() => setConfirmDel(true)}
-            className="px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
-            🗑️ حذف المهمة
+            className="inline-flex items-center gap-1.5 px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
+            <Trash2 size={15} /> حذف المهمة
           </button>
         </div>
       </div>
