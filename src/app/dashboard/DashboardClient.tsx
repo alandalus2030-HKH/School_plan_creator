@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   Map, CheckCircle2, Trophy, TrendingUp,
-  AlertTriangle, Zap, Clock, BookOpen, Archive, Pin, Inbox, Unlock,
+  AlertTriangle, Zap, Clock, BookOpen, Archive, Pin, Inbox, Unlock, ArrowLeft,
 } from 'lucide-react'
 import ActivityFeed from '@/components/ActivityFeed'
 import RecognitionPodium from '@/components/RecognitionPodium'
@@ -76,7 +76,7 @@ export default function DashboardClient(props: Props) {
             </p>
             <p className="text-xs text-amber-600 mt-0.5">مهام منجزة طلب المكلّفون/المقيّمون إعادة فتحها — بانتظار قرارك</p>
           </div>
-          <span className="text-amber-600 text-sm font-medium flex-shrink-0">عرض الطلبات ←</span>
+          <span className="inline-flex items-center gap-1 text-amber-600 text-sm font-medium flex-shrink-0">عرض الطلبات <ArrowLeft size={14} /></span>
         </Link>
       )}
 
@@ -125,9 +125,9 @@ export default function DashboardClient(props: Props) {
           <div className="text-4xl font-bold" style={{ color: 'var(--maroon-600)' }}>{props.delayedCount}</div>
           <p className="text-sm text-slate-500 mt-1">مهمة تجاوزت موعدها</p>
           <Link href="/dashboard/tasks?status=delayed"
-            className="mt-3 inline-block text-xs font-medium hover:underline"
+            className="mt-3 inline-flex items-center gap-1 text-xs font-medium hover:underline"
             style={{ color: 'var(--maroon-600)' }}>
-            عرض المهام المتأخرة ←
+            عرض المهام المتأخرة <ArrowLeft size={13} />
           </Link>
         </div>
 

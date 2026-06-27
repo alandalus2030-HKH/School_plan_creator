@@ -136,7 +136,7 @@ export default function RecognitionPodium() {
           <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--maroon-50)' }}>
             <Trophy size={28} style={{ color: 'var(--maroon-400)' }} />
           </div>
-          <p className="font-semibold text-slate-700">كن أول من يتصدّر هذا الشهر 🏆</p>
+          <p className="inline-flex items-center gap-1.5 font-semibold text-slate-700">كن أول من يتصدّر هذا الشهر <Trophy size={15} /></p>
           <p className="text-xs text-slate-500 mt-1 max-w-xs">أنجز مهامك واكسب الأوسمة لتظهر هنا في صدارة الشهر.</p>
         </div>
       ) : (

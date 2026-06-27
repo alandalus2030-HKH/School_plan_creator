@@ -87,7 +87,7 @@ export default function StandardPicker({
           {options.map(o => (
             <option key={o.code} value={o.code}>{o.code} — {o.name_ar}</option>
           ))}
-          <option value="__custom__">✏️ بند مخصص (نص حر)...</option>
+          <option value="__custom__">بند مخصص (نص حر)...</option>
         </select>
       )}
       {isCustom && (
