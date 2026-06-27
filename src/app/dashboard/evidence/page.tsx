@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck } from 'lucide-react'
+import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
+  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -27,7 +28,9 @@ const typeOf = (ft: string | null) =>
   ft === 'video/youtube' ? 'video' : ft?.startsWith('image') ? 'image'
   : ft === 'application/pdf' ? 'pdf' : ft?.includes('word') ? 'word'
   : ft?.includes('sheet') ? 'excel' : 'other'
-const TYPE_LABEL: Record<string, string> = { video: '🎬 فيديو', image: '🖼️ صورة', pdf: '📄 PDF', word: '📝 Word', excel: '📊 Excel', other: '📎 أخرى' }
+const TYPE_LABEL: Record<string, string> = { video: 'فيديو', image: 'صورة', pdf: 'PDF', word: 'Word', excel: 'Excel', other: 'أخرى' }
+const TYPE_ICON: Record<string, React.ComponentType<{ size?: number; className?: string }>> =
+  { video: Video, image: Image, pdf: FileText, word: FileText, excel: FileSpreadsheet, other: File }
 const fmtSize = (b: number) => b === 0 ? '—' : b < 1024 * 1024 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`
 
 export default function EvidenceLockerPage() {
@@ -50,6 +53,9 @@ export default function EvidenceLockerPage() {
   const [fStd, setFStd] = useState('')
   const [fStatus, setFStatus] = useState('')
   const [sharedOnly, setSharedOnly] = useState(false)
+  const [fFrom, setFFrom] = useState('')
+  const [fTo, setFTo] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   const load = async () => {
     const res = await fetch('/api/evidence-locker')
@@ -80,8 +86,49 @@ export default function EvidenceLockerPage() {
     if (fStd && e.standard?.code !== fStd) return false
     if (fStatus && e.status !== fStatus) return false
     if (sharedOnly && e.linkedCount === 0) return false
+    const day = (e.created_at || '').slice(0, 10)
+    if (fFrom && day < fFrom) return false
+    if (fTo && day > fTo) return false
     return true
-  }), [evidence, search, fType, fDept, fMain, fAspect, fStd, fStatus, sharedOnly])
+  }), [evidence, search, fType, fDept, fMain, fAspect, fStd, fStatus, sharedOnly, fFrom, fTo])
+
+  const anyFilter = !!(search || fType || fDept || fMain || fAspect || fStd || fStatus || sharedOnly || fFrom || fTo)
+  const clearFilters = () => {
+    setSearch(''); setFType(''); setFDept(''); setFMain(''); setFAspect('')
+    setFStd(''); setFStatus(''); setSharedOnly(false); setFFrom(''); setFTo('')
+  }
+
+  const exportXlsx = async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      const rows = shown.map(e => ({
+        'الرقم': e.number || '',
+        'اسم الدليل': e.name || '',
+        'النوع': TYPE_LABEL[typeOf(e.file_type)],
+        'الحالة': (STATUS_META[e.status] || STATUS_META.pending).ar,
+        'المعيار': e.standard?.code || '',
+        'اسم المعيار': e.standard?.name || '',
+        'القسم': e.plan?.department || '',
+        'المهمة': e.task?.name_ar || '',
+        'عدد الملفات': e.filesCount,
+        'الحجم': fmtSize(e.size),
+        'مشترك مع معايير': e.linkedCount,
+        'تاريخ الرفع': (e.created_at || '').slice(0, 10),
+      }))
+      const fileBase = `خزانة-الأدلة-${new Date().toISOString().slice(0, 10)}`
+      const res = await fetch('/api/evidence-locker/export', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows, fileName: fileBase }),
+      })
+      if (!res.ok) { toast('تعذّر تصدير الملف', 'error'); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = `${fileBase}.xlsx`; a.click()
+      URL.revokeObjectURL(url)
+    } catch { toast('تعذّر تصدير الملف', 'error') }
+    finally { setExporting(false) }
+  }
 
   const changeStatus = async (id: string, status: string) => {
     const res = await fetch(`/api/evidence/${id}`, {
@@ -139,20 +186,43 @@ export default function EvidenceLockerPage() {
             {aspectOptions.length > 0 && <Select value={fAspect} onChange={v => { setFAspect(v); setFStd('') }} placeholder="الجانب" options={aspectOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
             {subOptions.length > 0 && <Select value={fStd} onChange={setFStd} placeholder="المعيار الفرعي" options={subOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
             <Select value={fStatus} onChange={setFStatus} placeholder="كل الحالات" options={[{ v: 'pending', l: 'قيد المراجعة' }, { v: 'accepted', l: 'معتمد' }, { v: 'rejected', l: 'مرفوض' }]} />
+            {/* فترة الرفع: من / إلى */}
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span className="text-slate-400">من</span>
+              <input type="date" value={fFrom} onChange={e => setFFrom(e.target.value)} max={fTo || undefined}
+                className="px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400" />
+              <span className="text-slate-400">إلى</span>
+              <input type="date" value={fTo} onChange={e => setFTo(e.target.value)} min={fFrom || undefined}
+                className="px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400" />
+            </div>
             <button onClick={() => setSharedOnly(v => !v)}
-              className={`px-3 py-2 rounded-xl text-sm border transition-colors ${sharedOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-              🔗 المشتركة فقط
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-colors ${sharedOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+              <Link2 size={14} /> المشتركة فقط
             </button>
+            {anyFilter && (
+              <button onClick={clearFilters} title="إزالة جميع الفلاتر"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border border-slate-200 bg-white text-slate-500 hover:text-red-600 hover:border-red-200 transition-colors">
+                <FilterX size={14} /> إزالة الفلاتر
+              </button>
+            )}
           </div>
 
-          <p className="text-xs text-slate-400">{shown.length} من {evidence.length} دليل</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-slate-400">{shown.length} من {evidence.length} دليل</p>
+            <button onClick={exportXlsx} disabled={exporting || shown.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <span className="inline-flex">{exporting ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}</span>
+              <span>تصدير Excel</span>
+            </button>
+          </div>
 
           {/* القائمة */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100">
             {shown.length === 0 ? (
               <p className="p-8 text-center text-sm text-slate-400">لا أدلة مطابقة</p>
             ) : shown.map(e => {
-              const sm = STATUS_META[e.status] || STATUS_META.uploaded
+              const sm = STATUS_META[e.status] || STATUS_META.pending
+              const TI = TYPE_ICON[typeOf(e.file_type)]
               return (
                 <div key={e.id} className="flex items-center gap-3 p-3.5 hover:bg-slate-50 transition-colors">
                   <div className="flex-1 min-w-0">
@@ -160,12 +230,12 @@ export default function EvidenceLockerPage() {
                       {e.number && <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{e.number}</span>}
                       <span className="text-sm font-semibold text-slate-800 truncate">{e.name}</span>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${sm.cls}`}>{sm.ar}</span>
-                      {e.linkedCount > 0 && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">🔗 {e.linkedCount}</span>}
+                      {e.linkedCount > 0 && <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700"><Link2 size={11} /> {e.linkedCount}</span>}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap mt-1 text-xs text-slate-400">
-                      <span>{TYPE_LABEL[typeOf(e.file_type)]}</span>
-                      <span>· 📎 {e.filesCount}</span>
-                      {e.standard && <span>· 📋 {e.standard.code}</span>}
+                      <span className="inline-flex items-center gap-1"><TI size={13} /> {TYPE_LABEL[typeOf(e.file_type)]}</span>
+                      <span className="inline-flex items-center gap-1">· <Paperclip size={12} /> {e.filesCount}</span>
+                      {e.standard && <span className="inline-flex items-center gap-1">· <ClipboardList size={12} /> {e.standard.code}</span>}
                       {e.plan?.department && <span>· {e.plan.department}</span>}
                       {e.task && <Link href={`/dashboard/tasks/${e.task.id}`} className="text-violet-500 hover:underline">· {e.task.name_ar}</Link>}
                     </div>
@@ -181,8 +251,8 @@ export default function EvidenceLockerPage() {
                         <option value="rejected">مرفوض</option>
                       </select>
                     )}
-                    <a href={`/dashboard/evidence/${e.id}/print`} target="_blank"
-                      className="px-2.5 py-1.5 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors">🖨️</a>
+                    <a href={`/dashboard/evidence/${e.id}/print`} target="_blank" title="طباعة"
+                      className="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"><Printer size={15} /></a>
                   </div>
                 </div>
               )
