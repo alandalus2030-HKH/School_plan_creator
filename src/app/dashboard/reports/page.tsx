@@ -993,7 +993,7 @@ export default function ReportsPage() {
       <button
         onClick={() => setModal({ tasks: modalTasks, title: modalTitle })}
         className={`rounded-2xl border p-5 shadow-sm text-right transition-all hover:shadow-md cursor-pointer w-full ${colorMap[color]||colorMap.slate}`}>
-        <div className="text-3xl mb-2">{icon}</div>
+        <div className="flex items-start mb-2 h-7">{icon}</div>
         <div className="text-3xl font-bold">{value}</div>
         <div className="text-sm font-semibold mt-1">{label}</div>
         {sub && <div className="text-xs opacity-70 mt-0.5">{sub}</div>}
