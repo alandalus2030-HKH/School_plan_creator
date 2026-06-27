@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
-import { Users, UserRound, ClipboardList, BarChart3 } from 'lucide-react'
+import { Users, UserRound, ClipboardList, BarChart3, Crown, Pencil, Trash2, X, Plus, AlertTriangle } from 'lucide-react'
 import WorkloadView from '@/components/WorkloadView'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
@@ -279,8 +279,8 @@ export default function TeamsPage() {
                             style={{ backgroundColor: team.color }}>
                             {leader.name_ar[0]}
                           </div>
-                          <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                            👑 القائد: {leader.name_ar}
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                            <Crown size={12} /> القائد: {leader.name_ar}
                           </span>
                         </div>
                       )}
@@ -299,7 +299,7 @@ export default function TeamsPage() {
                                   ? 'ring-2 ring-amber-400 ring-offset-1'
                                   : 'bg-gradient-to-br from-violet-400 to-indigo-500'}`}
                               style={m.profile_id === team.leader_id ? { backgroundColor: team.color } : {}}
-                              title={`${m.profile?.name_ar}${m.profile_id === team.leader_id ? ' 👑' : ''}`}>
+                              title={`${m.profile?.name_ar}${m.profile_id === team.leader_id ? ' (القائد)' : ''}`}>
                               {(m.profile?.name_ar || '؟')[0]}
                             </div>
                           ))}
@@ -321,10 +321,10 @@ export default function TeamsPage() {
                       </button>
                       {canManage && (
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                          <button onClick={() => openEdit(team)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors">✏️</button>
-                          <button onClick={() => setConfirmDel(team.id)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">🗑️</button>
+                          <button onClick={() => openEdit(team)} title="تعديل"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"><Pencil size={15} /></button>
+                          <button onClick={() => setConfirmDel(team.id)} title="حذف"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>
                         </div>
                       )}
                     </div>
@@ -351,13 +351,13 @@ export default function TeamsPage() {
                               <p className="text-xs text-slate-400">{m.profile?.job_title || ''}</p>
                             </div>
                             {m.profile_id === team.leader_id && (
-                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">👑 قائد</span>
+                              <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"><Crown size={11} /> قائد</span>
                             )}
                             {canManage && (
                               <button
                                 onClick={() => removeMember(team.id, m.profile_id)}
                                 className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                                title="إزالة من الفريق">✕</button>
+                                title="إزالة من الفريق"><X size={14} /></button>
                             )}
                           </div>
                         ))}
@@ -407,7 +407,7 @@ export default function TeamsPage() {
                     ) : (
                       <button onClick={() => { setAddingTo(team.id); setSelUsers([]) }}
                         className="flex items-center gap-2 text-sm text-violet-600 hover:text-violet-800 font-medium transition-colors">
-                        ➕ إضافة أعضاء
+                        <Plus size={15} /> إضافة أعضاء
                       </button>
                     )}
                   </div>
@@ -425,8 +425,8 @@ export default function TeamsPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
           onClick={() => setShowForm(false)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-slate-800 mb-5">
-              {editTeam ? '✏️ تعديل الفريق' : '➕ فريق جديد'}
+            <h3 className="inline-flex items-center gap-1.5 text-lg font-bold text-slate-800 mb-5">
+              <span className="inline-flex">{editTeam ? <Pencil size={16} /> : <Plus size={16} />}</span>{editTeam ? 'تعديل الفريق' : 'فريق جديد'}
             </h3>
             <form onSubmit={saveTeam} className="space-y-4">
               {/* اسم الفريق */}
@@ -468,8 +468,8 @@ export default function TeamsPage() {
               </div>
 
               {formError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-                  ⚠️ {formError}
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+                  <AlertTriangle size={15} className="flex-shrink-0" /> {formError}
                 </div>
               )}
 

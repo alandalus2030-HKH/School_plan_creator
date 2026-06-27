@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   LayoutGrid, GanttChartSquare, CalendarDays, HelpCircle, ArrowLeft,
   ClipboardList, CircleCheckBig, BadgeCheck, Lock, Archive,
+  User, Folder, BarChart3,
 } from 'lucide-react'
 
 /* بطاقة (عدسة أو طريقة عرض) */
@@ -188,9 +189,9 @@ const PLAN_STATES: Card[] = [
 
 const STATE_TABLE: { dim: string; approve: string; freeze: string; archive: string }[] = [
   { dim: 'الغرض',           approve: 'إقرار رسمي',       freeze: 'قفل كامل',          archive: 'إخفاء وتنظيم' },
-  { dim: 'تعديل المحتوى',   approve: 'متاح ✅',          freeze: 'ممنوع تماماً ⛔',    archive: 'متاح ✅' },
-  { dim: 'الحذف',           approve: 'ممنوع ⛔',         freeze: 'ممنوع ⛔',          archive: 'متاح ✅' },
-  { dim: 'تنفيذ المهام',    approve: 'مستمر ✅',         freeze: 'متوقّف ⛔',          archive: 'مستمر ✅' },
+  { dim: 'تعديل المحتوى',   approve: 'متاح',          freeze: 'ممنوع تماماً',    archive: 'متاح' },
+  { dim: 'الحذف',           approve: 'ممنوع',         freeze: 'ممنوع',          archive: 'متاح' },
+  { dim: 'تنفيذ المهام',    approve: 'مستمر',         freeze: 'متوقّف',          archive: 'مستمر' },
   { dim: 'الظهور في اللوحات', approve: 'يظهر',           freeze: 'يظهر',              archive: 'مخفي' },
   { dim: 'قابل للتراجع',    approve: 'نعم',              freeze: 'نعم',               archive: 'نعم' },
   { dim: 'الصلاحية',        approve: 'اعتماد الخطط',     freeze: 'تجميد الخطط',       archive: 'حذف وأرشفة الخطط' },
@@ -317,9 +318,9 @@ export default function HelpPage() {
               <thead>
                 <tr className="bg-slate-50 text-slate-500">
                   <th className="px-4 py-2.5 font-medium">البُعد</th>
-                  <th className="px-4 py-2.5 font-medium">👤 مهامي</th>
-                  <th className="px-4 py-2.5 font-medium">🗂️ كل المهام</th>
-                  <th className="px-4 py-2.5 font-medium">📊 لوحة التجميع</th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><User size={14} /> مهامي</span></th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Folder size={14} /> كل المهام</span></th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><BarChart3 size={14} /> لوحة التجميع</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -363,9 +364,9 @@ export default function HelpPage() {
               <thead>
                 <tr className="bg-slate-50 text-slate-500">
                   <th className="px-4 py-2.5 font-medium">البُعد</th>
-                  <th className="px-4 py-2.5 font-medium">🗂️ كانبان</th>
-                  <th className="px-4 py-2.5 font-medium">📊 جانت</th>
-                  <th className="px-4 py-2.5 font-medium">📅 التقويم</th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><LayoutGrid size={14} /> كانبان</span></th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><GanttChartSquare size={14} /> جانت</span></th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> التقويم</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -411,9 +412,9 @@ export default function HelpPage() {
               <thead>
                 <tr className="bg-slate-50 text-slate-500">
                   <th className="px-4 py-2.5 font-medium">البُعد</th>
-                  <th className="px-4 py-2.5 font-medium">✅ الاعتماد</th>
-                  <th className="px-4 py-2.5 font-medium">🔒 التجميد</th>
-                  <th className="px-4 py-2.5 font-medium">🗄️ الأرشفة</th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><BadgeCheck size={14} /> الاعتماد</span></th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Lock size={14} /> التجميد</span></th>
+                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Archive size={14} /> الأرشفة</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
