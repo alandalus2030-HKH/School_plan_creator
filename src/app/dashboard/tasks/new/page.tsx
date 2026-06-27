@@ -27,6 +27,7 @@ function NewTaskForm() {
   /* ── بيانات الخطط والعقد ── */
   const [plans,     setPlans]     = useState<any[]>([])
   const [planNodes, setPlanNodes] = useState<any[]>([])
+  const [nodesLoading, setNodesLoading] = useState(false)
   const [fetching,  setFetching]  = useState(true)
 
   /* ── اختيار الموضع (متتابع) ── */
@@ -94,11 +95,13 @@ function NewTaskForm() {
 
   /* ════ تحميل عقد الخطة عند اختيارها ════ */
   useEffect(() => {
-    if (!selPlanId) { setPlanNodes([]); return }
+    if (!selPlanId) { setPlanNodes([]); setNodesLoading(false); return }
+    setNodesLoading(true)
     supabase.from('plan_nodes').select('*').eq('plan_id', selPlanId).order('order_num')
       .then(({ data }) => {
         const nodes = data || []
         setPlanNodes(nodes)
+        setNodesLoading(false)
 
         // إذا كان هناك عقدة محددة مسبقاً، أعد بناء المسار
         if (preNodeId) {
@@ -307,8 +310,33 @@ function NewTaskForm() {
             </select>
           </div>
 
+          {/* جارٍ تحميل هيكل الخطة */}
+          {selPlanId && nodesLoading && (
+            <div className="flex items-center gap-2 text-sm text-slate-400 px-1 py-2">
+              <div className="animate-spin w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full" />
+              جارٍ تحميل هيكل الخطة…
+            </div>
+          )}
+
+          {/* الخطة بلا هيكل بعد → إرشاد صريح بدل قوائم فارغة */}
+          {selPlanId && !nodesLoading && planNodes.length === 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <span className="text-amber-500 flex-shrink-0 mt-0.5">⚠️</span>
+                <p className="text-sm text-amber-800">
+                  هذه الخطة لا تحتوي على هيكل بعد. لإضافة مهمة يجب أولاً بناء محاور الخطة وأهدافها
+                  (يمكنك استخدام «بند مخصّص» إن لم ترغب بمعايير الاعتماد)، ثم تعليق المهمة على «{levelNames[levelCount - 1] || 'الهدف'}».
+                </p>
+              </div>
+              <Link href={`/dashboard/plans/${selPlanId}/build`}
+                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors">
+                🏗️ بناء هيكل الخطة
+              </Link>
+            </div>
+          )}
+
           {/* اختيار المستويات تتابعياً */}
-          {selPlanId && Array.from({ length: levelCount }, (_, i) => {
+          {selPlanId && !nodesLoading && planNodes.length > 0 && Array.from({ length: levelCount }, (_, i) => {
             const levelNum  = i + 1
             const levelName = levelNames[i] || `المستوى ${levelNum}`
             const options   = getNodesAtLevel(levelNum)
