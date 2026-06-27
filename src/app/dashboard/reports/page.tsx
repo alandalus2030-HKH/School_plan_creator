@@ -992,14 +992,12 @@ export default function ReportsPage() {
     return (
       <button
         onClick={() => setModal({ tasks: modalTasks, title: modalTitle })}
-        className={`rounded-2xl border p-5 shadow-sm text-right transition-all hover:shadow-md cursor-pointer w-full ${colorMap[color]||colorMap.slate}`}>
-        <div className="mb-2 flex">
-          <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-black/[0.04] [&>svg]:w-[18px] [&>svg]:h-[18px]">{icon}</span>
-        </div>
-        <div className="text-3xl font-bold">{value}</div>
-        <div className="text-sm font-semibold mt-1">{label}</div>
+        className={`flex flex-col items-center text-center h-full rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md cursor-pointer w-full ${colorMap[color]||colorMap.slate}`}>
+        <div className="flex mb-2">{icon}</div>
+        <div className="text-3xl font-bold leading-none">{value}</div>
+        <div className="text-sm font-semibold mt-1.5">{label}</div>
         {sub && <div className="text-xs opacity-70 mt-0.5">{sub}</div>}
-        <div className="inline-flex items-center gap-1 text-xs mt-2 opacity-60 font-medium">انقر للتفاصيل <ArrowLeft size={11} /></div>
+        <div className="inline-flex items-center gap-1 text-xs mt-auto pt-2 opacity-60 font-medium">انقر للتفاصيل <ArrowLeft size={11} /></div>
       </button>
     )
   }
