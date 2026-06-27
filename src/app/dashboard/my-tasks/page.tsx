@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import {
   ClipboardList, Zap, CheckCircle2, AlertTriangle,
   UserRound, Users, Search, BookOpen, Archive, Pin,
-  CalendarDays, PartyPopper, Clock, Star,
+  CalendarDays, PartyPopper, Clock, Star, ArrowLeft, Paperclip,
 } from 'lucide-react'
 
 import { STATUS_META, RATING_META, PRIORITY_META } from '@/lib/constants/tasks'
@@ -334,7 +334,7 @@ export default function MyTasksPage() {
             <p className="font-semibold" style={{ color: 'var(--maroon-800)' }}>لديك {toReview} مهمة بانتظار تقييمك</p>
             <p className="text-xs" style={{ color: 'var(--maroon-600)' }}>انقر هنا للانتقال إلى مهام التقييم</p>
           </div>
-          <span className="mr-auto text-amber-400 text-xl">←</span>
+          <ArrowLeft size={20} className="mr-auto text-amber-400" />
         </div>
       )}
 
@@ -464,13 +464,13 @@ export default function MyTasksPage() {
                       <Link href={`/dashboard/tasks/${task.id}`}
                         className="flex items-center gap-1 text-xs text-white px-3 py-1.5 rounded-xl font-medium transition-all hover:brightness-110"
                         style={{ background: 'var(--gradient-button)' }}>
-                        فتح المهمة لإدارة الحالة ←
+                        فتح المهمة لإدارة الحالة <ArrowLeft size={13} />
                       </Link>
                       {/* رفع الدليل يُخفى للمهام المنجزة/المرفوعة (مقفلة لرفع الأدلة) */}
                       {task.status !== 'completed' && task.status !== 'submitted' && (
                         <Link href={`/dashboard/tasks/${task.id}/evidence/new`}
                           className="mr-auto flex items-center gap-1 text-xs text-violet-600 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl border border-violet-200 transition-colors">
-                          📎 رفع دليل
+                          <Paperclip size={13} /> رفع دليل
                         </Link>
                       )}
                     </div>

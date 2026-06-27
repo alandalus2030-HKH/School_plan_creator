@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/PermissionsContext'
-import { Plus, X, ChevronLeft } from 'lucide-react'
+import { Plus, X, ChevronLeft, AlertTriangle, Ban } from 'lucide-react'
 import { toast } from '@/components/Toast'
 import { logActivity } from '@/lib/activity'
 import { createNotification } from '@/lib/notifications'
@@ -145,7 +145,7 @@ export default function QuickAddTask() {
     }).select('id').single()
     setSaving(false)
     if (error) { toast('حدث خطأ أثناء الإنشاء', 'error'); return }
-    toast(`✓ تم إنشاء "${name.trim()}"`)
+    toast(`تم إنشاء "${name.trim()}"`)
     logActivity({ action: 'task_created', tableName: 'tasks', summary: name.trim() })
 
     const link = data?.id ? `/dashboard/tasks/${data.id}` : '/dashboard/my-tasks'
@@ -259,10 +259,10 @@ export default function QuickAddTask() {
               />
             </div>
             {!endDate && (
-              <p className="text-[11px] text-red-500 -mt-2">⚠️ الموعد النهائي مطلوب — لتفعيل الإشعارات ووسم التأخير.</p>
+              <p className="inline-flex items-center gap-1 text-[11px] text-red-500 -mt-2"><AlertTriangle size={11} /> الموعد النهائي مطلوب — لتفعيل الإشعارات ووسم التأخير.</p>
             )}
             {(() => { const s = endDate ? dayStatus(endDate, cal) : null; if (!s) return null
-              return <p className={`text-[11px] -mt-2 ${s.level === 'block' ? 'text-red-600' : 'text-amber-600'}`}>{s.level === 'block' ? '⛔' : '⚠️'} الموعد ضمن «{s.reason}»</p> })()}
+              return <p className={`inline-flex items-center gap-1 text-[11px] -mt-2 ${s.level === 'block' ? 'text-red-600' : 'text-amber-600'}`}><span className="inline-flex">{s.level === 'block' ? <Ban size={11} /> : <AlertTriangle size={11} />}</span> الموعد ضمن «{s.reason}»</p> })()}
 
             {/* تكليف قسم الخطة كله — يظهر إن كان للخطة المختارة قسم */}
             {(() => {

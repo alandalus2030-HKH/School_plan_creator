@@ -9,7 +9,7 @@ import GanttChart   from '@/components/GanttChart'
 import {
   BookOpen, Archive, Pin, AlertTriangle, Lock, Unlock, Users,
   CheckCircle2, List, LayoutGrid, GanttChartSquare, Star,
-  UserRound, CalendarDays,
+  UserRound, CalendarDays, Plus, Search, X, Tag,
 } from 'lucide-react'
 import TaskCalendar from '@/components/TaskCalendar'
 import {
@@ -353,7 +353,7 @@ export default function TasksPage() {
           {canManage && (
             <Link href="/dashboard/tasks/new"
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-violet-200">
-              ➕ مهمة جديدة
+              <Plus size={16} /> مهمة جديدة
             </Link>
           )}
         </div>
@@ -438,16 +438,19 @@ export default function TasksPage() {
 
       {/* ── فلاتر ── */}
       <div className="flex items-center gap-2 flex-wrap">
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 بحث..."
-          className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm" />
+        <div className="relative flex-1 min-w-[160px]">
+          <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="بحث..."
+            className="w-full pr-9 pl-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm" />
+        </div>
 
         <select value={priorityF} onChange={e => setPriorityF(e.target.value)}
           className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
           <option value="">كل الأولويات</option>
-          <option value="high">🔴 عالية</option>
-          <option value="medium">🟡 متوسطة</option>
-          <option value="low">🟢 منخفضة</option>
+          <option value="high">عالية</option>
+          <option value="medium">متوسطة</option>
+          <option value="low">منخفضة</option>
         </select>
 
         <select value={planF} onChange={e => setPlanF(e.target.value)}
@@ -477,7 +480,7 @@ export default function TasksPage() {
         {anyFilter && (
           <button onClick={clearAllFilters}
             className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
-            ✕ إزالة كل الفلاتر
+            <X size={14} /> إزالة كل الفلاتر
           </button>
         )}
       </div>
@@ -579,7 +582,7 @@ export default function TasksPage() {
                         )}
                         {assignDept && (
                           <span className="flex items-center gap-1 text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full border border-violet-200">
-                            🏷️ {assignDept}
+                            <Tag size={11} /> {assignDept}
                           </span>
                         )}
                       </div>
@@ -606,7 +609,7 @@ export default function TasksPage() {
                       <span
                         title={blocked
                           ? `محجوبة — تنتظر: ${dep?.name_ar || '...'}`
-                          : `التبعية مكتملة ✓`}
+                          : `التبعية مكتملة`}
                         className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 border ${
                           blocked
                             ? 'bg-orange-50 text-orange-600 border-orange-200'
