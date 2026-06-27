@@ -7,7 +7,9 @@ import NoAccess from '@/components/NoAccess'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { toast } from '@/components/Toast'
 import * as XLSX from 'xlsx'
-import { Users, CheckCircle2, BookOpen, Crown, UserRound } from 'lucide-react'
+import { Users, CheckCircle2, BookOpen, Crown, UserRound,
+  UserPlus, Plus, Upload, Download, FileSpreadsheet, Search, X, AlertTriangle, KeyRound, Loader2,
+  Pencil, Trash2, Check, Copy, User, Lock, Eye, EyeOff, Mail, ShieldCheck, Star, Bell, ArrowRight, ArrowLeft, Save } from 'lucide-react'
 
 /* ══════════════════════ أنواع البيانات ══════════════════════ */
 type RoleItem = { code: string; name_ar: string; color: string; permissions?: string[] }
@@ -82,7 +84,7 @@ const EMPTY_FORM = {
   notif_email:    true,
 }
 
-const TABS = ['👤 بيانات المستخدم', '🔐 الحساب', '⚙️ الصلاحيات']
+const TABS = ['بيانات المستخدم', 'الحساب', 'الصلاحيات']
 
 /* ══════════════════════ المكوّن الرئيسي ══════════════════════ */
 export default function UsersPage() {
@@ -745,20 +747,20 @@ export default function UsersPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={downloadTemplate}
             className="flex items-center gap-1.5 text-sm px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-            📄 قالب Excel
+            <FileSpreadsheet size={15} /> قالب Excel
           </button>
           <button onClick={() => fileRef.current?.click()}
             className="flex items-center gap-1.5 text-sm px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-            📥 استيراد
+            <Upload size={15} /> استيراد
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
           <button onClick={exportExcel}
             className="flex items-center gap-1.5 text-sm px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-            📤 تصدير
+            <Download size={15} /> تصدير
           </button>
           <button onClick={openCreate}
             className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-violet-200">
-            ➕ إضافة مستخدم
+            <UserPlus size={16} /> إضافة مستخدم
           </button>
         </div>
       </div>
@@ -780,9 +782,12 @@ export default function UsersPage() {
 
       {/* ── بحث وتصفية ── */}
       <div className="flex items-center gap-3 flex-wrap">
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 بحث بالاسم أو البريد أو اسم الدخول..."
-          className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm" />
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="بحث بالاسم أو البريد أو اسم الدخول..."
+            className="w-full pr-9 pl-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm" />
+        </div>
         <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
           className="px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm min-w-[130px]">
           <option value="">كل الأدوار</option>
@@ -799,8 +804,8 @@ export default function UsersPage() {
         <div className="flex items-center bg-slate-100 p-1 rounded-xl">
           {([
             { key: '',         label: 'الكل',      count: profiles.length },
-            { key: 'active',   label: '✅ نشط',    count: profiles.filter(p => p.is_active).length },
-            { key: 'inactive', label: '🔴 معطَّل', count: profiles.filter(p => !p.is_active).length },
+            { key: 'active',   label: 'نشط',    count: profiles.filter(p => p.is_active).length },
+            { key: 'inactive', label: 'معطَّل', count: profiles.filter(p => !p.is_active).length },
           ] as const).map(tab => (
             <button key={tab.key} onClick={() => setActiveFilter(tab.key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -852,7 +857,7 @@ export default function UsersPage() {
                             {initials}
                             {!p.is_active && (
                               <span className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-                                <span className="text-white text-[8px] font-bold">✕</span>
+                                <X size={8} className="text-white" strokeWidth={3} />
                               </span>
                             )}
                           </div>
@@ -870,7 +875,7 @@ export default function UsersPage() {
                             {p.username ? (
                               <p className={`text-xs truncate font-mono ${p.is_active ? 'text-violet-600' : 'text-slate-400'}`} dir="ltr">@{p.username}</p>
                             ) : (
-                              <p className="text-xs text-red-500 truncate flex items-center gap-1">⚠️ بدون اسم دخول</p>
+                              <p className="text-xs text-red-500 truncate flex items-center gap-1"><AlertTriangle size={11} /> بدون اسم دخول</p>
                             )}
                           </div>
                         </div>
@@ -899,7 +904,7 @@ export default function UsersPage() {
                           <button onClick={() => setConfirmReset(p)} disabled={resetingId === p.id}
                             title="إعادة تعيين كلمة المرور"
                             className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors text-sm disabled:opacity-40 opacity-0 group-hover:opacity-100">
-                            {resetingId === p.id ? '⏳' : '🔑'}
+                            <span className="inline-flex">{resetingId === p.id ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}</span>
                           </button>
 
                           {/* زر التفعيل/التعطيل — دائماً ظاهر */}
@@ -910,15 +915,15 @@ export default function UsersPage() {
                                 ? 'bg-green-50 text-green-700 border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
                                 : 'bg-red-50 text-red-600 border-red-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200'
                             }`}>
-                            {p.is_active ? '✅ نشط' : '🔴 معطَّل'}
+                            <span className="inline-flex">{p.is_active ? <Check size={13} /> : <X size={13} />}</span>{p.is_active ? 'نشط' : 'معطَّل'}
                           </button>
 
                           {/* تعديل وحذف — عند hover */}
-                          <button onClick={() => openEdit(p)}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors text-sm opacity-0 group-hover:opacity-100">✏️</button>
+                          <button onClick={() => openEdit(p)} title="تعديل"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors opacity-0 group-hover:opacity-100"><Pencil size={14} /></button>
                           {!isProtected(p) && (
-                            <button onClick={() => { setConfirmDel(p.id); setDelMsg(null) }}
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors text-sm opacity-0 group-hover:opacity-100">🗑️</button>
+                            <button onClick={() => { setConfirmDel(p.id); setDelMsg(null) }} title="حذف"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
                           )}
                         </div>
                       </div>
@@ -963,7 +968,7 @@ export default function UsersPage() {
         open={!!confirmReset}
         title="إعادة تعيين كلمة المرور"
         danger={false}
-        icon="🔑"
+        icon={<KeyRound size={24} className="text-violet-600" />}
         confirmLabel="توليد كلمة مرور مؤقتة"
         loading={!!resetingId}
         message={confirmReset ? (
@@ -980,7 +985,7 @@ export default function UsersPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" dir="rtl"
             onClick={e => e.stopPropagation()}>
             <div className="flex justify-center mb-3">
-              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center text-2xl">🔑</div>
+              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center"><KeyRound size={26} className="text-emerald-600" /></div>
             </div>
             <h3 className="text-lg font-bold text-slate-800 text-center mb-1">بيانات الدخول المؤقتة</h3>
             <p className="text-xs text-slate-500 text-center mb-4">
@@ -1002,7 +1007,7 @@ export default function UsersPage() {
                   try { await navigator.clipboard.writeText(credsModal.tempPassword); setCredsCopied(true) } catch {}
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
-                {credsCopied ? '✓ تم النسخ' : '📋 نسخ كلمة المرور'}
+                <span className="inline-flex items-center gap-1.5 justify-center">{credsCopied ? <><Check size={14} /> تم النسخ</> : <><Copy size={14} /> نسخ كلمة المرور</>}</span>
               </button>
               <button type="button" onClick={() => setCredsModal(null)}
                 className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
@@ -1022,10 +1027,10 @@ export default function UsersPage() {
 
             {/* رأس المودال */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-800">
-                {editProfile ? '✏️ تعديل مستخدم' : '➕ إضافة مستخدم جديد'}
+              <h3 className="inline-flex items-center gap-1.5 text-base font-bold text-slate-800">
+                <span className="inline-flex">{editProfile ? <Pencil size={16} /> : <UserPlus size={16} />}</span>{editProfile ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}
               </h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 leading-none"><X size={20} /></button>
             </div>
 
 
@@ -1115,7 +1120,7 @@ export default function UsersPage() {
                     {/* اسم الدخول */}
                     <Field label="اسم الدخول *">
                       <div className="relative">
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 select-none text-base">👤</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 select-none inline-flex"><User size={15} /></span>
                         <input
                           value={form.username}
                           onChange={e => setForm(d => ({
@@ -1132,15 +1137,15 @@ export default function UsersPage() {
                               ? 'border-green-300 focus:ring-green-300'
                               : 'border-red-200 focus:ring-red-300'}`} />
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        🔑 هذا ما يكتبه المستخدم عند تسجيل الدخول — أحرف إنجليزية وأرقام والرموز <span dir="ltr">. _ -</span> فقط (بدون بريد إلكتروني)
+                      <p className="text-xs text-slate-500 mt-1 inline-flex items-start gap-1">
+                        <KeyRound size={12} className="flex-shrink-0 mt-0.5" /> <span>هذا ما يكتبه المستخدم عند تسجيل الدخول — أحرف إنجليزية وأرقام والرموز <span dir="ltr">. _ -</span> فقط (بدون بريد إلكتروني)</span>
                       </p>
                     </Field>
 
                     {/* كلمة المرور الأولية (إنشاء فقط) */}
                     {!editProfile && (
                       <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                        <h4 className="text-sm font-bold text-slate-700">🔒 كلمة المرور الأولية</h4>
+                        <h4 className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-700"><Lock size={14} /> كلمة المرور الأولية</h4>
                         <p className="text-xs text-slate-500">
                           • <strong>اتركها فارغة</strong> → تُولَّد <strong>كلمة مرور مؤقتة</strong> تظهر لك لتسلّمها للمستخدم.<br />
                           • أو عيّن <strong>كلمة مرور مؤقتة</strong> بنفسك.<br />
@@ -1157,7 +1162,7 @@ export default function UsersPage() {
                                 className={inputCls} />
                               <button type="button" onClick={() => setShowPass(v => !v)}
                                 className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm px-1">
-                                {showPass ? '🙈' : '👁️'}
+                                <span className="inline-flex">{showPass ? <EyeOff size={15} /> : <Eye size={15} />}</span>
                               </button>
                             </div>
                           </Field>
@@ -1170,7 +1175,7 @@ export default function UsersPage() {
                           </Field>
                         </div>
                         {formPassword && formConfirmPass && formPassword !== formConfirmPass && (
-                          <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">⚠️ كلمتا المرور غير متطابقتين</p>
+                          <p className="inline-flex items-center gap-1 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg"><AlertTriangle size={12} /> كلمتا المرور غير متطابقتين</p>
                         )}
 
                         {/* إرسال بيانات الدخول */}
@@ -1179,7 +1184,7 @@ export default function UsersPage() {
                           <button type="button" onClick={sendCredentials}
                             disabled={sendingCreds || !form.email}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs rounded-xl transition-colors">
-                            {sendingCreds ? '⏳ جارٍ الإرسال...' : '📧 إرسال بيانات الدخول للبريد'}
+                            <span className="inline-flex items-center gap-1.5">{sendingCreds ? <><Loader2 size={13} className="animate-spin" /> جارٍ الإرسال...</> : <><Mail size={13} /> إرسال بيانات الدخول للبريد</>}</span>
                           </button>
                           {credsMsg && (
                             <p className={`text-xs mt-2 px-3 py-2 rounded-lg ${credsMsg.startsWith('✅') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -1193,7 +1198,7 @@ export default function UsersPage() {
                     {/* إعادة تعيين كلمة المرور (تعديل فقط) */}
                     {editProfile && (
                       <div className="bg-amber-50 rounded-2xl p-4 space-y-3 border border-amber-200">
-                        <h4 className="text-sm font-bold text-amber-800">🔑 إعادة تعيين كلمة المرور</h4>
+                        <h4 className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-800"><KeyRound size={14} /> إعادة تعيين كلمة المرور</h4>
                         <p className="text-xs text-amber-700">
                           يُنشئ كلمة مرور مؤقتة لهذا المستخدم بالذات، ويُطلب منه تغييرها عند أول دخول.
                           (أو إرسال رابط استرجاع بالبريد ليفتحه المستخدم على جهازه.)
@@ -1203,13 +1208,13 @@ export default function UsersPage() {
                             disabled={sendingReset}
                             title="يضبط كلمة مرور مؤقتة وينسخها — مرتبطة بهذا المستخدم، بلا رابط/بريد"
                             className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs rounded-xl transition-colors">
-                            {sendingReset ? '⏳ جارٍ...' : '🔑 كلمة مرور مؤقتة (نسخ)'}
+                            <span className="inline-flex items-center gap-1.5">{sendingReset ? <><Loader2 size={13} className="animate-spin" /> جارٍ...</> : <><KeyRound size={13} /> كلمة مرور مؤقتة (نسخ)</>}</span>
                           </button>
                           <button type="button" onClick={resetPasswordForm}
                             disabled={sendingReset || !editProfile.email}
                             title="يرسل رابط استرجاع إلى بريد المستخدم ليفتحه بنفسه على جهازه"
                             className="flex items-center gap-2 px-4 py-2 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 text-xs rounded-xl transition-colors">
-                            📧 إرسال رابط بالبريد
+                            <span className="inline-flex items-center gap-1.5"><Mail size={13} /> إرسال رابط بالبريد</span>
                           </button>
                         </div>
                         {resetMsg && (
@@ -1239,7 +1244,7 @@ export default function UsersPage() {
 
                     {/* صلاحيات الدور */}
                     <div>
-                      <h4 className="text-sm font-bold text-slate-700 mb-2">🛡️ صلاحيات هذا الدور</h4>
+                      <h4 className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-700 mb-2"><ShieldCheck size={14} /> صلاحيات هذا الدور</h4>
                       <div className="grid grid-cols-2 gap-2">
                         {ALL_PERMISSIONS.map(perm => {
                           const rolePerms = getRolePermissions(form.role)
@@ -1252,17 +1257,17 @@ export default function UsersPage() {
                                   : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
                               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? 'bg-violet-500' : 'bg-slate-300'}`} />
                               <span className="flex-1">{perm.label}</span>
-                              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold
+                              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-white
                                 ${active ? 'bg-violet-500' : 'bg-slate-300'}`}>
-                                {active ? '✓' : ''}
+                                {active && <Check size={11} strokeWidth={3} />}
                               </span>
                             </div>
                           )
                         })}
                       </div>
                       {getRolePermissions(form.role).includes('all') && (
-                        <p className="text-xs text-violet-600 bg-violet-50 px-3 py-2 rounded-xl mt-2">
-                          ⭐ هذا الدور يملك جميع الصلاحيات
+                        <p className="inline-flex items-center gap-1 text-xs text-violet-600 bg-violet-50 px-3 py-2 rounded-xl mt-2">
+                          <Star size={12} /> هذا الدور يملك جميع الصلاحيات
                         </p>
                       )}
                       <p className="text-xs text-slate-400 mt-2">
@@ -1273,7 +1278,7 @@ export default function UsersPage() {
 
                     {/* الفرق */}
                     <div>
-                      <h4 className="text-sm font-bold text-slate-700 mb-2">👥 عضوية الفرق</h4>
+                      <h4 className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-700 mb-2"><Users size={14} /> عضوية الفرق</h4>
                       {allTeams.length === 0 ? (
                         <p className="text-xs text-slate-400 bg-slate-50 rounded-xl p-3">لا توجد فرق مُضافة حتى الآن</p>
                       ) : (
@@ -1301,7 +1306,7 @@ export default function UsersPage() {
                                         m.team_id === team.id ? { ...m, is_leader: !m.is_leader } : m
                                       ))}
                                       className="w-3.5 h-3.5 accent-amber-500 cursor-pointer" />
-                                    <span className="text-xs text-amber-700 font-semibold">⭐ قائد</span>
+                                    <span className="inline-flex items-center gap-1 text-xs text-amber-700 font-semibold"><Star size={11} /> قائد</span>
                                   </label>
                                 )}
                               </div>
@@ -1309,7 +1314,7 @@ export default function UsersPage() {
                           })}
                         </div>
                       )}
-                      <p className="text-xs text-slate-400 mt-1.5">⚠️ لا يُسمح بأكثر من قائد واحد في الفريق</p>
+                      <p className="inline-flex items-center gap-1 text-xs text-slate-400 mt-1.5"><AlertTriangle size={11} /> لا يُسمح بأكثر من قائد واحد في الفريق</p>
                     </div>
 
                     {/* الحالة */}
@@ -1324,7 +1329,7 @@ export default function UsersPage() {
 
                     {/* إعدادات الإشعارات */}
                     <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-2">
-                      <p className="text-xs font-semibold text-amber-800 mb-2">🔔 إعدادات الإشعارات</p>
+                      <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 mb-2"><Bell size={13} /> إعدادات الإشعارات</p>
                       <div className="flex items-center gap-3">
                         <input type="checkbox" id="notif_enabled_chk"
                           checked={(form as any).notif_enabled ?? true}
@@ -1350,8 +1355,8 @@ export default function UsersPage() {
 
               {/* رسالة الخطأ */}
               {formError && (
-                <div className="mx-5 mb-3 bg-red-50 text-red-700 px-4 py-2.5 rounded-xl text-sm border border-red-200">
-                  ⚠️ {formError}
+                <div className="mx-5 mb-3 flex items-center gap-2 bg-red-50 text-red-700 px-4 py-2.5 rounded-xl text-sm border border-red-200">
+                  <AlertTriangle size={15} className="flex-shrink-0" /> {formError}
                 </div>
               )}
 
@@ -1360,14 +1365,14 @@ export default function UsersPage() {
                 <div className="flex gap-2">
                   {formTab > 0 && (
                     <button type="button" onClick={() => setFormTab(t => t - 1)}
-                      className="px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">
-                      ← السابق
+                      className="inline-flex items-center gap-1 px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors">
+                      <ArrowRight size={14} /> السابق
                     </button>
                   )}
                   {formTab < TABS.length - 1 && (
                     <button type="button" onClick={() => setFormTab(t => t + 1)}
-                      className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-xl hover:bg-slate-200 transition-colors">
-                      التالي →
+                      className="inline-flex items-center gap-1 px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-xl hover:bg-slate-200 transition-colors">
+                      التالي <ArrowLeft size={14} />
                     </button>
                   )}
                 </div>
@@ -1377,8 +1382,9 @@ export default function UsersPage() {
                     إلغاء
                   </button>
                   <button type="submit" disabled={saving}
-                    className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                    {saving ? '⏳ جارٍ الحفظ...' : editProfile ? '💾 حفظ التعديلات' : '✅ إضافة المستخدم'}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
+                    <span className="inline-flex">{saving ? <Loader2 size={14} className="animate-spin" /> : editProfile ? <Save size={14} /> : <UserPlus size={14} />}</span>
+                    <span>{saving ? 'جارٍ الحفظ...' : editProfile ? 'حفظ التعديلات' : 'إضافة المستخدم'}</span>
                   </button>
                 </div>
               </div>
@@ -1396,7 +1402,7 @@ export default function UsersPage() {
 
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-bold text-slate-800">📥 استيراد المستخدمين من Excel</h3>
+                <h3 className="inline-flex items-center gap-1.5 text-base font-bold text-slate-800"><Upload size={16} /> استيراد المستخدمين من Excel</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {importRows.length} صف ·{' '}
                   <span className="text-green-600 font-medium">{importRows.filter((_,i) => !importErrors[i]).length} صالح</span>
@@ -1405,7 +1411,7 @@ export default function UsersPage() {
                   )}
                 </p>
               </div>
-              <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+              <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
 
             <div className="flex-1 overflow-auto p-5">
@@ -1432,9 +1438,9 @@ export default function UsersPage() {
                           <td className="px-3 py-2 text-slate-400 font-mono border-b border-slate-100">{i + 1}</td>
                           <td className="px-3 py-2 border-b border-slate-100">
                             {isValid
-                              ? <span className="text-green-600 font-semibold">✓ صالح</span>
+                              ? <span className="inline-flex items-center gap-1 text-green-600 font-semibold"><Check size={12} /> صالح</span>
                               : <div>
-                                  <span className="text-red-600 font-semibold">✗ خطأ</span>
+                                  <span className="inline-flex items-center gap-1 text-red-600 font-semibold"><X size={12} /> خطأ</span>
                                   <ul className="mt-1 space-y-0.5">
                                     {errs.map((e, j) => <li key={j} className="text-red-500">{e}</li>)}
                                   </ul>
@@ -1469,7 +1475,7 @@ export default function UsersPage() {
                   className="px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50">إلغاء</button>
                 <button onClick={runImport} disabled={importing || importRows.filter((_,i) => !importErrors[i]).length === 0}
                   className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                  {importing ? '⏳ جارٍ الاستيراد...' : `✅ استيراد ${importRows.filter((_,i) => !importErrors[i]).length} مستخدم`}
+                  <span className="inline-flex items-center gap-1.5">{importing ? <><Loader2 size={14} className="animate-spin" /> جارٍ الاستيراد...</> : <><Upload size={14} /> استيراد {importRows.filter((_,i) => !importErrors[i]).length} مستخدم</>}</span>
                 </button>
               </div>
             </div>

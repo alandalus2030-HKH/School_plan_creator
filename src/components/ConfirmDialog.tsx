@@ -10,11 +10,12 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Trash2 } from 'lucide-react'
 
 export default function ConfirmDialog({
   open, title, message,
   confirmLabel = 'نعم، احذف', cancelLabel = 'إلغاء',
-  onConfirm, onCancel, loading = false, danger = true, icon = '🗑️',
+  onConfirm, onCancel, loading = false, danger = true, icon = <Trash2 size={24} className="text-red-600" />,
 }: {
   open: boolean
   title: string
