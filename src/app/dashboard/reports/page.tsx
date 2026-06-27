@@ -12,6 +12,7 @@ import {
   BookOpen, Archive, Pin, BarChart3, TrendingUp, PartyPopper, Inbox,
   ClipboardList, CheckCircle2, Clock, Circle, AlertTriangle, Star,
   LayoutDashboard, Network, Users, Printer, FileText,
+  X, XCircle, Folder, Map, RefreshCw, ArrowLeft, Calendar, Lightbulb, User,
 } from 'lucide-react'
 import {
   STATUS_META, RATING_META, PRIORITY_META, TYPE_META,
@@ -103,7 +104,7 @@ function TasksModal({
         <td>${node?.name_ar || '—'}</td>
         <td>${plan?.name_ar || '—'}</td>
         <td>${assignee?.name_ar || '—'}</td>
-        <td style="${isLate ? 'color:#dc2626;font-weight:600' : ''}">${t.end_date ? new Date(t.end_date).toLocaleDateString('ar-QA') + (isLate ? ' ⚠️' : '') : '—'}</td>
+        <td style="${isLate ? 'color:#dc2626;font-weight:600' : ''}">${t.end_date ? new Date(t.end_date).toLocaleDateString('ar-QA') + (isLate ? ' (متأخرة)' : '') : '—'}</td>
         <td><span class="badge ${badgeCls[t.status] || 'bg-slate'}">${sm?.ar || t.status}</span></td>
         <td>${rating ? rating.label : '—'}</td>
       </tr>`
@@ -134,8 +135,8 @@ function TasksModal({
             <p className="text-xs text-slate-500 mt-0.5">{tasks.length} مهمة</p>
           </div>
           <button onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors text-lg">
-            ✕
+            className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+            <X size={18} />
           </button>
         </div>
 
@@ -204,9 +205,9 @@ function TasksModal({
                     </td>
                     <td className="px-4 py-3 text-center hidden sm:table-cell">
                       {t.end_date ? (
-                        <span className={`text-xs ${isLate ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
+                        <span className={`inline-flex items-center gap-1 text-xs ${isLate ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
                           {new Date(t.end_date).toLocaleDateString('ar-QA')}
-                          {isLate && ' ⚠️'}
+                          {isLate && <AlertTriangle size={11} />}
                         </span>
                       ) : <span className="text-slate-400 text-xs">—</span>}
                     </td>
@@ -283,10 +284,10 @@ function KpiDetailModal({
             <div style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:4px">${k.name_ar}</div>
             ${k.description ? `<div style="font-size:12px;color:#94a3b8;margin-bottom:8px">${k.description}</div>` : ''}
             <div class="tags">
-              <span class="tag">📂 ${k.node_name}</span>
-              ${plan ? `<span class="tag tag-violet">🗺️ ${plan.name_ar}</span>` : ''}
+              <span class="tag">${k.node_name}</span>
+              ${plan ? `<span class="tag tag-violet">${plan.name_ar}</span>` : ''}
               ${k.kpi_type ? `<span class="tag" style="background:#dbeafe;color:#1d4ed8">${k.kpi_type}</span>` : ''}
-              ${k.frequency ? `<span class="tag" style="background:#cffafe;color:#0e7490">🔄 ${k.frequency}</span>` : ''}
+              ${k.frequency ? `<span class="tag" style="background:#cffafe;color:#0e7490">${k.frequency}</span>` : ''}
             </div>
           </div>
           <div style="text-align:center;flex-shrink:0;min-width:60px">
@@ -339,8 +340,8 @@ function KpiDetailModal({
             <p className="text-xs opacity-80 mt-0.5">{kpis.length} مؤشر</p>
           </div>
           <button onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white text-lg transition-colors">
-            ✕
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors">
+            <X size={18} />
           </button>
         </div>
 
@@ -369,12 +370,12 @@ function KpiDetailModal({
                           <p className="text-xs text-slate-500 mt-0.5">{k.description}</p>
                         )}
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                            📂 {k.node_name}
+                          <span className="inline-flex items-center gap-1 text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                            <Folder size={10} /> {k.node_name}
                           </span>
                           {plan && (
-                            <span className="text-[10px] bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
-                              🗺️ {plan.name_ar}
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+                              <Map size={10} /> {plan.name_ar}
                             </span>
                           )}
                           {k.kpi_type && (
@@ -383,8 +384,8 @@ function KpiDetailModal({
                             </span>
                           )}
                           {k.frequency && (
-                            <span className="text-[10px] bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full">
-                              🔄 {FREQ_LABEL[k.frequency] || k.frequency}
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full">
+                              <RefreshCw size={10} /> {FREQ_LABEL[k.frequency] || k.frequency}
                             </span>
                           )}
                         </div>
@@ -541,8 +542,8 @@ function NodeRow({
             {notStart > 0 && <StatPill value={notStart} label="لم تبدأ" color="bg-slate-100 text-slate-600" />}
             <button
               onClick={e => { e.stopPropagation(); onShowTasks(allTasks, `مهام: ${node.name_ar}`) }}
-              className="text-xs px-2 py-1 rounded-lg bg-white border border-slate-200 text-violet-700 hover:bg-violet-50 transition-colors font-semibold">
-              📋 {total}
+              className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-white border border-slate-200 text-violet-700 hover:bg-violet-50 transition-colors font-semibold">
+              <ClipboardList size={12} /> {total}
             </button>
           </div>
         )}
@@ -854,7 +855,7 @@ export default function ReportsPage() {
       </div>
       <div style="margin-bottom:20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="font-weight:600;color:#374151;font-size:13px">📈 نسبة الإنجاز الكلية</span>
+          <span style="font-weight:600;color:#374151;font-size:13px">نسبة الإنجاز الكلية</span>
           <span style="font-size:18px;font-weight:700;color:${statColor(stats.rate)}">${stats.rate}%</span>
         </div>
         <div style="height:10px;background:#f1f5f9;border-radius:999px;overflow:hidden">
@@ -879,13 +880,13 @@ export default function ReportsPage() {
         <td>${node?.name_ar || '—'}</td>
         <td>${plan?.name_ar || '—'}</td>
         <td>${assignee?.name_ar || '—'}</td>
-        <td style="${isLate ? 'color:#dc2626;font-weight:600' : 'color:#64748b'}">${t.end_date ? new Date(t.end_date).toLocaleDateString('ar-QA') + (isLate ? ' ⚠️' : '') : '—'}</td>
+        <td style="${isLate ? 'color:#dc2626;font-weight:600' : 'color:#64748b'}">${t.end_date ? new Date(t.end_date).toLocaleDateString('ar-QA') + (isLate ? ' (متأخرة)' : '') : '—'}</td>
         <td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:${sc}20;color:${sc}">${sm?.ar || t.status}</span></td>
       </tr>`
     }).join('')
 
     const tasksHtml = `
-      <h2 style="font-size:15px;font-weight:700;color:#1e293b;margin:20px 0 10px">📋 المهام (${filtered.length})</h2>
+      <h2 style="font-size:15px;font-weight:700;color:#1e293b;margin:20px 0 10px">المهام (${filtered.length})</h2>
       <table>
         <thead><tr>
           <th>اسم المهمة</th><th>المستوى / العقدة</th><th>الخطة</th><th>المكلَّف</th><th>الموعد</th><th>الحالة</th>
@@ -909,7 +910,7 @@ export default function ReportsPage() {
         </tr>`
       }).join('')
       kpiHtml = `
-        <h2 style="font-size:15px;font-weight:700;color:#1e293b;margin:24px 0 10px">📈 مؤشرات الأداء (${filteredKpis.length})</h2>
+        <h2 style="font-size:15px;font-weight:700;color:#1e293b;margin:24px 0 10px">مؤشرات الأداء (${filteredKpis.length})</h2>
         <table>
           <thead><tr>
             <th>المؤشر</th><th>العقدة</th><th>الخط الأساسي</th><th>الهدف</th><th>آخر قراءة</th><th>التحقق</th>
@@ -930,7 +931,7 @@ export default function ReportsPage() {
         <td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:${(t.daysLate??0)>30?'#fee2e2':(t.daysLate??0)>7?'#ffedd5':'#fef3c7'};color:${(t.daysLate??0)>30?'#dc2626':(t.daysLate??0)>7?'#ea580c':'#d97706'}">${t.daysLate ?? 0} يوم</span></td>
       </tr>`).join('')
       delayedHtml = `
-        <h2 style="font-size:15px;font-weight:700;color:#dc2626;margin:24px 0 10px">⚠️ المهام المتأخرة (${delayedTasks.length})</h2>
+        <h2 style="font-size:15px;font-weight:700;color:#dc2626;margin:24px 0 10px">المهام المتأخرة (${delayedTasks.length})</h2>
         <table>
           <thead><tr>
             <th>المهمة</th><th>المستوى</th><th>الخطة</th><th>المكلَّف</th><th>الموعد</th><th>التأخر</th>
@@ -940,7 +941,7 @@ export default function ReportsPage() {
     }
 
     const periodLabel = dateRangeLabel
-      ? `<span style="display:inline-block;margin-right:12px;padding:2px 10px;background:#ede9fe;color:#5b21b6;border-radius:999px;font-size:11px;font-weight:600">📆 ${dateRangeLabel}</span>`
+      ? `<span style="display:inline-block;margin-right:12px;padding:2px 10px;background:#ede9fe;color:#5b21b6;border-radius:999px;font-size:11px;font-weight:600">${dateRangeLabel}</span>`
       : ''
 
     printContent(
@@ -996,7 +997,7 @@ export default function ReportsPage() {
         <div className="text-3xl font-bold">{value}</div>
         <div className="text-sm font-semibold mt-1">{label}</div>
         {sub && <div className="text-xs opacity-70 mt-0.5">{sub}</div>}
-        <div className="text-xs mt-2 opacity-60 font-medium">انقر للتفاصيل ←</div>
+        <div className="inline-flex items-center gap-1 text-xs mt-2 opacity-60 font-medium">انقر للتفاصيل <ArrowLeft size={11} /></div>
       </button>
     )
   }
@@ -1032,7 +1033,7 @@ export default function ReportsPage() {
 
       {/* ══ شريط الفترة الزمنية ══ */}
       <div className="flex items-center gap-2 flex-wrap bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
-        <span className="text-xs font-bold text-slate-500 flex-shrink-0">📆 الفترة:</span>
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 flex-shrink-0"><Calendar size={13} /> الفترة:</span>
 
         {/* أزرار الاختصار السريع */}
         {[
@@ -1067,12 +1068,12 @@ export default function ReportsPage() {
         {/* حالة الفلتر النشط + زر المسح */}
         {(fromDate || toDate) ? (
           <div className="flex items-center gap-2 mr-auto">
-            <span className="text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-xl">
-              📊 {filtered.length} مهمة في هذه الفترة
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-xl">
+              <BarChart3 size={12} /> {filtered.length} مهمة في هذه الفترة
             </span>
             <button onClick={clearDateRange}
-              className="px-3 py-1.5 rounded-xl text-xs font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">
-              ✕ مسح الفترة
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">
+              <X size={12} /> مسح الفترة
             </button>
           </div>
         ) : (
@@ -1185,7 +1186,7 @@ export default function ReportsPage() {
                           {p.name_ar}
                         </button>
                         <div className="flex items-center gap-3 text-xs text-slate-500 flex-shrink-0">
-                          <span className="text-red-600">{delayed>0?`⚠️ ${delayed} متأخرة`:''}</span>
+                          {delayed>0 && <span className="inline-flex items-center gap-1 text-red-600"><AlertTriangle size={11} /> {delayed} متأخرة</span>}
                           <span>{done}/{pts.length}</span>
                           <span className="font-bold w-10 text-left"
                             style={{color:rate>=80?'#16a34a':rate>=50?'#d97706':'#dc2626'}}>
@@ -1213,7 +1214,7 @@ export default function ReportsPage() {
       {activeTab==='hierarchy' && (
         <div className="space-y-3">
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs text-amber-800 flex items-center gap-2">
-            <span>💡</span>
+            <Lightbulb size={14} className="flex-shrink-0" />
             <span>اضغط على أي عقدة لطي/فتحها · اضغط على زر العدد لعرض تفاصيل المهام كاملاً</span>
           </div>
           {topNodes.length===0 ? (
@@ -1254,35 +1255,35 @@ export default function ReportsPage() {
                 {([
                   {
                     label: 'إجمالي المؤشرات',
-                    icon:  '📈',
+                    icon:  <TrendingUp size={20} />,
                     color: 'slate',
                     kpis:  filteredKpis,
                     filter: 'all',
                   },
                   {
                     label: 'على المسار',
-                    icon:  '✅',
+                    icon:  <CheckCircle2 size={20} />,
                     color: 'green',
                     kpis:  filteredKpis.filter(k => { const p = kpiProgress(k); return p !== null && p >= 80 }),
                     filter: 'on_track',
                   },
                   {
                     label: 'تحت المستهدف',
-                    icon:  '⚠️',
+                    icon:  <AlertTriangle size={20} />,
                     color: 'amber',
                     kpis:  filteredKpis.filter(k => { const p = kpiProgress(k); return p !== null && p >= 50 && p < 80 }),
                     filter: 'below',
                   },
                   {
                     label: 'بعيد عن الهدف',
-                    icon:  '❌',
+                    icon:  <XCircle size={20} />,
                     color: 'orange',
                     kpis:  filteredKpis.filter(k => { const p = kpiProgress(k); return p !== null && p < 50 }),
                     filter: 'far',
                   },
                   {
                     label: 'بدون قراءات',
-                    icon:  '📭',
+                    icon:  <Inbox size={20} />,
                     color: 'red',
                     kpis:  filteredKpis.filter(k => k.latest_reading === null),
                     filter: 'no_data',
@@ -1299,7 +1300,7 @@ export default function ReportsPage() {
                       key={i}
                       onClick={() => setKpiModal({ kpis: s.kpis, title: s.label, color: s.color })}
                       className={`rounded-2xl border p-3 text-center shadow-sm transition-all hover:shadow-md cursor-pointer w-full ${colorCls}`}>
-                      <div className="text-xl mb-1">{s.icon}</div>
+                      <div className="flex justify-center mb-1">{s.icon}</div>
                       <div className="text-xl font-bold">{s.kpis.length}</div>
                       <div className="text-[11px] font-semibold mt-0.5 leading-tight">{s.label}</div>
                       <div className="text-[9px] mt-1 opacity-60 font-medium">انقر للتفاصيل</div>
@@ -1410,7 +1411,7 @@ export default function ReportsPage() {
         <div className="space-y-5">
           {deptPerf.length>0 && (
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-              <h4 className="font-bold text-slate-700 mb-4 text-sm">📂 أداء الأقسام</h4>
+              <h4 className="inline-flex items-center gap-1.5 font-bold text-slate-700 mb-4 text-sm"><Folder size={14} /> أداء الأقسام</h4>
               <ResponsiveContainer width="100%" height={Math.max(180, deptPerf.length*45)}>
                 <BarChart data={deptPerf} layout="vertical" margin={{right:50,left:10}}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -1430,7 +1431,7 @@ export default function ReportsPage() {
           {userPerf.length>0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-100 bg-slate-50">
-                <h4 className="font-bold text-slate-700 text-sm">👤 ترتيب الأفراد حسب الأداء</h4>
+                <h4 className="inline-flex items-center gap-1.5 font-bold text-slate-700 text-sm"><User size={14} /> ترتيب الأفراد حسب الأداء</h4>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
