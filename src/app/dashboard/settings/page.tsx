@@ -600,22 +600,24 @@ export default function SettingsPage() {
 
                 {/* ═══ عرض المصفوفة: الأدوار أعمدة × الصلاحيات صفوف ═══ */}
                 {rolesView === 'matrix' && (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-auto max-h-[72vh]">
                     <table className="w-full border-collapse text-sm">
                       <thead>
                         <tr>
-                          <th className="sticky right-0 z-10 bg-slate-50 text-right p-3 border-b border-slate-200 font-bold text-slate-600 whitespace-nowrap min-w-[170px]">
+                          <th className="sticky top-0 right-0 z-30 bg-slate-100 text-right align-top p-3 border-b border-slate-200 font-bold text-slate-600 whitespace-nowrap min-w-[170px]">
                             الصلاحية \ الدور
                           </th>
                           {roles.map(role => (
-                            <th key={role.id} className="p-3 border-b border-slate-200 align-bottom min-w-[88px]">
+                            <th key={role.id} className="sticky top-0 z-20 bg-slate-100 p-3 border-b border-slate-200 align-top min-w-[92px]">
                               <div className="flex flex-col items-center gap-1.5">
-                                <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                                <span className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
                                   style={{ backgroundColor: role.color }} title={role.code}>
                                   {role.name_ar[0]}
                                 </span>
-                                <span className="text-[11px] font-bold text-slate-600 leading-tight text-center">{role.name_ar}</span>
-                                {role.is_system && <Lock size={9} className="text-amber-500" />}
+                                <span className="text-[11px] font-bold text-slate-700 leading-tight text-center min-h-[26px] flex items-center justify-center">{role.name_ar}</span>
+                                {role.is_system
+                                  ? <Lock size={10} className="text-amber-500" />
+                                  : <span className="h-2.5" />}
                               </div>
                             </th>
                           ))}
