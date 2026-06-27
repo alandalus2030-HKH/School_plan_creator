@@ -14,7 +14,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
-import { Award, BarChart3, Star, Settings, Pencil, Trash2, BadgeCheck, ShieldOff, Bell, ListTree, ClipboardList, Lock, LockOpen } from 'lucide-react'
+import { Award, BarChart3, Star, Settings, Pencil, Trash2, BadgeCheck, ShieldOff, Bell, ListTree, ClipboardList, Lock, LockOpen,
+  Tag, User, Calendar, Upload, Download, CircleCheckBig, X, Layers, FolderTree, Save, Lightbulb, Loader2 } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
 import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -339,8 +340,8 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
   const planRatingInfo = planRatingAvg != null ? ratingBadgeClass(planRatingAvg) : null
 
   const otherView = active === 'tree'
-    ? { href: `/dashboard/plans/${planId}/build`, label: '📋 العرض بالقوائم' }
-    : { href: `/dashboard/plans/${planId}`,       label: '🌳 العرض الشجري' }
+    ? { href: `/dashboard/plans/${planId}/build`, label: 'العرض بالقوائم', icon: <ClipboardList size={14} /> }
+    : { href: `/dashboard/plans/${planId}`,       label: 'العرض الشجري',  icon: <ListTree size={14} /> }
 
   return (
     <>
@@ -363,9 +364,9 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
               </div>
               {/* القسم + المالك + العام — صفّ أفقي واحد يلتفّ كمجموعة (لا تكدّس عمودي) */}
               <div className="flex items-center gap-1.5 flex-wrap mt-2 text-violet-100">
-                {plan.department && <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">🏷️ {plan.department}</span>}
-                {plan.owner_id && <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">👤 {dimOwners.find((o: any) => o.id === plan.owner_id)?.name_ar || 'صاحب الخطة'}</span>}
-                <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">📅 <span className="font-latin">{plan.academic_year}</span></span>
+                {plan.department && <span className="inline-flex items-center gap-1 text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap"><Tag size={11} /> {plan.department}</span>}
+                {plan.owner_id && <span className="inline-flex items-center gap-1 text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap"><User size={11} /> {dimOwners.find((o: any) => o.id === plan.owner_id)?.name_ar || 'صاحب الخطة'}</span>}
+                <span className="inline-flex items-center gap-1 text-[11px] bg-white/15 px-2 py-0.5 rounded-full whitespace-nowrap"><Calendar size={11} /> <span className="font-latin">{plan.academic_year}</span></span>
               </div>
               <div className="flex items-center gap-3 mt-2 text-sm text-violet-200 flex-wrap">
                 <span className="whitespace-nowrap">{topNodes.length} {level1Name}</span>
@@ -398,15 +399,15 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                 {/* زر التحويل بين العرضين */}
                 <Link href={otherView.href}
                   className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1.5 rounded-lg transition-colors font-medium">
-                  {otherView.label}
+                  {otherView.icon} {otherView.label}
                 </Link>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
                 {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
                   <button onClick={() => fileRef.current?.click()}
-                    className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">📥 استيراد</button>
+                    className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"><Upload size={13} /> استيراد</button>
                 )}
                 <button onClick={exportExcel}
-                  className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">📤 تصدير</button>
+                  className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"><Download size={13} /> تصدير</button>
                 <button onClick={() => generateQnsaReport(planId)}
                   className="flex items-center gap-1.5 bg-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-white/90" style={{ color: 'var(--maroon-700)' }}>
                   <Award size={14} /> تقرير QNSA
@@ -473,7 +474,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                 </span>
               )
             })}
-            <span className="bg-green-400/20 px-2.5 py-1 rounded-lg text-xs font-medium text-green-100">✅ المهمة</span>
+            <span className="inline-flex items-center gap-1 bg-green-400/20 px-2.5 py-1 rounded-lg text-xs font-medium text-green-100"><CircleCheckBig size={12} /> المهمة</span>
           </div>
         </div>
       ) : (
@@ -482,16 +483,16 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
           <form onSubmit={savePlan} className="space-y-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-white font-bold">تعديل بيانات الخطة</span>
-              <button type="button" onClick={() => setEditingPlan(false)} className="text-white/60 hover:text-white text-sm">✕ إلغاء</button>
+              <button type="button" onClick={() => setEditingPlan(false)} className="inline-flex items-center gap-1 text-white/60 hover:text-white text-sm"><X size={13} /> إلغاء</button>
             </div>
             <input value={editPlanName} onChange={e => setEditPlanName(e.target.value)} required
               className="w-full px-4 py-3 rounded-xl bg-white/15 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40" placeholder="اسم الخطة *" />
             <select value={editPlanYear} onChange={e => setEditPlanYear(e.target.value)}
               className="w-full px-4 py-3 rounded-xl bg-white/15 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/40">
-              {ACADEMIC_YEARS.map(y => <option key={y} value={y} className="text-slate-800">📅 {y}</option>)}
+              {ACADEMIC_YEARS.map(y => <option key={y} value={y} className="text-slate-800">{y}</option>)}
             </select>
             <div className="bg-white/10 rounded-xl p-4 space-y-3">
-              <p className="text-white text-sm font-bold">🏗️ عدد مستويات الهيكل الهرمي</p>
+              <p className="inline-flex items-center gap-1.5 text-white text-sm font-bold"><Layers size={14} /> عدد مستويات الهيكل الهرمي</p>
               <div className="flex gap-2">
                 {[2, 3, 4, 5].map(n => (
                   <button key={n} type="button" onClick={() => handleLevelCountChange(n)}
@@ -509,7 +510,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
               </div>
             </div>
             <div className="bg-white/10 rounded-xl p-4 space-y-3">
-              <p className="text-white text-sm font-bold">🗂️ تصنيف الخطة (للوحات التجميع)</p>
+              <p className="inline-flex items-center gap-1.5 text-white text-sm font-bold"><FolderTree size={14} /> تصنيف الخطة (للوحات التجميع)</p>
               <div className="grid grid-cols-2 gap-2">
                 <select value={editDept} onChange={e => setEditDept(e.target.value)}
                   className="px-3 py-2 rounded-lg bg-white/15 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
@@ -529,7 +530,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
               </select>
             </div>
             <button type="submit" disabled={savingPlan} className="w-full py-3 bg-white text-violet-700 font-bold rounded-xl disabled:opacity-60">
-              {savingPlan ? 'جارٍ الحفظ...' : '💾 حفظ التعديلات'}
+              <span className="inline-flex items-center justify-center gap-1.5">{savingPlan ? 'جارٍ الحفظ...' : <><Save size={14} /> حفظ التعديلات</>}</span>
             </button>
           </form>
         </div>
@@ -541,10 +542,10 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">📥 استيراد هيكل الخطة</h3>
+                <h3 className="inline-flex items-center gap-1.5 text-lg font-bold text-slate-800"><Upload size={17} /> استيراد هيكل الخطة</h3>
                 <p className="text-xs text-slate-400 mt-0.5">{importRows.length} صف في الملف — العناصر الموجودة لن تُكرَّر</p>
               </div>
-              <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+              <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-auto p-5">
               <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -572,7 +573,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
               <button onClick={() => setShowImport(false)} className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50">إغلاق</button>
               <button onClick={runImport} disabled={importing || !!importMsg.startsWith('✅')}
                 className="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                {importing ? 'جارٍ الاستيراد...' : `✅ استيراد ${importRows.length} صف`}
+                <span className="inline-flex items-center gap-1.5">{importing ? 'جارٍ الاستيراد...' : <><Upload size={14} /> استيراد {importRows.length} صف</>}</span>
               </button>
             </div>
           </div>
@@ -588,7 +589,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 size={18} /> إعدادات مؤشرات الأداء KPI</h3>
                 <p className="text-xs text-slate-400 mt-0.5">فعّل أو عطّل مؤشرات الأداء لكل مستوى من مستويات الخطة</p>
               </div>
-              <button onClick={() => setShowKpiSettings(false)} className="text-slate-400 hover:text-slate-600 text-xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">✕</button>
+              <button onClick={() => setShowKpiSettings(false)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100"><X size={18} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
               {kpiLevels.map((cfg) => {
@@ -601,7 +602,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                         <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${cfg.enabled && !locked ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>{cfg.levelIndex + 1}</span>
                         <div>
                           <p className="font-semibold text-slate-700 text-sm">{lName}</p>
-                          {locked && <p className="text-xs text-slate-400">🔒 المستوى الأول — حاوٍ عام للخطة</p>}
+                          {locked && <p className="inline-flex items-center gap-1 text-xs text-slate-400"><Lock size={11} /> المستوى الأول — حاوٍ عام للخطة</p>}
                         </div>
                       </div>
                       {!locked && (
@@ -643,14 +644,15 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                   </div>
                 )
               })}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                💡 المستوى الأول (الحاوي العام) لا يمكن إضافة KPI له. أما المهام فهي كيان منفصل تحت جميع المستويات.
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+                <Lightbulb size={14} className="flex-shrink-0 mt-0.5" />
+                <span>المستوى الأول (الحاوي العام) لا يمكن إضافة KPI له. أما المهام فهي كيان منفصل تحت جميع المستويات.</span>
               </div>
             </div>
             <div className="p-5 border-t border-slate-100 flex gap-3 justify-end">
               <button onClick={() => setShowKpiSettings(false)} className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50">إلغاء</button>
               <button onClick={saveKpiSettings} disabled={savingKpi} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                {savingKpi ? '⏳ جارٍ الحفظ...' : '💾 حفظ الإعدادات'}
+                <span className="inline-flex items-center gap-1.5">{savingKpi ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</> : <><Save size={14} /> حفظ الإعدادات</>}</span>
               </button>
             </div>
           </div>
