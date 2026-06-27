@@ -993,7 +993,9 @@ export default function ReportsPage() {
       <button
         onClick={() => setModal({ tasks: modalTasks, title: modalTitle })}
         className={`rounded-2xl border p-5 shadow-sm text-right transition-all hover:shadow-md cursor-pointer w-full ${colorMap[color]||colorMap.slate}`}>
-        <div className="h-6 mb-2 flex items-center [&>svg]:w-6 [&>svg]:h-6">{icon}</div>
+        <div className="mb-2 flex">
+          <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-black/[0.04] [&>svg]:w-[18px] [&>svg]:h-[18px]">{icon}</span>
+        </div>
         <div className="text-3xl font-bold">{value}</div>
         <div className="text-sm font-semibold mt-1">{label}</div>
         {sub && <div className="text-xs opacity-70 mt-0.5">{sub}</div>}
