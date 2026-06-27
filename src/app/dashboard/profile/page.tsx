@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserRound, Phone, Award, Star, Camera, Loader2, Trash2 } from 'lucide-react'
+import { UserRound, Phone, Award, Star, Camera, Loader2, Trash2, Save, KeyRound, Lock, Mail } from 'lucide-react'
 import { toast } from '@/components/Toast'
 import { BadgeIcon } from '@/lib/badgeIcons'
 
@@ -411,8 +411,9 @@ export default function ProfilePage() {
           )}
 
           <button type="submit" disabled={saving}
-            className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 text-sm">
-            {saving ? 'جارٍ الحفظ...' : '💾 حفظ التعديلات'}
+            className="inline-flex items-center justify-center gap-1.5 w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 text-sm">
+            <span className="inline-flex">{saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}</span>
+            <span>{saving ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}</span>
           </button>
         </div>
       </form>
@@ -420,7 +421,7 @@ export default function ProfilePage() {
       {/* ══ تغيير كلمة المرور ══ */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="font-bold text-slate-800">🔑 كلمة المرور</h2>
+          <h2 className="inline-flex items-center gap-1.5 font-bold text-slate-800"><KeyRound size={16} /> كلمة المرور</h2>
           <p className="text-xs text-slate-500 mt-0.5">غيّر كلمة مرورك بإدخال الحالية، أو اطلب رابطاً عبر بريدك.</p>
         </div>
         <div className="p-5">
@@ -450,13 +451,13 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2 flex-wrap">
               <button type="submit" disabled={changing}
                 className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
-                {changing ? 'جارٍ التغيير...' : '🔒 تغيير كلمة المرور'}
+                <span className="inline-flex items-center gap-1.5">{changing ? <><Loader2 size={14} className="animate-spin" /> جارٍ التغيير...</> : <><Lock size={14} /> تغيير كلمة المرور</>}</span>
               </button>
               {/* رابط احتياطي — يظهر دائماً، ويُبرَز عند خطأ كلمة المرور الحالية */}
               <button type="button" onClick={sendPasswordReset} disabled={sendingReset}
                 className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50
                   ${oldWrong ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                {sendingReset ? '⏳ جارٍ الإرسال...' : '📧 نسيت كلمتي — أرسل رابطاً لبريدي'}
+                <span className="inline-flex items-center gap-1.5">{sendingReset ? <><Loader2 size={14} className="animate-spin" /> جارٍ الإرسال...</> : <><Mail size={14} /> نسيت كلمتي — أرسل رابطاً لبريدي</>}</span>
               </button>
             </div>
             {resetMsg && (

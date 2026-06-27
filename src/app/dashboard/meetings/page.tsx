@@ -7,7 +7,7 @@ import { createNotification } from '@/lib/notifications'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { CalendarDays, CalendarClock, CalendarCheck, UserRound,
   AlertTriangle, Inbox, Video, Briefcase, Link2, Monitor,
-  Map, CircleCheckBig, Plus, Pencil, Trash2 } from 'lucide-react'
+  Map, CircleCheckBig, Plus, Pencil, Trash2, Search, X, ArrowUpRight } from 'lucide-react'
 import { openQuickAdd } from '@/components/QuickAddTask'
 import type { Plan, Team, TeamMember, Meeting } from '@/lib/types'
 
@@ -356,13 +356,13 @@ export default function MeetingsPage() {
           {canManage && (
             <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors">
-              🎥 إنشاء اجتماع Google Meet
+              <Video size={16} /> إنشاء اجتماع Google Meet
             </a>
           )}
           {canManage && (
             <button onClick={openCreate}
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-violet-200">
-              ➕ إضافة اجتماع
+              <Plus size={16} /> إضافة اجتماع
             </button>
           )}
         </div>
@@ -396,9 +396,12 @@ export default function MeetingsPage() {
 
       {/* ══ فلاتر ══ */}
       <div className="flex items-center gap-3 flex-wrap">
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 بحث..."
-          className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+        <div className="relative flex-1 min-w-[160px]">
+          <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="بحث..."
+            className="w-full pr-9 pl-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
 
         <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)}
           className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
@@ -408,7 +411,7 @@ export default function MeetingsPage() {
 
         <div className="flex bg-slate-100 p-1 rounded-xl">
           {([
-            { key: 'mine',     label: '👤 اجتماعاتي' },
+            { key: 'mine',     label: 'اجتماعاتي'     },
             { key: 'upcoming', label: 'القادمة'       },
             { key: 'past',     label: 'المنتهية'      },
             { key: 'all',      label: 'الكل'          },
@@ -436,8 +439,8 @@ export default function MeetingsPage() {
           </p>
           {canManage && (
             <button onClick={openCreate}
-              className="mt-4 px-5 py-2 bg-violet-600 text-white text-sm rounded-xl hover:bg-violet-700 transition-colors">
-              ➕ أضف اجتماعاً
+              className="inline-flex items-center gap-1.5 mt-4 px-5 py-2 bg-violet-600 text-white text-sm rounded-xl hover:bg-violet-700 transition-colors">
+              <Plus size={15} /> أضف اجتماعاً
             </button>
           )}
         </div>
@@ -486,7 +489,7 @@ export default function MeetingsPage() {
 
                   {dt && (
                     <div className="flex items-center gap-2 text-xs text-slate-600">
-                      <span>🗓️</span>
+                      <CalendarDays size={13} className="flex-shrink-0" />
                       <span className="font-medium">
                         {dt.toLocaleDateString('ar-QA', { weekday:'short', year:'numeric', month:'short', day:'numeric' })}
                       </span>
@@ -586,11 +589,11 @@ export default function MeetingsPage() {
             onClick={e => e.stopPropagation()}>
 
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <h3 className="font-bold text-slate-800 text-base">
-                {editId ? '✏️ تعديل الاجتماع' : '➕ اجتماع جديد'}
+              <h3 className="inline-flex items-center gap-1.5 font-bold text-slate-800 text-base">
+                <span className="inline-flex">{editId ? <Pencil size={16} /> : <Plus size={16} />}</span>{editId ? 'تعديل الاجتماع' : 'اجتماع جديد'}
               </h3>
               <button onClick={() => setShowForm(false)}
-                className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+                className="text-slate-400 hover:text-slate-600 leading-none"><X size={20} /></button>
             </div>
 
             <form onSubmit={save} className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -641,7 +644,7 @@ export default function MeetingsPage() {
                 <div className="mt-2 flex items-center gap-2">
                   <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
                     className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                    <Video size={12} className="inline ml-1" /> إنشاء اجتماع Google Meet جديد ↗
+                    <Video size={12} className="inline ml-1" /> إنشاء اجتماع Google Meet جديد <ArrowUpRight size={12} />
                   </a>
                   <span className="text-slate-300">·</span>
                   <span className="text-[10px] text-slate-400">الصق الرابط هنا بعد الإنشاء</span>
@@ -748,7 +751,7 @@ export default function MeetingsPage() {
                           className="flex items-center gap-1 text-[11px] px-2.5 py-1 bg-violet-100 text-violet-700 rounded-full font-medium">
                           {profileName(p)}
                           <button type="button" onClick={() => toggleAttendee(id)}
-                            className="hover:text-red-500 transition-colors leading-none ml-0.5">✕</button>
+                            className="inline-flex hover:text-red-500 transition-colors leading-none ml-0.5"><X size={11} /></button>
                         </span>
                       )
                     })}
@@ -763,7 +766,7 @@ export default function MeetingsPage() {
               {/* خطأ الحفظ */}
               {saveError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                  ⚠️ {saveError}
+                  <AlertTriangle size={15} className="flex-shrink-0" /> {saveError}
                 </div>
               )}
 
