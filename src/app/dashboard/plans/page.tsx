@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, Archive, ClipboardList, FolderOpen, BadgeCheck, ShieldOff, ChevronDown, Lock, LockOpen } from 'lucide-react'
+import { Eye, Archive, ClipboardList, FolderOpen, BadgeCheck, ShieldOff, ChevronDown, Lock, LockOpen,
+  BarChart3, Plus, Search, X, Tag, User, Trash2, CircleCheckBig, Network } from 'lucide-react'
 import { SkeletonCards, SkeletonTable } from '@/components/Skeleton'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -135,7 +136,7 @@ function PlansPageInner() {
     setPlans(prev => prev.map(p =>
       p.id === plan.id ? { ...p, approved_at: json.approved_at } : p
     ))
-    toast(approve ? '✓ تم اعتماد الخطة بنجاح' : 'تم إلغاء الاعتماد', 'success')
+    toast(approve ? 'تم اعتماد الخطة بنجاح' : 'تم إلغاء الاعتماد', 'success')
   }
 
   /* ─── تجميد / إلغاء تجميد خطة (صلاحية freeze_plans) ─── */
@@ -154,7 +155,7 @@ function PlansPageInner() {
     setPlans(prev => prev.map(p =>
       p.id === plan.id ? { ...p, frozen_at: json.frozen_at } : p
     ))
-    toast(freeze ? '🔒 تم تجميد الخطة' : 'تم إلغاء التجميد', 'success')
+    toast(freeze ? 'تم تجميد الخطة' : 'تم إلغاء التجميد', 'success')
   }
 
   /* ─── حذف خطة — عبر API خادمي (الحذف الناعم من العميل ترفضه سياسة القراءة) ─── */
@@ -234,13 +235,13 @@ function PlansPageInner() {
           {can('view_aggregate') && (
             <Link href="/dashboard/aggregate"
               className="flex items-center gap-2 border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
-              📊 المتابعة في لوحة التجميع
+              <BarChart3 size={16} /> المتابعة في لوحة التجميع
             </Link>
           )}
           {can('manage_plans') && (
             <Link href="/dashboard/plans/new"
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-violet-200">
-              ➕ خطة جديدة
+              <Plus size={16} /> خطة جديدة
             </Link>
           )}
         </div>
@@ -266,7 +267,7 @@ function PlansPageInner() {
               onClick={e => e.stopPropagation()}>
               {ACADEMIC_YEARS.map(y => (
                 <option key={y} value={y}>
-                  📅 {y}{countByYear(y) > 0 ? ` (${countByYear(y)})` : ''}
+                  {y}{countByYear(y) > 0 ? ` (${countByYear(y)})` : ''}
                 </option>
               ))}
             </select>
@@ -292,9 +293,9 @@ function PlansPageInner() {
         {/* إحصائية العام المحدد */}
         {yearPlans.length > 0 && (
           <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-6 text-sm text-slate-500">
-            <span>📋 {yearPlans.filter(p => !p.is_archived).length} خطة نشطة</span>
+            <span className="inline-flex items-center gap-1"><ClipboardList size={14} /> {yearPlans.filter(p => !p.is_archived).length} خطة نشطة</span>
             {yearPlans.filter(p => p.is_archived).length > 0 && (
-              <span>📦 {yearPlans.filter(p => p.is_archived).length} مؤرشفة</span>
+              <span className="inline-flex items-center gap-1"><Archive size={14} /> {yearPlans.filter(p => p.is_archived).length} مؤرشفة</span>
             )}
             {yearPlans.filter(p => p.approved_at).length > 0 && (
               <span className="flex items-center gap-1 text-emerald-600">
@@ -308,8 +309,11 @@ function PlansPageInner() {
 
       {/* ── الفلاتر ── */}
       <div className="flex items-center gap-2 flex-wrap">
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 بحث باسم الخطة..."
-          className="flex-1 min-w-[180px] px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="بحث باسم الخطة..."
+            className="w-full pr-9 pl-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
         {deptOptions.length > 0 && (
           <select value={deptF} onChange={e => setDeptF(e.target.value)}
             className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
@@ -333,7 +337,7 @@ function PlansPageInner() {
         {anyFilter && (
           <button onClick={clearFilters}
             className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
-            ✕ إزالة الفلاتر
+            <X size={14} /> إزالة الفلاتر
           </button>
         )}
         {visible.length > 1 && (
@@ -397,10 +401,10 @@ function PlansPageInner() {
                       {((plan as any).department || (plan as any).owner_name) && (
                         <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                           {(plan as any).department && (
-                            <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">🏷️ {(plan as any).department}</span>
+                            <span className="inline-flex items-center gap-1 text-[11px] bg-white/15 px-2 py-0.5 rounded-full"><Tag size={11} /> {(plan as any).department}</span>
                           )}
                           {(plan as any).owner_name && (
-                            <span className="text-[11px] bg-white/15 px-2 py-0.5 rounded-full">👤 {(plan as any).owner_name}</span>
+                            <span className="inline-flex items-center gap-1 text-[11px] bg-white/15 px-2 py-0.5 rounded-full"><User size={11} /> {(plan as any).owner_name}</span>
                           )}
                         </div>
                       )}
@@ -475,7 +479,7 @@ function PlansPageInner() {
                                 <button
                                   onClick={() => { setConfirmDel(plan.id); setMenuOpen(null) }}
                                   className="w-full text-right px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                                  🗑️ حذف الخطة
+                                  <Trash2 size={15} /> حذف الخطة
                                 </button>
                               </>
                             )}
@@ -503,19 +507,19 @@ function PlansPageInner() {
                 {/* فتح الخطة — القسم الأبيض، rounded-b-2xl (يُخفى عند الطيّ) */}
                 {!plan.is_archived && !isCollapsed(plan.id) && (
                   <div className="p-4 bg-white rounded-b-2xl space-y-2">
-                    <p className="text-xs text-slate-400 px-1">
-                      {((plan as any).level_names as string[] || []).join(' › ')} › ✅ المهمة
+                    <p className="inline-flex items-center gap-1 text-xs text-slate-400 px-1">
+                      {((plan as any).level_names as string[] || []).join(' › ')} › <CircleCheckBig size={12} /> المهمة
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       {/* فتح بالهيكل الهرمي */}
                       <Link href={`/dashboard/plans/${plan.id}`}
                         className="flex items-center justify-center gap-2 p-3 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 text-violet-700 font-semibold text-sm transition-colors">
-                        🌳 الهيكل الهرمي
+                        <Network size={16} /> الهيكل الهرمي
                       </Link>
                       {/* فتح بطريقة القوائم — بنفس لون زر الهيكل الهرمي */}
                       <Link href={`/dashboard/plans/${plan.id}/build`}
                         className="flex items-center justify-center gap-2 p-3 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 text-violet-700 font-semibold text-sm transition-colors">
-                        📋 القوائم (AI)
+                        <ClipboardList size={16} /> القوائم (AI)
                       </Link>
                     </div>
                   </div>
@@ -540,7 +544,7 @@ function PlansPageInner() {
           {!showArchived && can('manage_plans') && (
             <Link href="/dashboard/plans/new"
               className="inline-flex items-center gap-2 bg-violet-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-violet-700 transition-colors">
-              ➕ إنشاء خطة لعام {selectedYear}
+              <Plus size={16} /> إنشاء خطة لعام {selectedYear}
             </Link>
           )}
         </div>
