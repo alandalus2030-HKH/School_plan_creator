@@ -10,6 +10,8 @@ import ConflictWarning from '@/components/ConflictWarning'
 import { todayInput } from '@/lib/dates'
 import { loadCalendar, dayStatus, type CalendarData } from '@/lib/calendar'
 import { usePermissions } from '@/lib/PermissionsContext'
+import { MapPin, ClipboardList, Target, Ban, AlertTriangle, Coins, Package,
+  CheckSquare, Check, User, Search, Link2, Mail, CircleCheckBig, ArrowRight, Hammer, FileText } from 'lucide-react'
 
 function NewTaskForm() {
   const router       = useRouter()
@@ -281,7 +283,7 @@ function NewTaskForm() {
       {/* رأس الصفحة */}
       <div className="flex items-center gap-3 mb-6">
         <Link href="/dashboard/tasks"
-          className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-violet-600 hover:border-violet-300 transition-colors">←</Link>
+          className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-violet-600 hover:border-violet-300 transition-colors"><ArrowRight size={18} /></Link>
         <div>
           <h2 className="text-2xl font-bold text-slate-800">مهمة جديدة</h2>
           <p className="text-slate-500 text-sm mt-0.5">إضافة مهمة للخطة التشغيلية</p>
@@ -293,13 +295,13 @@ function NewTaskForm() {
         {/* ══ بطاقة الموضع (متتابع) ══ */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
           <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
-            📍 الموضع في الهيكل <span className="text-red-500">*</span>
+            <MapPin size={15} className="text-violet-600" /> الموضع في الهيكل <span className="text-red-500">*</span>
           </h3>
 
           {/* اختيار الخطة */}
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 w-28">
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">📋 الخطة</span>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg"><ClipboardList size={12} /> الخطة</span>
             </div>
             <select value={selPlanId} onChange={e => handlePlanChange(e.target.value)}
               className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm">
@@ -322,7 +324,7 @@ function NewTaskForm() {
           {selPlanId && !nodesLoading && planNodes.length === 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
               <div className="flex items-start gap-2">
-                <span className="text-amber-500 flex-shrink-0 mt-0.5">⚠️</span>
+                <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-800">
                   هذه الخطة لا تحتوي على هيكل بعد. لإضافة مهمة يجب أولاً بناء محاور الخطة وأهدافها
                   (يمكنك استخدام «بند مخصّص» إن لم ترغب بمعايير الاعتماد)، ثم تعليق المهمة على «{levelNames[levelCount - 1] || 'الهدف'}».
@@ -330,7 +332,7 @@ function NewTaskForm() {
               </div>
               <Link href={`/dashboard/plans/${selPlanId}/build`}
                 className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors">
-                🏗️ بناء هيكل الخطة
+                <Hammer size={15} /> بناء هيكل الخطة
               </Link>
             </div>
           )}
@@ -350,12 +352,13 @@ function NewTaskForm() {
                 <div className="flex items-center gap-3">
                   <div className="flex-shrink-0 w-28 flex flex-col items-start gap-0.5">
                     <div className="w-px h-3 bg-slate-200 mr-3" />
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${
                       isLast
                         ? 'bg-violet-100 text-violet-700'
                         : 'bg-slate-100 text-slate-500'
                     }`}>
-                      {isLast ? '🎯' : `${levelNum}.`} {levelName}
+                      <span className="inline-flex">{isLast ? <Target size={12} /> : <span>{levelNum}.</span>}</span>
+                      {levelName}
                     </span>
                   </div>
 
@@ -385,7 +388,7 @@ function NewTaskForm() {
           {/* ملخص المسار */}
           {selectedNode && (
             <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-4 py-2.5">
-              <span className="text-violet-400 text-sm">📍</span>
+              <MapPin size={14} className="text-violet-400 flex-shrink-0" />
               <span className="text-xs text-violet-700 font-medium">
                 {currentPlan?.name_ar} › {selectionPath}
               </span>
@@ -395,7 +398,7 @@ function NewTaskForm() {
 
         {/* ══ بطاقة بيانات المهمة ══ */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-          <h3 className="font-bold text-slate-700 text-sm">📝 بيانات المهمة</h3>
+          <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2"><FileText size={15} className="text-violet-600" /> بيانات المهمة</h3>
 
           {/* اسم المهمة */}
           <div>
@@ -421,18 +424,18 @@ function NewTaskForm() {
               <label className="block text-sm font-medium text-slate-700 mb-1.5">نوع المهمة</label>
               <select value={taskType} onChange={e => setTaskType(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
-                <option value="general">📌 عامة</option>
-                <option value="academic">📚 أكاديمية</option>
-                <option value="administrative">🗃️ إدارية</option>
+                <option value="general">عامة</option>
+                <option value="academic">أكاديمية</option>
+                <option value="administrative">إدارية</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">الأولوية</label>
               <select value={priority} onChange={e => setPriority(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
-                <option value="low">🟢 منخفضة</option>
-                <option value="medium">🟡 متوسطة</option>
-                <option value="high">🔴 عالية</option>
+                <option value="low">منخفضة</option>
+                <option value="medium">متوسطة</option>
+                <option value="high">عالية</option>
               </select>
             </div>
           </div>
@@ -444,7 +447,7 @@ function NewTaskForm() {
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} dir="ltr" required
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
               {(() => { const s = dayStatus(startDate, cal); if (!s) return null
-                return <p className={`text-xs mt-1 ${s.level === 'block' ? 'text-red-600' : 'text-amber-600'}`}>{s.level === 'block' ? '⛔' : '⚠️'} {s.reason}</p> })()}
+                return <p className={`inline-flex items-center gap-1 text-xs mt-1 ${s.level === 'block' ? 'text-red-600' : 'text-amber-600'}`}><span className="inline-flex">{s.level === 'block' ? <Ban size={12} /> : <AlertTriangle size={12} />}</span> {s.reason}</p> })()}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">تاريخ الانتهاء <span className="text-red-500">*</span></label>
@@ -452,14 +455,14 @@ function NewTaskForm() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800" />
               {(() => { const s = dayStatus(endDate, cal); if (!s) return null
                 /* الانتهاء تنبيه دائماً (لا يمنع) */
-                return <p className="text-xs mt-1 text-amber-600">⚠️ {s.reason}</p> })()}
+                return <p className="inline-flex items-center gap-1 text-xs mt-1 text-amber-600"><AlertTriangle size={12} /> {s.reason}</p> })()}
             </div>
           </div>
 
           {/* الموارد المادية */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              💰 الموارد المادية المطلوبة
+            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+              <Coins size={14} className="text-violet-600" /> الموارد المادية المطلوبة
               <span className="text-slate-400 font-normal text-xs mr-1">(بالريال القطري)</span>
             </label>
             <div className="relative">
@@ -478,8 +481,8 @@ function NewTaskForm() {
 
           {/* الموارد الأخرى */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              📦 الموارد الأخرى
+            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+              <Package size={14} className="text-violet-600" /> الموارد الأخرى
               <span className="text-slate-400 font-normal text-xs mr-1">(اختياري)</span>
             </label>
             <textarea
@@ -494,8 +497,8 @@ function NewTaskForm() {
           {/* الأماكن المطلوبة */}
           {locations.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                📍 الأماكن المطلوبة
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                <MapPin size={14} className="text-violet-600" /> الأماكن المطلوبة
                 <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — لمنع التعارض)</span>
               </label>
               <div className="flex flex-wrap gap-2">
@@ -504,10 +507,10 @@ function NewTaskForm() {
                   return (
                     <button key={loc.id} type="button"
                       onClick={() => setSelLocationIds(prev => on ? prev.filter(x => x !== loc.id) : [...prev, loc.id])}
-                      className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm border transition-colors ${
                         on ? 'bg-violet-600 text-white border-violet-600'
                            : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-                      📍 {loc.name_ar}
+                      <MapPin size={13} /> {loc.name_ar}
                     </button>
                   )
                 })}
@@ -517,8 +520,8 @@ function NewTaskForm() {
 
           {/* أدلة الإنجاز */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              📋 أدلة الإنجاز المطلوبة
+            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+              <ClipboardList size={14} className="text-violet-600" /> أدلة الإنجاز المطلوبة
               <span className="text-slate-400 font-normal text-xs mr-1">(اختياري)</span>
             </label>
             <textarea
@@ -533,8 +536,8 @@ function NewTaskForm() {
           {/* أنواع الأدلة المطلوبة — بوّابة الإنجاز */}
           {evTypeOptions.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                ✅ أنواع الأدلة المطلوبة للإنجاز
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                <CheckSquare size={14} className="text-violet-600" /> أنواع الأدلة المطلوبة للإنجاز
                 <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — إن حُدِّدت، لا تُعتمد المهمة قبل قبول دليل لكل نوع)</span>
               </label>
               <div className="flex flex-wrap gap-2">
@@ -543,8 +546,8 @@ function NewTaskForm() {
                   return (
                     <button type="button" key={t}
                       onClick={() => setRequiredTypes(prev => on ? prev.filter(x => x !== t) : [...prev, t])}
-                      className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
-                      {on ? '✓ ' : ''}{t}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm border transition-colors ${on ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
+                      <span className="inline-flex">{on && <Check size={13} />}</span>{t}
                     </button>
                   )
                 })}
@@ -560,8 +563,8 @@ function NewTaskForm() {
               : profiles
             return (
               <div className="pt-1 border-t border-slate-100">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  👤 المكلَّف بالتنفيذ
+                <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                  <User size={14} className="text-violet-600" /> المكلَّف بالتنفيذ
                   <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — يمكن تعيينه لاحقاً)</span>
                 </label>
 
@@ -580,8 +583,8 @@ function NewTaskForm() {
                 )}
 
                 {assignMode === 'department' ? (
-                  <div className="bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 text-sm text-violet-700">
-                    📋 ستُكلَّف بهذه المهمة كل أعضاء قسم <strong>{planDept}</strong> — أي عضو يستطيع تنفيذها.
+                  <div className="flex items-center gap-1.5 bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 text-sm text-violet-700">
+                    <ClipboardList size={14} className="flex-shrink-0" /> ستُكلَّف بهذه المهمة كل أعضاء قسم <strong>{planDept}</strong> — أي عضو يستطيع تنفيذها.
                   </div>
                 ) : (
                   <>
@@ -612,7 +615,7 @@ function NewTaskForm() {
                     )}
                     {assignedUserId && (
                       <p className="text-xs text-violet-600 mt-1.5 flex items-center gap-1">
-                        <span>📬</span>
+                        <Mail size={12} />
                         <span>سيصل للمكلَّف إشعار فور إنشاء المهمة</span>
                       </p>
                     )}
@@ -624,8 +627,8 @@ function NewTaskForm() {
 
           {/* المقيّم */}
           <div className="pt-1 border-t border-slate-100">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              🔍 مقيّم جودة التنفيذ
+            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+              <Search size={14} className="text-violet-600" /> مقيّم جودة التنفيذ
               <span className="text-slate-400 font-normal text-xs mr-1">(اختياري — يمكن تعيينه لاحقاً)</span>
             </label>
             <select value={reviewerId} onChange={e => setReviewerId(e.target.value)}
@@ -645,8 +648,8 @@ function NewTaskForm() {
           {/* التبعية */}
           {planTasksList.length > 0 && (
             <div className="pt-1 border-t border-slate-100">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                🔗 تتطلب إنهاء مهمة أخرى أولاً
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                <Link2 size={14} className="text-violet-600" /> تتطلب إنهاء مهمة أخرى أولاً
                 <span className="text-slate-400 font-normal text-xs mr-1">(اختياري)</span>
               </label>
               <select
@@ -655,18 +658,18 @@ function NewTaskForm() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-slate-800">
                 <option value="">— لا تبعية —</option>
                 {planTasksList.map((t: any) => {
-                  const icon =
-                    t.status === 'completed'   ? '✅' :
-                    t.status === 'in_progress' ? '🔄' :
-                    t.status === 'delayed'     ? '⚠️' : '⏳'
+                  const label =
+                    t.status === 'completed'   ? 'منجزة' :
+                    t.status === 'in_progress' ? 'جارية' :
+                    t.status === 'delayed'     ? 'متأخرة' : 'لم تبدأ'
                   return (
-                    <option key={t.id} value={t.id}>{icon} {t.name_ar}</option>
+                    <option key={t.id} value={t.id}>{`[${label}] ${t.name_ar}`}</option>
                   )
                 })}
               </select>
               {dependsOnTaskId && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-2">
-                  <span className="text-amber-500 flex-shrink-0">⚠️</span>
+                  <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-700">
                     ستظهر هذه المهمة بحالة <strong>محجوبة</strong> في Kanban وGantt حتى تكتمل المهمة المحددة
                   </p>
@@ -681,16 +684,17 @@ function NewTaskForm() {
 
         {/* خطأ */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-            ⚠️ {error}
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+            <AlertTriangle size={15} className="flex-shrink-0" /> {error}
           </div>
         )}
 
         {/* أزرار */}
         <div className="flex gap-3 pb-6">
           <button type="submit" disabled={loading}
-            className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3.5 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
-            {loading ? 'جارٍ الإضافة...' : '✅ إضافة المهمة'}
+            className="flex items-center justify-center gap-2 flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3.5 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
+            <span className="inline-flex">{loading ? null : <CircleCheckBig size={16} />}</span>
+            <span>{loading ? 'جارٍ الإضافة...' : 'إضافة المهمة'}</span>
           </button>
           <button type="button" onClick={() => router.back()}
             className="px-6 py-3.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
