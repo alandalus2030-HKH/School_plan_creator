@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ALL_PERMISSIONS, ROLE_COLORS_PALETTE, PERMISSION_GROUPS } from '@/lib/permissions'
 import { toast } from '@/components/Toast'
@@ -9,6 +9,7 @@ import {
   Globe, Heart, ClipboardList, MessageCircle, Users,
   Unlock, AlertTriangle, Save, CircleCheckBig, Building2, Loader2,
   Pencil, Trash2, Eye, EyeOff, Plus, Send, Lock,
+  LayoutGrid, Table2,
 } from 'lucide-react'
 import SchoolProfile from '@/components/SchoolProfile'
 import LocationsManager from '@/components/LocationsManager'
@@ -82,6 +83,7 @@ export default function SettingsPage() {
   const [roleFormError,  setRoleFormError]  = useState('')
   const [confirmDelRole, setConfirmDelRole] = useState<string | null>(null)
   const [blockedRole, setBlockedRole] = useState<{ name: string; users: { name: string; school: string | null }[] } | null>(null)
+  const [rolesView, setRolesView] = useState<'matrix' | 'cards'>('matrix')
 
   /* ══ إرسال إشعار ══ */
   const [notifTitle,         setNotifTitle]         = useState('')
@@ -577,13 +579,88 @@ export default function SettingsPage() {
                       <p className="text-xs text-slate-400">تحديد ما يستطيع كل دور فعله في النظام · {roles.length} دور</p>
                     </div>
                   </div>
-                  <button onClick={openCreateRole}
-                    className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-                    <Plus size={15} /> دور جديد
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* مبدّل العرض: مصفوفة / بطاقات */}
+                    <div className="flex items-center bg-slate-100 rounded-xl p-1">
+                      <button onClick={() => setRolesView('matrix')} title="عرض مصفوفة المقارنة"
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${rolesView === 'matrix' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        <Table2 size={14} /> مصفوفة
+                      </button>
+                      <button onClick={() => setRolesView('cards')} title="عرض البطاقات"
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${rolesView === 'cards' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        <LayoutGrid size={14} /> بطاقات
+                      </button>
+                    </div>
+                    <button onClick={openCreateRole}
+                      className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+                      <Plus size={15} /> دور جديد
+                    </button>
+                  </div>
                 </div>
 
-                {/* قائمة الأدوار */}
+                {/* ═══ عرض المصفوفة: الأدوار أعمدة × الصلاحيات صفوف ═══ */}
+                {rolesView === 'matrix' && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr>
+                          <th className="sticky right-0 z-10 bg-slate-50 text-right p-3 border-b border-slate-200 font-bold text-slate-600 whitespace-nowrap min-w-[170px]">
+                            الصلاحية \ الدور
+                          </th>
+                          {roles.map(role => (
+                            <th key={role.id} className="p-3 border-b border-slate-200 align-bottom min-w-[88px]">
+                              <div className="flex flex-col items-center gap-1.5">
+                                <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                                  style={{ backgroundColor: role.color }} title={role.code}>
+                                  {role.name_ar[0]}
+                                </span>
+                                <span className="text-[11px] font-bold text-slate-600 leading-tight text-center">{role.name_ar}</span>
+                                {role.is_system && <Lock size={9} className="text-amber-500" />}
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PERMISSION_GROUPS.map(group => (
+                          <Fragment key={group.title}>
+                            <tr>
+                              <td colSpan={roles.length + 1}
+                                className="sticky right-0 bg-amber-50/60 text-amber-800 text-[11px] font-bold px-3 py-1.5 border-b border-amber-100">
+                                {group.title}
+                              </td>
+                            </tr>
+                            {group.codes.map(code => {
+                              const info = ALL_PERMISSIONS.find(x => x.code === code)
+                              if (!info) return null
+                              return (
+                                <tr key={code} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="sticky right-0 z-10 bg-white hover:bg-slate-50/70 text-right p-2.5 border-b border-slate-100 whitespace-nowrap">
+                                    <span className="font-medium text-slate-700 text-xs">{info.label}</span>
+                                    <span className="block text-[10px] text-slate-400 font-mono">{info.code}</span>
+                                  </td>
+                                  {roles.map(role => {
+                                    const has = role.permissions.includes('all') || role.permissions.includes(code)
+                                    return (
+                                      <td key={role.id} className="text-center p-2.5 border-b border-slate-100">
+                                        {has
+                                          ? <CircleCheckBig size={16} className="inline text-emerald-500" />
+                                          : <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-200" />}
+                                      </td>
+                                    )
+                                  })}
+                                </tr>
+                              )
+                            })}
+                          </Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* قائمة الأدوار (بطاقات) */}
+                {rolesView === 'cards' && (
                 <div className="divide-y divide-slate-100">
                   {roles.map(role => (
                     <div key={role.id} className="group">
@@ -635,6 +712,7 @@ export default function SettingsPage() {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
 
               {/* بطاقة شرح الصلاحيات */}
