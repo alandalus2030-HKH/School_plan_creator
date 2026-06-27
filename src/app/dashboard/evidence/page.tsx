@@ -227,15 +227,18 @@ export default function EvidenceLockerPage() {
                 <div key={e.id} className="flex items-center gap-3 p-3.5 hover:bg-slate-50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {e.number && <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{e.number}</span>}
-                      <span className="text-sm font-semibold text-slate-800 truncate">{e.name}</span>
+                      {e.number && <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full" title="رقم الدليل">{e.number}</span>}
+                      <a href={`/dashboard/evidence/${e.id}/print`} target="_blank" rel="noopener noreferrer"
+                        className="text-sm font-semibold text-slate-800 truncate hover:text-violet-700 hover:underline">{e.name}</a>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${sm.cls}`}>{sm.ar}</span>
+                      {e.standard
+                        ? <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100" title="المعيار"><ClipboardList size={11} /> معيار {e.standard.code}</span>
+                        : <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-400" title="غير مرتبط بمعيار">بلا معيار</span>}
                       {e.linkedCount > 0 && <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700"><Link2 size={11} /> {e.linkedCount}</span>}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap mt-1 text-xs text-slate-400">
                       <span className="inline-flex items-center gap-1"><TI size={13} /> {TYPE_LABEL[typeOf(e.file_type)]}</span>
                       <span className="inline-flex items-center gap-1">· <Paperclip size={12} /> {e.filesCount}</span>
-                      {e.standard && <span className="inline-flex items-center gap-1">· <ClipboardList size={12} /> {e.standard.code}</span>}
                       {e.plan?.department && <span>· {e.plan.department}</span>}
                       {e.task && <Link href={`/dashboard/tasks/${e.task.id}`} className="text-violet-500 hover:underline">· {e.task.name_ar}</Link>}
                     </div>
