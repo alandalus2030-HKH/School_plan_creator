@@ -158,7 +158,7 @@ export default function EvidenceLockerPage() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Stat label="الأدلة" value={stats.total} />
-          <Stat label="التغطية" value={`${stats.coverage}%`} tone="text-violet-700" />
+          <Stat label="تغطية المعايير" value={`${stats.coverage}%`} tone="text-violet-700" />
           <Stat label="معتمدة" value={stats.accepted} tone="text-emerald-700" />
           <Stat label="مشتركة" value={stats.shared} />
           <Stat label="الحجم" value={fmtSize(stats.totalSize)} />
@@ -264,14 +264,18 @@ export default function EvidenceLockerPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center gap-4 flex-wrap">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-700 mb-1">التغطية الإجمالية</p>
+              <p className="text-sm font-semibold text-slate-700 mb-1">تغطية معايير الاعتماد</p>
               <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden max-w-md">
                 <div className="h-full rounded-full" style={{ width: `${stats?.coverage || 0}%`, background: 'var(--gradient-button, #8a1538)' }} />
               </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                النسبة تُحسب على المهام المرتبطة بمعيار فقط.
+                {stats?.unmappedTasks > 0 && ` (+${stats.unmappedTasks} مهمة بلا معيار خارج الحساب — تشغيلية/مخصّصة)`}
+              </p>
             </div>
             <div className="text-left">
               <p className="text-2xl font-bold text-violet-700">{stats?.coverage || 0}%</p>
-              <p className="text-xs text-slate-400">{stats?.coveredTasks || 0} / {stats?.totalTasks || 0} مهمة لها دليل معتمد</p>
+              <p className="text-xs text-slate-400">{stats?.coveredTasks || 0} / {stats?.accreditationTasks || 0} مهمة مرتبطة بمعيار لها دليل معتمد</p>
             </div>
           </div>
 

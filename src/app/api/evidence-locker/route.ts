@@ -153,6 +153,9 @@ export async function GET() {
   const isCovered = (taskId: string) => acceptedOwnedTasks.has(taskId) || acceptedLinkTasks.has(taskId)
 
   const stdMap = new Map<string, any>()
+  /* عدّادات التغطية مفصولة: المهام المرتبطة بمعيار وحدها تُحسب في النسبة،
+     ومهام «بلا معيار» (التشغيلية/المخصّصة) تُعدّ منفصلةً خارج المقام. */
+  let mappedTotal = 0, mappedCovered = 0, unmappedTotal = 0
   for (const t of tasks) {
     const std = standardFor(t.node_id)
     const plan = planOfNode(t.node_id)
@@ -168,6 +171,8 @@ export async function GET() {
     g.total++
     if (isCovered(t.id)) g.covered++
     else g.without.push({ id: t.id, name_ar: t.name_ar })
+    if (std) { mappedTotal++; if (isCovered(t.id)) mappedCovered++ }
+    else unmappedTotal++
   }
   const standards = [...stdMap.values()].sort((a, b) => (a.code || '').localeCompare(b.code || '', 'ar'))
 
@@ -187,20 +192,20 @@ export async function GET() {
     else if (e.status === 'rejected') rejected++
     else pending++
   }
-  const totalTasks = tasks.length
-  const coveredTasks = tasks.filter((t: any) => isCovered(t.id)).length
-
   return NextResponse.json({
     evidence: evList,
     standards,
     stats: {
       total: evList.length, byType, totalSize, shared, accepted, pending, rejected,
-      totalTasks, coveredTasks,
-      coverage: totalTasks > 0 ? Math.round((coveredTasks / totalTasks) * 100) : 0,
+      totalTasks: tasks.length,           // كل المهام (للمرجع)
+      accreditationTasks: mappedTotal,    // المرتبطة بمعيار (مقام التغطية)
+      coveredTasks: mappedCovered,        // المرتبطة بمعيار ولها دليل معتمد
+      unmappedTasks: unmappedTotal,       // بلا معيار — خارج حساب التغطية
+      coverage: mappedTotal > 0 ? Math.round((mappedCovered / mappedTotal) * 100) : 0,
     },
   })
 }
 
 function emptyStats() {
-  return { total: 0, byType: {}, totalSize: 0, shared: 0, accepted: 0, pending: 0, rejected: 0, totalTasks: 0, coveredTasks: 0, coverage: 0 }
+  return { total: 0, byType: {}, totalSize: 0, shared: 0, accepted: 0, pending: 0, rejected: 0, totalTasks: 0, accreditationTasks: 0, coveredTasks: 0, unmappedTasks: 0, coverage: 0 }
 }
