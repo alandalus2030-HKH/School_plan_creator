@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Target, TrendingUp, Package, BarChart3 } from 'lucide-react'
+import { Target, TrendingUp, Package, BarChart3, ArrowRight, Check, CircleCheckBig,
+  LayoutGrid, Lock, AlertTriangle, ClipboardList, Sparkles, Network } from 'lucide-react'
 import { LEVEL_PRESETS } from '@/lib/planLevels'
 
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => `${2024 + i}-${2025 + i}`)
@@ -184,7 +185,7 @@ export default function NewPlanPage() {
       <div className="flex items-center gap-3 mb-6">
         <Link href="/dashboard/plans"
           className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-violet-600 hover:border-violet-300 transition-colors">
-          ←
+          <ArrowRight size={18} />
         </Link>
         <div>
           <h2 className="text-2xl font-bold text-slate-800">خطة جديدة</h2>
@@ -208,7 +209,7 @@ export default function NewPlanPage() {
               ${step > n  ? 'bg-green-500 text-white'
               : step === n ? 'bg-violet-600 text-white ring-4 ring-violet-100'
               : 'bg-slate-100 text-slate-400'}`}>
-              {step > n ? '✓' : n}
+              <span className="inline-flex">{step > n ? <Check size={15} /> : n}</span>
             </div>
             <span className={`text-xs font-medium hidden sm:block
               ${step >= n ? 'text-violet-700' : 'text-slate-400'}`}>
@@ -237,7 +238,7 @@ export default function NewPlanPage() {
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">العام الدراسي</label>
               <select value={year} onChange={e => setYear(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800">
-                {ACADEMIC_YEARS.map(y => <option key={y} value={y}>📅 {y}</option>)}
+                {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
 
@@ -335,7 +336,7 @@ export default function NewPlanPage() {
                   </div>
                 ))}
                 <div className="flex items-center gap-3 opacity-40">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 text-green-700 border border-green-200 flex items-center justify-center text-sm font-bold flex-shrink-0">✓</div>
+                  <div className="w-8 h-8 rounded-lg bg-green-100 text-green-700 border border-green-200 flex items-center justify-center flex-shrink-0"><Check size={15} /></div>
                   <div className="flex-1 px-3 py-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-400 text-sm">
                     المهمة (ثابت — لا يُعدَّل)
                   </div>
@@ -345,7 +346,7 @@ export default function NewPlanPage() {
 
             {/* معاينة */}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-              <p className="text-xs font-semibold text-slate-500 mb-3">📐 معاينة الهيكل</p>
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-3"><LayoutGrid size={13} /> معاينة الهيكل</p>
               <div className="space-y-1">
                 {levelNames.map((lname, idx) => (
                   <div key={idx} className="flex items-center gap-2" style={{ paddingRight: `${idx * 16}px` }}>
@@ -355,7 +356,7 @@ export default function NewPlanPage() {
                 ))}
                 <div className="flex items-center gap-2" style={{ paddingRight: `${levelNames.length * 16}px` }}>
                   <span className="text-slate-300 text-xs">└─</span>
-                  <span className="text-sm text-green-600 font-medium">✅ المهمة</span>
+                  <span className="inline-flex items-center gap-1 text-sm text-green-600 font-medium"><CircleCheckBig size={14} /> المهمة</span>
                 </div>
               </div>
             </div>
@@ -410,7 +411,7 @@ export default function NewPlanPage() {
                         <p className="text-xs text-slate-400">
                           {locked
                             ? 'مستوى جذر — حاوٍ عام للخطة'
-                            : kl.enabled ? 'مُفعَّل للـ KPIs ✓' : 'بدون مؤشرات أداء'}
+                            : kl.enabled ? 'مُفعَّل للـ KPIs' : 'بدون مؤشرات أداء'}
                         </p>
                       </div>
                       {!locked && (
@@ -423,7 +424,7 @@ export default function NewPlanPage() {
                         </button>
                       )}
                       {locked && (
-                        <span className="text-slate-400 text-xs px-2 py-1 bg-slate-100 rounded-lg">🔒 محجوز</span>
+                        <span className="inline-flex items-center gap-1 text-slate-400 text-xs px-2 py-1 bg-slate-100 rounded-lg"><Lock size={11} /> محجوز</span>
                       )}
                     </div>
 
@@ -501,26 +502,26 @@ export default function NewPlanPage() {
 
               {/* مستوى المهمة — دائماً محجوز */}
               <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 opacity-50 p-3.5 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-green-100 text-green-700 border border-green-200 flex items-center justify-center text-sm font-bold flex-shrink-0">✓</div>
+                <div className="w-8 h-8 rounded-lg bg-green-100 text-green-700 border border-green-200 flex items-center justify-center flex-shrink-0"><Check size={15} /></div>
                 <div>
                   <p className="text-sm font-semibold text-slate-500">المهمة</p>
                   <p className="text-xs text-slate-400">تُتابَع بالحالة والتقييم والأدلة</p>
                 </div>
-                <span className="mr-auto text-slate-400 text-xs px-2 py-1 bg-slate-200 rounded-lg">🔒 محجوز</span>
+                <span className="mr-auto inline-flex items-center gap-1 text-slate-400 text-xs px-2 py-1 bg-slate-200 rounded-lg"><Lock size={11} /> محجوز</span>
               </div>
             </div>
 
             {/* ملخص الاختيار */}
             {enabledKpiCount > 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700">
-                ✅ سيتم تفعيل KPIs على{' '}
+              <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700">
+                <CircleCheckBig size={15} className="flex-shrink-0" /> سيتم تفعيل KPIs على{' '}
                 <strong>{enabledKpiCount} {enabledKpiCount === 1 ? 'مستوى' : 'مستويات'}</strong>:{' '}
                 {kpiLevels.filter(k => k.enabled).map(k => levelNames[k.levelIndex]).join(' و ')}
               </div>
             )}
             {enabledKpiCount === 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
-                ⚠️ لم تُفعَّل أي مستويات للـ KPIs — يمكنك تغيير ذلك لاحقاً من إعدادات الخطة
+              <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
+                <AlertTriangle size={15} className="flex-shrink-0" /> لم تُفعَّل أي مستويات للـ KPIs — يمكنك تغيير ذلك لاحقاً من إعدادات الخطة
               </div>
             )}
 
@@ -533,13 +534,13 @@ export default function NewPlanPage() {
                 {/* الطريقة 1: القوائم المتتالية */}
                 <button onClick={() => handleCreate('list')} disabled={loading}
                   className="flex flex-col items-start gap-1 text-right bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
-                  <span className="flex items-center gap-1.5">📋 {loading ? 'جارٍ الإنشاء...' : 'إنشاء بطريقة القوائم'}</span>
-                  <span className="text-[11px] font-normal text-violet-100">قوائم متتالية + اقتراح أهداف ومهام بالذكاء الاصطناعي ✨ AI Powered</span>
+                  <span className="flex items-center gap-1.5"><ClipboardList size={15} /> {loading ? 'جارٍ الإنشاء...' : 'إنشاء بطريقة القوائم'}</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-normal text-violet-100">قوائم متتالية + اقتراح أهداف ومهام بالذكاء الاصطناعي <Sparkles size={11} /> AI Powered</span>
                 </button>
                 {/* الطريقة 2: العقد الهرمية */}
                 <button onClick={() => handleCreate('tree')} disabled={loading}
                   className="flex flex-col items-start gap-1 text-right bg-white border-2 border-violet-300 hover:bg-violet-50 text-violet-700 font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-60">
-                  <span className="flex items-center gap-1.5">🌳 {loading ? 'جارٍ الإنشاء...' : 'إنشاء بطريقة العقد الهرمية'}</span>
+                  <span className="flex items-center gap-1.5"><Network size={15} /> {loading ? 'جارٍ الإنشاء...' : 'إنشاء بطريقة العقد الهرمية'}</span>
                   <span className="text-[11px] font-normal text-violet-400">شجرة متداخلة قابلة للطي والتوسّع</span>
                 </button>
               </div>
