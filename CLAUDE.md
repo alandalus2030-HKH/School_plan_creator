@@ -29,6 +29,9 @@ Next.js 16.2.6 **معدّل** (Turbopack — اقرأ `node_modules/next/dist/do
 - **لا تبتلع أخطاء القاعدة:** افحص `error` و`.select()` لعدد الصفوف بعد UPDATE/INSERT في الـ API.
 - **التصدير من الوحدات المشتركة:** `export const` (لا تنشغل بـ function).
 - **ترجمة Chrome المدمجة** تكسر React بـ insertBefore — `<meta name="google" content="notranslate">` موجود.
+- **أسماء أيقونات lucide تحجب كائنات JS العامة:** `import { Map }`/`Image`/`Text` يكسر `new Map()` بـ"lacks construct signature". استورد كـ `Map as MapIcon`.
+- **محاذاة بطاقات إحصاء متساوية الارتفاع:** ثبّت المحتوى للأعلى بـ`flex flex-col items-center h-full` وادفع الـCTA السفلي بـ`mt-auto`؛ لا تضع الأيقونة في `text-3xl` (line-height يزيح الـSVG) — استخدم `<div className="flex">`.
+- **الأيقونات = Lucide أحادي اللون فقط، لا إيموجي** في واجهة JSX. إيموجي `<option>`/`title`/طباعة HTML تُجرَّد لنص (لا تقبل مكوّن React)؛ ورسائل `startsWith('✅')` تُترك (تجريدها يكسر التلوين).
 
 ## آلة حالات المهمة (المرحلة 2)
 `لم تبدأ → جارية → مرفوعة للتقييم → (المقيّم) منجزة+تقييم | مُعادة للتعديل → جارية`
