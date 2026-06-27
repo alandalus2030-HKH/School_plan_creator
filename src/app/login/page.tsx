@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { Eye, EyeOff, Lock } from 'lucide-react'
+import { Eye, EyeOff, Lock, User, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -221,7 +221,7 @@ function LoginForm() {
                   {isAr ? 'اسم المستخدم' : 'Username'}
                 </label>
                 <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 select-none text-base">👤</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 select-none inline-flex"><User size={16} /></span>
                   <input
                     type="text"
                     value={username}
@@ -270,7 +270,7 @@ function LoginForm() {
 
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                  <span>⚠️</span> {error}
+                  <AlertTriangle size={15} className="flex-shrink-0" /> {error}
                 </div>
               )}
 

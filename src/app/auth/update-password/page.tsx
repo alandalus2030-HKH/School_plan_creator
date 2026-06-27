@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { KeyRound, Lock, CircleCheckBig, AlertTriangle } from 'lucide-react'
 
 function UpdatePasswordForm() {
   const supabase  = createClient()
@@ -100,20 +101,20 @@ function UpdatePasswordForm() {
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
 
         <div className="text-center mb-7">
-          <div className="text-5xl mb-3">🔐</div>
+          <div className="flex justify-center mb-3"><KeyRound size={44} className="text-violet-500" /></div>
           <h1 className="text-2xl font-bold text-slate-800">تعيين كلمة مرور جديدة</h1>
           <p className="text-slate-500 text-sm mt-1">اختر كلمة مرور قوية وآمنة (8 أحرف+، حروف وأرقام)</p>
         </div>
 
         {forced && !success && (
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm mb-4 text-center">
-            🔒 لأمان حسابك، يجب تعيين كلمة مرور جديدة خاصة بك قبل المتابعة.
+          <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm mb-4 w-full justify-center">
+            <Lock size={14} className="flex-shrink-0" /> لأمان حسابك، يجب تعيين كلمة مرور جديدة خاصة بك قبل المتابعة.
           </div>
         )}
 
         {success ? (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-4 rounded-xl text-center text-sm font-medium">
-            ✅ تم تغيير كلمة المرور بنجاح!<br />
+            <CircleCheckBig size={16} className="inline-block ml-1 -mt-0.5" /> تم تغيير كلمة المرور بنجاح!<br />
             <span className="text-xs text-green-600">جارٍ التحويل إلى لوحة التحكم...</span>
           </div>
         ) : (
@@ -149,20 +150,20 @@ function UpdatePasswordForm() {
                   ))}
                 </div>
                 <p className="text-xs text-slate-400">
-                  {password.length < 4 ? 'ضعيفة جداً' : password.length < 7 ? 'ضعيفة' : password.length < 10 ? 'متوسطة' : 'قوية ✓'}
+                  {password.length < 4 ? 'ضعيفة جداً' : password.length < 7 ? 'ضعيفة' : password.length < 10 ? 'متوسطة' : 'قوية'}
                 </p>
               </div>
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-                ⚠️ {error}
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+                <AlertTriangle size={15} className="flex-shrink-0" /> {error}
               </div>
             )}
 
             <button type="submit" disabled={loading}
               className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl disabled:opacity-60 transition-colors mt-2">
-              {loading ? 'جارٍ الحفظ...' : '🔒 تعيين كلمة المرور'}
+              <span className="inline-flex items-center justify-center gap-1.5">{loading ? 'جارٍ الحفظ...' : <><Lock size={15} /> تعيين كلمة المرور</>}</span>
             </button>
           </form>
         )}
