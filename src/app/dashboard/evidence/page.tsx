@@ -117,9 +117,9 @@ export default function EvidenceLockerPage() {
         'تاريخ الرفع': (e.created_at || '').slice(0, 10),
       }))
       const fileBase = `خزانة-الأدلة-${new Date().toISOString().slice(0, 10)}`
-      const res = await fetch('/api/evidence-locker/export', {
+      const res = await fetch('/api/export/xlsx', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows, fileName: fileBase }),
+        body: JSON.stringify({ rows, fileName: fileBase, sheetName: 'الأدلة' }),
       })
       if (!res.ok) { toast('تعذّر تصدير الملف', 'error'); return }
       const blob = await res.blob()

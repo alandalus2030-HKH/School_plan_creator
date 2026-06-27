@@ -3,10 +3,11 @@ import ExcelJS from 'exceljs'
 import { requireAuth } from '@/lib/supabase/server'
 
 /**
- * تصدير قائمة خزانة الأدلة (المُصفّاة) إلى ملف Excel.
+ * تصدير عام إلى Excel (xlsx) — مشترك لكل شاشات النظام.
  * يستقبل صفوفاً جاهزة من العميل (مفاتيحها = عناوين الأعمدة بالعربية)
- * ويبنيها في ورقة RTL بترويسة مثبّتة — بلا إعادة استعلام للقاعدة
- * (البيانات مُصرَّح بها أصلاً عبر GET، فلا تسرّب جديد).
+ * ويبنيها في ورقة RTL بترويسة عنابية مثبّتة وعرض أعمدة تلقائي.
+ * البيانات مُصرَّح بها أصلاً عبر شاشة المصدر، فلا تسرّب جديد —
+ * مع ذلك يُحرس بـ requireAuth.
  */
 export async function POST(req: NextRequest) {
   const auth = await requireAuth()
@@ -14,14 +15,15 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const rows: Record<string, string | number>[] = Array.isArray(body?.rows) ? body.rows : []
-  const fileName = encodeURIComponent(`${body?.fileName || 'خزانة-الأدلة'}.xlsx`)
+  const sheetName = String(body?.sheetName || 'البيانات').slice(0, 31) || 'البيانات'
+  const fileName = encodeURIComponent(`${body?.fileName || 'تصدير'}.xlsx`)
 
   const headers = rows.length ? Object.keys(rows[0]) : ['—']
 
   const wb = new ExcelJS.Workbook()
   wb.creator = 'School Plan System'
   wb.created = new Date()
-  const ws = wb.addWorksheet('الأدلة', {
+  const ws = wb.addWorksheet(sheetName, {
     views: [{ state: 'frozen', ySplit: 1, rightToLeft: true }],
   })
 

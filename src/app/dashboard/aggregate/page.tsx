@@ -225,23 +225,38 @@ export default function AggregatePage() {
       }))
   }, [trend, selDepts])
 
-  /* تصدير الخطط المعروضة CSV (للتقارير) — BOM لدعم العربية في Excel */
-  const exportCsv = () => {
-    const headers = ['القسم', 'الخطة', 'النوع', 'صاحب الخطة', 'نسبة الإنجاز %', 'منجزة', 'إجمالي المهام', 'متأخرة', 'متوسط التقييم', 'أدلة مقبولة', 'معتمدة', 'مجمّدة']
-    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`
-    const rows = shown.map(p => [
-      p.department || NO_DEPT, p.name_ar, p.plan_category || '', p.owner_name || '',
-      p.metrics.progress, p.metrics.completed, p.metrics.total, p.metrics.overdue,
-      p.metrics.avgRating ?? '', p.metrics.evidence, p.approved_at ? 'نعم' : 'لا', p.frozen_at ? 'نعم' : 'لا',
-    ].map(esc).join(','))
-    const csv = '﻿' + [headers.map(esc).join(','), ...rows].join('\r\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `لوحة-التجميع-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+  /* تصدير الخطط المعروضة Excel (للتقارير) — عبر route التصدير العام */
+  const [exporting, setExporting] = useState(false)
+  const exportXlsx = async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      const rows = shown.map(p => ({
+        'القسم': p.department || NO_DEPT,
+        'الخطة': p.name_ar,
+        'النوع': p.plan_category || '',
+        'صاحب الخطة': p.owner_name || '',
+        'نسبة الإنجاز %': p.metrics.progress,
+        'منجزة': p.metrics.completed,
+        'إجمالي المهام': p.metrics.total,
+        'متأخرة': p.metrics.overdue,
+        'متوسط التقييم': p.metrics.avgRating ?? '',
+        'أدلة مقبولة': p.metrics.evidence,
+        'معتمدة': p.approved_at ? 'نعم' : 'لا',
+        'مجمّدة': p.frozen_at ? 'نعم' : 'لا',
+      }))
+      const fileBase = `لوحة-التجميع-${new Date().toISOString().slice(0, 10)}`
+      const res = await fetch('/api/export/xlsx', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows, fileName: fileBase, sheetName: 'لوحة التجميع' }),
+      })
+      if (!res.ok) { toast('تعذّر تصدير الملف', 'error'); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = `${fileBase}.xlsx`; a.click()
+      URL.revokeObjectURL(url)
+    } catch { toast('تعذّر تصدير الملف', 'error') }
+    finally { setExporting(false) }
   }
 
   /* رابط الغوص إلى «كل المهام» مع تمرير المرشّحات (الحالة الفعلية فقط — «متأخرة» وسم محسوب) */
@@ -301,9 +316,10 @@ export default function AggregatePage() {
             </Link>
           )}
           {plans.length > 0 && (
-            <button onClick={exportCsv}
-              className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors">
-              <Download size={15} /> تصدير CSV
+            <button onClick={exportXlsx} disabled={exporting}
+              className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <span className="inline-flex">{exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}</span>
+              <span>تصدير Excel</span>
             </button>
           )}
         </div>
