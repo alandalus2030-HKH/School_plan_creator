@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
 import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
+import { Target } from 'lucide-react'
 
 type Std = { code: string | null; name: string; plan: string; department: string | null; total: number; covered: number; coverage: number }
 type Data = { standards: Std[]; overall: { totalTasks: number; coveredTasks: number; coverage: number } }
@@ -42,7 +43,7 @@ export default function AccreditationReport() {
 
           <h3 className="font-bold text-slate-800 mb-2 text-sm">المعايير التي تحتاج معالجة (فجوات)</h3>
           {gaps.length === 0 ? (
-            <p className="text-center py-4 text-sm" style={{ color: '#16a34a' }}>كل المعايير مكتملة الأدلة — جاهزية تامة 🎯</p>
+            <p className="inline-flex items-center justify-center gap-1.5 w-full py-4 text-sm" style={{ color: '#16a34a' }}>كل المعايير مكتملة الأدلة — جاهزية تامة <Target size={15} /></p>
           ) : (
             <table className="w-full text-xs border-collapse">
               <thead>

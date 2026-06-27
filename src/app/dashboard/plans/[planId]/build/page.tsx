@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Flag, Plus, ListTree, Trash2, Sparkles, X } from 'lucide-react'
+import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin } from 'lucide-react'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
@@ -81,7 +81,7 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, onAdd }
           )}
           {error && (
             <div className="px-3 py-3 text-xs text-red-700 bg-red-50 flex items-center gap-2">
-              ⚠️ {error}
+              <AlertTriangle size={13} className="flex-shrink-0" /> {error}
               <button onClick={generate} className="underline font-semibold">إعادة المحاولة</button>
             </div>
           )}
@@ -101,8 +101,8 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, onAdd }
                   style={{ background: 'var(--gradient-button, #8a1538)' }}>
                   {saving ? 'جارٍ الإضافة...' : `إضافة المحدد (${items.filter(i => i.checked).length})`}
                 </button>
-                <button onClick={generate} disabled={loading}
-                  className="px-3 py-2 text-sm border border-violet-300 text-violet-600 rounded-xl hover:bg-violet-50">🔄</button>
+                <button onClick={generate} disabled={loading} title="إعادة التوليد"
+                  className="inline-flex px-3 py-2 text-sm border border-violet-300 text-violet-600 rounded-xl hover:bg-violet-50"><RefreshCw size={15} /></button>
               </div>
             </div>
           )}
@@ -192,13 +192,13 @@ function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, co
             </optgroup>
           )}
           {available.length > 0 && (
-            <optgroup label="➕ من معايير الاعتماد (اختر لإضافته)">
+            <optgroup label="من معايير الاعتماد (اختر لإضافته)">
               {available.map(c => (
                 <option key={c.code} value={`cat:${c.code}`}>{c.code} — {c.name_ar}</option>
               ))}
             </optgroup>
           )}
-          <option value="__custom__">✏️ {levelName} مخصص (نص حر)...</option>
+          <option value="__custom__">{levelName} مخصص (نص حر)...</option>
         </select>
       </div>
 
@@ -466,7 +466,7 @@ export default function PlanBuildPage() {
             {/* قسم المهام يظهر فقط عند اختيار عقدة في المستوى الأخير */}
             {leafSelected && (
               <div className="mt-3 border-t border-slate-200 pt-3">
-                <p className="text-xs font-bold text-slate-600 mb-2">📌 مهام «{leafSelected.name_ar}» ({leafTasks.length})</p>
+                <p className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 mb-2"><Pin size={13} /> مهام «{leafSelected.name_ar}» ({leafTasks.length})</p>
 
                 {leafTasks.length > 0 && (
                   <div className="space-y-1.5 mb-3">
@@ -557,7 +557,7 @@ export default function PlanBuildPage() {
           <>
             سيتم حذف «<strong>{sel.name_ar}</strong>» وكل ما تحته نهائياً.
             {selTaskCount > 0 && (
-              <span className="block text-red-600 font-semibold mt-1">⚠️ سيُحذف معه {selTaskCount} مهمة تابعة.</span>
+              <span className="inline-flex items-center gap-1 text-red-600 font-semibold mt-1"><AlertTriangle size={13} /> سيُحذف معه {selTaskCount} مهمة تابعة.</span>
             )}
           </>
         ) : null}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import ReportShell from '@/components/reports/ReportShell'
 import { reportQuery } from '@/lib/reportParams'
 import NoAccess from '@/components/NoAccess'
+import { Star } from 'lucide-react'
 
 type Row = { id: string; name_ar: string; department: string | null; badges: number; points: number }
 type Data = { rows: Row[]; featured: { name: string | null; note: string | null } | null }
@@ -37,7 +38,7 @@ export default function RecognitionReport() {
         <>
           {d.featured?.name && (
             <div className="border border-amber-200 bg-amber-50 rounded-xl p-3 mb-5 text-center">
-              <p className="text-xs text-amber-700">⭐ الموظف المميَّز</p>
+              <p className="inline-flex items-center gap-1 text-xs text-amber-700"><Star size={12} /> الموظف المميَّز</p>
               <p className="font-bold text-slate-800">{d.featured.name}</p>
               {d.featured.note && <p className="text-xs text-slate-500 mt-1">{d.featured.note}</p>}
             </div>

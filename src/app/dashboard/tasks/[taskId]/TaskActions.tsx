@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
-import { Check } from 'lucide-react'
+import { Check, Trash2 } from 'lucide-react'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
 type Status = 'not_started' | 'in_progress' | 'completed' | 'delayed'
@@ -182,8 +182,8 @@ export function DeleteTaskButton({ taskId }: { taskId: string }) {
   return (
     <>
       <button onClick={() => setConfirming(true)}
-        className="px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
-        🗑️ حذف المهمة
+        className="inline-flex items-center gap-1.5 px-4 py-2 border border-red-200 text-red-600 text-sm rounded-xl hover:bg-red-50 transition-colors">
+        <Trash2 size={15} /> حذف المهمة
       </button>
       <ConfirmDialog
         open={confirming}

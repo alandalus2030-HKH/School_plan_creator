@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell, Download, ListChecks, TrendingUp, Lock } from 'lucide-react'
+import { LayoutGrid, Loader2, CircleCheckBig, Clock, AlertTriangle, Star, Paperclip, FolderOpen, BadgeCheck, User, ChevronDown, Bell, Download, ListChecks, TrendingUp, Lock, Map as MapIcon } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -312,7 +312,7 @@ export default function AggregatePage() {
           {can('manage_plans') && (
             <Link href="/dashboard/plans"
               className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors">
-              🗺️ إدارة الخطط
+              <MapIcon size={16} /> إدارة الخطط
             </Link>
           )}
           {plans.length > 0 && (
@@ -479,7 +479,7 @@ export default function AggregatePage() {
                                   {p.plan_category && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{p.plan_category}</span>}
                                   {p.approved_at && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 inline-flex items-center gap-1"><BadgeCheck size={11} /> معتمدة</span>}
                                   {p.frozen_at && <span className="text-[11px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 inline-flex items-center gap-1"><Lock size={11} /> مجمّدة</span>}
-                                  {p.metrics.total === 0 && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">⚠️ لا مهام</span>}
+                                  {p.metrics.total === 0 && <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200"><AlertTriangle size={11} /> لا مهام</span>}
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <div className="flex-1 max-w-xs"><ProgressBar value={p.metrics.progress} /></div>
