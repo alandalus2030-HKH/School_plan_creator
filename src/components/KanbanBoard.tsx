@@ -15,27 +15,29 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/Toast'
+import { Clock, RefreshCw, Send, Undo2, CircleCheckBig, Lock, AlertTriangle, Folder, X, Loader2, Plus } from 'lucide-react'
 
 /* ══════════════════ ثوابت ══════════════════ */
 export const KANBAN_COLUMNS = [
-  { value: 'not_started', label: 'لم تبدأ',  icon: '⏳', color: 'slate',  hex: '#94a3b8',
+  { value: 'not_started', label: 'لم تبدأ',  icon: <Clock size={14} />, color: 'slate',  hex: '#94a3b8',
     bg: 'bg-slate-50', border: 'border-slate-200', header: 'bg-slate-100 text-slate-700',
     badge: 'bg-slate-200 text-slate-700', ring: 'ring-slate-300' },
-  { value: 'in_progress', label: 'جارية',    icon: '🔄', color: 'blue',   hex: '#3b82f6',
+  { value: 'in_progress', label: 'جارية',    icon: <RefreshCw size={14} />, color: 'blue',   hex: '#3b82f6',
     bg: 'bg-blue-50',  border: 'border-blue-200',  header: 'bg-blue-100  text-blue-700',
     badge: 'bg-blue-200  text-blue-700',  ring: 'ring-blue-300'  },
-  { value: 'submitted',   label: 'مرفوعة للتقييم', icon: '📤', color: 'amber', hex: '#f59e0b',
+  { value: 'submitted',   label: 'مرفوعة للتقييم', icon: <Send size={14} />, color: 'amber', hex: '#f59e0b',
     bg: 'bg-amber-50', border: 'border-amber-200', header: 'bg-amber-100 text-amber-700',
     badge: 'bg-amber-200 text-amber-700', ring: 'ring-amber-300' },
-  { value: 'returned',    label: 'مُعادة للتعديل', icon: '↩️', color: 'orange', hex: '#ea580c',
+  { value: 'returned',    label: 'مُعادة للتعديل', icon: <Undo2 size={14} />, color: 'orange', hex: '#ea580c',
     bg: 'bg-orange-50', border: 'border-orange-200', header: 'bg-orange-100 text-orange-700',
     badge: 'bg-orange-200 text-orange-700', ring: 'ring-orange-300' },
-  { value: 'completed',   label: 'منجزة',    icon: '✅', color: 'green',  hex: '#22c55e',
+  { value: 'completed',   label: 'منجزة',    icon: <CircleCheckBig size={14} />, color: 'green',  hex: '#22c55e',
     bg: 'bg-green-50', border: 'border-green-200', header: 'bg-green-100 text-green-700',
     badge: 'bg-green-200 text-green-700', ring: 'ring-green-300' },
 ]
 
-const PRIORITY_ICON: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' }
+const PRIORITY_DOT: Record<string, string> = { high: '#dc2626', medium: '#d97706', low: '#16a34a' }
+const PriorityDot = ({ p }: { p: string }) => <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: PRIORITY_DOT[p] || '#94a3b8' }} />
 const PRIORITY_LABEL: Record<string, string> = { high: 'عالية', medium: 'متوسطة', low: 'منخفضة' }
 
 /* ══════════════════ بطاقة المهمة (قابلة للسحب) ══════════════════ */
@@ -95,13 +97,13 @@ function KanbanCard({
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
             {isBlocked && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-semibold flex-shrink-0 border border-orange-200">
-                🔒 محجوبة
+              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-semibold flex-shrink-0 border border-orange-200">
+                <Lock size={10} /> محجوبة
               </span>
             )}
             {isOverdue && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold flex-shrink-0 border border-red-200">
-                ⚠️ متأخرة
+              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold flex-shrink-0 border border-red-200">
+                <AlertTriangle size={10} /> متأخرة
               </span>
             )}
           </div>
@@ -133,8 +135,8 @@ function KanbanCard({
 
         {/* مسار العقدة */}
         {node && (
-          <p className="text-[10px] text-slate-400 truncate mb-2">
-            📂 {node.name_ar}
+          <p className="inline-flex items-center gap-1 text-[10px] text-slate-400 truncate mb-2 max-w-full">
+            <Folder size={10} className="flex-shrink-0" /> <span className="truncate">{node.name_ar}</span>
           </p>
         )}
 
@@ -155,8 +157,8 @@ function KanbanCard({
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* الأولوية */}
-            <span title={PRIORITY_LABEL[task.priority]} className="text-xs">
-              {PRIORITY_ICON[task.priority]}
+            <span title={PRIORITY_LABEL[task.priority]} className="inline-flex">
+              <PriorityDot p={task.priority} />
             </span>
             {/* الموعد */}
             {task.end_date && (
@@ -185,7 +187,7 @@ function DragCard({ task, profiles, nodeMap }: { task: any; profiles: any[]; nod
       }`} />
       <div className="px-3 pt-2.5 pb-3">
         <p className="text-sm font-semibold text-slate-800 line-clamp-2 mb-1">{task.name_ar}</p>
-        {node && <p className="text-[10px] text-slate-400 truncate">📂 {node.name_ar}</p>}
+        {node && <p className="inline-flex items-center gap-1 text-[10px] text-slate-400 truncate max-w-full"><Folder size={10} className="flex-shrink-0" /> <span className="truncate">{node.name_ar}</span></p>}
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
           {assignee ? (
             <div className="flex items-center gap-1.5">
@@ -196,7 +198,7 @@ function DragCard({ task, profiles, nodeMap }: { task: any; profiles: any[]; nod
               <span className="text-[10px] text-slate-500">{assignee.name_ar}</span>
             </div>
           ) : <span />}
-          <span className="text-xs">{PRIORITY_ICON[task.priority]}</span>
+          <span className="inline-flex"><PriorityDot p={task.priority} /></span>
         </div>
       </div>
     </div>
@@ -223,7 +225,7 @@ function KanbanColumn({
       {/* رأس العمود */}
       <div className={`flex items-center justify-between px-3 py-2.5 rounded-2xl mb-3 ${col.header}`}>
         <div className="flex items-center gap-2">
-          <span>{col.icon}</span>
+          <span className="inline-flex">{col.icon}</span>
           <span className="font-bold text-sm">{col.label}</span>
           <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${col.badge}`}>
             {tasks.length}
@@ -253,7 +255,7 @@ function KanbanColumn({
         {tasks.length === 0 ? (
           <div className={`flex flex-col items-center justify-center h-24 text-xs
             rounded-xl transition-colors ${isOver ? 'text-slate-600' : 'text-slate-300'}`}>
-            <span className="text-2xl mb-1">{isOver ? col.icon : '+'}</span>
+            <span className="inline-flex mb-1">{isOver ? col.icon : <Plus size={22} />}</span>
             <span>{isOver ? `إفلات هنا` : 'لا توجد مهام'}</span>
           </div>
         ) : (
@@ -400,7 +402,7 @@ export default function KanbanBoard({
       }`}>
         {saveError ? (
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-sm font-medium text-white bg-red-600 max-w-sm">
-            <span>❌</span>
+            <X size={15} className="flex-shrink-0" />
             <span>فشل التحديث: {saveError}</span>
           </div>
         ) : (
@@ -408,8 +410,8 @@ export default function KanbanBoard({
             saving ? 'bg-violet-600' : 'bg-green-600'
           }`}>
             {saving
-              ? <><span className="animate-spin">⏳</span> جارٍ الحفظ...</>
-              : <><span>✅</span> تم تحديث الحالة</>
+              ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</>
+              : <><CircleCheckBig size={14} /> تم تحديث الحالة</>
             }
           </div>
         )}
@@ -453,7 +455,7 @@ export default function KanbanBoard({
           const cnt = tasks.filter(t => t.status === col.value).length
           if (cnt === 0) return null
           return (
-            <span key={col.value}>
+            <span key={col.value} className="inline-flex items-center gap-1">
               {col.icon} {col.label}: <strong className="text-slate-600">{cnt}</strong>
             </span>
           )

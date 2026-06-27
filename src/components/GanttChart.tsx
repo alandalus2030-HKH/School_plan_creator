@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useMemo, useCallback } from 'react'
+import { Clock, RefreshCw, CircleCheckBig, AlertTriangle, Calendar, X, MapPin, Map, ArrowUpRight, Lock, Pin } from 'lucide-react'
 
 /* ══════════════════════════════════════════
    الثوابت
@@ -26,11 +27,11 @@ const STATUS_AR: Record<string, string> = {
   completed:   'منجزة',
   delayed:     'متأخرة',
 }
-const STATUS_ICON: Record<string, string> = {
-  not_started: '⏳',
-  in_progress: '🔄',
-  completed:   '✅',
-  delayed:     '⚠️',
+const STATUS_ICON: Record<string, React.ReactNode> = {
+  not_started: <Clock size={13} />,
+  in_progress: <RefreshCw size={13} />,
+  completed:   <CircleCheckBig size={13} />,
+  delayed:     <AlertTriangle size={13} />,
 }
 
 type ZoomLevel = 'year' | 'quarter' | 'month' | 'week'
@@ -256,7 +257,7 @@ export default function GanttChart({
       {/* ════ شريط التحكم — الصف الأول ════ */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 flex-wrap gap-2" dir="rtl">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-slate-700 text-sm">📅 مخطط جانت</span>
+          <span className="inline-flex items-center gap-1.5 font-bold text-slate-700 text-sm"><Calendar size={15} /> مخطط جانت</span>
           {/* مستوى التكبير */}
           <div className="flex bg-slate-100 rounded-xl p-0.5">
             {(Object.keys(ZOOM) as ZoomLevel[]).map(z => (
@@ -305,17 +306,17 @@ export default function GanttChart({
           <select value={priorityF} onChange={e => setPriorityF(e.target.value)}
             className="px-2.5 py-1 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400">
             <option value="">كل الأولويات</option>
-            <option value="high">🔴 عالية</option>
-            <option value="medium">🟡 متوسطة</option>
-            <option value="low">🟢 منخفضة</option>
+            <option value="high">عالية</option>
+            <option value="medium">متوسطة</option>
+            <option value="low">منخفضة</option>
           </select>
 
           {/* مسح فلاتر الحالة/الأولوية */}
           {(statusFilter.size > 0 || priorityF) && (
             <button
               onClick={() => { setStatusFilter(new Set()); setPriorityF('') }}
-              className="px-2.5 py-1 rounded-xl text-[11px] font-medium border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-all">
-              ✕ مسح
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-medium border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-all">
+              <X size={11} /> مسح
             </button>
           )}
 
@@ -328,7 +329,7 @@ export default function GanttChart({
               if (timelineRef.current) timelineRef.current.scrollLeft = Math.max(0, todayX - 300)
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 text-red-600 text-xs font-semibold border border-red-200 hover:bg-red-100 transition-colors">
-            📍 اليوم
+            <MapPin size={13} /> اليوم
           </button>
         </div>
       </div>
@@ -336,7 +337,7 @@ export default function GanttChart({
       {/* ════ شريط التحكم — الصف الثاني: فلتر التاريخ ════ */}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex-wrap" dir="rtl">
         {/* اختصارات سريعة */}
-        <span className="text-xs font-semibold text-slate-500 flex-shrink-0">📆 الفترة:</span>
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 flex-shrink-0"><Calendar size={13} /> الفترة:</span>
         <button onClick={setThisWeek}
           className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
             fromDate && toDate ? 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'
@@ -376,7 +377,7 @@ export default function GanttChart({
         {(fromDate || toDate) && (
           <button onClick={clearRange}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-violet-600 text-white border border-violet-600 hover:bg-violet-700 transition-all">
-            ✕ مسح الفترة
+            <X size={12} /> مسح الفترة
           </button>
         )}
 
@@ -491,7 +492,7 @@ export default function GanttChart({
       {/* ════ تنبيه المهام بدون تواريخ ════ */}
       {noDateCount > 0 && (
         <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border-t border-amber-100 text-xs text-amber-700" dir="rtl">
-          <span>⚠️</span>
+          <AlertTriangle size={14} className="flex-shrink-0" />
           <span>
             <strong>{noDateCount}</strong> مهمة بدون تواريخ لا تظهر على المخطط —
             أضف تاريخ بدء وانتهاء من صفحة تفاصيل المهمة
@@ -534,14 +535,14 @@ function LeftCell({ row, collapsed, onToggle }: {
 
       {/* أيقونة المهمة */}
       {row.type === 'task' && row.task && (
-        <span className="text-[11px] flex-shrink-0">
-          {STATUS_ICON[row.task.status] || '📌'}
+        <span className="inline-flex flex-shrink-0 text-slate-500">
+          {STATUS_ICON[row.task.status] || <Pin size={13} />}
         </span>
       )}
 
       {/* أيقونة الخطة */}
       {row.type === 'plan' && (
-        <span className="text-xs flex-shrink-0">🗺️</span>
+        <span className="inline-flex flex-shrink-0 text-violet-700"><Map size={14} /></span>
       )}
 
       {/* النص */}
@@ -559,8 +560,8 @@ function LeftCell({ row, collapsed, onToggle }: {
           href={`/dashboard/tasks/${row.task.id}`}
           onClick={e => e.stopPropagation()}
           title="فتح المهمة"
-          className="flex-shrink-0 text-slate-300 hover:text-violet-500 transition-colors text-[11px]">
-          ↗
+          className="flex-shrink-0 text-slate-300 hover:text-violet-500 transition-colors">
+          <ArrowUpRight size={13} />
         </a>
       )}
     </div>
@@ -618,7 +619,7 @@ function TaskBar({ row, rowIndex, dateToX, dayW, today, tasks }: {
         border: isOverdue ? '2px solid #dc2626' : '2px solid transparent',
         zIndex: 5,
       }}
-      title={`${task.name_ar} | ${STATUS_AR[task.status]}${isBlocked ? ' | 🔒 محجوبة' : ''}${isOverdue ? ' | ⚠️ متأخرة' : ''}`}>
+      title={`${task.name_ar} | ${STATUS_AR[task.status]}${isBlocked ? ' | محجوبة' : ''}${isOverdue ? ' | متأخرة' : ''}`}>
 
       {/* شريط التقدم الداخلي */}
       {progressPct > 0 && progressPct < 100 && (
@@ -631,11 +632,11 @@ function TaskBar({ row, rowIndex, dateToX, dayW, today, tasks }: {
       {/* نص الشريط */}
       {barW > 55 && (
         <span className="relative z-10 text-white text-[10px] font-semibold px-2 truncate">
-          {isBlocked ? '🔒 ' : ''}{task.name_ar}
+          <span className="inline-flex align-middle">{isBlocked && <Lock size={10} className="ml-0.5" />}</span>{task.name_ar}
         </span>
       )}
       {barW <= 55 && isBlocked && (
-        <span className="relative z-10 text-white text-[10px] px-1">🔒</span>
+        <span className="relative z-10 inline-flex text-white px-1"><Lock size={10} /></span>
       )}
     </a>
   )
