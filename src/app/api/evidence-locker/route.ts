@@ -14,7 +14,7 @@ const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
 async function getContext(userId: string) {
   const admin = createAdminClient()
   const { data: me } = await admin
-    .from('profiles').select('school_id, active_school_id, is_super_admin, role').eq('id', userId).single()
+    .from('profiles').select('school_id, active_school_id, is_super_admin, role, department').eq('id', userId).single()
   if (!me) return null
   const schoolId = (me.is_super_admin && me.active_school_id) ? me.active_school_id : me.school_id
   return { admin, me, schoolId }
@@ -195,6 +195,7 @@ export async function GET() {
   return NextResponse.json({
     evidence: evList,
     standards,
+    myDepartment: me.department || null,
     stats: {
       total: evList.length, byType, totalSize, shared, accepted, pending, rejected,
       totalTasks: tasks.length,           // كل المهام (للمرجع)

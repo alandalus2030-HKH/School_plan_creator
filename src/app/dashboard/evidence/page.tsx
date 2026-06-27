@@ -33,12 +33,17 @@ const TYPE_ICON: Record<string, React.ComponentType<{ size?: number; className?:
   { video: Video, image: Image, pdf: FileText, word: FileText, excel: FileSpreadsheet, other: File }
 const fmtSize = (b: number) => b === 0 ? '—' : b < 1024 * 1024 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`
 
+/* أدوار مراجعة الأدلة المحصورة بالقسم (الباقي على نطاق المدرسة) */
+const DEPT_SCOPED_REVIEW_ROLES = ['department_head']
+
 export default function EvidenceLockerPage() {
-  const { can, isSuperAdmin } = usePermissions()
+  const { can, isSuperAdmin, role } = usePermissions()
   const canReview = isSuperAdmin || can('review_evidence')
+  const deptScopedReview = !isSuperAdmin && DEPT_SCOPED_REVIEW_ROLES.includes(role)
 
   const [evidence, setEvidence] = useState<Ev[]>([])
   const [standards, setStandards] = useState<Std[]>([])
+  const [myDept, setMyDept] = useState<string | null>(null)
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [denied, setDenied] = useState(false)
@@ -62,6 +67,7 @@ export default function EvidenceLockerPage() {
     if (res.status === 403) { setDenied(true); setLoading(false); return }
     const j = await res.json().catch(() => ({}))
     setEvidence(j.evidence || []); setStandards(j.standards || []); setStats(j.stats || null)
+    setMyDept(j.myDepartment ?? null)
     setLoading(false)
   }
   useEffect(() => { load() }, [])
@@ -244,7 +250,7 @@ export default function EvidenceLockerPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {canReview && (
+                    {canReview && (!deptScopedReview || (!!e.plan?.department && e.plan.department === myDept)) && (
                       <select value={e.status} onChange={ev => changeStatus(e.id, ev.target.value)}
                         disabled={e.task?.status === 'completed'}
                         title={e.task?.status === 'completed' ? 'المهمة منجزة — أعد فتحها لتغيير الحالة' : ''}

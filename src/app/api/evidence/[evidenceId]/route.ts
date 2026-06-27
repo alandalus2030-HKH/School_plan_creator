@@ -41,8 +41,18 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
   const { data: t } = await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id, assigned_to_team_id, assigned_to_department').eq('id', ev.task_id).maybeSingle()
   const { data: n } = t?.node_id ? await admin.from('plan_nodes').select('plan_id').eq('id', t.node_id).maybeSingle() : { data: null }
-  const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id, owner_id').eq('id', n.plan_id).maybeSingle() : { data: null }
+  const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id, owner_id, department').eq('id', n.plan_id).maybeSingle() : { data: null }
   if (!p || p.school_id !== schoolId) return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
+
+  /* حصر مراجعة رؤساء الأقسام بأدلة قسمهم فقط — النطاق المدرسي يبقى
+     لمدير المدرسة/نائبه/منسّق الجودة/المشرف. (تشديد حوكمي: لا تدخّل قسم في آخر) */
+  const DEPT_SCOPED_REVIEW_ROLES = ['department_head']
+  if (!me.is_super_admin && DEPT_SCOPED_REVIEW_ROLES.includes(me.role)) {
+    const planDept = (p as any)?.department || null
+    if (!me.department || planDept !== me.department) {
+      return NextResponse.json({ error: 'يمكنك مراجعة أدلة قسمك فقط' }, { status: 403 })
+    }
+  }
 
   /* منع التقييم الذاتي: لا يراجع المكلَّف دليلاً على مهمته (مباشر / قسمه / فريقه) */
   let isAssignee = t?.assigned_to_user_id === auth.user.id
