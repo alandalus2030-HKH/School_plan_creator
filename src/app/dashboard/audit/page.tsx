@@ -18,6 +18,7 @@ const actionAr: Record<string, string> = {
   evidence_accepted: 'اعتماد دليل', evidence_rejected: 'رفض دليل', evidence_reset: 'إعادة دليل للمراجعة',
   featured_set: 'تعيين موظف الشهر', featured_cleared: 'إلغاء موظف الشهر',
   school_created: 'إنشاء مدرسة',
+  department_assigned: 'إسناد قسم', group_owner_set: 'تعيين مالك مجموعة',
 }
 const tableAr: Record<string, string> = {
   profiles: 'المستخدمون', plans: 'الخطط', plan_nodes: 'عناصر الخطة', tasks: 'المهام',

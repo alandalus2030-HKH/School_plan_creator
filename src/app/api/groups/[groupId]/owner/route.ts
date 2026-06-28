@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * POST /api/groups/[groupId]/owner
@@ -86,6 +87,8 @@ export async function POST(
       owned_group_id: groupId,
       school_id:      null,           // مالك المجموعة لا ينتمي لمدرسة
     }, { onConflict: 'id' })
+
+    await recordAudit({ req, userId: auth.user.id, schoolId: null, action: 'group_owner_set', table: 'profiles', recordId: userId, after: { group: group.name_ar, username: uname } })
 
     return NextResponse.json({
       ok: true,

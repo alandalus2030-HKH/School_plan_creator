@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * ضمّ/إزالة مستخدمين من قسم (جماعي) — يضبط profiles.department.
@@ -38,6 +39,12 @@ export async function POST(req: NextRequest) {
     .in('id', user_ids).eq('school_id', schoolId)
     .select('id')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await recordAudit({
+    req, userId: auth.user.id, schoolId,
+    action: 'department_assigned', table: 'profiles', recordId: null,
+    after: { department: dept, user_ids, updated: data?.length || 0 },
+  })
 
   return NextResponse.json({ ok: true, updated: data?.length || 0 })
 }

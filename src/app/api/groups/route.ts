@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 async function ensureSuperAdmin(userId: string) {
   const admin = createAdminClient()
@@ -50,5 +51,6 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: null, action: 'insert', table: 'school_groups', recordId: data.id, after: { name_ar: data.name_ar } })
   return NextResponse.json({ ok: true, group: data })
 }

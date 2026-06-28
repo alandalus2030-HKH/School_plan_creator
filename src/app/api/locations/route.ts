@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * أماكن المدرسة (الموارد المكانية)
@@ -65,5 +66,6 @@ export async function POST(req: NextRequest) {
     .insert({ school_id: ctx.schoolId, name_ar: name_ar.trim(), sort_order })
     .select('id, name_ar, sort_order, is_active').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'insert', table: 'school_locations', recordId: data.id, after: { name_ar: data.name_ar } })
   return NextResponse.json({ location: data })
 }
