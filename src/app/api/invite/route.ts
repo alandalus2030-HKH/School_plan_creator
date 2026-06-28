@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
+import { recordAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   /* ── التحقق من هوية المُستدعي أولاً ── */
@@ -59,6 +60,8 @@ export async function POST(req: NextRequest) {
         role: role || 'teacher',
       }, { onConflict: 'id' })
     }
+
+    await recordAudit({ req, userId: auth.user.id, action: 'user_invited', table: 'profiles', recordId: data?.user?.id, after: { email, role: role || 'teacher' } })
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {

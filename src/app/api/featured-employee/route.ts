@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * موظف الشهر المُثبَّت يدوياً — لمن يملك manage_settings
@@ -62,10 +63,11 @@ export async function POST(req: NextRequest) {
     featured_note: body.note?.toString().trim() || null,
   }).eq('id', ctx.schoolId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'featured_set', table: 'schools', recordId: ctx.schoolId, after: { featured_employee_id: profile_id } })
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
   const ctx = await getContext(auth.user.id)
@@ -75,5 +77,6 @@ export async function DELETE() {
   const { error } = await ctx.admin.from('schools')
     .update({ featured_employee_id: null, featured_note: null }).eq('id', ctx.schoolId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'featured_cleared', table: 'schools', recordId: ctx.schoolId })
   return NextResponse.json({ ok: true })
 }

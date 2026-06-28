@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * تغيير حالة الدليل (uploaded | approved | rejected)
@@ -81,6 +82,12 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
     reviewed_at: status === 'pending' ? null : new Date().toISOString(),
   }).eq('id', evidenceId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await recordAudit({
+    req, userId: auth.user.id, schoolId,
+    action: status === 'accepted' ? 'evidence_accepted' : status === 'rejected' ? 'evidence_rejected' : 'evidence_reset',
+    table: 'evidence', recordId: evidenceId, after: { status, ...(note?.trim() ? { note: note.trim() } : {}) },
+  })
 
   /* إشعارات الرفض (مع سبب اختياري) — تشمل المكلَّف الفردي أو أعضاء القسم + صاحب الخطة */
   if (status === 'rejected') {

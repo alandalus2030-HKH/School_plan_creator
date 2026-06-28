@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /** تعديل/حذف مكان — manage_settings + عزل المدرسة الفعّالة */
 
@@ -47,6 +48,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ locat
 
   const { error } = await ctx!.admin.from('school_locations').update(patch).eq('id', locationId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx!.schoolId, action: 'update', table: 'school_locations', recordId: locationId, after: patch })
   return NextResponse.json({ ok: true })
 }
 
@@ -59,5 +61,6 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ loca
 
   const { error } = await ctx!.admin.from('school_locations').delete().eq('id', locationId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx!.schoolId, action: 'delete', table: 'school_locations', recordId: locationId })
   return NextResponse.json({ ok: true })
 }

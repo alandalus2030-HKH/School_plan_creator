@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 import { LEVEL_PRESETS } from '@/lib/planLevels'
 
 /**
@@ -159,6 +160,8 @@ export async function POST(req: NextRequest) {
         .select('id').single()
       planId = plan?.id ?? null
     }
+
+    await recordAudit({ req, userId: user.id, schoolId: school.id, action: 'school_created', table: 'schools', recordId: school.id, after: { name_ar: school.name_ar, admin: admin_username } })
 
     return NextResponse.json({
       ok: true,

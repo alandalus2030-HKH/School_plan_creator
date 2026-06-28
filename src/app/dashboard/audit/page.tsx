@@ -13,6 +13,11 @@ const actionAr: Record<string, string> = {
   task_created: 'إنشاء مهمة', task_status_changed: 'تغيير حالة مهمة', task_deleted: 'حذف مهمة',
   task_rated: 'تقييم مهمة', evidence_added: 'إضافة دليل', plan_created: 'إنشاء خطة', plan_deleted: 'حذف خطة', node_created: 'إضافة عنصر',
   plan_certified: 'اعتماد خطة', plan_uncertified: 'إلغاء اعتماد خطة', plan_frozen: 'تجميد خطة', plan_unfrozen: 'إلغاء تجميد خطة',
+  user_invited: 'دعوة مستخدم', password_reset: 'إعادة تعيين كلمة مرور',
+  badge_granted: 'منح وسام', badge_revoked: 'سحب وسام',
+  evidence_accepted: 'اعتماد دليل', evidence_rejected: 'رفض دليل', evidence_reset: 'إعادة دليل للمراجعة',
+  featured_set: 'تعيين موظف الشهر', featured_cleared: 'إلغاء موظف الشهر',
+  school_created: 'إنشاء مدرسة',
 }
 const tableAr: Record<string, string> = {
   profiles: 'المستخدمون', plans: 'الخطط', plan_nodes: 'عناصر الخطة', tasks: 'المهام',

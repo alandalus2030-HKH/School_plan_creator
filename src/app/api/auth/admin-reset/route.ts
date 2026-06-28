@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * إعادة تعيين كلمة المرور إدارياً عبر «كلمة مرور مؤقتة» مرتبطة بمستخدم محدد (بالـ id).
@@ -62,6 +63,12 @@ export async function POST(req: NextRequest) {
   const { error: profErr } = await admin
     .from('profiles').update({ must_change_password: true }).eq('id', userId)
   if (profErr) return NextResponse.json({ error: 'تم ضبط الكلمة لكن تعذّر تفعيل التغيير الإجباري: ' + profErr.message }, { status: 500 })
+
+  await recordAudit({
+    req, userId: auth.user.id, schoolId: target.school_id ?? schoolId,
+    action: 'password_reset', table: 'profiles', recordId: userId,
+    after: { target: target.name_ar || target.username || target.email },
+  })
 
   /* البريد الفعلي المستخدم في Supabase Auth (المرجع الموثوق لتسجيل الدخول) */
   const authEmail = authUserData?.user?.email || target.email || null

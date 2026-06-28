@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * منح/سحب وسام لمستخدم — لمن يملك grant_badges
@@ -57,6 +58,8 @@ export async function POST(req: NextRequest) {
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'badge_granted', table: 'user_badges', recordId: data.id, after: { badge: badge.name_ar, profile_id } })
+
   /* إشعار للمستخدم الذي حصل على الوسام */
   if (prof.notif_enabled !== false && prof.notif_inapp !== false) {
     await ctx.admin.from('notifications').insert({
@@ -94,5 +97,6 @@ export async function DELETE(req: NextRequest) {
 
   const { error } = await ctx.admin.from('user_badges').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'badge_revoked', table: 'user_badges', recordId: id })
   return NextResponse.json({ ok: true })
 }

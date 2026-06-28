@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * الأوسمة — إنشاء/حذف (لمن يملك grant_badges)
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
     points,
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'insert', table: 'badges', recordId: data.id, after: { name_ar, points } })
   return NextResponse.json({ ok: true, id: data.id })
 }
 
@@ -81,6 +83,7 @@ export async function PATCH(req: NextRequest) {
     points,
   }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'update', table: 'badges', recordId: id, after: { name_ar, points } })
   return NextResponse.json({ ok: true })
 }
 
@@ -103,5 +106,6 @@ export async function DELETE(req: NextRequest) {
   await ctx.admin.from('user_badges').delete().eq('badge_id', id)
   const { error } = await ctx.admin.from('badges').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'delete', table: 'badges', recordId: id })
   return NextResponse.json({ ok: true })
 }

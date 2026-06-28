@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 async function ensureSuperAdmin(userId: string) {
   const admin = createAdminClient()
@@ -63,12 +64,13 @@ export async function PATCH(
     }
   }
 
+  await recordAudit({ req, userId: auth.user.id, schoolId: null, action: 'update', table: 'school_groups', recordId: groupId, after: { ...updates, ...(Array.isArray(school_ids) ? { school_ids } : {}), ...(owner_id !== undefined ? { owner_id } : {}) } })
   return NextResponse.json({ ok: true })
 }
 
 /* ════ DELETE: حذف المجموعة (تبقى المدارس مستقلة) ════ */
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ groupId: string }> }
 ) {
   const auth = await requireAuth()
@@ -87,5 +89,6 @@ export async function DELETE(
 
   const { error } = await admin.from('school_groups').delete().eq('id', groupId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: null, action: 'delete', table: 'school_groups', recordId: groupId })
   return NextResponse.json({ ok: true })
 }
