@@ -155,10 +155,10 @@ export default function AdminToolsPage() {
               <input
                 type={showPw ? 'text' : 'password'} value={pw} onChange={e => setPw(e.target.value)}
                 placeholder="كلمة مرور حسابك" dir="ltr" autoComplete="current-password"
-                className="w-full px-3 py-2.5 pr-9 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm bg-white" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 inline-flex"><Lock size={15} /></span>
+                className="w-full px-3 py-2.5 pl-9 pr-9 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm bg-white" />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 inline-flex"><Lock size={15} /></span>
               <button type="button" onClick={() => setShowPw(v => !v)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 px-1">
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 px-1">
                 <span className="inline-flex">{showPw ? <EyeOff size={15} /> : <Eye size={15} />}</span>
               </button>
             </div>
