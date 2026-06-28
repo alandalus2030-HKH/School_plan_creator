@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
 
@@ -181,6 +182,12 @@ export async function POST(req: NextRequest) {
     if (updateErr) {
       console.error('[create-user] update error:', updateErr)
     }
+
+    await recordAudit({
+      req, userId: auth.user.id, schoolId: effectiveSchoolId,
+      action: 'user_created', table: 'profiles', recordId: userId,
+      after: { email, username: uname, role, name_ar: fullNameAr },
+    })
 
     return NextResponse.json({ ok: true, id: userId })
   } catch (e: any) {

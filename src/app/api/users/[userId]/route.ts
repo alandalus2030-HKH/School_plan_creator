@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * DELETE /api/users/[userId] → حذف نهائي لمستخدم (auth.users + profiles)
@@ -78,6 +79,12 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ user
       return NextResponse.json({ error: 'لم يُحذف أي صف — تحقّق من سياسات القاعدة' }, { status: 500 })
     }
   }
+
+  await recordAudit({
+    req, userId: auth.user.id, schoolId: ctx.schoolId,
+    action: 'user_deleted', table: 'profiles', recordId: userId,
+    before: { role: target.role },
+  })
 
   return NextResponse.json({ ok: true })
 }

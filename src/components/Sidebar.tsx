@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
-  Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert,
+  Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History,
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/badges',    Icon: Award,           ar: 'الأوسمة',       en: 'Badges',     perm: 'badges'           },
   { href: '/dashboard/schools',   Icon: Building2,       ar: 'إدارة المدارس', en: 'Schools',    perm: 'super'            },
   { href: '/dashboard/admin-tools', Icon: ShieldAlert,   ar: 'أدوات المشرف',  en: 'Admin Tools', perm: 'super'           },
+  { href: '/dashboard/audit',     Icon: History,         ar: 'سجل التدقيق',   en: 'Audit Trail', perm: 'audit'           },
   { href: '/dashboard/settings',  Icon: Settings,        ar: 'الإعدادات',     en: 'Settings',   perm: 'manage_settings'  },
   { href: '/dashboard/help',      Icon: HelpCircle,      ar: 'المساعدة',      en: 'Help',       perm: null               },
   { href: '/dashboard/profile',   Icon: Contact,         ar: 'ملفي الشخصي',  en: 'My Profile', perm: 'self'             },
@@ -70,6 +71,7 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
     if (item.perm === null)       return true
     if (item.perm === 'self')     return true
     if (item.perm === 'super')    return isSuperAdmin
+    if (item.perm === 'audit')    return isSuperAdmin || can('manage_settings')
     if (item.perm === 'badges')   return can('grant_badges') || can('manage_badges')
     /* لوحة التحكم للمديرين فقط — نفس شرط إعادة التوجيه في dashboard/page */
     if (item.perm === 'manager')

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { requireSuperAdmin } from '@/lib/adminGuard'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * POST /api/admin/purge-orphans
  * حذف حسابات auth.users التي لا يقابلها ملف شخصي (أشباح خلّفتها عمليات حذف سابقة
  * تركت حساب المصادقة) — تمنع تصادم «البريد مسجَّل مسبقاً» لاحقاً.
  */
-export async function POST() {
+export async function POST(req: Request) {
   const g = await requireSuperAdmin()
   if (g.error) return g.error
   const { admin, user } = g
@@ -24,12 +25,10 @@ export async function POST() {
     if (e) failed.push(u.id); else deleted++
   }
 
-  try {
-    await admin.from('audit_logs').insert({
-      school_id: null, user_id: user.id, action: 'admin_purge_orphan_auth',
-      new_values: { found: orphans.length, deleted, failed: failed.length },
-    })
-  } catch {}
+  await recordAudit({
+    req, userId: user.id, schoolId: null, action: 'admin_purge_orphan_auth',
+    after: { found: orphans.length, deleted, failed: failed.length },
+  })
 
   return NextResponse.json({ ok: true, found: orphans.length, deleted, failed: failed.length })
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSuperAdmin } from '@/lib/adminGuard'
+import { recordAudit } from '@/lib/audit'
 
 const CONFIRM_PHRASE = 'مسح نهائي'
 
@@ -35,12 +36,10 @@ export async function POST(req: NextRequest) {
   }
 
   /* (3) تسجيل العملية على مستوى المنصة (السجل أُفرِغ) */
-  try {
-    await admin.from('audit_logs').insert({
-      school_id: null, user_id: user.id, action: 'admin_reset_tenants',
-      new_values: { profiles_deleted: userIds.length, auth_deleted: authDeleted, auth_failed: authFailed.length },
-    })
-  } catch {}
+  await recordAudit({
+    req, userId: user.id, schoolId: null, action: 'admin_reset_tenants',
+    after: { profiles_deleted: userIds.length, auth_deleted: authDeleted, auth_failed: authFailed.length },
+  })
 
   return NextResponse.json({ ok: true, profilesDeleted: userIds.length, authDeleted, authFailed: authFailed.length })
 }

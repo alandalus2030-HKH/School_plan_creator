@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSuperAdmin } from '@/lib/adminGuard'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * POST /api/admin/purge-school  { schoolId, confirm }
@@ -37,13 +38,11 @@ export async function POST(req: NextRequest) {
   }
 
   /* (3) تسجيل العملية (أُفرغ سجل المدرسة بالفعل — نسجّل على مستوى المنصة) */
-  try {
-    await admin.from('audit_logs').insert({
-      school_id: null, user_id: user.id, action: 'admin_purge_school',
-      table_name: 'schools', record_id: schoolId,
-      new_values: { school: school.name_ar, users_purged: userIds.length, auth_deleted: authDeleted, auth_failed: authFailed.length },
-    })
-  } catch {}
+  await recordAudit({
+    req, userId: user.id, schoolId: null,
+    action: 'admin_purge_school', table: 'schools', recordId: schoolId,
+    after: { school: school.name_ar, users_purged: userIds.length, auth_deleted: authDeleted, auth_failed: authFailed.length },
+  })
 
   return NextResponse.json({
     ok: true, school: school.name_ar,
