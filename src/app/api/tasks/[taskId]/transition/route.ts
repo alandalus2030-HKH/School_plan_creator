@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * POST /api/tasks/[taskId]/transition
@@ -118,6 +119,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
     const { error: trErr } = await admin.from('task_transitions')
       .insert({ task_id: taskId, from_status: task.status, to_status: to, actor_id: userId, note })
     if (trErr) console.error('[transition] log insert failed:', trErr.message)
+    await recordAudit({
+      req, userId, schoolId: ctx.schoolId,
+      action: 'task_status_changed', table: 'tasks', recordId: taskId,
+      before: { status: task.status }, after: { status: to, ...(note ? { note } : {}) },
+    })
     await notify(admin, notifyTo, userId, notifTitle, notifBody, `/dashboard/tasks/${taskId}`)
     return NextResponse.json({ ok: true, status: to })
   }

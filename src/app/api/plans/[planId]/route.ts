@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * DELETE /api/plans/[planId] → حذف ناعم للخطة
@@ -54,5 +55,6 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ plan
   if (!rows || rows.length === 0) {
     return NextResponse.json({ error: 'لم يُحذف أي صف — تحقّق من معرّف الخطة' }, { status: 500 })
   }
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'delete', table: 'plans', recordId: planId })
   return NextResponse.json({ ok: true })
 }

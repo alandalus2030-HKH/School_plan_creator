@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * PATCH  /api/tasks/[taskId]  → تعديل/تكليف المهمة (لمن يملك manage_tasks)
@@ -77,8 +78,22 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ taskI
     if (body[key] !== undefined) updates[key] = body[key] === '' ? null : body[key]
   }
 
+  /* الحالة قبل التعديل (لسجل التدقيق) */
+  const { data: before } = await ctx.admin.from('tasks').select(EDITABLE.join(', ')).eq('id', taskId).single()
+
   const { error } = await ctx.admin.from('tasks').update(updates).eq('id', taskId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  /* تدقيق: الحقول المتغيّرة فقط */
+  const oldV: Record<string, any> = {}, newV: Record<string, any> = {}
+  for (const k of EDITABLE) {
+    if (updates[k] !== undefined && JSON.stringify((before as any)?.[k]) !== JSON.stringify(updates[k])) {
+      oldV[k] = (before as any)?.[k] ?? null; newV[k] = updates[k]
+    }
+  }
+  if (Object.keys(newV).length) {
+    await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'update', table: 'tasks', recordId: taskId, before: oldV, after: newV })
+  }
   return NextResponse.json({ ok: true })
 }
 
@@ -108,8 +123,16 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ task
     return NextResponse.json({ error: 'لا تملك صلاحية حذف هذه المهمة' }, { status: 403 })
   }
 
+  const { data: tname } = await ctx.admin.from('tasks').select('name_ar, status').eq('id', taskId).single()
+
   const { error } = await ctx.admin.from('tasks')
     .update({ deleted_at: new Date().toISOString(), updated_by: auth.user.id }).eq('id', taskId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await recordAudit({
+    req, userId: auth.user.id, schoolId: ctx.schoolId,
+    action: 'delete', table: 'tasks', recordId: taskId,
+    before: { name_ar: (tname as any)?.name_ar ?? null, status: (tname as any)?.status ?? null },
+  })
   return NextResponse.json({ ok: true })
 }
