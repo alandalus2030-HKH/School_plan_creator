@@ -291,9 +291,12 @@ export default function UsersPage() {
   const saveUser = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    /* ── البريد الإلكتروني إلزامي ── */
+    /* ── البريد الإلكتروني إلزامي + صيغة صحيحة ── */
     if (!form.email.trim()) {
       setFormError('البريد الإلكتروني مطلوب'); setFormTab(0); return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setFormError('صيغة البريد الإلكتروني غير صحيحة'); setFormTab(0); return
     }
 
     /* ── اسم الدخول إلزامي ── */
@@ -354,7 +357,7 @@ export default function UsersPage() {
         is_active:     form.is_active,
         password:      formPassword || undefined,
       })
-      if (!createOk) { setFormError(json.error || 'حدث خطأ'); setSaving(false); return }
+      if (!createOk) { setFormError(arabizeAuthError(json.error)); setSaving(false); return }
       if (json.id) { await saveTeams(json.id) }
 
       /* إنشاء بلا كلمة مرور → ضبط كلمة مرور مؤقتة (مرتبطة بالمستخدم) + تغيير إجباري، وأبقِ النافذة لعرضها */
@@ -1488,6 +1491,21 @@ export default function UsersPage() {
 
 /* ══════════════════════ مكوّنات مساعدة ══════════════════════ */
 const inputCls = 'w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-300 text-sm bg-white'
+
+/* تعريب رسائل خطأ Supabase Auth الشائعة (تُعرض خاماً بالإنجليزية وإلا) */
+function arabizeAuthError(msg?: string): string {
+  if (!msg) return 'حدث خطأ'
+  const m = msg.toLowerCase()
+  if (m.includes('validate email') || m.includes('invalid format') || m.includes('invalid email'))
+    return 'صيغة البريد الإلكتروني غير صحيحة'
+  if (m.includes('already registered') || m.includes('already been registered') || m.includes('email address has already'))
+    return 'هذا البريد الإلكتروني مسجَّل مسبقاً'
+  if (m.includes('password') && m.includes('at least'))
+    return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'
+  if (m.includes('weak password'))
+    return 'كلمة المرور ضعيفة — اختر كلمة أقوى'
+  return msg
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
