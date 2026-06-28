@@ -911,18 +911,24 @@ export default function TaskPage() {
                 className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/40 text-sm resize-none"
                 placeholder="الوصف (اختياري)" />
               <div className="grid grid-cols-2 gap-2">
-                <select value={editType} onChange={e => setEditType(e.target.value)}
-                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm">
-                  <option value="general">عامة</option>
-                  <option value="academic">أكاديمية</option>
-                  <option value="administrative">إدارية</option>
-                </select>
-                <select value={editPriority} onChange={e => setEditPriority(e.target.value)}
-                  className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm">
-                  <option value="low">منخفضة</option>
-                  <option value="medium">متوسطة</option>
-                  <option value="high">عالية</option>
-                </select>
+                <div>
+                  <label className="block text-[11px] text-white/70 mb-1">النوع</label>
+                  <select value={editType} onChange={e => setEditType(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm [&>option]:text-slate-800 [&>option]:bg-white">
+                    <option value="general">عامة</option>
+                    <option value="academic">أكاديمية</option>
+                    <option value="administrative">إدارية</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-white/70 mb-1">الأولوية</label>
+                  <select value={editPriority} onChange={e => setEditPriority(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-sm [&>option]:text-slate-800 [&>option]:bg-white">
+                    <option value="low">منخفضة</option>
+                    <option value="medium">متوسطة</option>
+                    <option value="high">عالية</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-[11px] text-white/70 mb-1">تاريخ البدء <span className="text-amber-300">*</span></label>
                   <input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} dir="ltr" required
