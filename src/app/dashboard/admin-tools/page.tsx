@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
@@ -16,6 +16,7 @@ type Preview = {
 }
 
 const RESET_PHRASE = 'مسح نهائي'
+const IDLE_LOCK_MS = 5000   // قفل تلقائي بعد 5 ثوانٍ من الخمول (منطقة خطر)
 
 export default function AdminToolsPage() {
   const { isSuperAdmin, loading: permsLoading } = usePermissions()
@@ -36,6 +37,14 @@ export default function AdminToolsPage() {
   const [schoolConfirm, setSchoolConfirm] = useState('')
   const [resetConfirm, setResetConfirm] = useState('')
   const [busy, setBusy] = useState<'' | 'school' | 'orphans' | 'reset'>('')
+  const busyRef = useRef(busy)
+  busyRef.current = busy
+
+  /* قفل الصفحة (إعادة الحالة لما قبل الفتح) */
+  const lock = () => {
+    setUnlocked(false); setPreview(null)
+    setSchoolId(''); setSchoolConfirm(''); setResetConfirm(''); setPw(''); setGateErr('')
+  }
 
   const loadPreview = async () => {
     setLoadingPreview(true)
@@ -49,6 +58,23 @@ export default function AdminToolsPage() {
   }
 
   useEffect(() => { if (unlocked) loadPreview() }, [unlocked])
+
+  /* ── قفل تلقائي بعد 5 ثوانٍ من الخمول (لا يقفل أثناء تنفيذ عملية) ── */
+  useEffect(() => {
+    if (!unlocked) return
+    let timer: ReturnType<typeof setTimeout>
+    const arm = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        if (busyRef.current !== '') { arm(); return }   // لا تقفل أثناء عملية جارية
+        lock()
+      }, IDLE_LOCK_MS)
+    }
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'wheel']
+    events.forEach(e => window.addEventListener(e, arm, { passive: true }))
+    arm()
+    return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, arm)) }
+  }, [unlocked])
 
   if (!permsLoading && !isSuperAdmin) return <NoAccess />
 
@@ -158,6 +184,7 @@ export default function AdminToolsPage() {
         <ShieldAlert size={22} className="text-red-500" />
         <h1 className="text-xl font-bold text-slate-800">أدوات المشرف</h1>
         <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold">منطقة خطر</span>
+        <span className="text-[11px] text-slate-400 inline-flex items-center gap-1 ms-auto"><Lock size={11} /> تُقفل تلقائياً بعد 5 ثوانٍ من الخمول</span>
       </div>
 
       {/* إجماليات */}
