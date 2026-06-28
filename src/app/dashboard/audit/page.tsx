@@ -24,7 +24,9 @@ const tableAr: Record<string, string> = {
   evidence: 'الأدلة', evidence_files: 'ملفات الأدلة', roles: 'الأدوار', schools: 'المدارس',
   teams: 'الفرق', team_members: 'أعضاء الفرق', department_supervisors: 'مشرفو الأقسام',
   dropdown_options: 'القوائم', school_calendar: 'التقويم', school_locations: 'الأماكن',
-  badges: 'الأوسمة', motivational_quotes: 'الاقتباسات',
+  badges: 'الأوسمة', motivational_quotes: 'الاقتباسات', user_badges: 'منح الأوسمة',
+  meetings: 'الاجتماعات', meeting_attendees: 'حضور الاجتماعات', meeting_notes: 'محاضر الاجتماعات',
+  group_meetings: 'اجتماعات المجموعة', school_groups: 'مجموعات المدارس',
 }
 const actionColor: Record<string, string> = {
   insert: 'bg-green-100 text-green-700', update: 'bg-blue-100 text-blue-700', delete: 'bg-red-100 text-red-700',

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 async function getOwner(userId: string) {
   const admin = createAdminClient()
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  await recordAudit({ req, userId: auth.user.id, schoolId: null, action: 'insert', table: 'group_meetings', recordId: meeting?.id, after: { title: title.trim() } })
+
   /* إشعار المديرين المدعوين */
   if (validAttendees.length > 0) {
     const dateLabel = scheduled_at ? new Date(scheduled_at).toLocaleDateString('ar-QA') : ''
@@ -100,6 +103,8 @@ export async function DELETE(req: NextRequest) {
 
   await owner.admin.from('group_meetings').delete()
     .eq('id', id).eq('group_id', owner.owned_group_id)
+
+  await recordAudit({ req, userId: auth.user.id, schoolId: null, action: 'delete', table: 'group_meetings', recordId: id })
 
   return NextResponse.json({ ok: true })
 }
