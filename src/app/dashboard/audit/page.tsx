@@ -12,6 +12,7 @@ const actionAr: Record<string, string> = {
   impersonate_enter: 'دخول كمدرسة', impersonate_exit: 'خروج من تقمّص',
   task_created: 'إنشاء مهمة', task_status_changed: 'تغيير حالة مهمة', task_deleted: 'حذف مهمة',
   task_rated: 'تقييم مهمة', evidence_added: 'إضافة دليل', plan_created: 'إنشاء خطة', plan_deleted: 'حذف خطة', node_created: 'إضافة عنصر',
+  plan_certified: 'اعتماد خطة', plan_uncertified: 'إلغاء اعتماد خطة', plan_frozen: 'تجميد خطة', plan_unfrozen: 'إلغاء تجميد خطة',
 }
 const tableAr: Record<string, string> = {
   profiles: 'المستخدمون', plans: 'الخطط', plan_nodes: 'عناصر الخطة', tasks: 'المهام',

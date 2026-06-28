@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * POST /api/plans → إنشاء خطة جديدة
@@ -61,6 +62,8 @@ export async function POST(req: NextRequest) {
       })
     }
   }
+
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'insert', table: 'plans', recordId: data.id, after: { name_ar } })
 
   return NextResponse.json({ ok: true, id: data.id })
 }

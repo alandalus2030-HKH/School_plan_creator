@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
 
@@ -34,5 +35,6 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
 
   const { error } = await ctx.admin.from('department_supervisors').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'delete', table: 'department_supervisors', recordId: id })
   return NextResponse.json({ ok: true })
 }

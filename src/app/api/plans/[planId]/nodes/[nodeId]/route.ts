@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * DELETE /api/plans/[planId]/nodes/[nodeId] → حذف ناعم لعقدة خطة
@@ -77,6 +78,12 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ plan
     .update({ deleted_at: now, updated_by: auth.user.id })
     .in('node_id', nodeIds).is('deleted_at', null).select('id')
   if (tErr) return NextResponse.json({ error: tErr.message }, { status: 500 })
+
+  await recordAudit({
+    req, userId: auth.user.id, schoolId: ctx.schoolId,
+    action: 'delete', table: 'plan_nodes', recordId: nodeId,
+    after: { deleted_nodes: rows.length, deleted_tasks: delTasks?.length || 0 },
+  })
 
   return NextResponse.json({ ok: true, deletedNodes: rows.length, deletedTasks: delTasks?.length || 0 })
 }

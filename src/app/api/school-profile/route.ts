@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * بيانات المدرسة — جلب وحفظ
@@ -84,6 +85,7 @@ export async function PATCH(req: NextRequest) {
 
   const { error } = await ctx.admin.from('schools').update(updates).eq('id', ctx.schoolId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'update', table: 'schools', recordId: ctx.schoolId, after: updates })
   return NextResponse.json({ ok: true })
 }
 

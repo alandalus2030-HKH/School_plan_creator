@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /** التحقق من أن المُستدعي مشرف نظام */
 async function ensureSuperAdmin(userId: string) {
@@ -42,12 +43,13 @@ export async function PATCH(
 
   const { error } = await admin.from('schools').update(updates).eq('id', schoolId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId, action: 'update', table: 'schools', recordId: schoolId, after: updates })
   return NextResponse.json({ ok: true })
 }
 
 /* ════ DELETE: حذف المدرسة ════ */
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ schoolId: string }> }
 ) {
   const auth = await requireAuth()
@@ -78,6 +80,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'لا يمكن حذف المدرسة الوحيدة في النظام' }, { status: 400 })
   }
 
+  const { data: sch } = await admin.from('schools').select('name_ar').eq('id', schoolId).maybeSingle()
+
   const { error } = await admin.from('schools').delete().eq('id', schoolId)
   if (error) {
     /* قيد مفتاح أجنبي غير مُغطّى → رسالة واضحة بدل رسالة Postgres الخام */
@@ -88,5 +92,7 @@ export async function DELETE(
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+  /* school_id=null لأن المدرسة حُذفت (تفادي قيد FK على audit_logs) */
+  await recordAudit({ req, userId: auth.user.id, schoolId: null, action: 'delete', table: 'schools', recordId: schoolId, before: { name_ar: (sch as any)?.name_ar ?? null } })
   return NextResponse.json({ ok: true })
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * التقويم المدرسي (عطلات/اختبارات) + أيام نهاية الأسبوع.
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
     created_by: auth.user.id,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId, action: 'insert', table: 'school_calendar', after: { title, kind: b.kind, start_date: b.start_date, end_date: b.end_date } })
   return NextResponse.json({ ok: true })
 }
 
@@ -86,5 +88,6 @@ export async function PATCH(req: NextRequest) {
   if (!days) return NextResponse.json({ error: 'أيام غير صالحة' }, { status: 400 })
   const { error } = await admin.from('schools').update({ weekend_days: days }).eq('id', schoolId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId, action: 'update', table: 'schools', recordId: schoolId, after: { weekend_days: days } })
   return NextResponse.json({ ok: true })
 }

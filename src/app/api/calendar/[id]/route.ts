@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /** تحديث/حذف فترة في التقويم المدرسي — صلاحية إدارة + عزل المدرسة الفعّالة. */
 
@@ -56,10 +57,11 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
 
   const { error } = await admin.from('school_calendar').update(patch).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: g.ctx!.schoolId, action: 'update', table: 'school_calendar', recordId: id, after: patch })
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
   const { id } = await context.params
@@ -67,5 +69,6 @@ export async function DELETE(_req: NextRequest, context: { params: Promise<{ id:
   if (g.err) return g.err
   const { error } = await g.ctx!.admin.from('school_calendar').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: g.ctx!.schoolId, action: 'delete', table: 'school_calendar', recordId: id })
   return NextResponse.json({ ok: true })
 }

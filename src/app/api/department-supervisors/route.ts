@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * إشراف الأقسام — من يشرف على أي قسم (للوحة التجميع)
@@ -60,5 +61,6 @@ export async function POST(req: NextRequest) {
             { onConflict: 'school_id,user_id,department' })
     .select('id, user_id, department, profiles:user_id ( name_ar )').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAudit({ req, userId: auth.user.id, schoolId: ctx.schoolId, action: 'insert', table: 'department_supervisors', recordId: data?.id, after: { user_id, department: department.trim() } })
   return NextResponse.json({ supervisor: data })
 }

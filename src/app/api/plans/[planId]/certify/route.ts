@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * PATCH /api/plans/[planId]/certify
@@ -61,6 +62,11 @@ export async function PATCH(
 
   const { error } = await admin.from('plans').update(patch).eq('id', planId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await recordAudit({
+    req, userId: auth.user.id, schoolId: plan.school_id,
+    action: approve ? 'plan_certified' : 'plan_uncertified', table: 'plans', recordId: planId,
+  })
 
   return NextResponse.json({ ok: true, approved_at: patch.approved_at ?? null })
 }

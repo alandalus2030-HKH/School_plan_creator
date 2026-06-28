@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordAudit } from '@/lib/audit'
 
 /**
  * PATCH /api/plans/[planId]/freeze
@@ -51,6 +52,11 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ planI
 
   const { error } = await admin.from('plans').update(patch).eq('id', planId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await recordAudit({
+    req, userId: auth.user.id, schoolId: plan.school_id,
+    action: freeze ? 'plan_frozen' : 'plan_unfrozen', table: 'plans', recordId: planId,
+  })
 
   return NextResponse.json({ ok: true, frozen_at: patch.frozen_at ?? null })
 }
