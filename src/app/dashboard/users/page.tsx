@@ -20,7 +20,8 @@ type Profile = {
   last_name_ar:  string | null
   name_ar:       string
   nationality:   string | null
-  school:        string | null
+  school_id:     string | null
+  school_ref:    { name_ar: string | null } | null   // اسم المدرسة الفعلي (عبر school_id)
   department:    string | null
   job_title:     string | null
   phone:         string | null
@@ -72,7 +73,6 @@ const EMPTY_FORM = {
   first_name_ar:  '',
   last_name_ar:   '',
   nationality:    '',
-  school:         '',
   department:     '',
   job_title:      '',
   phone:          '',
@@ -96,7 +96,6 @@ export default function UsersPage() {
   const [departments,   setDepartments]   = useState<string[]>(FALLBACK_DEPARTMENTS)
   const [jobTitles,     setJobTitles]     = useState<string[]>(FALLBACK_JOB_TITLES)
   const [nationalities, setNationalities] = useState<string[]>(FALLBACK_NATIONALITIES)
-  const [schools,       setSchools]       = useState<string[]>([])
   const [allTeams,      setAllTeams]      = useState<any[]>([])
   const [allPlans,      setAllPlans]      = useState<any[]>([])
 
@@ -105,7 +104,6 @@ export default function UsersPage() {
   const [loading,       setLoading]       = useState(true)
   const [search,        setSearch]        = useState('')
   const [roleFilter,    setRoleFilter]    = useState('')
-  const [schoolFilter,  setSchoolFilter]  = useState('')
   const [activeFilter,  setActiveFilter]  = useState<''|'active'|'inactive'>('')
 
   /* ── حالة النموذج ── */
@@ -153,7 +151,6 @@ export default function UsersPage() {
     { key: 'first_name_ar', label: 'الاسم الأول بالعربية',  dropdown: null },
     { key: 'last_name_ar',  label: 'الاسم الأخير بالعربية', dropdown: null },
     { key: 'nationality',   label: 'الجنسية',                dropdown: 'nationalities' },
-    { key: 'school',        label: 'المؤسسة',                dropdown: 'schools' },
     { key: 'department',    label: 'القسم / المادة',          dropdown: 'departments' },
     { key: 'job_title',     label: 'المسمى الوظيفي',          dropdown: 'jobTitles' },
     { key: 'phone',         label: 'الهاتف',                  dropdown: null },
@@ -171,9 +168,13 @@ export default function UsersPage() {
 
     // تحميل المستخدمين
     const { data: profilesData } = await supabase
-      .from('profiles').select('id,first_name_ar,last_name_ar,name_ar,nationality,school,department,job_title,phone,email,username,role,is_active,is_super_admin,created_at').limit(500)
+      .from('profiles').select('id,first_name_ar,last_name_ar,name_ar,nationality,school_id,school_ref:schools!school_id(name_ar),department,job_title,phone,email,username,role,is_active,is_super_admin,created_at').limit(500)
       .order('created_at', { ascending: false })
-    setProfiles((profilesData || []) as Profile[])
+    // school_ref يأتي ككائن واحد وقت التشغيل (علاقة many-to-one) رغم أن نوع Supabase مصفوفة
+    setProfiles((profilesData || []).map((p: any) => ({
+      ...p,
+      school_ref: Array.isArray(p.school_ref) ? (p.school_ref[0] ?? null) : (p.school_ref ?? null),
+    })) as Profile[])
 
     // قوائم منسدلة ديناميكية
     const { data: dropdowns } = await supabase
@@ -184,22 +185,6 @@ export default function UsersPage() {
       if (g.department)  setDepartments(g.department)
       if (g.job_title)   setJobTitles(g.job_title)
       if (g.nationality) setNationalities(g.nationality)
-      if (g.school)      setSchools(g.school)
-    }
-
-    // المدارس: جدول schools أو distinct من profiles (مع إزالة التكرار دائماً)
-    const dedup = (arr: string[]) => [...new Set(arr.filter(Boolean))]
-    try {
-      const { data: schoolsData } = await supabase.from('schools').select('name_ar').order('name_ar')
-      if (schoolsData && schoolsData.length > 0) {
-        setSchools(dedup(schoolsData.map((s: any) => s.name_ar)))
-      } else {
-        const unique = dedup((profilesData || []).map((p: any) => p.school))
-        if (unique.length > 0) setSchools(unique)
-      }
-    } catch {
-      const unique = dedup((profilesData || []).map((p: any) => p.school))
-      if (unique.length > 0) setSchools(unique)
     }
 
     // الأدوار
@@ -265,7 +250,6 @@ export default function UsersPage() {
       first_name_ar: p.first_name_ar || '',
       last_name_ar:  p.last_name_ar  || '',
       nationality:   p.nationality   || '',
-      school:        p.school        || '',
       department:    p.department    || '',
       job_title:     p.job_title     || '',
       phone:         p.phone         || '',
@@ -329,7 +313,6 @@ export default function UsersPage() {
         name_ar:       fullNameAr,
         full_name_ar:  fullNameAr,   // يُعرض في الشريط الجانبي — يجب أن يتزامن مع name_ar
         nationality:   form.nationality   || null,
-        school:        form.school        || null,
         department:    form.department    || null,
         job_title:     form.job_title     || null,
         phone:         form.phone         || null,
@@ -348,7 +331,6 @@ export default function UsersPage() {
         first_name_ar: form.first_name_ar || null,
         last_name_ar:  form.last_name_ar  || null,
         nationality:   form.nationality   || null,
-        school:        form.school        || null,
         department:    form.department    || null,
         job_title:     form.job_title     || null,
         phone:         form.phone         || null,
@@ -475,7 +457,7 @@ export default function UsersPage() {
     const refSheet = wb.addWorksheet('_ref')
     refSheet.state = 'veryHidden'
     const dropdownData: Record<string, string[]> = {
-      nationalities, schools, departments,
+      nationalities, departments,
       jobTitles, roles: roles.map(r => r.name_ar),
     }
     let refCol = 1
@@ -501,7 +483,7 @@ export default function UsersPage() {
 
     // عرض الأعمدة
     ws.columns = XLS_COLS.map(c => ({
-      width: ['الجنسية','القسم / المادة','المسمى الوظيفي','المؤسسة'].includes(c.label) ? 22
+      width: ['الجنسية','القسم / المادة','المسمى الوظيفي'].includes(c.label) ? 22
            : ['البريد الإلكتروني'].includes(c.label) ? 28 : 18,
     }))
 
@@ -510,7 +492,7 @@ export default function UsersPage() {
       const roleName = roles.find(r => r.code === p.role)?.name_ar || p.role
       ws.addRow([
         p.first_name_ar || '', p.last_name_ar || '',
-        p.nationality || '', p.school || '',
+        p.nationality || '',
         p.department || '', p.job_title || '',
         p.phone || '', p.email || '',
         p.username || '', roleName,
@@ -555,7 +537,7 @@ export default function UsersPage() {
     const refSheet = wb.addWorksheet('_ref')
     refSheet.state = 'veryHidden'
     const dropdownData: Record<string, string[]> = {
-      nationalities, schools, departments,
+      nationalities, departments,
       jobTitles, roles: roles.map(r => r.name_ar),
     }
     let refCol = 1
@@ -574,7 +556,7 @@ export default function UsersPage() {
     headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7C3AED' } }
     headerRow.height = 22
     ws.columns = XLS_COLS.map(c => ({
-      width: ['الجنسية','القسم / المادة','المسمى الوظيفي','المؤسسة'].includes(c.label) ? 22
+      width: ['الجنسية','القسم / المادة','المسمى الوظيفي'].includes(c.label) ? 22
            : ['البريد الإلكتروني'].includes(c.label) ? 28 : 18,
     }))
 
@@ -634,7 +616,6 @@ export default function UsersPage() {
       if (!row['البريد الإلكتروني']?.toString().trim()) rowErrs.push('البريد الإلكتروني مطلوب')
       if (!row['الاسم الأول بالعربية']?.toString().trim()) rowErrs.push('الاسم الأول مطلوب')
       if (row['الجنسية'] && !nationalities.includes(row['الجنسية'])) rowErrs.push(`الجنسية "${row['الجنسية']}" غير موجودة في القائمة`)
-      if (row['المؤسسة'] && schools.length > 0 && !schools.includes(row['المؤسسة'])) rowErrs.push(`المؤسسة "${row['المؤسسة']}" غير موجودة`)
       if (row['القسم / المادة'] && !departments.includes(row['القسم / المادة'])) rowErrs.push(`القسم "${row['القسم / المادة']}" غير موجود`)
       if (row['المسمى الوظيفي'] && !jobTitles.includes(row['المسمى الوظيفي'])) rowErrs.push(`المسمى "${row['المسمى الوظيفي']}" غير موجود`)
       if (row['الدور'] && !roleNames.includes(row['الدور'])) rowErrs.push(`الدور "${row['الدور']}" غير موجود`)
@@ -664,7 +645,6 @@ export default function UsersPage() {
           first_name_ar: row['الاسم الأول بالعربية']?.toString().trim() || '',
           last_name_ar:  row['الاسم الأخير بالعربية']?.toString().trim() || '',
           nationality:   row['الجنسية']             || null,
-          school:        row['المؤسسة']              || null,
           department:    row['القسم / المادة']        || null,
           job_title:     row['المسمى الوظيفي']        || null,
           phone:         row['الهاتف']?.toString()   || null,
@@ -709,7 +689,6 @@ export default function UsersPage() {
     const s = search.toLowerCase()
     return (!s || (p.name_ar||'').toLowerCase().includes(s) || (p.email||'').toLowerCase().includes(s) || (p.username||'').toLowerCase().includes(s))
         && (!roleFilter   || p.role   === roleFilter)
-        && (!schoolFilter || p.school === schoolFilter)
         && (activeFilter === ''         ? true
           : activeFilter === 'active'   ? p.is_active === true
           :                               p.is_active === false)
@@ -796,13 +775,6 @@ export default function UsersPage() {
           <option value="">كل الأدوار</option>
           {roles.map(r => <option key={r.code} value={r.code}>{r.name_ar}</option>)}
         </select>
-        {schools.length > 0 && (
-          <select value={schoolFilter} onChange={e => setSchoolFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white text-sm min-w-[150px]">
-            <option value="">كل المؤسسات</option>
-            {schools.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        )}
         {/* فلتر الحالة */}
         <div className="flex items-center bg-slate-100 p-1 rounded-xl">
           {([
@@ -883,9 +855,9 @@ export default function UsersPage() {
                           </div>
                         </div>
 
-                        {/* المؤسسة */}
+                        {/* المؤسسة (المدرسة الفعلية عبر school_id) */}
                         <div className="col-span-2 hidden sm:block">
-                          <p className={`text-xs truncate ${p.is_active ? 'text-slate-600' : 'text-slate-400'}`}>{p.school || '—'}</p>
+                          <p className={`text-xs truncate ${p.is_active ? 'text-slate-600' : 'text-slate-400'}`}>{p.school_ref?.name_ar || '—'}</p>
                         </div>
 
                         {/* القسم */}
@@ -1075,44 +1047,36 @@ export default function UsersPage() {
                           {nationalities.map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
                       </Field>
-                      <Field label="الجهة / المؤسسة">
-                        <select value={form.school} onChange={e => setForm(d => ({ ...d, school: e.target.value }))} className={inputCls}>
-                          <option value="">— اختر —</option>
-                          {schools.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </Field>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
                       <Field label="القسم / المادة">
                         <select value={form.department} onChange={e => setForm(d => ({ ...d, department: e.target.value }))} className={inputCls}>
                           <option value="">— اختر —</option>
                           {departments.map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                       </Field>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
                       <Field label="المسمى الوظيفي">
                         <select value={form.job_title} onChange={e => setForm(d => ({ ...d, job_title: e.target.value }))} className={inputCls}>
                           <option value="">— اختر —</option>
                           {jobTitles.map(j => <option key={j} value={j}>{j}</option>)}
                         </select>
                       </Field>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
                       <Field label="الهاتف">
                         <input value={form.phone} onChange={e => setForm(d => ({ ...d, phone: e.target.value }))}
                           type="tel" placeholder="+974" dir="ltr" className={inputCls} />
                       </Field>
-                      <Field label="البريد الإلكتروني *">
-                        <input value={form.email} onChange={e => setForm(d => ({ ...d, email: e.target.value }))}
-                          type="email" placeholder="example@gmail.com" dir="ltr" required
-                          readOnly={!!editProfile} disabled={!!editProfile}
-                          className={`${inputCls} ${editProfile ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
-                        {editProfile && (
-                          <p className="text-xs text-slate-400 mt-1">البريد هو هوية تسجيل الدخول — لا يمكن تغييره بعد الإنشاء.</p>
-                        )}
-                      </Field>
                     </div>
+
+                    <Field label="البريد الإلكتروني *">
+                      <input value={form.email} onChange={e => setForm(d => ({ ...d, email: e.target.value }))}
+                        type="email" placeholder="example@gmail.com" dir="ltr" required
+                        readOnly={!!editProfile} disabled={!!editProfile}
+                        className={`${inputCls} ${editProfile ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
+                      {editProfile && (
+                        <p className="text-xs text-slate-400 mt-1">البريد هو هوية تسجيل الدخول — لا يمكن تغييره بعد الإنشاء.</p>
+                      )}
+                    </Field>
                   </div>
                 )}
 
