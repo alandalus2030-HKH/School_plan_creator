@@ -16,7 +16,7 @@ type Preview = {
 }
 
 const RESET_PHRASE = 'مسح نهائي'
-const IDLE_LOCK_MS = 5000   // قفل تلقائي بعد 5 ثوانٍ من الخمول (منطقة خطر)
+const IDLE_LOCK_MS = 30000   // قفل تلقائي بعد 30 ثانية من الخمول (منطقة خطر)
 
 export default function AdminToolsPage() {
   const { isSuperAdmin, loading: permsLoading } = usePermissions()
@@ -184,7 +184,7 @@ export default function AdminToolsPage() {
         <ShieldAlert size={22} className="text-red-500" />
         <h1 className="text-xl font-bold text-slate-800">أدوات المشرف</h1>
         <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold">منطقة خطر</span>
-        <span className="text-[11px] text-slate-400 inline-flex items-center gap-1 ms-auto"><Lock size={11} /> تُقفل تلقائياً بعد 5 ثوانٍ من الخمول</span>
+        <span className="text-[11px] text-slate-400 inline-flex items-center gap-1 ms-auto"><Lock size={11} /> تُقفل تلقائياً بعد 30 ثانية من الخمول</span>
       </div>
 
       {/* إجماليات */}
