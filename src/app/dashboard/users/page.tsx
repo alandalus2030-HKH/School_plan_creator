@@ -1159,9 +1159,9 @@ export default function UsersPage() {
                                 onChange={e => setFormPassword(e.target.value)}
                                 autoComplete="new-password"
                                 placeholder="8 أحرف على الأقل" dir="ltr"
-                                className={inputCls} />
+                                className={`${inputCls} pr-9`} />
                               <button type="button" onClick={() => setShowPass(v => !v)}
-                                className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm px-1">
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm px-1">
                                 <span className="inline-flex">{showPass ? <EyeOff size={15} /> : <Eye size={15} />}</span>
                               </button>
                             </div>
