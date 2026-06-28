@@ -66,8 +66,9 @@ export async function DELETE(
 
   if ((userCount ?? 0) > 0 || (planCount ?? 0) > 0) {
     return NextResponse.json({
-      error: `لا يمكن حذف المدرسة — تحتوي على ${userCount ?? 0} مستخدم و ${planCount ?? 0} خطة. احذف بياناتها أولاً.`,
-    }, { status: 400 })
+      error: `لا يمكن حذف المدرسة — تحتوي على ${userCount ?? 0} مستخدم و${planCount ?? 0} خطة. `
+           + `ادخل إليها كمدرسة («الدخول كمدرسة») واحذف مستخدميها وخططها أولاً، ثم أعد المحاولة.`,
+    }, { status: 409 })
   }
 
   /* ── منع حذف آخر مدرسة في النظام ── */
@@ -78,6 +79,14 @@ export async function DELETE(
   }
 
   const { error } = await admin.from('schools').delete().eq('id', schoolId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    /* قيد مفتاح أجنبي غير مُغطّى → رسالة واضحة بدل رسالة Postgres الخام */
+    if (error.code === '23503' || /foreign key|violates|constraint/i.test(error.message)) {
+      return NextResponse.json({
+        error: 'تعذّر حذف المدرسة لارتباطها ببيانات أخرى. احذف مستخدميها وخططها أولاً ثم أعد المحاولة.',
+      }, { status: 409 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }
