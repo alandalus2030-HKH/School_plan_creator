@@ -230,7 +230,7 @@ export default function EvidenceLockerPage() {
               const sm = STATUS_META[e.status] || STATUS_META.pending
               const TI = TYPE_ICON[typeOf(e.file_type)]
               return (
-                <div key={e.id} className="flex items-center gap-3 p-3.5 hover:bg-slate-50 transition-colors">
+                <div key={e.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3.5 hover:bg-slate-50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {e.number && <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full" title="رقم الدليل">{e.number}</span>}
@@ -249,7 +249,7 @@ export default function EvidenceLockerPage() {
                       {e.task && <Link href={`/dashboard/tasks/${e.task.id}`} className="text-violet-500 hover:underline">· {e.task.name_ar}</Link>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 flex-shrink-0 w-full sm:w-auto justify-end border-t border-slate-100 pt-2 sm:pt-0 sm:border-0">
                     {canReview && (!deptScopedReview || (!!e.plan?.department && e.plan.department === myDept)) && (
                       <select value={e.status} onChange={ev => changeStatus(e.id, ev.target.value)}
                         disabled={e.task?.status === 'completed'}
