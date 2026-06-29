@@ -188,7 +188,42 @@ export default function SchoolsPage() {
 
       {/* قائمة المدارس */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* ═══ بطاقات (الجوال) ═══ */}
+        <div className="sm:hidden divide-y divide-slate-100">
+          {schools.length === 0 ? (
+            <p className="px-4 py-10 text-center text-slate-400">لا توجد مدارس بعد</p>
+          ) : schools.map(s => (
+            <div key={s.id} className="p-4">
+              <div className="min-w-0 mb-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-slate-800">{s.name_ar}</p>
+                  {s.is_active
+                    ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">نشطة</span>
+                    : <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">معطَّلة</span>}
+                </div>
+                {s.name_en && <p className="text-xs text-slate-400 font-latin">{s.name_en}</p>}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 flex-wrap">
+                <span>المستخدمون: <strong className="text-slate-700">{s.user_count}</strong></span>
+                <span>النشطون: <strong className="text-green-700">{s.active_count}</strong></span>
+                <span>الخطط: <strong className="text-slate-600">{s.plan_count}</strong></span>
+              </div>
+              <div className="flex items-center gap-1 border-t border-slate-100 pt-2">
+                <button onClick={() => enterAsSchool(s)} title="دخول كمدرسة (متابعة)"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"><Eye size={16} /></button>
+                <button onClick={() => setConfirmToggle(s)} title={s.is_active ? 'تعطيل المدرسة' : 'تفعيل المدرسة'}
+                  className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${s.is_active ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}>
+                  {s.is_active ? <PowerOff size={16} /> : <Power size={16} />}</button>
+                <button onClick={() => openEdit(s)} title="تعديل المدرسة"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"><Pencil size={16} /></button>
+                <button onClick={() => setConfirmDel(s)} title="حذف المدرسة"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 size={16} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* ═══ جدول (سطح المكتب) ═══ */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
               <tr className="text-xs text-slate-500 font-semibold">
