@@ -822,7 +822,7 @@ export default function UsersPage() {
                 <div key={p.id}>
                   {(
                     <>
-                      <div className={`grid grid-cols-12 gap-2 items-center px-4 py-3 transition-colors group ${
+                      <div className={`flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center px-4 py-3 transition-colors group ${
                         p.is_active ? 'hover:bg-slate-50' : 'bg-red-50/40 hover:bg-red-50/70'
                       }`}>
                         {/* المستخدم */}
@@ -865,6 +865,8 @@ export default function UsersPage() {
                           <p className={`text-xs truncate ${p.is_active ? 'text-slate-500' : 'text-slate-400'}`}>{p.department || '—'}</p>
                         </div>
 
+                        {/* الدور + الإجراءات: صفّ واحد على الجوال، خليّتا شبكة على sm+ */}
+                        <div className="flex items-center justify-between gap-2 sm:contents">
                         {/* الدور */}
                         <div className="col-span-2">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium text-white whitespace-nowrap ${!p.is_active ? 'opacity-50' : ''}`}
@@ -878,7 +880,7 @@ export default function UsersPage() {
                           {/* زر إعادة تعيين كلمة المرور — يظهر عند hover */}
                           <button onClick={() => setConfirmReset(p)} disabled={resetingId === p.id}
                             title="إعادة تعيين كلمة المرور"
-                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors text-sm disabled:opacity-40 opacity-0 group-hover:opacity-100">
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors text-sm disabled:opacity-40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                             <span className="inline-flex">{resetingId === p.id ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}</span>
                           </button>
 
@@ -895,11 +897,12 @@ export default function UsersPage() {
 
                           {/* تعديل وحذف — عند hover */}
                           <button onClick={() => openEdit(p)} title="تعديل"
-                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors opacity-0 group-hover:opacity-100"><Pencil size={14} /></button>
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Pencil size={14} /></button>
                           {!isProtected(p) && (
                             <button onClick={() => { setConfirmDel(p.id); setDelMsg(null) }} title="حذف"
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Trash2 size={14} /></button>
                           )}
+                        </div>
                         </div>
                       </div>
 
