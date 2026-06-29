@@ -297,7 +297,7 @@ export default function AggregatePage() {
   return (
     <div className="max-w-6xl mx-auto">
       {/* ═══ الجزء المثبّت: الترويسة + المؤشرات + الفلاتر ═══ */}
-      <div className="sticky top-0 z-20 bg-slate-50 -mt-6 pt-6 pb-4 mb-4 border-b border-slate-200 space-y-4">
+      <div className="sticky top-0 z-30 bg-slate-50 pb-4 mb-4 border-b border-slate-200 space-y-4 before:content-[''] before:absolute before:inset-x-0 before:bottom-full before:h-6 before:bg-slate-50">
       {/* الترويسة */}
       <div className="flex items-center gap-3">
         <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white flex-shrink-0"

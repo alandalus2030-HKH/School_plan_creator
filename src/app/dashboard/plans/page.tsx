@@ -223,7 +223,7 @@ function PlansPageInner() {
     <div onClick={() => setMenuOpen(null)}>
 
       {/* ═══ الجزء المثبّت: الترويسة + مجلد العام + الفلاتر ═══ */}
-      <div className="sticky top-0 z-20 bg-slate-50 -mt-6 pt-6 pb-4 mb-4 border-b border-slate-200 space-y-4">
+      <div className="sticky top-0 z-30 bg-slate-50 pb-4 mb-4 border-b border-slate-200 space-y-4 before:content-[''] before:absolute before:inset-x-0 before:bottom-full before:h-6 before:bg-slate-50">
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
