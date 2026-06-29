@@ -299,16 +299,16 @@ export default function AggregatePage() {
       {/* ═══ الجزء المثبّت: الترويسة + المؤشرات + الفلاتر ═══ */}
       <div className="relative sm:sticky sm:top-0 z-30 bg-slate-50 pb-4 mb-4 border-b border-slate-200 space-y-4 sm:before:content-[''] sm:before:absolute sm:before:inset-x-0 sm:before:bottom-full sm:before:h-6 sm:before:bg-slate-50">
       {/* الترويسة */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white flex-shrink-0"
           style={{ background: 'var(--gradient-button, #8a1538)' }}>
           <LayoutGrid size={22} />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-slate-800">لوحة التجميع</h1>
           <p className="text-sm text-slate-500">متابعة خطط الأقسام ومؤشراتها المجمّعة</p>
         </div>
-        <div className="mr-auto flex items-center gap-2">
+        <div className="mr-auto flex items-center gap-2 flex-wrap">
           {can('manage_plans') && (
             <Link href="/dashboard/plans"
               className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700 transition-colors">

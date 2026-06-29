@@ -306,7 +306,7 @@ export default function TasksPage() {
               : `${tasks.length} مهمة مكلَّف بها`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* مبدّل العرض */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
@@ -317,7 +317,7 @@ export default function TasksPage() {
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}>
-              <List size={14} /> قائمة
+              <List size={14} /> <span className="hidden sm:inline">قائمة</span>
             </button>
             <button
               onClick={() => setViewMode('kanban')}
@@ -327,7 +327,7 @@ export default function TasksPage() {
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}>
-              <LayoutGrid size={14} /> كانبان
+              <LayoutGrid size={14} /> <span className="hidden sm:inline">كانبان</span>
             </button>
             <button
               onClick={() => setViewMode('gantt')}
@@ -337,7 +337,7 @@ export default function TasksPage() {
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}>
-              <GanttChartSquare size={14} /> جانت
+              <GanttChartSquare size={14} /> <span className="hidden sm:inline">جانت</span>
             </button>
             <button
               onClick={() => setViewMode('calendar')}
@@ -347,7 +347,7 @@ export default function TasksPage() {
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}>
-              <CalendarDays size={14} /> تقويم
+              <CalendarDays size={14} /> <span className="hidden sm:inline">تقويم</span>
             </button>
           </div>
           {canManage && (

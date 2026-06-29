@@ -193,13 +193,13 @@ export default function EvidenceLockerPage() {
             {subOptions.length > 0 && <Select value={fStd} onChange={setFStd} placeholder="المعيار الفرعي" options={subOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
             <Select value={fStatus} onChange={setFStatus} placeholder="كل الحالات" options={[{ v: 'pending', l: 'قيد المراجعة' }, { v: 'accepted', l: 'معتمد' }, { v: 'rejected', l: 'مرفوض' }]} />
             {/* فترة الرفع: من / إلى */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 w-full sm:w-auto">
               <span className="text-slate-400">من</span>
               <input type="date" value={fFrom} onChange={e => setFFrom(e.target.value)} max={fTo || undefined}
-                className="px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                className="flex-1 min-w-0 sm:flex-none px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400" />
               <span className="text-slate-400">إلى</span>
               <input type="date" value={fTo} onChange={e => setFTo(e.target.value)} min={fFrom || undefined}
-                className="px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                className="flex-1 min-w-0 sm:flex-none px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400" />
             </div>
             <button onClick={() => setSharedOnly(v => !v)}
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-colors ${sharedOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
