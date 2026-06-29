@@ -111,7 +111,7 @@ function KanbanCard({
           <div
             {...listeners}
             {...attributes}
-            className="flex-shrink-0 cursor-grab active:cursor-grabbing p-1 rounded-lg
+            className="flex-shrink-0 touch-none cursor-grab active:cursor-grabbing p-1.5 rounded-lg
               text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors"
             title="اسحب لتغيير الحالة"
           >
