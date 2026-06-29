@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
-import { Clock, RefreshCw, CircleCheckBig, AlertTriangle, Calendar, X, MapPin, Map, ArrowUpRight, Lock, Pin } from 'lucide-react'
+import { Clock, RefreshCw, CircleCheckBig, AlertTriangle, Calendar, X, MapPin, Map, ArrowUpRight, Lock, Pin, ChevronsLeft, ChevronsRight } from 'lucide-react'
 
 /* ══════════════════════════════════════════
    الثوابت
@@ -74,14 +74,17 @@ export default function GanttChart({
   const timelineRef = useRef<HTMLDivElement>(null)
   const leftRef     = useRef<HTMLDivElement>(null)
 
-  /* عرض عمود التسميات: مُصغّر على الجوال ليظهر المخطط */
-  const [leftW, setLeftW] = useState(LEFT_W)
+  /* عمود التسميات قابل للطيّ: موسّع لقراءة الأسماء، مطويّ لإظهار المخطط */
+  const [isMobile,  setIsMobile]  = useState(false)
+  const [labelOpen, setLabelOpen] = useState(true)
   useEffect(() => {
-    const update = () => setLeftW(window.innerWidth < 640 ? 130 : LEFT_W)
+    const update = () => setIsMobile(window.innerWidth < 640)
     update()
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
   }, [])
+  useEffect(() => { setLabelOpen(window.innerWidth >= 640) }, [])   // مطويّ افتراضياً على الجوال
+  const leftW = labelOpen ? (isMobile ? 230 : LEFT_W) : 56
 
   const dayW  = ZOOM[zoom].dayW
   const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d }, [])
@@ -404,10 +407,15 @@ export default function GanttChart({
         {/* ═══ اللوحة اليسرى (ثابتة عند الاسكرول الأفقي) ═══ */}
         <div className="flex-shrink-0 bg-white z-10 border-r border-slate-200 flex flex-col"
           style={{ width: leftW }}>
-          {/* رأس */}
-          <div className="flex-shrink-0 flex items-center px-4 bg-slate-50 border-b border-slate-200"
+          {/* رأس + زرّ طيّ/توسيع العمود */}
+          <div className="flex-shrink-0 flex items-center justify-between gap-1 px-2 bg-slate-50 border-b border-slate-200"
             style={{ height: HDR_H }}>
-            <span className="text-xs font-semibold text-slate-500" dir="rtl">المهمة / المستوى</span>
+            {labelOpen && <span className="text-xs font-semibold text-slate-500 truncate px-1" dir="rtl">المهمة / المستوى</span>}
+            <button onClick={() => setLabelOpen(o => !o)}
+              title={labelOpen ? 'طيّ العمود لإظهار المخطط' : 'توسيع العمود لقراءة الأسماء'}
+              className="flex-shrink-0 p-1 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-slate-100 transition-colors">
+              {labelOpen ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />}
+            </button>
           </div>
           {/* صفوف الأسماء */}
           <div ref={leftRef} className="overflow-y-hidden flex-1" style={{ overflowX: 'hidden' }}>
