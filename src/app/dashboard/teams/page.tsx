@@ -253,82 +253,84 @@ export default function TeamsPage() {
 
                 {/* ── رأس الفريق ── */}
                 {(
-                  <div className="flex items-center gap-3 p-3 sm:p-4 group">
-                    {/* لون الفريق */}
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
-                      style={{ backgroundColor: team.color }}>
-                      {team.name_ar[0]}
-                    </div>
-
-                    {/* المعلومات */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-slate-800">{team.name_ar}</span>
-                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{members.length} عضو</span>
-                        {(team.taskCount ?? 0) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
-                            <ClipboardList size={11} /> {team.taskCount} مهمة
-                          </span>
-                        )}
+                  <div className="p-3 sm:p-4 group">
+                    {/* السطر العلوي: المربع + الاسم + الأزرار */}
+                    <div className="flex items-center gap-3">
+                      {/* لون الفريق */}
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
+                        style={{ backgroundColor: team.color }}>
+                        {team.name_ar[0]}
                       </div>
 
-                      {/* القائد بارز */}
-                      {leader && (
-                        <div className="flex items-center gap-1.5 mt-1 min-w-0">
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
-                            style={{ backgroundColor: team.color }}>
-                            {leader.name_ar[0]}
-                          </div>
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 min-w-0 max-w-full">
-                            <Crown size={12} className="flex-shrink-0" />
-                            <span className="truncate">القائد: {leader.name_ar}</span>
-                          </span>
-                        </div>
-                      )}
-
-                      {team.description && (
-                        <p className="text-xs text-slate-400 mt-0.5 truncate">{team.description}</p>
-                      )}
-
-                      {/* صور الأعضاء */}
-                      {members.length > 0 && (
-                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                          {members.slice(0, 8).map(m => (
-                            <div key={m.profile_id}
-                              className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold
-                                ${m.profile_id === team.leader_id
-                                  ? 'ring-2 ring-amber-400 ring-offset-1'
-                                  : 'bg-gradient-to-br from-violet-400 to-indigo-500'}`}
-                              style={m.profile_id === team.leader_id ? { backgroundColor: team.color } : {}}
-                              title={`${m.profile?.name_ar}${m.profile_id === team.leader_id ? ' (القائد)' : ''}`}>
-                              {(m.profile?.name_ar || '؟')[0]}
-                            </div>
-                          ))}
-                          {members.length > 8 && (
-                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-[10px] font-bold">
-                              +{members.length - 8}
-                            </div>
+                      {/* الاسم + العدد */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-800">{team.name_ar}</span>
+                          <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{members.length} عضو</span>
+                          {(team.taskCount ?? 0) > 0 && (
+                            <span className="inline-flex items-center gap-1 text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+                              <ClipboardList size={11} /> {team.taskCount} مهمة
+                            </span>
                           )}
                         </div>
-                      )}
+                      </div>
+
+                      {/* الأزرار */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => setExpanded(isOpen ? null : team.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors text-lg">
+                          {isOpen ? '▲' : '▼'}
+                        </button>
+                        {canManage && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <button onClick={() => openEdit(team)} title="تعديل"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"><Pencil size={15} /></button>
+                            <button onClick={() => setConfirmDel(team.id)} title="حذف"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* الأزرار */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {/* زر توسيع */}
-                      <button onClick={() => setExpanded(isOpen ? null : team.id)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors text-lg">
-                        {isOpen ? '▲' : '▼'}
-                      </button>
-                      {canManage && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                          <button onClick={() => openEdit(team)} title="تعديل"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"><Pencil size={15} /></button>
-                          <button onClick={() => setConfirmDel(team.id)} title="حذف"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>
+                    {/* القائد — سطر كامل */}
+                    {leader && (
+                      <div className="flex items-center gap-1.5 mt-2 min-w-0">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+                          style={{ backgroundColor: team.color }}>
+                          {leader.name_ar[0]}
                         </div>
-                      )}
-                    </div>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 min-w-0 max-w-full">
+                          <Crown size={12} className="flex-shrink-0" />
+                          <span className="truncate">القائد: {leader.name_ar}</span>
+                        </span>
+                      </div>
+                    )}
+
+                    {team.description && (
+                      <p className="text-xs text-slate-400 mt-1.5 truncate">{team.description}</p>
+                    )}
+
+                    {/* صور الأعضاء — سطر كامل */}
+                    {members.length > 0 && (
+                      <div className="flex items-center gap-1 mt-2 flex-wrap">
+                        {members.slice(0, 8).map(m => (
+                          <div key={m.profile_id}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold
+                              ${m.profile_id === team.leader_id
+                                ? 'ring-2 ring-amber-400 ring-offset-1'
+                                : 'bg-gradient-to-br from-violet-400 to-indigo-500'}`}
+                            style={m.profile_id === team.leader_id ? { backgroundColor: team.color } : {}}
+                            title={`${m.profile?.name_ar}${m.profile_id === team.leader_id ? ' (القائد)' : ''}`}>
+                            {(m.profile?.name_ar || '؟')[0]}
+                          </div>
+                        ))}
+                        {members.length > 8 && (
+                          <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-[10px] font-bold">
+                            +{members.length - 8}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
