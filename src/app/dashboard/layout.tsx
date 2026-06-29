@@ -40,10 +40,14 @@ function getTitle(pathname: string, lang: 'ar' | 'en'): string {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [lang,      setLang]      = useState<'ar' | 'en'>('ar')
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)   // الشريط الجانبي المنزلق على الجوال
   const [checking,  setChecking]  = useState(true)
   const pathname  = usePathname()
   const router    = useRouter()
   const pageTitle = getTitle(pathname, lang)
+
+  /* إغلاق الشريط المنزلق عند الانتقال لصفحة جديدة (جوال) */
+  useEffect(() => { setMobileOpen(false) }, [pathname])
 
   /* حارس: إلزام تغيير كلمة المرور عند أول دخول → تحويل لصفحة التعيين.
      يُخفي المحتوى حتى انتهاء الفحص لمنع الوميض. */
@@ -91,8 +95,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <PermissionsProvider>
       {/* App Shell: ارتفاع ثابت — التمرير داخل main فقط (يثبّت الشريط الجانبي/العلوي ويُفعّل sticky) */}
       <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-        <div className="print:hidden flex-shrink-0">
-          <Sidebar lang={lang} collapsed={collapsed} onToggle={toggleSidebar} />
+        {/* خلفية معتمة للشريط المنزلق (جوال فقط) */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-[45] bg-black/40 lg:hidden print:hidden" onClick={() => setMobileOpen(false)} />
+        )}
+        {/* الشريط الجانبي: رِفّ ثابت على lg+، ومنزلق من اليمين على الجوال */}
+        <div className={`print:hidden flex-shrink-0 z-50 transition-transform duration-300
+          max-lg:fixed max-lg:inset-y-0 max-lg:right-0
+          ${mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:translate-x-full lg:translate-x-0'}`}>
+          <Sidebar lang={lang} collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
         </div>
         <div className="flex-1 flex flex-col overflow-hidden min-w-0 print:overflow-visible">
           <div className="print:hidden">
@@ -101,6 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               lang={lang}
               onLangChange={() => setLang(lang === 'ar' ? 'en' : 'ar')}
               title={pageTitle}
+              onMenuClick={() => setMobileOpen(true)}
             />
           </div>
           <main className="flex-1 overflow-auto bg-slate-50 p-6 print:overflow-visible print:p-0 print:bg-white">

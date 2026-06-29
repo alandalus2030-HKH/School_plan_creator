@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Menu } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import GlobalSearch from './GlobalSearch'
 
@@ -9,9 +10,10 @@ interface TopBarProps {
   lang: 'ar' | 'en'
   onLangChange: () => void
   title?: string
+  onMenuClick?: () => void
 }
 
-export default function TopBar({ lang, onLangChange, title }: TopBarProps) {
+export default function TopBar({ lang, onLangChange, title, onMenuClick }: TopBarProps) {
   const router   = useRouter()
   const supabase = createClient()
 
@@ -23,7 +25,15 @@ export default function TopBar({ lang, onLangChange, title }: TopBarProps) {
 
   return (
     <header className="bg-white border-b border-slate-200 px-3 sm:px-6 py-3 flex items-center justify-between gap-2 shadow-sm">
-      <h1 className="text-base sm:text-lg font-bold text-slate-800 truncate min-w-0">{title || ''}</h1>
+      <div className="flex items-center gap-2 min-w-0">
+        <button
+          onClick={onMenuClick}
+          aria-label={lang === 'ar' ? 'القائمة' : 'Menu'}
+          className="lg:hidden flex-shrink-0 p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+          <Menu size={22} />
+        </button>
+        <h1 className="text-base sm:text-lg font-bold text-slate-800 truncate min-w-0">{title || ''}</h1>
+      </div>
       <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
         {/* البحث الشامل */}
         <GlobalSearch />

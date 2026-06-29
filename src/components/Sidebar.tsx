@@ -38,9 +38,13 @@ interface SidebarProps {
   collapsed?:  boolean
   onToggle?:   () => void
   schoolName?: string
+  mobileOpen?:    boolean
+  onMobileClose?: () => void
 }
 
-export default function Sidebar({ lang, collapsed = false, onToggle, schoolName }: SidebarProps) {
+export default function Sidebar({ lang, collapsed: collapsedProp = false, onToggle, schoolName, mobileOpen = false, onMobileClose }: SidebarProps) {
+  /* على الجوال (الشريط المنزلق) يُعرض موسّعاً دائماً — نتجاهل تفضيل الطيّ */
+  const collapsed = mobileOpen ? false : collapsedProp
   const pathname = usePathname()
   const { can, loading, userName, userEmail, userId, userAvatar, isSuperAdmin, isGroupOwner,
     schoolName: ctxSchoolName, groupName, roleLabel,
@@ -95,7 +99,7 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
         title={collapsed ? 'توسيع القائمة' : 'طي القائمة'}
         className={`
           absolute top-4 z-20 w-6 h-6 flex items-center justify-center
-          text-white rounded-full shadow-lg
+          text-white rounded-full shadow-lg max-lg:hidden
           transition-all duration-300 border border-white/20
           ${isRtl ? '-left-3' : '-right-3'}
         `}
@@ -145,6 +149,7 @@ export default function Sidebar({ lang, collapsed = false, onToggle, schoolName 
             <Link
               key={item.href}
               href={item.href}
+              onClick={onMobileClose}
               title={collapsed ? (lang === 'ar' ? item.ar : item.en) : undefined}
               className={`
                 flex items-center gap-3 mx-2 mb-1 rounded-xl transition-all duration-200
