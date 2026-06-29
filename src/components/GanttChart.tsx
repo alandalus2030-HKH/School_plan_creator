@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo, useCallback } from 'react'
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { Clock, RefreshCw, CircleCheckBig, AlertTriangle, Calendar, X, MapPin, Map, ArrowUpRight, Lock, Pin } from 'lucide-react'
 
 /* ══════════════════════════════════════════
@@ -73,6 +73,15 @@ export default function GanttChart({
   const [priorityF,    setPriorityF]    = useState('')                         // '' | high | medium | low
   const timelineRef = useRef<HTMLDivElement>(null)
   const leftRef     = useRef<HTMLDivElement>(null)
+
+  /* عرض عمود التسميات: مُصغّر على الجوال ليظهر المخطط */
+  const [leftW, setLeftW] = useState(LEFT_W)
+  useEffect(() => {
+    const update = () => setLeftW(window.innerWidth < 640 ? 130 : LEFT_W)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   const dayW  = ZOOM[zoom].dayW
   const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d }, [])
@@ -394,7 +403,7 @@ export default function GanttChart({
 
         {/* ═══ اللوحة اليسرى (ثابتة عند الاسكرول الأفقي) ═══ */}
         <div className="flex-shrink-0 bg-white z-10 border-r border-slate-200 flex flex-col"
-          style={{ width: LEFT_W }}>
+          style={{ width: leftW }}>
           {/* رأس */}
           <div className="flex-shrink-0 flex items-center px-4 bg-slate-50 border-b border-slate-200"
             style={{ height: HDR_H }}>
