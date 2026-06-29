@@ -253,7 +253,7 @@ export default function TeamsPage() {
 
                 {/* ── رأس الفريق ── */}
                 {(
-                  <div className="flex items-center gap-4 p-4 group">
+                  <div className="flex items-center gap-3 p-3 sm:p-4 group">
                     {/* لون الفريق */}
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
                       style={{ backgroundColor: team.color }}>
@@ -274,13 +274,14 @@ export default function TeamsPage() {
 
                       {/* القائد بارز */}
                       {leader && (
-                        <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex items-center gap-1.5 mt-1 min-w-0">
                           <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
                             style={{ backgroundColor: team.color }}>
                             {leader.name_ar[0]}
                           </div>
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                            <Crown size={12} /> القائد: {leader.name_ar}
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 min-w-0 max-w-full">
+                            <Crown size={12} className="flex-shrink-0" />
+                            <span className="truncate">القائد: {leader.name_ar}</span>
                           </span>
                         </div>
                       )}
