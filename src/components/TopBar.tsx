@@ -22,9 +22,9 @@ export default function TopBar({ lang, onLangChange, title }: TopBarProps) {
   }
 
   return (
-    <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm">
-      <h1 className="text-lg font-bold text-slate-800">{title || ''}</h1>
-      <div className="flex items-center gap-3">
+    <header className="bg-white border-b border-slate-200 px-3 sm:px-6 py-3 flex items-center justify-between gap-2 shadow-sm">
+      <h1 className="text-base sm:text-lg font-bold text-slate-800 truncate min-w-0">{title || ''}</h1>
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
         {/* البحث الشامل */}
         <GlobalSearch />
 
