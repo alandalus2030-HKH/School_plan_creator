@@ -534,8 +534,9 @@ export default function TasksPage() {
 
               return (
                 <Link key={task.id} href={`/dashboard/tasks/${task.id}`}
-                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors group">
+                  className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 sm:px-5 py-3.5 hover:bg-slate-50 transition-colors group">
 
+                  <div className="flex items-center gap-3 min-w-0 sm:flex-1">
                   {/* الرقم الهرمي الفريد للمهمة (مثل 1.1.2.2) */}
                   {(() => {
                     const num = taskNumber(task.node_id ?? null, (task as any).order_num)
@@ -588,7 +589,9 @@ export default function TasksPage() {
                       </div>
                     )}
                   </div>
+                  </div>
 
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
                   {/* التاريخ */}
                   {task.end_date && (
                     <span className={`text-xs flex-shrink-0 ${overdue ? 'text-red-500 font-semibold' : 'text-slate-400'}`}>
@@ -636,6 +639,7 @@ export default function TasksPage() {
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${statusInfo?.bg}`}>
                     {statusInfo?.label || task.status}
                   </span>
+                  </div>
                 </Link>
               )
             })}
