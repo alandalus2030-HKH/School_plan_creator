@@ -131,15 +131,19 @@ export default function AuditPage() {
               return (
                 <div key={r.id}>
                   <button onClick={() => hasDiff && setExpanded(open ? null : r.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-right ${hasDiff ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-default'}`}>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${actionColor[r.action] || 'bg-slate-100 text-slate-600'}`}>
-                      {actionAr[r.action] || r.action}
-                    </span>
-                    <span className="text-sm text-slate-700 flex-shrink-0">{r.table_name ? (tableAr[r.table_name] || r.table_name) : '—'}</span>
-                    <span className="text-xs text-slate-500 flex-1 truncate">بواسطة <span className="font-semibold text-slate-700">{r.user_name}</span></span>
-                    {r.ip_address && <span className="text-[11px] text-slate-400 inline-flex items-center gap-1 flex-shrink-0" dir="ltr"><Globe size={11} /> {r.ip_address}</span>}
-                    <span className="text-xs text-slate-400 flex-shrink-0">{fmt(r.created_at)}</span>
-                    {hasDiff && (open ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />)}
+                    className={`w-full flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 px-4 py-3 text-right ${hasDiff ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-default'}`}>
+                    <div className="flex items-center gap-2 sm:contents">
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${actionColor[r.action] || 'bg-slate-100 text-slate-600'}`}>
+                        {actionAr[r.action] || r.action}
+                      </span>
+                      <span className="text-sm text-slate-700 flex-shrink-0">{r.table_name ? (tableAr[r.table_name] || r.table_name) : '—'}</span>
+                    </div>
+                    <span className="text-xs text-slate-500 sm:flex-1 truncate min-w-0">بواسطة <span className="font-semibold text-slate-700">{r.user_name}</span></span>
+                    <div className="flex items-center gap-3 sm:contents">
+                      {r.ip_address && <span className="text-[11px] text-slate-400 inline-flex items-center gap-1 flex-shrink-0" dir="ltr"><Globe size={11} /> {r.ip_address}</span>}
+                      <span className="text-xs text-slate-400 flex-shrink-0">{fmt(r.created_at)}</span>
+                      {hasDiff && (open ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />)}
+                    </div>
                   </button>
                   {open && hasDiff && (
                     <div className="px-4 pb-3 bg-slate-50/60 text-xs">
