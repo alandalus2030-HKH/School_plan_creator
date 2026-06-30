@@ -16,7 +16,7 @@ import LocationsManager from '@/components/LocationsManager'
 import DeptSupervisorsManager from '@/components/DeptSupervisorsManager'
 import DeptMembersManager from '@/components/DeptMembersManager'
 import CalendarManager from '@/components/CalendarManager'
-import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays, ChevronDown, Search } from 'lucide-react'
+import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays, ChevronDown, Search, ChevronRight } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -49,6 +49,7 @@ export default function SettingsPage() {
   const [options,    setOptions]    = useState<Option[]>([])
   const [loading,    setLoading]    = useState(true)
   const [activeCat,  setActiveCat]  = useState('__school__')
+  const [mobileContent, setMobileContent] = useState(false)   // الجوال: قائمة↔تفاصيل
   /* تنظيم الشريط: مجموعة مفتوحة واحدة + بحث + حفظ آخر قسم */
   const [openGroup,  setOpenGroup]  = useState<string | null>(null)
   const [navQ,       setNavQ]       = useState('')
@@ -62,6 +63,7 @@ export default function SettingsPage() {
   }, [])
   const go = (key: string) => {
     setActiveCat(key); setEditId(null); setConfirmDel(null)
+    setMobileContent(true)   // على الجوال: انتقل لعرض التفاصيل
     localStorage.setItem('settings_cat', key)
   }
   const [newValue,   setNewValue]   = useState('')
@@ -330,7 +332,7 @@ export default function SettingsPage() {
       <div className="flex flex-col md:flex-row gap-3 md:gap-5 md:items-start">
 
         {/* ══ الشريط الجانبي (مجموعات قابلة للطيّ) — كامل العرض على الجوال ══ */}
-        <div className="w-full md:w-56 flex-shrink-0 space-y-1.5">
+        <div className={`w-full md:w-56 flex-shrink-0 space-y-1.5 ${mobileContent ? 'hidden md:block' : 'block'}`}>
 
           {navResults ? (
             navResults.length
@@ -369,7 +371,12 @@ export default function SettingsPage() {
         </div>
 
         {/* ══ المحتوى الرئيسي ══ */}
-        <div className="flex-1 min-w-0">
+        <div className={`flex-1 min-w-0 ${mobileContent ? 'block' : 'hidden md:block'}`}>
+          {/* زرّ الرجوع للقائمة (جوال فقط) */}
+          <button onClick={() => setMobileContent(false)}
+            className="md:hidden mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-violet-700 hover:text-violet-800">
+            <ChevronRight size={16} /> كل الإعدادات
+          </button>
 
           {isSchool ? (
             /* ════ قسم بيانات المدرسة ════ */
