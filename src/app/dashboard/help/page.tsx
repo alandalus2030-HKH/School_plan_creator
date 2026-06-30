@@ -314,22 +314,22 @@ export default function HelpPage() {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <h3 className="font-bold text-slate-800 p-4 border-b border-slate-100">مقارنة سريعة</h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right">
+            <table className="w-full text-xs sm:text-sm text-right">
               <thead>
                 <tr className="bg-slate-50 text-slate-500">
-                  <th className="px-4 py-2.5 font-medium">البُعد</th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><User size={14} /> مهامي</span></th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Folder size={14} /> كل المهام</span></th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><BarChart3 size={14} /> لوحة التجميع</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium">البُعد</th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><User size={14} /> مهامي</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Folder size={14} /> كل المهام</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><BarChart3 size={14} /> لوحة التجميع</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {LENS_TABLE.map((r, i) => (
                   <tr key={i} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-2.5 font-medium text-slate-700">{r.dim}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.mine}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.all}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.agg}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 font-medium text-slate-700">{r.dim}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.mine}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.all}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.agg}</td>
                   </tr>
                 ))}
               </tbody>
@@ -360,22 +360,22 @@ export default function HelpPage() {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <h3 className="font-bold text-slate-800 p-4 border-b border-slate-100">مقارنة سريعة</h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right">
+            <table className="w-full text-xs sm:text-sm text-right">
               <thead>
                 <tr className="bg-slate-50 text-slate-500">
-                  <th className="px-4 py-2.5 font-medium">البُعد</th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><LayoutGrid size={14} /> كانبان</span></th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><GanttChartSquare size={14} /> جانت</span></th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> التقويم</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium">البُعد</th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><LayoutGrid size={14} /> كانبان</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><GanttChartSquare size={14} /> جانت</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> التقويم</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {VIEW_TABLE.map((r, i) => (
                   <tr key={i} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-2.5 font-medium text-slate-700">{r.dim}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.kanban}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.gantt}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.calendar}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 font-medium text-slate-700">{r.dim}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.kanban}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.gantt}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.calendar}</td>
                   </tr>
                 ))}
               </tbody>
@@ -408,22 +408,22 @@ export default function HelpPage() {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <h3 className="font-bold text-slate-800 p-4 border-b border-slate-100">مقارنة سريعة</h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right">
+            <table className="w-full text-xs sm:text-sm text-right">
               <thead>
                 <tr className="bg-slate-50 text-slate-500">
-                  <th className="px-4 py-2.5 font-medium">البُعد</th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><BadgeCheck size={14} /> الاعتماد</span></th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Lock size={14} /> التجميد</span></th>
-                  <th className="px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Archive size={14} /> الأرشفة</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium">البُعد</th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><BadgeCheck size={14} /> الاعتماد</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Lock size={14} /> التجميد</span></th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium"><span className="inline-flex items-center gap-1.5"><Archive size={14} /> الأرشفة</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {STATE_TABLE.map((r, i) => (
                   <tr key={i} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-2.5 font-medium text-slate-700">{r.dim}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.approve}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.freeze}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.archive}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 font-medium text-slate-700">{r.dim}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.approve}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.freeze}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.archive}</td>
                   </tr>
                 ))}
               </tbody>
@@ -453,20 +453,20 @@ export default function HelpPage() {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <h3 className="font-bold text-slate-800 p-4 border-b border-slate-100">كتالوج الأدوار</h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right">
+            <table className="w-full text-xs sm:text-sm text-right">
               <thead>
                 <tr className="bg-slate-50 text-slate-500">
-                  <th className="px-4 py-2.5 font-medium">الدور</th>
-                  <th className="px-4 py-2.5 font-medium">الطبقة</th>
-                  <th className="px-4 py-2.5 font-medium">الغرض</th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium">الدور</th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium">الطبقة</th>
+                  <th className="px-2.5 sm:px-4 py-2.5 font-medium">الغرض</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {ROLE_CATALOG.map((r, i) => (
                   <tr key={i} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-2.5 font-semibold text-slate-800 whitespace-nowrap">{r.name}</td>
-                    <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap">{r.tier}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.purpose}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 font-semibold text-slate-800 whitespace-nowrap">{r.name}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-500 whitespace-nowrap">{r.tier}</td>
+                    <td className="px-2.5 sm:px-4 py-2.5 text-slate-600">{r.purpose}</td>
                   </tr>
                 ))}
               </tbody>

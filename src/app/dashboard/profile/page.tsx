@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserRound, Phone, Award, Star, Camera, Loader2, Trash2, Save, KeyRound, Lock, Mail } from 'lucide-react'
+import { UserRound, Phone, Award, Star, Camera, Loader2, Trash2, Save, KeyRound, Lock, Mail, Upload } from 'lucide-react'
 import { toast } from '@/components/Toast'
 import { BadgeIcon } from '@/lib/badgeIcons'
 
@@ -44,6 +44,7 @@ export default function ProfilePage() {
   const [avatarUrl,       setAvatarUrl]       = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarRef = useRef<HTMLInputElement>(null)
+  const avatarCamRef = useRef<HTMLInputElement>(null)   // التقاط بكاميرا الجوال مباشرةً
 
   const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -241,11 +242,19 @@ export default function ProfilePage() {
                 {initial}
               </div>
             )}
-            <input ref={avatarRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={onPickAvatar} className="hidden" />
+            {/* اختيار من المعرض/الملفات */}
+            <input ref={avatarRef} type="file" accept="image/*" onChange={onPickAvatar} className="hidden" />
             <button onClick={() => avatarRef.current?.click()} disabled={uploadingAvatar}
-              aria-label="تغيير الصورة" title="تغيير الصورة"
+              aria-label="اختيار صورة" title="اختيار صورة من المعرض"
               className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full bg-white text-violet-700 flex items-center justify-center shadow-md hover:bg-violet-50 transition-colors disabled:opacity-60">
-              <span className="inline-flex">{uploadingAvatar ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}</span>
+              <span className="inline-flex">{uploadingAvatar ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}</span>
+            </button>
+            {/* التقاط بالكاميرا مباشرةً (جوال) */}
+            <input ref={avatarCamRef} type="file" accept="image/*" capture="user" onChange={onPickAvatar} className="hidden" />
+            <button onClick={() => avatarCamRef.current?.click()} disabled={uploadingAvatar}
+              aria-label="التقاط بالكاميرا" title="التقاط بالكاميرا"
+              className="sm:hidden absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white text-violet-700 flex items-center justify-center shadow-md hover:bg-violet-50 transition-colors disabled:opacity-60">
+              <span className="inline-flex"><Camera size={13} /></span>
             </button>
             {avatarUrl && !uploadingAvatar && (
               <button onClick={removeAvatar} aria-label="حذف الصورة" title="حذف الصورة"
