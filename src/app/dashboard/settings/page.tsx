@@ -327,10 +327,10 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="flex gap-5 items-start">
+      <div className="flex flex-col md:flex-row gap-3 md:gap-5 md:items-start">
 
-        {/* ══ الشريط الجانبي (مجموعات قابلة للطيّ) ══ */}
-        <div className="w-56 flex-shrink-0 space-y-1.5">
+        {/* ══ الشريط الجانبي (مجموعات قابلة للطيّ) — كامل العرض على الجوال ══ */}
+        <div className="w-full md:w-56 flex-shrink-0 space-y-1.5">
 
           {navResults ? (
             navResults.length
