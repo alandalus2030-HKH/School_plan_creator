@@ -96,8 +96,12 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     })
   }
 
-  /* بانتظار تحميل الهوية، أو التحويل لتغيير كلمة المرور، أو لا مستخدم (سيُعاد التوجيه من مكان آخر) */
-  if (loading || mustChangePassword || noUser) {
+  /* لا نحجب العرض بـ"loading" وحدها — الهيكل والمحتوى يُعرَضان فوراً حتى قبل
+     اكتمال الصلاحيات، لتتمكّن المكوّنات المستقلة عنها (كصدارة الشهر وسجل
+     النشاط) من الجلب بالتوازي الحقيقي بدل انتظاره تتابعياً. فقط حالتا التحويل
+     الإجباري (تغيير كلمة المرور/لا مستخدم) تحجبان العرض لأنهما تعنيان مغادرة
+     اللوحة فوراً على أي حال */
+  if (mustChangePassword || noUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin w-8 h-8 border-4 border-[#8a1538] border-t-transparent rounded-full" />
