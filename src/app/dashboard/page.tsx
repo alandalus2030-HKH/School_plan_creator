@@ -4,25 +4,22 @@ import DashboardClient from './DashboardClient'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  /* getSession (محلي، بدون شبكة) لا getUser — الـmiddleware (proxy.ts) تحقّق
+     فعلياً من الجلسة عبر الشبكة لنفس هذا الطلب قبل وصوله لهذا المكوّن */
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) redirect('/login')
 
-  /* ── مالك المجموعة → لوحة المجموعة مباشرةً ── */
+  /* ── ملف تعريف واحد يغطّي فحصي المجموعة والصلاحيات معاً (كانا استعلامين منفصلين) ── */
   let redirectToGroup = false
-  try {
-    const { data: gp } = await supabase
-      .from('profiles').select('is_group_owner, is_super_admin').eq('id', user.id).single()
-    if (gp?.is_group_owner && !gp?.is_super_admin) redirectToGroup = true
-  } catch { /* تجاهل */ }
-  if (redirectToGroup) redirect('/dashboard/group')
-
-  /* ── تحقق من الصلاحيات ── */
   let redirectToMyTasks = false
   try {
     const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', user.id).single()
+      .from('profiles').select('is_group_owner, is_super_admin, role').eq('id', user.id).single()
 
-    if (profile?.role) {
+    if (profile?.is_group_owner && !profile?.is_super_admin) redirectToGroup = true
+
+    if (!redirectToGroup && profile?.role) {
       const { data: roleData } = await supabase
         .from('roles').select('permissions').eq('code', profile.role).single()
 
@@ -42,15 +39,17 @@ export default async function DashboardPage() {
     }
   } catch { /* خطأ → نبقيه في لوحة التحكم */ }
 
+  if (redirectToGroup) redirect('/dashboard/group')
   if (redirectToMyTasks) redirect('/dashboard/my-tasks')
 
-  /* ── إحصائيات ── */
+  /* ── إحصائيات (دفعة واحدة متوازية — تضمّ الآن طلبات إعادة الفتح أيضاً) ── */
   const [
     { count: tasksCount     },
     { count: completedCount },
     { count: delayedCount   },
     { count: plansCount     },
     { data:  recentTasks    },
+    reopenRes,
   ] = await Promise.all([
     supabase.from('tasks').select('*', { count: 'exact', head: true }),
     supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
@@ -59,19 +58,16 @@ export default async function DashboardPage() {
     supabase.from('tasks')
       .select('id, name_ar, status, end_date, task_type')
       .order('created_at', { ascending: false }).limit(6),
+    /* طلبات إعادة فتح معلّقة — متسامح إن لم يُشغَّل الترحيل 025 (عمود غير موجود) */
+    supabase.from('tasks').select('*', { count: 'exact', head: true })
+      .not('reopen_requested_by', 'is', null)
+      .then(res => res, () => ({ count: 0, error: null } as any)),
   ])
 
   const completionRate = tasksCount && tasksCount > 0
     ? Math.round(((completedCount || 0) / tasksCount) * 100) : 0
 
-  /* طلبات إعادة فتح معلّقة — متسامح إن لم يُشغَّل الترحيل 025 */
-  let reopenRequestsCount = 0
-  try {
-    const { count, error } = await supabase
-      .from('tasks').select('*', { count: 'exact', head: true })
-      .not('reopen_requested_by', 'is', null)
-    if (!error) reopenRequestsCount = count || 0
-  } catch { /* العمود غير موجود بعد */ }
+  const reopenRequestsCount = reopenRes?.error ? 0 : (reopenRes?.count || 0)
 
   return (
     <DashboardClient
