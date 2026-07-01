@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
-import { PermissionsProvider } from '@/lib/PermissionsContext'
+import { PermissionsProvider, usePermissions } from '@/lib/PermissionsContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import ToastContainer  from '@/components/Toast'
 import QuickAddTask    from '@/components/QuickAddTask'
@@ -38,32 +37,34 @@ function getTitle(pathname: string, lang: 'ar' | 'en'): string {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <PermissionsProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </PermissionsProvider>
+  )
+}
+
+/* الحارس + الهيكل الفعلي — يقرأ حالة الهوية من PermissionsContext مباشرةً
+   (لا استعلام getUser/profiles مستقل — كان يضاعف رحلة المصادقة على كل تحميل) */
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const [lang,      setLang]      = useState<'ar' | 'en'>('ar')
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)   // الشريط الجانبي المنزلق على الجوال
-  const [checking,  setChecking]  = useState(true)
   const pathname  = usePathname()
   const router    = useRouter()
   const pageTitle = getTitle(pathname, lang)
+  const { loading, mustChangePassword, noUser } = usePermissions()
 
   /* إغلاق الشريط المنزلق عند الانتقال لصفحة جديدة (جوال) */
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
   /* حارس: إلزام تغيير كلمة المرور عند أول دخول → تحويل لصفحة التعيين.
-     يُخفي المحتوى حتى انتهاء الفحص لمنع الوميض. */
+     (حالة noUser نادرة — الحارس الأساسي في proxy.ts server-side) */
   useEffect(() => {
-    ;(async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setChecking(false); return }
-      const { data } = await supabase.from('profiles').select('must_change_password').eq('id', user.id).maybeSingle()
-      if (data?.must_change_password) {
-        router.replace('/auth/update-password?forced=1')
-        return // لا نُنهي checking — الصفحة ستتغير
-      }
-      setChecking(false)
-    })()
-  }, [])
+    if (loading) return
+    if (mustChangePassword) router.replace('/auth/update-password?forced=1')
+    else if (noUser) router.replace('/login')
+  }, [loading, mustChangePassword, noUser])
 
   /* احفظ الحالة في localStorage */
   useEffect(() => {
@@ -83,7 +84,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     })
   }
 
-  if (checking) {
+  /* بانتظار تحميل الهوية، أو التحويل لتغيير كلمة المرور، أو لا مستخدم (سيُعاد التوجيه من مكان آخر) */
+  if (loading || mustChangePassword || noUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin w-8 h-8 border-4 border-[#8a1538] border-t-transparent rounded-full" />
@@ -92,7 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <PermissionsProvider>
+    <>
       {/* App Shell: ارتفاع ثابت — التمرير داخل main فقط (يثبّت الشريط الجانبي/العلوي ويُفعّل sticky) */}
       <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {/* خلفية معتمة للشريط المنزلق (جوال فقط) */}
@@ -128,6 +130,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <QuickAddTask />
       </div>
       <ToastContainer />
-    </PermissionsProvider>
+    </>
   )
 }

@@ -36,6 +36,10 @@ export type PermsCtx = {
   impersonating:        boolean
   /** اسم المدرسة المُتقمَّصة */
   impersonatedSchool:   string
+  /** هل يُلزَم المستخدم بتغيير كلمة المرور؟ (مدمج هنا لتفادي استعلام هوية منفصل في layout) */
+  mustChangePassword:  boolean
+  /** لا يوجد مستخدم مسجَّل دخول (بعد اكتمال الفحص) */
+  noUser:              boolean
 }
 
 const PermCtx = createContext<PermsCtx>({
@@ -44,6 +48,7 @@ const PermCtx = createContext<PermsCtx>({
   can: () => false, isFullAdmin: false, isSuperAdmin: false, schoolName: '',
   isGroupOwner: false, ownedGroupId: '', groupName: '', roleLabel: '',
   impersonating: false, impersonatedSchool: '',
+  mustChangePassword: false, noUser: false,
 })
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
@@ -62,18 +67,21 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [groupName,    setGroupName]    = useState('')
   const [impersonating, setImpersonating] = useState(false)
   const [impersonatedSchool, setImpersonatedSchool] = useState('')
+  const [mustChangePassword, setMustChangePassword] = useState(false)
+  const [noUser, setNoUser] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
     ;(async () => {
+      /* استعلام هوية واحد فقط (getUser) — لا تكرار مع أي فحص آخر في الـ layout */
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+      if (!user) { setNoUser(true); setLoading(false); return }
       setUserId(user.id)
       setUserEmail(user.email || '')
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, full_name_ar, name_ar, avatar_url, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, active_school_id, school:schools!school_id(name_ar, is_active)')
+        .select('role, full_name_ar, name_ar, avatar_url, is_active, is_super_admin, is_group_owner, owned_group_id, school_id, active_school_id, must_change_password, school:schools!school_id(name_ar, is_active)')
         .eq('id', user.id)
         .single()
 
@@ -81,6 +89,11 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
       const p = profile as any
       const school = p.school
+
+      /* إلزام تغيير كلمة المرور — مدموج في استعلام الهوية نفسه (كان استعلاماً منفصلاً في layout) */
+      if (p.must_change_password) {
+        setMustChangePassword(true); setLoading(false); return
+      }
 
       /* ── طبقتا الأمان أولاً (إخراج المستخدم إن لزم) ── */
       if (school && school.is_active === false && p.is_super_admin !== true) {
@@ -104,39 +117,36 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       setUserAvatar(p.avatar_url || '')
 
       /* ── الصلاحيات ── */
-      if (profile.role) {
-        const { data: roleData } = await supabase
-          .from('roles').select('permissions, name_ar').eq('code', profile.role).single()
+      /* ── الصلاحيات + الاستعلامات التجميلية معاً (Promise.all — كانت متتابعة) ── */
+      const wantsImpersonation = p.is_super_admin === true && !!p.active_school_id
+      const wantsGroup = !!p.owned_group_id
 
-        if (roleData?.name_ar) setRoleName(roleData.name_ar)
+      const [roleRes, impRes, grpRes] = await Promise.all([
+        profile.role
+          ? supabase.from('roles').select('permissions, name_ar').eq('code', profile.role).single()
+          : Promise.resolve({ data: null as any }),
+        wantsImpersonation
+          ? supabase.from('schools').select('name_ar').eq('id', p.active_school_id).single()
+          : Promise.resolve({ data: null as any }),
+        wantsGroup
+          ? supabase.from('school_groups').select('name_ar').eq('id', p.owned_group_id).single()
+          : Promise.resolve({ data: null as any }),
+      ])
 
-        if (roleData && Array.isArray(roleData.permissions)) {
-          setPermissions(roleData.permissions)
-        } else {
-          /* الدور غير موجود في جدول roles →
-             إذا كان الدور أحد الأدوار النظامية المعروفة نعطيه كل الصلاحيات */
-          const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
-          if (ADMIN_ROLES.includes(profile.role)) {
-            setPermissions(['all'])
-          }
-          /* وإلا تبقى الصلاحيات [] = مستخدم عادي */
-        }
+      const roleData = roleRes.data
+      if (roleData?.name_ar) setRoleName(roleData.name_ar)
+      if (roleData && Array.isArray(roleData.permissions)) {
+        setPermissions(roleData.permissions)
+      } else if (profile.role) {
+        /* الدور غير موجود في جدول roles →
+           إذا كان الدور أحد الأدوار النظامية المعروفة نعطيه كل الصلاحيات */
+        const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
+        if (ADMIN_ROLES.includes(profile.role)) setPermissions(['all'])
+        /* وإلا تبقى الصلاحيات [] = مستخدم عادي */
       }
 
-      /* ── استعلامات تجميلية اختيارية (لا تُعطّل الهوية عند فشلها) ── */
-      try {
-        if (p.is_super_admin === true && p.active_school_id) {
-          setImpersonating(true)
-          const { data: imp } = await supabase
-            .from('schools').select('name_ar').eq('id', p.active_school_id).single()
-          setImpersonatedSchool(imp?.name_ar || '')
-        }
-        if (p.owned_group_id) {
-          const { data: grp } = await supabase
-            .from('school_groups').select('name_ar').eq('id', p.owned_group_id).single()
-          setGroupName(grp?.name_ar || '')
-        }
-      } catch { /* تجاهل — الهوية الأساسية مضبوطة */ }
+      if (wantsImpersonation) { setImpersonating(true); setImpersonatedSchool(impRes.data?.name_ar || '') }
+      if (wantsGroup) setGroupName(grpRes.data?.name_ar || '')
 
       setLoading(false)
     })()
@@ -164,6 +174,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     <PermCtx.Provider value={{
       userId, userName, userEmail, userAvatar, role, permissions, loading, can, isFullAdmin, isSuperAdmin, schoolName,
       isGroupOwner, ownedGroupId, groupName, roleLabel, impersonating, impersonatedSchool,
+      mustChangePassword, noUser,
     }}>
       {children}
     </PermCtx.Provider>
