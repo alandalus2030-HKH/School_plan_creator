@@ -65,7 +65,7 @@ export default function DashboardClient(props: Props) {
 
       {/* ── طلبات إعادة فتح معلّقة (Action Items) — لمن يملك manage_tasks وعند وجود طلبات فقط ── */}
       {can('manage_tasks') && props.reopenRequestsCount > 0 && (
-        <Link href="/dashboard/tasks?filter=reopen"
+        <Link href="/dashboard/tasks?filter=reopen" prefetch={false}
           className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 hover:bg-amber-100 transition-colors shadow-sm">
           <span className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0">
             <Unlock size={20} />
@@ -85,7 +85,7 @@ export default function DashboardClient(props: Props) {
         {statCards(props).map(s => {
           const t = tones[s.tone]
           return (
-            <Link key={s.label} href={s.href}
+            <Link key={s.label} href={s.href} prefetch={false}
               className="rounded-2xl p-5 hover:shadow-md transition-shadow"
               style={{ background: t.bg, color: t.fg }}>
               <s.Icon size={28} style={{ color: t.iconFg, marginBottom: 8 }} />
@@ -124,7 +124,7 @@ export default function DashboardClient(props: Props) {
           </h3>
           <div className="text-4xl font-bold" style={{ color: 'var(--maroon-600)' }}>{props.delayedCount}</div>
           <p className="text-sm text-slate-500 mt-1">مهمة تجاوزت موعدها</p>
-          <Link href="/dashboard/tasks?status=delayed"
+          <Link href="/dashboard/tasks?status=delayed" prefetch={false}
             className="mt-3 inline-flex items-center gap-1 text-xs font-medium hover:underline"
             style={{ color: 'var(--maroon-600)' }}>
             عرض المهام المتأخرة <ArrowLeft size={13} />
@@ -143,7 +143,7 @@ export default function DashboardClient(props: Props) {
               { href: '/dashboard/tasks',   Icon: CheckCircle2, label: 'كل المهام' },
               { href: '/dashboard/reports', Icon: TrendingUp,   label: 'التقارير'  },
             ].map(a => (
-              <Link key={a.href} href={a.href}
+              <Link key={a.href} href={a.href} prefetch={false}
                 className="flex items-center gap-2 p-2 rounded-xl text-sm text-slate-700 transition-colors hover:bg-violet-50">
                 <a.Icon size={15} style={{ color: 'var(--maroon-500)' }} />
                 {a.label}
@@ -160,7 +160,7 @@ export default function DashboardClient(props: Props) {
             <Clock size={16} style={{ color: 'var(--maroon-600)' }} />
             آخر المهام المضافة
           </h3>
-          <Link href="/dashboard/tasks"
+          <Link href="/dashboard/tasks" prefetch={false}
             className="text-xs font-medium hover:underline"
             style={{ color: 'var(--maroon-600)' }}>
             عرض الكل
@@ -172,7 +172,7 @@ export default function DashboardClient(props: Props) {
             {props.recentTasks.map((task) => {
               const sm = statusMap[task.status]
               return (
-                <Link key={task.id} href={`/dashboard/tasks/${task.id}`}
+                <Link key={task.id} href={`/dashboard/tasks/${task.id}`} prefetch={false}
                   className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-3">
                     <span style={{ color: 'var(--maroon-400)' }}>

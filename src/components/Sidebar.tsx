@@ -149,6 +149,7 @@ export default function Sidebar({ lang, collapsed: collapsedProp = false, onTogg
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               onClick={onMobileClose}
               title={collapsed ? (lang === 'ar' ? item.ar : item.en) : undefined}
               className={`
@@ -171,6 +172,7 @@ export default function Sidebar({ lang, collapsed: collapsedProp = false, onTogg
       <div className="border-t border-white/10 p-2">
         <Link
           href="/dashboard/profile"
+          prefetch={false}
           title={collapsed ? (userName || userEmail || '') : undefined}
           className={`flex items-center hover:bg-white/10 rounded-xl transition-colors group
             ${collapsed ? 'justify-center p-2' : 'gap-3 p-1.5'}`}>
