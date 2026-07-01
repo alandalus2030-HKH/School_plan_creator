@@ -87,7 +87,7 @@ function LoginForm() {
           setLoading(false)
           return
         }
-        router.push('/dashboard'); router.refresh(); return
+        router.push('/dashboard'); return
       }
       setError(isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password')
       setLoading(false)
@@ -123,7 +123,7 @@ function LoginForm() {
       }
 
       const ok = await trySignIn(json.email)
-      if (ok) { router.push('/dashboard'); router.refresh(); return }
+      if (ok) { router.push('/dashboard'); return }
       setError(isAr ? 'كلمة المرور غير صحيحة' : 'Incorrect password')
       setLoading(false)
 
