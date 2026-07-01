@@ -227,16 +227,10 @@ export default function MyTasksPage() {
       return cb - ca
     })
 
-  if (loading) return (
-    <div>
-      <SkeletonTaskList />
-    </div>
-  )
-
   return (
     <div className="max-w-3xl mx-auto space-y-5">
 
-      {/* ══ رأس الصفحة ══ */}
+      {/* ══ رأس الصفحة (لا يعتمد على بيانات المهام — يُعرض فوراً) ══ */}
       <div className="bg-gradient-to-l from-violet-600 to-indigo-700 text-white rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold">
@@ -250,8 +244,10 @@ export default function MyTasksPage() {
         <p className="text-violet-200 text-sm mt-1">هذه المهام الموكلة إليك — يمكنك تحديث حالتها ورفع الأدلة عليها</p>
       </div>
 
-      {/* ══ صدارة الشهر ══ */}
+      {/* ══ صدارة الشهر — مستقلة عن بيانات المهام، لا تنتظر loading ══ */}
       <RecognitionPodium />
+
+      {loading ? <SkeletonTaskList /> : <>
 
       {/* ══ بطاقات الإحصائيات (قابلة للنقر لتصفية القائمة) ══ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -457,6 +453,8 @@ export default function MyTasksPage() {
           </div>
         )}
       </div>
+
+      </>}
 
     </div>
   )
