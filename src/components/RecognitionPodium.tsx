@@ -33,7 +33,7 @@ function Avatar({ name, url, size }: { name: string; url: string | null; size: n
 
 export default function RecognitionPodium() {
   const supabase = createClient()
-  const { can, isFullAdmin, loading: permsLoading } = usePermissions()
+  const { can, isFullAdmin } = usePermissions()
   const canManage = isFullAdmin || can('manage_settings')
 
   const [podium, setPodium] = useState<Entry[]>([])
@@ -89,7 +89,10 @@ export default function RecognitionPodium() {
     setPodium(result)
     setLoading(false)
   }
-  useEffect(() => { if (!permsLoading) load() }, [permsLoading])
+  /* لا ننتظر تحميل الصلاحيات — load() لا يحتاجها أصلاً (تُستخدَم فقط لعرض
+     زرّ "تعيين موظف الشهر" الإداري)، فتشغيلها فوراً يوازيها مع PermissionsContext
+     بدل انتظاره تتابعياً */
+  useEffect(() => { load() }, [])
 
   const setFeatured = async () => {
     if (!pickUser) { toast('اختر موظفاً', 'error'); return }
