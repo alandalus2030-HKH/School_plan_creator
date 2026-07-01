@@ -73,8 +73,11 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const supabase = createClient()
     ;(async () => {
-      /* استعلام هوية واحد فقط (getUser) — لا تكرار مع أي فحص آخر في الـ layout */
-      const { data: { user } } = await supabase.auth.getUser()
+      /* getSession (محلي، بدون شبكة) لا getUser — الـmiddleware (proxy.ts) يتحقّق
+         من الجلسة بشبكة فعلياً بالفعل قبل وصول أي مسار /dashboard، وأي بيانات فعلية
+         محمية بـRLS في الخادم على أي حال (الواجهة عرض فقط، لا حارس أمني) */
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user ?? null
       if (!user) { setNoUser(true); setLoading(false); return }
       setUserId(user.id)
       setUserEmail(user.email || '')

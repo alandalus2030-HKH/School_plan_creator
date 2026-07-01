@@ -53,16 +53,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ email: data.email })
     }
 
-    /* بريد المصادقة الموثوق للحساب نفسه (لا profiles.email القابل للانفصال) */
-    const authEmailFor = async (profileId: string): Promise<string | null> => {
-      const { data: au } = await admin.auth.admin.getUserById(profileId)
-      return au?.user?.email ?? null
-    }
-
     /* ── 2. بحث بـ username (غير حساس لحالة الحروف) ── */
     const { data: byUsername, error: err2 } = await admin
       .from('profiles')
-      .select('id, is_active')
+      .select('email, is_active')
       .ilike('username', input)
       .maybeSingle()
 
@@ -75,9 +69,8 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         )
       }
-      const email = await authEmailFor(byUsername.id)
-      if (!email) return NextResponse.json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, { status: 401 })
-      return NextResponse.json({ email })
+      if (!byUsername.email) return NextResponse.json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' }, { status: 401 })
+      return NextResponse.json({ email: byUsername.email })
     }
 
     /* ── لم يُوجَد ── */
