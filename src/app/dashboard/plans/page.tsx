@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
+import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -50,8 +51,6 @@ function PlansPageInner() {
   const showArchived = searchParams.get('view') === 'archived'
   const setView = (archived: boolean) =>
     router.push(archived ? '/dashboard/plans?view=archived' : '/dashboard/plans')
-  const [plans,        setPlans]        = useState<Plan[]>([])
-  const [loading,      setLoading]      = useState(true)
   const [selectedYear, setSelectedYear] = useState('2025-2026')
   const [menuOpen,     setMenuOpen]     = useState<string | null>(null)
   const [confirmDel,   setConfirmDel]   = useState<string | null>(null)
@@ -62,9 +61,11 @@ function PlansPageInner() {
   const [ownerF,   setOwnerF]   = useState('')
   const [certF,    setCertF]    = useState<'all' | 'approved' | 'unapproved'>('all')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
-  const [statsByPlan, setStatsByPlan] = useState<Record<string, { total: number; done: number; progress: number }>>({})
 
-  const loadPlans = async () => {
+  /* ── جلب الخطط + إحصاءاتها عبر SWR (الطبقة 2: كاش يعيش عبر الـlayout الثابت
+     فيمنح تنقّلاً فورياً — عودة لهذه الصفحة تعرض البيانات الأخيرة قبل التحديث) ── */
+  type PlansData = { plans: Plan[]; statsByPlan: Record<string, { total: number; done: number; progress: number }> }
+  const fetchPlans = async (): Promise<PlansData> => {
     const { data } = await supabase
       .from('plans')
       .select('id, name_ar, academic_year, start_date, end_date, is_archived, approved_at, frozen_at, level_count, level_names, department, owner_id')
@@ -78,18 +79,16 @@ function PlansPageInner() {
       ;(profs || []).forEach((p: any) => { nameById[p.id] = p.name_ar })
       rows.forEach(p => { p.owner_name = p.owner_id ? (nameById[p.owner_id] || null) : null })
     }
-    setPlans(rows as unknown as Plan[])
-    setLoading(false)
 
     /* ── حساب نسبة الإنجاز الفعلية لكل خطة (مهام عبر العقد) ── */
     const planIds = rows.map(p => p.id)
+    const stats: Record<string, { total: number; done: number; progress: number }> = {}
     if (planIds.length) {
       const { data: nodes } = await supabase.from('plan_nodes').select('id, plan_id').in('plan_id', planIds).limit(5000)
       /* كائن عادي لا new Map() — أيقونة Map من lucide تحجب المُنشئ (درس مستفاد) */
       const nodeToPlan: Record<string, string> = {}
       for (const n of nodes || []) nodeToPlan[n.id] = n.plan_id
       const nodeIds = Object.keys(nodeToPlan)
-      const stats: Record<string, { total: number; done: number; progress: number }> = {}
       if (nodeIds.length) {
         const { data: tasks } = await supabase.from('tasks')
           .select('node_id, status').in('node_id', nodeIds).is('deleted_at', null).limit(10000)
@@ -102,11 +101,13 @@ function PlansPageInner() {
           const s = stats[pid]; s.progress = s.total ? Math.round((s.done / s.total) * 100) : 0
         }
       }
-      setStatsByPlan(stats)
     }
+    return { plans: rows as unknown as Plan[], statsByPlan: stats }
   }
 
-  useEffect(() => { loadPlans() }, [])
+  const { data: swrData, isLoading: loading, mutate } = useSWR('plans-list', fetchPlans)
+  const plans       = swrData?.plans || []
+  const statsByPlan = swrData?.statsByPlan || {}
 
   /* ─── أرشفة / إلغاء أرشفة خطة ─── */
   const toggleArchive = async (plan: Plan) => {
@@ -116,7 +117,7 @@ function PlansPageInner() {
       setMenuOpen(null)
       return
     }
-    setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_archived: !p.is_archived } : p))
+    mutate(prev => prev ? { ...prev, plans: prev.plans.map(p => p.id === plan.id ? { ...p, is_archived: !p.is_archived } : p) } : prev, { revalidate: false })
     setMenuOpen(null)
   }
 
@@ -133,9 +134,7 @@ function PlansPageInner() {
       toast(`تعذّر ${approve ? 'اعتماد' : 'إلغاء اعتماد'} الخطة: ${json.error || res.status}`, 'error')
       return
     }
-    setPlans(prev => prev.map(p =>
-      p.id === plan.id ? { ...p, approved_at: json.approved_at } : p
-    ))
+    mutate(prev => prev ? { ...prev, plans: prev.plans.map(p => p.id === plan.id ? { ...p, approved_at: json.approved_at } : p) } : prev, { revalidate: false })
     toast(approve ? 'تم اعتماد الخطة بنجاح' : 'تم إلغاء الاعتماد', 'success')
   }
 
@@ -152,9 +151,7 @@ function PlansPageInner() {
       toast(`تعذّر ${freeze ? 'تجميد' : 'إلغاء تجميد'} الخطة: ${json.error || res.status}`, 'error')
       return
     }
-    setPlans(prev => prev.map(p =>
-      p.id === plan.id ? { ...p, frozen_at: json.frozen_at } : p
-    ))
+    mutate(prev => prev ? { ...prev, plans: prev.plans.map(p => p.id === plan.id ? { ...p, frozen_at: json.frozen_at } : p) } : prev, { revalidate: false })
     toast(freeze ? 'تم تجميد الخطة' : 'تم إلغاء التجميد', 'success')
   }
 
@@ -169,7 +166,7 @@ function PlansPageInner() {
         setDeleting(false)
         return
       }
-      setPlans(prev => prev.filter(p => p.id !== id))
+      mutate(prev => prev ? { ...prev, plans: prev.plans.filter(p => p.id !== id) } : prev, { revalidate: false })
       setConfirmDel(null)
     } catch {
       toast('تعذّر الاتصال بالخادم', 'error')

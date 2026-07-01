@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -39,19 +40,7 @@ const RATING_INFO = RATING_META
 
 export default function TasksPage() {
   const supabase = createClient()
-  const { can, loading: permsLoading } = usePermissions()
-
-  const [tasks,         setTasks]         = useState<Task[]>([])
-  const [profiles,      setProfiles]      = useState<Profile[]>([])
-  const [teams,         setTeams]         = useState<Team[]>([])
-  const [nodes,         setNodes]         = useState<PlanNode[]>([])
-  const [plans,         setPlans]         = useState<Plan[]>([])
-  const [deptOptions,   setDeptOptions]   = useState<string[]>([])
-  const [loading,       setLoading]       = useState(true)
-  const [myId,          setMyId]          = useState('')
-  const [myDept,        setMyDept]        = useState<string | null>(null)
-  const [myTeamIds,     setMyTeamIds]     = useState<string[]>([])
-  const [canManage,     setCanManage]     = useState(false)
+  const { can, loading: permsLoading, userId: myId } = usePermissions()
 
   /* ── وضع العرض ── */
   const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt' | 'calendar'>('list')
@@ -97,84 +86,95 @@ export default function TasksPage() {
   /* العودة للصفحة الأولى عند تغيّر أي مرشّح/بحث */
   useEffect(() => { setPage(1) }, [search, statusF, priorityF, planF, teamF, deptF, onlyMine, ratingF, reopenF, blockedF])
 
-  useEffect(() => {
-    if (permsLoading) return   // انتظر تحميل الصلاحيات أولاً
-    ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) setMyId(user.id)
+  /* ── جلب المهام وكل بياناتها المصاحبة عبر SWR (الطبقة 2) ──
+     myId يأتي الآن من usePermissions() مباشرة (لا نداء getUser منفصل هنا). */
+  type TasksData = {
+    tasks: any[]; nodes: PlanNode[]; plans: Plan[]; profiles: Profile[]; teams: Team[]
+    deptOptions: string[]; myDept: string | null; myTeamIds: string[]; canManage: boolean
+  }
+  const manage = can('manage_tasks')
 
-      const manage = can('manage_tasks')
-      setCanManage(manage)
+  const fetchTasksData = async (): Promise<TasksData> => {
+    /* قسم المستخدم + فرقه — لتوسيع تعريف «المكلّفة لي» */
+    let dept: string | null = null
+    let teamIds: string[] = []
+    if (myId) {
+      const { data: prof } = await supabase.from('profiles').select('department').eq('id', myId).maybeSingle()
+      dept = prof?.department || null
+      try {
+        const { data: tm } = await supabase.from('team_members').select('team_id').eq('profile_id', myId)
+        teamIds = (tm || []).map((m: any) => m.team_id)
+      } catch { /* الجدول غير موجود بعد */ }
+    }
 
-      /* قسم المستخدم + فرقه — لتوسيع تعريف «المكلّفة لي» */
-      let dept: string | null = null
-      let teamIds: string[] = []
-      if (user) {
-        const { data: prof } = await supabase.from('profiles').select('department').eq('id', user.id).maybeSingle()
-        dept = prof?.department || null
-        try {
-          const { data: tm } = await supabase.from('team_members').select('team_id').eq('profile_id', user.id)
-          teamIds = (tm || []).map((m: any) => m.team_id)
-        } catch { /* الجدول غير موجود بعد */ }
+    /* جلب كل المهام على دفعات (تجاوز سقف الـ1000 لكيلا تُخفى أي مهمة) */
+    const fetchAllTasks = async () => {
+      const SIZE = 1000
+      const all: any[] = []
+      for (let from = 0; ; from += SIZE) {
+        const { data } = await supabase.from('tasks').select(`
+          id, name_ar, status, task_type, priority,
+          start_date, end_date, order_num, node_id,
+          rating, rated_at, depends_on_task_id,
+          assigned_to_user_id, assigned_to_team_id, assigned_to_department,
+          reviewer_id, reopen_requested_by
+        `).order('created_at', { ascending: false }).range(from, from + SIZE - 1)
+        if (!data || data.length === 0) break
+        all.push(...data)
+        if (data.length < SIZE) break
       }
-      setMyDept(dept)
-      setMyTeamIds(teamIds)
+      return all
+    }
 
-      /* جلب كل المهام على دفعات (تجاوز سقف الـ1000 لكيلا تُخفى أي مهمة) */
-      const fetchAllTasks = async () => {
-        const SIZE = 1000
-        const all: any[] = []
-        for (let from = 0; ; from += SIZE) {
-          const { data } = await supabase.from('tasks').select(`
-            id, name_ar, status, task_type, priority,
-            start_date, end_date, order_num, node_id,
-            rating, rated_at, depends_on_task_id,
-            assigned_to_user_id, assigned_to_team_id, assigned_to_department,
-            reviewer_id, reopen_requested_by
-          `).order('created_at', { ascending: false }).range(from, from + SIZE - 1)
-          if (!data || data.length === 0) break
-          all.push(...data)
-          if (data.length < SIZE) break
-        }
-        return all
-      }
+    const [
+      tasksData,
+      { data: nodesData },
+      { data: plansData },
+      { data: profsData },
+      { data: teamsData },
+      { data: deptOpts },
+    ] = await Promise.all([
+      fetchAllTasks(),
+      supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num, standard_code').limit(5000),
+      supabase.from('plans').select('id, name_ar').limit(200),
+      supabase.from('profiles').select('id, name_ar').limit(1000),
+      supabase.from('teams').select('id, name_ar, color').limit(200),
+      supabase.from('dropdown_options').select('value').eq('category', 'department').eq('is_active', true).order('sort_order'),
+    ])
 
-      const [
-        tasksData,
-        { data: nodesData },
-        { data: plansData },
-        { data: profsData },
-        { data: teamsData },
-        { data: deptOpts },
-      ] = await Promise.all([
-        fetchAllTasks(),
-        supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id, order_num, level_num, standard_code').limit(5000),
-        supabase.from('plans').select('id, name_ar').limit(200),
-        supabase.from('profiles').select('id, name_ar').limit(1000),
-        supabase.from('teams').select('id, name_ar, color').limit(200),
-        supabase.from('dropdown_options').select('value').eq('category', 'department').eq('is_active', true).order('sort_order'),
-      ])
+    let tasksWithAssign = tasksData || []
+    /* إذا لم يكن مديراً، نعرض ما يخصّه: مكلَّف له / مقيّم / قسمه / فِرَقه */
+    if (!manage && myId) {
+      const teamSet = new Set(teamIds)
+      tasksWithAssign = tasksWithAssign.filter((t: any) =>
+        t.assigned_to_user_id === myId ||
+        t.reviewer_id === myId ||
+        (dept && t.assigned_to_department === dept) ||
+        (t.assigned_to_team_id && teamSet.has(t.assigned_to_team_id))
+      )
+    }
 
-      let tasksWithAssign = tasksData || []
-      /* إذا لم يكن مديراً، نعرض ما يخصّه: مكلَّف له / مقيّم / قسمه / فِرَقه */
-      if (!manage && user) {
-        const teamSet = new Set(teamIds)
-        tasksWithAssign = tasksWithAssign.filter((t: any) =>
-          t.assigned_to_user_id === user.id ||
-          t.reviewer_id === user.id ||
-          (dept && t.assigned_to_department === dept) ||
-          (t.assigned_to_team_id && teamSet.has(t.assigned_to_team_id))
-        )
-      }
-      setTasks(tasksWithAssign)
-      setNodes(nodesData   || [])
-      setPlans(plansData   || [])
-      setProfiles(profsData|| [])
-      setTeams(teamsData   || [])
-      setDeptOptions((deptOpts || []).map((o: any) => o.value))
-      setLoading(false)
-    })()
-  }, [permsLoading])
+    return {
+      tasks: tasksWithAssign, nodes: nodesData || [], plans: plansData || [],
+      profiles: profsData || [], teams: teamsData || [],
+      deptOptions: (deptOpts || []).map((o: any) => o.value),
+      myDept: dept, myTeamIds: teamIds, canManage: manage,
+    }
+  }
+
+  const { data: swrData, isLoading: loading } = useSWR(
+    !permsLoading ? ['tasks-list', manage] : null,
+    fetchTasksData,
+  )
+  const tasks       = swrData?.tasks       || []
+  const nodes       = swrData?.nodes       || []
+  const plans       = swrData?.plans       || []
+  const profiles    = swrData?.profiles    || []
+  const teams       = swrData?.teams       || []
+  const deptOptions = swrData?.deptOptions || []
+  const myDept      = swrData?.myDept      ?? null
+  const myTeamIds   = swrData?.myTeamIds   || []
+  const canManage   = swrData?.canManage   ?? false
 
   /* ── بناء مسار المهمة ── */
   const buildPath = (nodeId: string | null | undefined): string => {

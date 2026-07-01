@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { SWRConfig } from 'swr'
 import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
 import { PermissionsProvider, usePermissions } from '@/lib/PermissionsContext'
@@ -36,11 +37,22 @@ function getTitle(pathname: string, lang: 'ar' | 'en'): string {
   return ''
 }
 
+/* الكاش يعيش هنا لأن هذا الـlayout لا يُعاد تركيبه بين تنقّلات صفحات اللوحة
+   (App Router) — فالتنقّل بين الخطط/المهام/إلخ يستفيد من نفس ذاكرة SWR دون
+   إعادة تهيئتها، وهو ما يمنح التنقّل الفوري (الطبقة 2). */
+const swrConfig = {
+  revalidateOnFocus: true,     // تحديث بصمت عند العودة للتبويب
+  dedupingInterval: 4000,      // يمنع تكرار نفس الطلب خلال 4 ثوانٍ (مثل تبديل التبويبات بسرعة)
+  keepPreviousData: true,      // يُبقي البيانات القديمة ظاهرة أثناء التحديث بدل شاشة فارغة
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <PermissionsProvider>
-      <DashboardShell>{children}</DashboardShell>
-    </PermissionsProvider>
+    <SWRConfig value={swrConfig}>
+      <PermissionsProvider>
+        <DashboardShell>{children}</DashboardShell>
+      </PermissionsProvider>
+    </SWRConfig>
   )
 }
 
