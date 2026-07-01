@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   ClipboardList, Zap, CheckCircle2, AlertTriangle,
   UserRound, Users, Search, BookOpen, Archive, Pin,
@@ -13,6 +13,7 @@ import {
 import { STATUS_META, RATING_META, PRIORITY_META } from '@/lib/constants/tasks'
 import { SkeletonTaskList } from '@/components/Skeleton'
 import RecognitionPodium from '@/components/RecognitionPodium'
+import { usePermissions } from '@/lib/PermissionsContext'
 import type { PlanNode, Plan, Team } from '@/lib/types'
 
 /* ── aliases للتوافق مع الكود الموجود ── */
@@ -55,19 +56,22 @@ type Task = {
   _source?: 'assigned' | 'team' | 'reviewer' | 'department'
 }
 
+const ADMIN_ROLES_LOCAL = ['super_admin', 'school_admin', 'admin']
+
+type MyTasksData = {
+  tasks: Task[]
+  nodes: Pick<PlanNode, 'id' | 'parent_id' | 'name_ar' | 'plan_id'>[]
+  plans: Pick<Plan, 'id' | 'name_ar'>[]
+  teams: Pick<Team, 'id' | 'name_ar' | 'color' | 'leader_id'>[]
+  userDept: string | null
+}
+
 export default function MyTasksPage() {
   const supabase = createClient()
-  const router   = useRouter()
+  const { userId, userName, role, isSuperAdmin, loading: permsLoading } = usePermissions()
+  const isAdminUser = isSuperAdmin || ADMIN_ROLES_LOCAL.includes(role)
 
-  const [userId,    setUserId]    = useState('')
-  const [userName,  setUserName]  = useState('')
-  const [tasks,     setTasks]     = useState<Task[]>([])
-  const [nodes,     setNodes]     = useState<Pick<PlanNode, 'id' | 'parent_id' | 'name_ar' | 'plan_id'>[]>([])
-  const [plans,     setPlans]     = useState<Pick<Plan, 'id' | 'name_ar'>[]>([])
-  const [teams,     setTeams]     = useState<Pick<Team, 'id' | 'name_ar' | 'color' | 'leader_id'>[]>([])
-  const [loading,   setLoading]   = useState(true)
   const [activeTab, setActiveTab] = useState<'assigned' | 'team' | 'reviewer' | 'department'>('assigned')
-  const [userDept,  setUserDept]  = useState<string | null>(null)
   const [savingId,  setSavingId]  = useState<string | null>(null)
   /* أدوات القائمة: بحث + فرز + تصفية المتأخرة فقط */
   const [q,          setQ]          = useState('')
@@ -76,124 +80,78 @@ export default function MyTasksPage() {
   /* تصفية حسب بطاقة الحالة العلوية ('' = الكل) */
   const [statusFilter, setStatusFilter] = useState<'' | 'in_progress' | 'completed' | 'overdue'>('')
 
-  useEffect(() => {
-    ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-      setUserId(user.id)
+  const TASK_COLS = 'id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at'
 
-      /* ── جلب بيانات المستخدم ── */
-      const { data: profile } = await supabase
-        .from('profiles').select('full_name_ar, name_ar, department, role, is_super_admin').eq('id', user.id).single()
-      setUserName(profile?.full_name_ar || profile?.name_ar || '')
-      const myDept = profile?.department || null
-      setUserDept(myDept)
+  const fetchMyTasksData = async (): Promise<MyTasksData> => {
+    /* ── دفعة 1: كل الاستعلامات المستقلة عن بعضها بالتوازي ── */
+    const [
+      { data: deptRow },
+      { data: teamsData },
+      memberTeamsRes,
+      { data: directTasks },
+      { data: reviewerTasks },
+      noReviewerRes,
+      { data: nodesData },
+      { data: plansData },
+    ] = await Promise.all([
+      supabase.from('profiles').select('department').eq('id', userId).maybeSingle(),
+      supabase.from('teams').select('id, name_ar, color, leader_id'),
+      supabase.from('team_members').select('team_id').eq('profile_id', userId).then(r => r, () => ({ data: [] as any[], error: null })),
+      supabase.from('tasks').select(TASK_COLS).eq('assigned_to_user_id', userId).order('end_date', { ascending: true, nullsFirst: false }),
+      supabase.from('tasks').select(TASK_COLS).eq('reviewer_id', userId).order('end_date', { ascending: true, nullsFirst: false }),
+      isAdminUser
+        ? supabase.from('tasks').select(TASK_COLS).eq('status', 'submitted').is('reviewer_id', null).order('end_date', { ascending: true, nullsFirst: false })
+        : Promise.resolve({ data: null as any }),
+      supabase.from('plan_nodes').select('id, parent_id, name_ar, plan_id'),
+      supabase.from('plans').select('id, name_ar'),
+    ])
 
-      /* ── الفرق التي ينتمي إليها (كقائد أو عضو) ── */
-      const { data: teamsData } = await supabase
-        .from('teams').select('id, name_ar, color, leader_id')
-      const leaderTeams = (teamsData || []).filter((t: any) => t.leader_id === user.id)
+    const myDept = deptRow?.department || null
+    const memberTeamIds = (memberTeamsRes?.data || []).map((m: any) => m.team_id)
+    const leaderTeams = (teamsData || []).filter((t: any) => t.leader_id === userId)
+    const allTeamIds = [...new Set([...leaderTeams.map((t: any) => t.id), ...memberTeamIds])]
 
-      /* جلب عضوية الفرق — يتجاهل الخطأ إذا لم يكن الجدول موجوداً */
-      let memberTeamIds: string[] = []
-      try {
-        const { data: memberTeams } = await supabase
-          .from('team_members').select('team_id').eq('profile_id', user.id)
-        memberTeamIds = (memberTeams || []).map((m: any) => m.team_id)
-      } catch { /* جدول team_members غير موجود بعد */ }
+    /* ── دفعة 2: الاستعلامات المشروطة (تعتمد على نتائج الدفعة 1) بالتوازي ── */
+    const [deptRes, teamRes] = await Promise.all([
+      myDept
+        ? supabase.from('tasks').select(TASK_COLS).eq('assigned_to_department', myDept).order('end_date', { ascending: true, nullsFirst: false })
+        : Promise.resolve({ data: null as any }),
+      allTeamIds.length > 0
+        ? supabase.from('tasks').select(TASK_COLS).in('assigned_to_team_id', allTeamIds).order('end_date', { ascending: true, nullsFirst: false })
+        : Promise.resolve({ data: null as any }),
+    ])
 
-      const allTeamIds = [...new Set([
-        ...leaderTeams.map((t: any) => t.id),
-        ...memberTeamIds,
-      ])]
-      setTeams(teamsData || [])
-
-      /* ── جلب جميع المهام المرتبطة بالمستخدم ── */
-      let allTasks: Task[] = []
-
-      /* المهام المكلَّف بها مباشرة */
-      const { data: directTasks } = await supabase
-        .from('tasks')
-        .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
-        .eq('assigned_to_user_id', user.id)
-        .order('end_date', { ascending: true, nullsFirst: false })
-      ;(directTasks || []).forEach(t => {
-        if (!allTasks.find(x => x.id === t.id))
-          allTasks.push({ ...t, _source: 'assigned' })
+    const allTasks: Task[] = []
+    const addAll = (rows: any[] | null, source: Task['_source']) => {
+      ;(rows || []).forEach(t => {
+        if (!allTasks.find(x => x.id === t.id)) allTasks.push({ ...t, _source: source })
       })
+    }
+    addAll(directTasks, 'assigned')
+    addAll(reviewerTasks, 'reviewer')
+    addAll(deptRes.data, 'department')
+    addAll(noReviewerRes.data, 'reviewer')
+    addAll(teamRes.data, 'team')
 
-      /* المهام المكلَّف بها كمقيّم */
-      const { data: reviewerTasks } = await supabase
-        .from('tasks')
-        .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
-        .eq('reviewer_id', user.id)
-        .order('end_date', { ascending: true, nullsFirst: false })
-      ;(reviewerTasks || []).forEach(t => {
-        if (!allTasks.find(x => x.id === t.id))
-          allTasks.push({ ...t, _source: 'reviewer' })
-      })
+    return { tasks: allTasks, nodes: nodesData || [], plans: plansData || [], teams: teamsData || [], userDept: myDept }
+  }
 
-      /* المهام المكلَّف بها قسمه (تكليف القسم كله) → تُعدّ ضمن مهامه المباشرة */
-      if (myDept) {
-        const { data: deptTasks } = await supabase
-          .from('tasks')
-          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
-          .eq('assigned_to_department', myDept)
-          .order('end_date', { ascending: true, nullsFirst: false })
-        ;(deptTasks || []).forEach(t => {
-          if (!allTasks.find(x => x.id === t.id))
-            allTasks.push({ ...t, _source: 'department' })
-        })
-      }
-
-      /* المهام المرفوعة للتقييم بدون مقيّم → تظهر لمشرفي المدرسة فقط */
-      const ADMIN_ROLES_LOCAL = ['super_admin', 'school_admin', 'admin']
-      const isAdminUser = profile?.is_super_admin || ADMIN_ROLES_LOCAL.includes(profile?.role || '')
-      if (isAdminUser) {
-        const { data: noReviewerTasks } = await supabase
-          .from('tasks')
-          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
-          .eq('status', 'submitted')
-          .is('reviewer_id', null)
-          .order('end_date', { ascending: true, nullsFirst: false })
-        ;(noReviewerTasks || []).forEach(t => {
-          if (!allTasks.find(x => x.id === t.id))
-            allTasks.push({ ...t, _source: 'reviewer' })
-        })
-      }
-
-      /* مهام الفرق */
-      if (allTeamIds.length > 0) {
-        const { data: teamTasks } = await supabase
-          .from('tasks')
-          .select('id, name_ar, status, task_type, priority, start_date, end_date, node_id, assigned_to_user_id, assigned_to_team_id, reviewer_id, rating, rated_at, created_at')
-          .in('assigned_to_team_id', allTeamIds)
-          .order('end_date', { ascending: true, nullsFirst: false })
-        ;(teamTasks || []).forEach(t => {
-          if (!allTasks.find(x => x.id === t.id))
-            allTasks.push({ ...t, _source: 'team' })
-        })
-      }
-
-      setTasks(allTasks)
-
-      /* ── بيانات مسار العقدة ── */
-      const { data: nodesData } = await supabase
-        .from('plan_nodes').select('id, parent_id, name_ar, plan_id')
-      const { data: plansData } = await supabase
-        .from('plans').select('id, name_ar')
-      setNodes(nodesData || [])
-      setPlans(plansData || [])
-
-      setLoading(false)
-    })()
-  }, [])
+  const { data: swrData, isLoading: dataLoading, mutate } = useSWR(
+    !permsLoading && userId ? ['my-tasks', userId, isAdminUser] : null,
+    fetchMyTasksData,
+  )
+  const tasks    = swrData?.tasks    || []
+  const nodes    = swrData?.nodes    || []
+  const plans    = swrData?.plans    || []
+  const teams    = swrData?.teams    || []
+  const userDept = swrData?.userDept ?? null
+  const loading  = permsLoading || dataLoading
 
   /* ── تحديث حالة المهمة ── */
   const updateStatus = async (taskId: string, newStatus: string) => {
     setSavingId(taskId)
     await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId)
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
+    mutate(prev => prev ? { ...prev, tasks: prev.tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t) } : prev, { revalidate: false })
     setSavingId(null)
   }
 
