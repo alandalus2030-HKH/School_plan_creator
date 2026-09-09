@@ -169,7 +169,9 @@ export default function AdminToolsPage() {
             )}
             <button type="submit" disabled={verifying || !pw}
               className="w-full py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 inline-flex items-center justify-center gap-2">
-              {verifying ? <><Loader2 size={15} className="animate-spin" /> جارٍ التحقّق…</> : <>دخول الأدوات</>}
+              {/* أيقونة ونص كلٌّ في span ثابت — درس: insertBefore عند تبديلهما معاً */}
+              <span className={verifying ? 'inline-flex' : 'hidden'}><Loader2 size={15} className="animate-spin" /></span>
+              <span>{verifying ? 'جارٍ التحقّق…' : 'دخول الأدوات'}</span>
             </button>
           </form>
         </div>
@@ -224,7 +226,8 @@ export default function AdminToolsPage() {
             <button onClick={purgeSchool}
               disabled={busy !== '' || schoolConfirm.trim() !== selectedSchool.name_ar.trim()}
               className="w-full py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 inline-flex items-center justify-center gap-2">
-              {busy === 'school' ? <><Loader2 size={15} className="animate-spin" /> جارٍ الحذف…</> : <><Trash2 size={15} /> حذف «{selectedSchool.name_ar}» نهائياً</>}
+              <span className="inline-flex">{busy === 'school' ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}</span>
+              <span>{busy === 'school' ? 'جارٍ الحذف…' : `حذف «${selectedSchool.name_ar}» نهائياً`}</span>
             </button>
           </>
         )}
@@ -240,7 +243,8 @@ export default function AdminToolsPage() {
         </p>
         <button onClick={purgeOrphans} disabled={busy !== '' || (preview?.totals.orphanAuth ?? 0) === 0}
           className="w-full py-2.5 rounded-xl bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50 inline-flex items-center justify-center gap-2">
-          {busy === 'orphans' ? <><Loader2 size={15} className="animate-spin" /> جارٍ التنظيف…</> : <><UserX size={15} /> تنظيف الأشباح</>}
+          <span className="inline-flex">{busy === 'orphans' ? <Loader2 size={15} className="animate-spin" /> : <UserX size={15} />}</span>
+          <span>{busy === 'orphans' ? 'جارٍ التنظيف…' : 'تنظيف الأشباح'}</span>
         </button>
       </div>
 
@@ -259,7 +263,8 @@ export default function AdminToolsPage() {
           placeholder={RESET_PHRASE} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm bg-white mb-3" />
         <button onClick={resetAll} disabled={busy !== '' || resetConfirm.trim() !== RESET_PHRASE}
           className="w-full py-2.5 rounded-xl bg-red-700 text-white text-sm font-semibold hover:bg-red-800 disabled:opacity-50 inline-flex items-center justify-center gap-2">
-          {busy === 'reset' ? <><Loader2 size={15} className="animate-spin" /> جارٍ المسح…</> : <><Trash2 size={15} /> مسح كل البيانات وإعادة التهيئة</>}
+          <span className="inline-flex">{busy === 'reset' ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}</span>
+          <span>{busy === 'reset' ? 'جارٍ المسح…' : 'مسح كل البيانات وإعادة التهيئة'}</span>
         </button>
       </div>
     </div>

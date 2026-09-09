@@ -304,7 +304,10 @@ function ReadingModal({
           <button type="submit" disabled={saving || value === ''}
             className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl
                        disabled:opacity-50 transition-colors shadow-lg shadow-violet-200">
-            <span className="inline-flex items-center justify-center gap-1.5">{saving ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</> : <><Save size={14} /> حفظ القراءة</>}</span>
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <span className="inline-flex">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span>
+              <span>{saving ? 'جارٍ الحفظ...' : 'حفظ القراءة'}</span>
+            </span>
           </button>
         </form>
 

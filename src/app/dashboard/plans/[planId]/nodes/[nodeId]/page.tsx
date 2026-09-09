@@ -420,9 +420,10 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName, canManage=false }: {
               <div className="flex gap-2 pt-1">
                 <button onClick={saveAccepted} disabled={savingAll || !suggestions.some(s => s._accepted)}
                   className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl disabled:opacity-50 transition-colors">
-                  <span className="inline-flex items-center justify-center gap-1.5">{savingAll
-                    ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</>
-                    : <><Save size={14} /> حفظ المحدد ({suggestions.filter(s => s._accepted).length})</>}</span>
+                  <span className="inline-flex items-center justify-center gap-1.5">
+                    <span className="inline-flex">{savingAll ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span>
+                    <span>{savingAll ? 'جارٍ الحفظ...' : `حفظ المحدد (${suggestions.filter(s => s._accepted).length})`}</span>
+                  </span>
                 </button>
                 <button onClick={generateKpis} disabled={generating}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 border border-violet-300 text-violet-600 text-sm font-semibold rounded-xl hover:bg-violet-50 disabled:opacity-50">
@@ -575,7 +576,10 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName, canManage=false }: {
           <div className="flex gap-2 pt-1">
             <button type="submit" disabled={saving || !kpiName.trim()}
               className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition-colors">
-              <span className="inline-flex items-center justify-center gap-1.5">{saving ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</> : <><Save size={14} /> حفظ المؤشر</>}</span>
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <span className="inline-flex">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span>
+                <span>{saving ? 'جارٍ الحفظ...' : 'حفظ المؤشر'}</span>
+              </span>
             </button>
             <button type="button" onClick={() => { setAdding(false); setKpiName(''); setSaveError('') }}
               className="px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50">
@@ -646,7 +650,10 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName, canManage=false }: {
               />
               <button type="submit" disabled={savingReading || readingVal === ''}
                 className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition-colors">
-                <span className="inline-flex items-center justify-center gap-1.5">{savingReading ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</> : <><Save size={14} /> تسجيل القراءة</>}</span>
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <span className="inline-flex">{savingReading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span>
+                  <span>{savingReading ? 'جارٍ الحفظ...' : 'تسجيل القراءة'}</span>
+                </span>
               </button>
             </form>
 

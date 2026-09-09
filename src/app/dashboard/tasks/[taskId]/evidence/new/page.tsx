@@ -388,7 +388,8 @@ export default function NewEvidencePage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-700 truncate">{att.title}</p>
                       <p className="inline-flex items-center gap-1 text-xs text-slate-400">
-                        {att.kind === 'video' ? <><Video size={11} /> فيديو يوتيوب</> : `${((att.file?.size || 0) / 1024).toFixed(0)} KB`}
+                        <span className={att.kind === 'video' ? 'inline-flex' : 'hidden'}><Video size={11} /></span>
+                        <span>{att.kind === 'video' ? 'فيديو يوتيوب' : `${((att.file?.size || 0) / 1024).toFixed(0)} KB`}</span>
                         {idx === 0 && <span className="text-violet-500 mr-2">• أساسي</span>}
                       </p>
                     </div>

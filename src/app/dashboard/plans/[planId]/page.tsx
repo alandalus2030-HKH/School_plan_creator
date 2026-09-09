@@ -1139,7 +1139,10 @@ export default function PlanOverviewPage() {
               </button>
               <button onClick={saveKpiSettings} disabled={savingKpi}
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                <span className="inline-flex items-center gap-1.5">{savingKpi ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</> : <><Save size={14} /> حفظ الإعدادات</>}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex">{savingKpi ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span>
+                  <span>{savingKpi ? 'جارٍ الحفظ...' : 'حفظ الإعدادات'}</span>
+                </span>
               </button>
             </div>
           </div>

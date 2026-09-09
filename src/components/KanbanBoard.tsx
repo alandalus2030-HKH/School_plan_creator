@@ -409,10 +409,8 @@ export default function KanbanBoard({
           <div className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg text-sm font-medium text-white ${
             saving ? 'bg-violet-600' : 'bg-green-600'
           }`}>
-            {saving
-              ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</>
-              : <><CircleCheckBig size={14} /> تم تحديث الحالة</>
-            }
+            <span className="inline-flex">{saving ? <Loader2 size={14} className="animate-spin" /> : <CircleCheckBig size={14} />}</span>
+            <span>{saving ? 'جارٍ الحفظ...' : 'تم تحديث الحالة'}</span>
           </div>
         )}
       </div>

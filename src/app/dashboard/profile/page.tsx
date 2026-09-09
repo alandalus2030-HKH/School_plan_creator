@@ -460,13 +460,19 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2 flex-wrap">
               <button type="submit" disabled={changing}
                 className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
-                <span className="inline-flex items-center gap-1.5">{changing ? <><Loader2 size={14} className="animate-spin" /> جارٍ التغيير...</> : <><Lock size={14} /> تغيير كلمة المرور</>}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex">{changing ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}</span>
+                  <span>{changing ? 'جارٍ التغيير...' : 'تغيير كلمة المرور'}</span>
+                </span>
               </button>
               {/* رابط احتياطي — يظهر دائماً، ويُبرَز عند خطأ كلمة المرور الحالية */}
               <button type="button" onClick={sendPasswordReset} disabled={sendingReset}
                 className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50
                   ${oldWrong ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                <span className="inline-flex items-center gap-1.5">{sendingReset ? <><Loader2 size={14} className="animate-spin" /> جارٍ الإرسال...</> : <><Mail size={14} /> نسيت كلمتي — أرسل رابطاً لبريدي</>}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex">{sendingReset ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}</span>
+                  <span>{sendingReset ? 'جارٍ الإرسال...' : 'نسيت كلمتي — أرسل رابطاً لبريدي'}</span>
+                </span>
               </button>
             </div>
             {resetMsg && (

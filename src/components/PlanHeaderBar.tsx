@@ -652,7 +652,10 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
             <div className="p-5 border-t border-slate-100 flex gap-3 justify-end">
               <button onClick={() => setShowKpiSettings(false)} className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50">إلغاء</button>
               <button onClick={saveKpiSettings} disabled={savingKpi} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                <span className="inline-flex items-center gap-1.5">{savingKpi ? <><Loader2 size={14} className="animate-spin" /> جارٍ الحفظ...</> : <><Save size={14} /> حفظ الإعدادات</>}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex">{savingKpi ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span>
+                  <span>{savingKpi ? 'جارٍ الحفظ...' : 'حفظ الإعدادات'}</span>
+                </span>
               </button>
             </div>
           </div>

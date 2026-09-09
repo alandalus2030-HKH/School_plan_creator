@@ -618,7 +618,8 @@ export default function TasksPage() {
                             ? 'bg-orange-50 text-orange-600 border-orange-200'
                             : 'bg-green-50 text-green-600 border-green-200'
                         }`}>
-                        {blocked ? <><Lock size={10} className="inline ml-1" />محجوبة</> : <><Unlock size={10} className="inline ml-1" />متاحة</>}
+                        <span className="inline-flex items-center">{blocked ? <Lock size={10} className="ml-1" /> : <Unlock size={10} className="ml-1" />}</span>
+                        <span>{blocked ? 'محجوبة' : 'متاحة'}</span>
                       </span>
                     )
                   })()}
