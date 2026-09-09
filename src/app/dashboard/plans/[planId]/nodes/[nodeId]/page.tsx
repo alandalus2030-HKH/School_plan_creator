@@ -10,6 +10,7 @@ import { FolderOpen, ChartNoAxesColumn, Sparkles, Plus, X, AlertTriangle, Check,
   Save, RefreshCw, LineChart, Trash2, Settings, Lock, BookOpen, Archive, Pin, CircleCheckBig, Star } from 'lucide-react'
 import StandardPicker from '@/components/StandardPicker'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { toast } from '@/components/Toast'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import { usePermissions } from '@/lib/PermissionsContext'
 
@@ -736,7 +737,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
     const res  = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
     const json = await res.json().catch(() => ({}))
     setDeletingTask(false); setConfirmDelTask(null)
-    if (!res.ok) { alert(`تعذّر حذف المهمة: ${json.error || res.status}`); return }
+    if (!res.ok) { toast(`تعذّر حذف المهمة: ${json.error || res.status}`, 'error'); return }
     onRefresh()
   }
 
@@ -773,7 +774,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
     const res  = await fetch(`/api/plans/${planId}/nodes/${node.id}`, { method: 'DELETE' })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) {
-      alert(`تعذّر الحذف: ${json.error || res.status}`)
+      toast(`تعذّر الحذف: ${json.error || res.status}`, 'error')
       setSaving(false); setConfirming(false)
       return
     }

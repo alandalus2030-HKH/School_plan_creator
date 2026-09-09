@@ -1,6 +1,6 @@
 'use client'
 
-import { Component, ReactNode } from 'react'
+import { Component, ReactNode, ErrorInfo } from 'react'
 import { AlertTriangle } from 'lucide-react'
 
 interface Props {
@@ -20,8 +20,10 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, message: error.message }
   }
 
-  componentDidCatch(error: Error) {
-    console.error('[ErrorBoundary]', error)
+  /* componentStack يسمّي المكوّن المنهار — بدونه لا يبقى في الإنتاج سوى مكدّس
+     React الداخلي المُصغَّر (iO/uo/ua…) الذي لا يدلّ على موضع الخطأ في كودنا. */
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('[ErrorBoundary]', error, errorInfo.componentStack)
   }
 
   render() {

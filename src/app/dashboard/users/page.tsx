@@ -420,7 +420,7 @@ export default function UsersPage() {
   /* ════ تفعيل / تعطيل ════ */
   const toggleActive = async (p: Profile) => {
     const { error } = await supabase.from('profiles').update({ is_active: !p.is_active }).eq('id', p.id)
-    if (error) { alert(`تعذّر تغيير حالة الحساب: ${error.message}`); return }
+    if (error) { toast(`تعذّر تغيير حالة الحساب: ${error.message}`, 'error'); return }
     setProfiles(prev => prev.map(x => x.id === p.id ? { ...x, is_active: !x.is_active } : x))
   }
 
@@ -985,7 +985,12 @@ export default function UsersPage() {
                   try { await navigator.clipboard.writeText(credsModal.tempPassword); setCredsCopied(true) } catch {}
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
-                <span className="inline-flex items-center gap-1.5 justify-center">{credsCopied ? <><Check size={14} /> تم النسخ</> : <><Copy size={14} /> نسخ كلمة المرور</>}</span>
+                {/* درس مستفاد: أيقونة شرطية بجوار نص شرطي داخل عنصر واحد ⇒ insertBefore.
+                    اعزل الأيقونة في span والنص في span آخر (بنية أبناء ثابتة). */}
+                <span className="inline-flex items-center gap-1.5 justify-center">
+                  <span className="inline-flex">{credsCopied ? <Check size={14} /> : <Copy size={14} />}</span>
+                  <span>{credsCopied ? 'تم النسخ' : 'نسخ كلمة المرور'}</span>
+                </span>
               </button>
               <button type="button" onClick={() => setCredsModal(null)}
                 className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
@@ -1154,7 +1159,10 @@ export default function UsersPage() {
                           <button type="button" onClick={sendCredentials}
                             disabled={sendingCreds || !form.email}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs rounded-xl transition-colors">
-                            <span className="inline-flex items-center gap-1.5">{sendingCreds ? <><Loader2 size={13} className="animate-spin" /> جارٍ الإرسال...</> : <><Mail size={13} /> إرسال بيانات الدخول للبريد</>}</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex">{sendingCreds ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}</span>
+                              <span>{sendingCreds ? 'جارٍ الإرسال...' : 'إرسال بيانات الدخول للبريد'}</span>
+                            </span>
                           </button>
                           {credsMsg && (
                             <p className={`text-xs mt-2 px-3 py-2 rounded-lg ${credsMsg.startsWith('✅') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -1178,7 +1186,10 @@ export default function UsersPage() {
                             disabled={sendingReset}
                             title="يضبط كلمة مرور مؤقتة وينسخها — مرتبطة بهذا المستخدم، بلا رابط/بريد"
                             className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs rounded-xl transition-colors">
-                            <span className="inline-flex items-center gap-1.5">{sendingReset ? <><Loader2 size={13} className="animate-spin" /> جارٍ...</> : <><KeyRound size={13} /> كلمة مرور مؤقتة (نسخ)</>}</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex">{sendingReset ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />}</span>
+                              <span>{sendingReset ? 'جارٍ...' : 'كلمة مرور مؤقتة (نسخ)'}</span>
+                            </span>
                           </button>
                           <button type="button" onClick={resetPasswordForm}
                             disabled={sendingReset || !editProfile.email}
@@ -1445,7 +1456,10 @@ export default function UsersPage() {
                   className="px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50">إلغاء</button>
                 <button onClick={runImport} disabled={importing || importRows.filter((_,i) => !importErrors[i]).length === 0}
                   className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                  <span className="inline-flex items-center gap-1.5">{importing ? <><Loader2 size={14} className="animate-spin" /> جارٍ الاستيراد...</> : <><Upload size={14} /> استيراد {importRows.filter((_,i) => !importErrors[i]).length} مستخدم</>}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex">{importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}</span>
+                    <span>{importing ? 'جارٍ الاستيراد...' : `استيراد ${importRows.filter((_,i) => !importErrors[i]).length} مستخدم`}</span>
+                  </span>
                 </button>
               </div>
             </div>

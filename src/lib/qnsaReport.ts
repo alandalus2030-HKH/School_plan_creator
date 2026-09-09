@@ -4,6 +4,7 @@
    ════════════════════════════════════════════════════════════ */
 
 import { createClient } from './supabase/client'
+import { toast } from '@/components/Toast'
 
 const STATUS_AR: Record<string, string> = {
   not_started: 'لم تبدأ', in_progress: 'جارية', completed: 'منجزة', delayed: 'متأخرة',
@@ -29,7 +30,7 @@ export async function generateQnsaReport(planId: string) {
     .from('plans')
     .select('id, name_ar, academic_year, school_id, owner_id')
     .eq('id', planId).single()
-  if (!plan) { alert('تعذّر تحميل الخطة'); return }
+  if (!plan) { toast('تعذّر تحميل الخطة', 'error'); return }
 
   /* مسؤول الخطة (صاحب الخطة) — للتوثيق في الغلاف */
   let ownerName: string | null = null
@@ -269,7 +270,7 @@ export async function generateQnsaReport(planId: string) {
 
   /* ════════════ فتح نافذة الطباعة ════════════ */
   const win = window.open('', '_blank', 'width=1000,height=760')
-  if (!win) { alert('يُرجى السماح بالنوافذ المنبثقة لتصدير التقرير'); return }
+  if (!win) { toast('يُرجى السماح بالنوافذ المنبثقة لتصدير التقرير', 'error'); return }
   win.document.write(`<!DOCTYPE html>
 <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير QNSA — ${esc(plan.name_ar)}</title>
 <style>

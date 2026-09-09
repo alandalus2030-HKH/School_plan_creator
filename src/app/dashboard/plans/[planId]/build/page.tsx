@@ -17,6 +17,7 @@ import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pi
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
+import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
@@ -281,7 +282,7 @@ export default function PlanBuildPage() {
       name_ar: choice.name, order_num: nextSeq, standard_code: choice.standardCode,
     }).select('id').single()
     setSaving(false)
-    if (error) { alert(`تعذّر الإضافة: ${error.message}`); return }
+    if (error) { toast(`تعذّر الإضافة: ${error.message}`, 'error'); return }
     await load()
     if (data) setPath([...path.slice(0, L), data.id])
   }
@@ -295,7 +296,7 @@ export default function PlanBuildPage() {
     const nextOrder = sibs.length ? Math.max(...sibs.map(s => s.order_num ?? 0)) + 1 : 1
     const { error } = await supabase.from('tasks').insert({ name_ar: name, node_id: nodeId, order_num: nextOrder })
     setAddingTask(false)
-    if (error) { alert(`تعذّر إضافة المهمة: ${error.message}`); return }
+    if (error) { toast(`تعذّر إضافة المهمة: ${error.message}`, 'error'); return }
     setNewTaskName('')
     await load()
   }
@@ -309,7 +310,7 @@ export default function PlanBuildPage() {
       name_ar: name, order_num: order++, standard_code: null,
     }))
     const { error } = await supabase.from('plan_nodes').insert(rows)
-    if (error) { alert(`تعذّر إضافة الأهداف: ${error.message}`); return }
+    if (error) { toast(`تعذّر إضافة الأهداف: ${error.message}`, 'error'); return }
     await load()
   }
 
@@ -319,7 +320,7 @@ export default function PlanBuildPage() {
     let order = sibs.length ? Math.max(...sibs.map(s => s.order_num ?? 0)) + 1 : 1
     const rows = names.map(name => ({ name_ar: name, node_id: nodeId, order_num: order++ }))
     const { error } = await supabase.from('tasks').insert(rows)
-    if (error) { alert(`تعذّر إضافة المهام: ${error.message}`); return }
+    if (error) { toast(`تعذّر إضافة المهام: ${error.message}`, 'error'); return }
     await load()
   }
 
@@ -329,7 +330,7 @@ export default function PlanBuildPage() {
     const res  = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
     const json = await res.json().catch(() => ({}))
     setDeletingTask(false); setConfirmDelTask(null)
-    if (!res.ok) { alert(`تعذّر حذف المهمة: ${json.error || res.status}`); return }
+    if (!res.ok) { toast(`تعذّر حذف المهمة: ${json.error || res.status}`, 'error'); return }
     await load()
   }
 
@@ -351,7 +352,7 @@ export default function PlanBuildPage() {
     const res  = await fetch(`/api/plans/${planId}/nodes/${id}`, { method: 'DELETE' })
     const json = await res.json().catch(() => ({}))
     setDeleting(false); setConfirmDel(false)
-    if (!res.ok) { alert(`تعذّر الحذف: ${json.error || res.status}`); return }
+    if (!res.ok) { toast(`تعذّر الحذف: ${json.error || res.status}`, 'error'); return }
     setPath(path.slice(0, level))
     await load()
   }

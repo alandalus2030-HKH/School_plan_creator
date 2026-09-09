@@ -6,6 +6,7 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import { Users, UserRound, ClipboardList, BarChart3, Crown, Pencil, Trash2, X, Plus, AlertTriangle } from 'lucide-react'
 import WorkloadView from '@/components/WorkloadView'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { toast } from '@/components/Toast'
 
 const TEAM_COLORS = [
   '#8a1538', '#a83356', '#c25c74', '#6f1029',
@@ -146,7 +147,7 @@ export default function TeamsPage() {
     const { error } = await supabase
       .from('team_members')
       .upsert(rows, { onConflict: 'team_id,profile_id' })
-    if (error) { alert('خطأ في إضافة الأعضاء: ' + error.message); return }
+    if (error) { toast('خطأ في إضافة الأعضاء: ' + error.message, 'error'); return }
     setSelUsers([]); setAddingTo(null); await load()
   }
 
@@ -157,7 +158,7 @@ export default function TeamsPage() {
   const removeMember = async (teamId: string, userId: string) => {
     const { error } = await supabase
       .from('team_members').delete().eq('team_id', teamId).eq('profile_id', userId)
-    if (error) { alert('خطأ في الحذف: ' + error.message); return }
+    if (error) { toast('خطأ في الحذف: ' + error.message, 'error'); return }
     await load()
   }
 

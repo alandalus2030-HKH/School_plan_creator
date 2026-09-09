@@ -209,7 +209,7 @@ export default function PlanOverviewPage() {
     const res  = await fetch(`/api/plans/${planId}`, { method: 'DELETE' })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) {
-      alert(`تعذّر حذف الخطة: ${json.error || res.status}`)
+      toast(`تعذّر حذف الخطة: ${json.error || res.status}`, 'error')
       setDeletingPlan(false)
       setConfirmDelPlan(false)
       return
@@ -228,7 +228,7 @@ export default function PlanOverviewPage() {
     const json = await res.json().catch(() => ({}))
     setCertifying(false)
     if (!res.ok) {
-      alert(`تعذّر ${approve ? 'اعتماد' : 'إلغاء اعتماد'} الخطة: ${json.error || res.status}`)
+      toast(`تعذّر ${approve ? 'اعتماد' : 'إلغاء اعتماد'} الخطة: ${json.error || res.status}`, 'error')
       return
     }
     await load()
@@ -328,7 +328,7 @@ export default function PlanOverviewPage() {
     const json = await res.json().catch(() => ({}))
     setDeletingNode(false)
     if (!res.ok) {
-      alert(`تعذّر الحذف: ${json.error || res.status}`)
+      toast(`تعذّر الحذف: ${json.error || res.status}`, 'error')
       setConfirmDelId(null)
       return
     }
@@ -355,7 +355,7 @@ export default function PlanOverviewPage() {
   const exportExcel = async () => {
     try {
       const res = await fetch(`/api/plans/${planId}/export-excel`)
-      if (!res.ok) { alert('حدث خطأ أثناء التصدير'); return }
+      if (!res.ok) { toast('حدث خطأ أثناء التصدير', 'error'); return }
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
@@ -364,7 +364,7 @@ export default function PlanOverviewPage() {
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      alert('تعذّر الاتصال بالخادم')
+      toast('تعذّر الاتصال بالخادم', 'error')
     }
   }
 

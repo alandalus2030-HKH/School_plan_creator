@@ -43,7 +43,11 @@ export default function PlansPage() {
 
 function PlansPageInner() {
   const { can, loading: permsLoading, isSuperAdmin } = usePermissions()
-  if (!permsLoading && !can('view_plans') && !can('manage_plans')) return <NoAccess message="عرض الخطط غير متاح لك. للاطلاع على مهامك انتقل إلى صفحة مهامي." />
+  /* حارس الصلاحية يُطبَّق **بعد** كل الـhooks (أسفل، قبل العرض مباشرةً): الخروج المبكر
+     هنا كان يجعل عدد الـhooks يختلف بين الرسمة الأولى (الصلاحيات قيد التحميل ⇒ لا خروج)
+     والرسمة التالية (وصلت الصلاحيات ⇒ خروج قبل الـhooks) فيسقط React بـ
+     "Rendered fewer hooks than expected" عند فتح الصفحة مباشرةً أو تحديثها. */
+  const allowPlans = permsLoading || can('view_plans') || can('manage_plans')
   const supabase = createClient()
   const router       = useRouter()
   const searchParams = useSearchParams()
@@ -105,7 +109,8 @@ function PlansPageInner() {
     return { plans: rows as unknown as Plan[], statsByPlan: stats }
   }
 
-  const { data: swrData, isLoading: loading, mutate } = useSWR('plans-list', fetchPlans)
+  /* مفتاح null عند انتفاء الصلاحية ⇒ SWR لا يُطلق الجلب أصلاً (RLS يحجب البيانات على أي حال) */
+  const { data: swrData, isLoading: loading, mutate } = useSWR(allowPlans ? 'plans-list' : null, fetchPlans)
   const plans       = swrData?.plans || []
   const statsByPlan = swrData?.statsByPlan || {}
 
@@ -208,6 +213,9 @@ function PlansPageInner() {
 
   /* عدد الخطط لكل عام (للشارة) */
   const countByYear = (y: string) => plans.filter(p => p.academic_year === y && !p.is_archived).length
+
+  /* حارس الصلاحية (مؤجَّل من أعلى الدالة — بعد كل الـhooks) */
+  if (!allowPlans) return <NoAccess message="عرض الخطط غير متاح لك. للاطلاع على مهامك انتقل إلى صفحة مهامي." />
 
   if (loading) return (
     <div className="space-y-4">

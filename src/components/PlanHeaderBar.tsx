@@ -163,7 +163,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
     setDeletingPlan(true)
     const res  = await fetch(`/api/plans/${planId}`, { method: 'DELETE' })
     const json = await res.json().catch(() => ({}))
-    if (!res.ok) { alert(`تعذّر حذف الخطة: ${json.error || res.status}`); setDeletingPlan(false); setConfirmDelPlan(false); return }
+    if (!res.ok) { toast(`تعذّر حذف الخطة: ${json.error || res.status}`, 'error'); setDeletingPlan(false); setConfirmDelPlan(false); return }
     router.push('/dashboard/plans')
   }
 
@@ -174,7 +174,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
     })
     const json = await res.json().catch(() => ({}))
     setCertifying(false)
-    if (!res.ok) { alert(`تعذّر ${approve ? 'اعتماد' : 'إلغاء اعتماد'} الخطة: ${json.error || res.status}`); return }
+    if (!res.ok) { toast(`تعذّر ${approve ? 'اعتماد' : 'إلغاء اعتماد'} الخطة: ${json.error || res.status}`, 'error'); return }
     await load(); onChanged()
   }
 
@@ -185,7 +185,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
     })
     const json = await res.json().catch(() => ({}))
     setCertifying(false)
-    if (!res.ok) { alert(`تعذّر ${freeze ? 'تجميد' : 'إلغاء تجميد'} الخطة: ${json.error || res.status}`); return }
+    if (!res.ok) { toast(`تعذّر ${freeze ? 'تجميد' : 'إلغاء تجميد'} الخطة: ${json.error || res.status}`, 'error'); return }
     await load(); onChanged()
   }
 
@@ -217,12 +217,12 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
   const exportExcel = async () => {
     try {
       const res = await fetch(`/api/plans/${planId}/export-excel`)
-      if (!res.ok) { alert('حدث خطأ أثناء التصدير'); return }
+      if (!res.ok) { toast('حدث خطأ أثناء التصدير', 'error'); return }
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a = document.createElement('a'); a.href = url; a.download = `${plan.name_ar}.xlsx`; a.click()
       URL.revokeObjectURL(url)
-    } catch { alert('تعذّر الاتصال بالخادم') }
+    } catch { toast('تعذّر الاتصال بالخادم', 'error') }
   }
   const parseDateCell = (val: any): string | null => {
     if (!val && val !== 0) return null
