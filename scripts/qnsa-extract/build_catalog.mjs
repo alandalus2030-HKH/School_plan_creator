@@ -110,9 +110,14 @@ const JUNCTION = {
 }
 const flags = []
 const merges = []
+/* قياس التغطية: كم من نصّ عمود «مؤشرات الأداء» الخام نجا إلى المؤشرات النهائية؟
+   يكشف ما يُفقَد في التفكيك والترشيح — مقياس اكتمال لا مطابقة. */
+const stripAll = s => String(s).replace(/[\s•*▪◦\-–]/g, '')
+let rawChars = 0, indChars = 0
 for (const s of subs.values()) {
   const items = []
   for (const cell of s.raw) {
+    rawChars += stripAll(cell).length
     const parts = splitCell(cell)
     if (!parts.length) continue
     const prev = items[items.length - 1]
@@ -139,6 +144,7 @@ for (const s of subs.values()) {
   /* عناوين داخل الخلايا ليست مؤشرات */
   const LABELS = /^(مجالات التركيز|نماذج الأدلة والوثائق|الأدلة والوثائق|مؤشرات الأداء)\s*$/
   s.indicators = items.filter(x => !LABELS.test(x))
+  indChars += s.indicators.reduce((n, x) => n + stripAll(x).length, 0)
   s.indicators.forEach((x, i) => { if (x.length < 25) flags.push({ code: s.code + '.' + (i + 1), kind: 'قصير — يحتاج مراجعة', text: x }) })
   s.guidanceText  = s.guidance.join('\n')
   s.questionsText = s.questions.join('\n')
@@ -170,6 +176,9 @@ fs.writeFileSync(SP + '/catalog.json', JSON.stringify(out, null, 1), 'utf8')
 const totalInd = out.subs.reduce((n, s) => n + s.indicators.length, 0)
 console.log('معايير رئيسة:', out.standards.length, '· جوانب:', out.aspects.length, '· معايير فرعية:', out.subs.length)
 console.log('مؤشرات:', totalInd)
+console.log('تغطية نصّ عمود المؤشرات:', indChars, '/', rawChars,
+            '=', (100 * indChars / rawChars).toFixed(2) + '%',
+            '· المفقود:', rawChars - indChars, 'حرفاً')
 const noInd = out.subs.filter(s => !s.indicators.length)
 console.log('بلا مؤشرات:', noInd.length, noInd.map(s => s.code).join(' '))
 console.log('صفوف غير مطابَقة:', unmatched.length)
