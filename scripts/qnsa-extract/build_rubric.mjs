@@ -1,0 +1,228 @@
+/* ══════════════════════════════════════════════════════════════════
+   استخراج سلم التقدير اللفظي من جداول الوثيقة (42 جدولاً بستة أعمدة)
+
+   البنية: مجموعة أوصاف لكل **معيار فرعي**، كل وصف بخمسة مستويات
+   (ضعيف · مقبول · جيد · جيد جداً · ممتاز). وخليّة المعيار الفرعي تظهر في
+   أول صفّ من مجموعته وتبقى فارغة في بقيّتها.
+
+   ‼ الوصف **ليس** مقابلاً لمؤشر أداء واحد: 171 وصفاً مقابل 284 مؤشراً،
+   ولا يتطابق العدد إلا في 14 معياراً فرعياً من 73. فالسلم يحكم على
+   المعيار الفرعي بجوانب جودة قد تجمع مؤشّرين أو تفصّل واحداً. لذلك
+   يُربَط السلم بعقدة **المستوى الثالث**، ولا نفترض ربطاً بالمؤشرات.
+
+   علل الوثيقة المعالَجة هنا:
+   1. ترتيب الأعمدة ينعكس: عمود المعيار الفرعي في 0 أو 5، والسلم يجري
+      تصاعدياً أو تنازلياً → يُقرأ من صفّ الرأس لا بفهرس ثابت.
+   2. ثلاثة جداول بلا صفّ رأس (تكملة صفحة) — ولا تُورَّث تخطيط سابقها لأن
+      الشكل ينقلب فعلاً بينها → يُستنتَج من عمود الأكواد.
+   3. أسماء المستويات تختلف رسماً («جيد جداً» / «جيد جدا») → تُطبَّع.
+   4. صفوف الرأس وعناوين الجوانب تتكرّر داخل الجدول عند حدود الصفحات.
+   5. الوصف الواحد يُقطَّع على صفّين أو ثلاثة في الأعمدة الخمسة معاً →
+      يُوصَل بشاهدين: بنيويّ (صفّ رأس مُعاد = فاصل صفحة) ثم تصويت الأعمدة.
+      وRUBRIC_JUNCTION يستثني أيّ موضع بـ'wrap' أو 'split' عند الحاجة.
+   ══════════════════════════════════════════════════════════════════ */
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+const DIR = path.dirname(fileURLToPath(import.meta.url))
+const SP = process.env.QNSA_WORK || path.join(DIR, 'work')
+
+const T = JSON.parse(fs.readFileSync(path.join(SP, 'tables.json'), 'utf8'))
+const catalog = JSON.parse(fs.readFileSync(path.join(SP, 'catalog.json'), 'utf8'))
+
+const norm = s => String(s || '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim()
+/* تطبيع للمقارنة فقط: حذف التشكيل وتوحيد الألف والياء */
+const fold = s => norm(s).replace(/[ً-ْٰـ]/g, '')
+                         .replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+
+const LEVEL_NAMES = { 1: 'ضعيف', 2: 'مقبول', 3: 'جيد', 4: 'جيد جداً', 5: 'ممتاز' }
+const LEVEL_BY_FOLD = new Map(Object.entries(LEVEL_NAMES).map(([n, v]) => [fold(v), +n]))
+const HEAD_SUB = new Set(['المعيار الفرعي', 'المعايير الفرعية'].map(fold))
+const SUB_RE = /^(\d+\s*\.\s*\d+\s*\.\s*\d+)\s*(.*)$/s
+const tidy = c => c.replace(/\s+/g, '')
+const RENUMBER = { '2.3.4': '2.3.3' }   // القرار نفسه المطبَّق في build_catalog
+
+/* ── (1) المرور على الجداول ──────────────────────────────────────── */
+let map = null            // { sub: idx, lv: {1..5: idx} } — يُورَّث عبر الجداول
+const groups = []         // { code, rows: [ {1..5: text} ], ti }
+let cur = null
+const notes = []
+const layouts = {}   // ti → تخطيط أعمدة الجدول (لأداة التحقّق)
+
+/* تخطيط الأعمدة له شكلان فقط في الوثيقة:
+     أ) عمود المعيار في 5، والسلم تصاعدي في 0..4 (ضعيف → ممتاز)
+     ب) عمود المعيار في 0، والسلم تنازلي في 1..5 (ممتاز → ضعيف)
+   ثلاثة جداول بلا صفّ رأس (تكملة صفحة) — ولا تُورَّث تخطيط ما قبلها لأن
+   الشكل ينقلب بينها فعلاً؛ فيُستنتَج من العمود الذي يحمل أكواد المعايير. */
+const LAYOUT_A = { sub: 5, lv: { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 } }
+const LAYOUT_B = { sub: 0, lv: { 5: 1, 4: 2, 3: 3, 2: 4, 1: 5 } }
+const layoutOf = table => {
+  let c0 = 0, c5 = 0
+  for (const row of table) {
+    if (SUB_RE.test(norm(row[0]))) c0++
+    if (SUB_RE.test(norm(row[5]))) c5++
+  }
+  return c0 > c5 ? LAYOUT_B : c5 > c0 ? LAYOUT_A : null
+}
+
+for (let ti = 0; ti < T.length; ti++) {
+  const table = T[ti]
+  if (table.reduce((m, r) => Math.max(m, r.length), 0) !== 6) continue
+
+  /* جدول بلا صفّ رأس → استنتج تخطيطه من موضع الأكواد */
+  const hasHead = table.some(r => r.map(c => fold(norm(c))).some(c => HEAD_SUB.has(c)))
+  if (!hasHead) {
+    const inferred = layoutOf(table)
+    if (inferred) map = inferred
+    else notes.push({ ti, kind: 'جدول بلا رأس ولا أكواد — وُرِّث التخطيط السابق' })
+  }
+
+  /* بداية جدول جديد = فاصل صفحة بالضرورة */
+  let afterBreak = true
+
+  for (const row of table) {
+    const cells = row.map(norm)
+
+    /* صفّ رأس؟ */
+    const iSub = cells.findIndex(c => HEAD_SUB.has(fold(c)))
+    if (iSub >= 0) {
+      const lv = {}
+      cells.forEach((c, k) => { const n = LEVEL_BY_FOLD.get(fold(c)); if (n) lv[n] = k })
+      /* صفّ الرأس يتكرّر عند كل فاصل صفحة، فهو علامة الفاصل الموثوقة */
+      if (Object.keys(lv).length === 5) { map = { sub: iSub, lv }; afterBreak = true; continue }
+      notes.push({ ti, kind: 'صفّ رأس ناقص المستويات', cells: cells.map(c => c.slice(0, 20)) })
+      continue
+    }
+    if (!map) { notes.push({ ti, kind: 'صفّ قبل أيّ رأس — أُهمل' }); continue }
+
+    /* عنوان جانب (خليّة واحدة مملوءة) */
+    const filled = cells.filter(Boolean)
+    if (filled.length === 1 && /الجانب/.test(filled[0])) continue
+
+    const label = cells[map.sub]
+    const desc = {}
+    for (let n = 1; n <= 5; n++) desc[n] = cells[map.lv[n]] || ''
+    if (!Object.values(desc).some(Boolean)) continue   // صفّ بلا أوصاف
+
+    const m = label.match(SUB_RE)
+    if (m && m[2]) {
+      const code = RENUMBER[tidy(m[1])] || tidy(m[1])
+      cur = { code, rubricName: norm(m[2]), rows: [], ti }
+      groups.push(cur)
+    } else if (label && !m) {
+      notes.push({ ti, kind: 'خليّة معيار بلا كود', txt: label.slice(0, 60) })
+    }
+    if (!cur) { notes.push({ ti, kind: 'صفّ أوصاف قبل أيّ معيار فرعي — أُهمل' }); continue }
+    desc.afterBreak = afterBreak && !(m && m[2])   // صفّ بعد فاصل ولا يفتح مجموعة
+    afterBreak = false
+    cur.rows.push(desc)
+  }
+  layouts[ti] = map
+}
+
+/* ── (2) وصل الصفوف المقطوعة عبر فواصل الصفحات ──────────────────── */
+/* القرار مسجَّل لكل موضع: المفتاح «الكود#فهرس الصفّ». wrap = تكملة الصفّ
+   السابق · split = صفّ مستقلّ. يملأ هذا الجزء بعد أول تشغيل تشخيصي. */
+const RUBRIC_JUNCTION = JSON.parse(
+  fs.existsSync(path.join(DIR, 'rubric_junctions.json'))
+    ? fs.readFileSync(path.join(DIR, 'rubric_junctions.json'), 'utf8') : '{}')
+
+/* «منتهية» = تنتهي بعلامة نهاية جملة، ويُسمح بلاحقة بين قوسين بعدها
+   مثل «. (إن وجد)» فهي شائعة في الوثيقة ولا تعني أن الجملة مقطوعة. */
+const ENDS = /(?:[.؟!]\s*(?:\([^)]*\)\s*)?|\))\s*$/
+const merged = [], votes = []
+for (const g of groups) {
+  const out = []
+  for (const row of g.rows) {
+    const prev = out[out.length - 1]
+    /* القرار يُتّخذ **عموداً عموداً**: الوثيقة قد تقطع وصفاً في عمود واحد
+       فقط (مثلاً «ضعيف» وحده يفيض إلى صفّ تالٍ). فننظر في كل مستوى مملوء
+       في الصفّ الحالي: هل نظيره في الصفّ السابق جملة مقطوعة أم تامّة؟ */
+    const cont = [], fresh = []
+    if (prev) for (let n = 1; n <= 5; n++) {
+      if (!row[n]) continue
+      if (!prev[n]) continue                       // لا شاهد — محيَّد
+      ;(ENDS.test(prev[n]) ? fresh : cont).push(n)
+    }
+    /* القرار بثلاث مراتب:
+       1. قرار بشريّ مسجَّل في RUBRIC_JUNCTION — يغلب كل شيء.
+       2. شاهد بنيويّ: الصفّ يلي صفّ رأسٍ مُعاداً ⇒ فاصل صفحة مؤكَّد ⇒ وصل.
+       3. تصويت الأعمدة: الوصف يُقطَع كوحدة، فكل أعمدته مقطوعة. وعمودٌ يبدو
+          «جديداً» إنما لأن نصّه صادف أن انتهى بنقطة عند موضع القطع؛ وعمودٌ
+          يبدو «تكملة» إنما لأن الوصف السابق خلا من نقطةٍ ختامية. فالخطآن
+          ضجيجُ ترقيم، والأغلبية هي السؤال الصحيح: أتُجمِع الأعمدة على القطع؟ */
+    const key = g.code + '#' + out.length
+    const byVote = cont.length > fresh.length ? 'wrap' : 'split'
+    const decision = RUBRIC_JUNCTION[key]
+      || (prev && row.afterBreak ? 'wrap' : byVote)
+    if (cont.length > 0 && fresh.length > 0 && !row.afterBreak) {
+      votes.push({ key, code: g.code, at: out.length, decision,
+                   cont: cont.map(n => LEVEL_NAMES[n]), fresh: fresh.map(n => LEVEL_NAMES[n]),
+                   sample: (prev[cont[0]] || '').slice(-70) + ' ⟨' + (row[cont[0]] || '').slice(0, 70) + '⟩' })
+    }
+    if (prev && decision === 'wrap') {
+      for (let n = 1; n <= 5; n++) {
+        if (!row[n]) continue
+        const glue = /^[/،)]/.test(row[n]) || !prev[n] ? '' : ' '
+        prev[n] = (prev[n] || '') + glue + row[n]
+      }
+      merged.push(key)
+      continue
+    }
+    out.push(row)
+  }
+  g.rows = out
+}
+
+/* ── (3) مطابقة الصفوف بالمؤشرات ─────────────────────────────────── */
+const indCount = new Map(catalog.subs.map(s => [s.code, s.indicators.length]))
+const byCode = new Map()
+for (const g of groups) {
+  if (!byCode.has(g.code)) byCode.set(g.code, { code: g.code, rows: [], rubricName: g.rubricName })
+  /* afterBreak شاهد تحليل لا بيانات — يُسقَط قبل الحفظ */
+  byCode.get(g.code).rows.push(...g.rows.map(r => ({ 1: r[1], 2: r[2], 3: r[3], 4: r[4], 5: r[5] })))
+}
+
+/* سلامة: وصفٌ مكتملٌ ينتهي بعلامة نهاية جملة وتُملأ مستوياته الخمسة.
+   ما يخالف ذلك يُرفع للمراجعة بدل أن يُمرَّر صامتاً. */
+const integrity = { unterminated: [], missingLevels: [] }
+for (const [code, g] of byCode) {
+  g.rows.forEach((row, i) => {
+    const probe = row[5] || row[4] || row[3] || row[2] || row[1] || ''
+    if (probe && !ENDS.test(probe)) integrity.unterminated.push({ code, at: i, tail: probe.slice(-70) })
+    const empty = [1, 2, 3, 4, 5].filter(n => !row[n])
+    if (empty.length) integrity.missingLevels.push({ code, at: i, levels: empty.map(n => LEVEL_NAMES[n]) })
+  })
+}
+
+const report = []
+for (const [code, g] of byCode) {
+  const want = indCount.get(code)
+  report.push({ code, rubricRows: g.rows.length, indicators: want === undefined ? null : want,
+                ok: want === g.rows.length })
+}
+const unknown = [...byCode.keys()].filter(c => !indCount.has(c))
+const missing = catalog.subs.map(s => s.code).filter(c => !byCode.has(c))
+
+fs.writeFileSync(path.join(SP, 'rubric.json'),
+  JSON.stringify({ levels: LEVEL_NAMES, layouts, groups: [...byCode.values()] }, null, 1), 'utf8')
+fs.writeFileSync(path.join(SP, 'rubric_flags.json'),
+  JSON.stringify({ merged, votes, notes, report, integrity }, null, 1), 'utf8')
+
+/* ── (4) تقرير ───────────────────────────────────────────────────── */
+const totalRows = [...byCode.values()].reduce((n, g) => n + g.rows.length, 0)
+const totalInd = catalog.subs.reduce((n, s) => n + s.indicators.length, 0)
+console.log('مجموعات السلم:', byCode.size, 'من', catalog.subs.length, 'معياراً فرعياً')
+console.log('صفوف وصفية:', totalRows, '· مؤشرات الكتالوج:', totalInd)
+console.log('وُصِل:', merged.length, '· قرارات بالأغلبية:', votes.length + ' (وصل ' + votes.filter(v => v.decision === 'wrap').length + ' · فصل ' + votes.filter(v => v.decision === 'split').length + ')')
+console.log('أكواد في السلم ليست في الكتالوج:', unknown.length, unknown.join(' '))
+console.log('معايير فرعية بلا سلم:', missing.length, missing.join(' '))
+const bad = report.filter(r => !r.ok)
+console.log('عدم تطابق العدد:', bad.length)
+bad.forEach(r => console.log('   ' + r.code + ': سلم=' + r.rubricRows + ' · مؤشرات=' + r.indicators))
+if (notes.length) { console.log('ملاحظات تحليل:', notes.length); notes.slice(0, 10).forEach(n => console.log('   ج' + n.ti, n.kind, n.txt || '')) }
+
+console.log('سلامة — أوصاف لا تنتهي بعلامة جملة:', integrity.unterminated.length)
+integrity.unterminated.slice(0, 12).forEach(u => console.log("   " + u.code + "#" + u.at + " …" + u.tail))
+console.log('سلامة — أوصاف ناقصة المستويات:', integrity.missingLevels.length)
+integrity.missingLevels.slice(0, 12).forEach(u => console.log("   " + u.code + "#" + u.at + " ناقص: " + u.levels.join(" · ")))

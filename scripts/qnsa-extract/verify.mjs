@@ -31,9 +31,31 @@ const width = T.reduce((m, t) => Math.max(m, t.reduce((k, r) => Math.max(k, r.le
 for (let ci = 0; ci < width; ci++)
   streams.push(strip(T.map(t => t.map(r => r[ci] || '').join(LF)).join(LF)))
 
+/* كومة رابعة: صفوف الرأس وعناوين الجوانب تتكرّر داخل الجداول عند كل فاصل
+   صفحة، فتتوسّط نصّاً موصولاً وتقطع تجاوره. فنبني مجرى كل عمود من صفوف
+   **البيانات** وحدها — ما يتحقّق به وصلُ وصفٍ امتدّ عبر فاصل صفحة. */
+const HEADWORDS = ['المعيارالفرعي', 'المعاييرالفرعية', 'ضعيف', 'مقبول', 'جيد', 'جيدجدا', 'جيدجداً', 'ممتاز']
+const isHeadRow = row => row.map(strip).filter(Boolean).some(c => HEADWORDS.includes(c))
+/* عنوان جانب = خليّة واحدة مملوءة تذكر «الجانب». ولا يكفي شرط الخليّة
+   الواحدة: صفوف السلم قد تملأ مستوى واحداً فقط، وإسقاطها يقطع المجرى. */
+const isTitleRow = row => {
+  const f = row.filter(c => strip(c))
+  return f.length === 1 && /الجانب|المعيار\s+(الأول|الثاني|الثالث|الرابع|الخامس)/.test(String(f[0]))
+}
+const dataStreams = []
+for (let ci = 0; ci < width; ci++) {
+  const parts = []
+  for (const t of T) for (const r of t) {
+    if (isHeadRow(r) || isTitleRow(r)) continue
+    parts.push(r[ci] || '')
+  }
+  dataStreams.push(strip(parts.join(LF)))
+}
+
 const found = t => {
   const s = strip(t)
-  return hay.includes(s) || cols.some(col => col.includes(s)) || streams.some(st => st.includes(s))
+  return hay.includes(s) || cols.some(col => col.includes(s))
+      || streams.some(st => st.includes(s)) || dataStreams.some(st => st.includes(s))
 }
 
 const nodes = []
@@ -53,3 +75,43 @@ for (const n of miss) {
   console.log('     ' + n.text.slice(0, 120))
 }
 process.exitCode = miss.filter(n => !n.decided).length ? 1 : 0
+
+/* ── سلم التقدير (إن وُجد) ──────────────────────────────────────── */
+const rp = path.join(SP, 'rubric.json')
+if (fs.existsSync(rp)) {
+  const rub = JSON.parse(fs.readFileSync(rp, 'utf8'))
+  const cells = []
+  for (const g of rub.groups) for (let i = 0; i < g.rows.length; i++)
+    for (let n = 1; n <= 5; n++) {
+      const t = g.rows[i][n]
+      if (t) cells.push({ code: g.code + '#' + i, lvl: rub.levels[n], text: t })
+    }
+  /* كومة خامسة — خاصّة بالسلم: ترتيب الأعمدة ينقلب بين جدول وآخر، فوصلٌ
+     عبر فاصل صفحة بين جدولين مختلفي الترتيب لا يظهر متجاوراً في مجرى
+     فهرسٍ ثابت. فنبني مجرى كل **مستوى** باستعمال تخطيط كل جدول المسجَّل
+     في rubric.json — وهو عين ما قرأ به المستخرجُ الجداول. */
+  const levelStreams = []
+  for (let n = 1; n <= 5; n++) {
+    const parts = []
+    T.forEach((t, ti) => {
+      const lay = rub.layouts[ti]
+      if (!lay) return
+      for (const r of t) {
+        if (isHeadRow(r) || isTitleRow(r)) continue
+        parts.push(r[lay.lv[n]] || '')
+      }
+    })
+    levelStreams.push(strip(parts.join(LF)))
+  }
+  const foundR = t => found(t) || levelStreams.some(st => st.includes(strip(t)))
+
+  const bad = cells.filter(c => !foundR(c.text))
+  console.log('')
+  console.log('سلم التقدير — أوصاف مفحوصة:', cells.length,
+              '· مطابِقة حرفياً:', cells.length - bad.length, '· غير مطابِقة:', bad.length)
+  bad.slice(0, 15).forEach(c => {
+    console.log('  ✗', c.code, '(' + c.lvl + ')')
+    console.log('     ' + c.text.slice(0, 110))
+  })
+  if (bad.length) process.exitCode = 1
+}

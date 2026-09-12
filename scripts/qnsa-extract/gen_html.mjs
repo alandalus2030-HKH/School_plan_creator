@@ -9,6 +9,13 @@ const flags = JSON.parse(fs.readFileSync(SP + '/flags.json', 'utf8')).filter(f =
 const merges = JSON.parse(fs.readFileSync(SP + '/merges.json', 'utf8'))
 /* نطابق بالنصّ لا بالفهرس: ترشيح العناوين قد يزحزح أرقام المؤشرات */
 const mergedText = new Set(merges.map(m => m.text))
+/* سلم التقدير — اختياري: يُدرَج إن كان build_rubric قد عمل */
+const rpath = SP + '/rubric.json'
+const rub = fs.existsSync(rpath) ? JSON.parse(fs.readFileSync(rpath, 'utf8')) : null
+const LEVELS = rub ? rub.levels : {}
+const rubric = new Map(rub ? rub.groups.map(g => [g.code, g]) : [])
+const descTotal = rub ? rub.groups.reduce((n, g) => n + g.rows.length, 0) : 0
+const phraseTotal = rub ? rub.groups.reduce((n, g) => n + g.rows.reduce((k, r) => k + [1,2,3,4,5].filter(l => r[l]).length, 0), 0) : 0
 const E = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const totalInd = c.subs.reduce((n, s) => n + s.indicators.length, 0)
 
@@ -40,6 +47,17 @@ for (const std of c.standards) {
         if (isBefore) body += `<li class="cut">✂ فاصل صفحة في الوثيقة — البندان منفصلان بقرارك</li>`
       })
       body += `</ol>`
+      const rg = rubric.get(sub.code)
+      if (rg) {
+        body += `<details class="rub"><summary>سلم التقدير اللفظي — ${rg.rows.length} وصفاً × 5 مستويات</summary>
+          <div class="rwrap"><table class="rt"><thead><tr><th>#</th>${
+            [5, 4, 3, 2, 1].map(n => `<th>${E(LEVELS[n])}</th>`).join('')}</tr></thead><tbody>`
+        rg.rows.forEach((row, i) => {
+          body += `<tr><td class="rn">${i + 1}</td>${
+            [5, 4, 3, 2, 1].map(n => `<td>${E(row[n]) || '<i class="na">—</i>'}</td>`).join('')}</tr>`
+        })
+        body += `</tbody></table></div></details>`
+      }
       if (sub.guidanceText || sub.reflectionText || sub.questionsText) {
         body += `<details><summary>البيانات التوضيحية وأسئلة التأمل الذاتي</summary>
           <div class="extra"><h5>البيانات التوضيحية</h5><pre>${E(sub.guidanceText)}</pre>
@@ -94,12 +112,24 @@ const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-
   .stat { border:1px solid var(--line); border-radius:12px; padding:8px 16px; text-align:center; }
   .stat b { display:block; font-size:1.5rem; color:var(--maroon); }
   .note { background:#f8fafc; border-right:4px solid var(--maroon); border-radius:8px; padding:10px 14px; font-size:.9rem; }
+  details.rub summary { color:var(--maroon); font-weight:700; }
+  .rwrap { overflow-x:auto; }
+  table.rt { border-collapse:collapse; font-size:.8rem; margin:8px 0; min-width:900px; }
+  table.rt th, table.rt td { border:1px solid var(--line); padding:6px 8px; vertical-align:top; width:19%; }
+  table.rt th { background:#f1f5f9; position:sticky; top:0; }
+  table.rt th:first-child, table.rt td.rn { width:5%; text-align:center; background:#f8fafc;
+    font-family:Consolas,monospace; color:#64748b; }
+  .na { color:#cbd5e1; }
   @media print { .sub, .asp { break-inside:avoid; } details { display:none; } }
 </style></head><body>
 <h1>كتالوج معايير الاعتماد المدرسي الوطني (QNSA) — النسخة المستخرجة</h1>
 <p class="note"><b>المصدر:</b> «دليل الاعتماد نهائي.docx» · <b>الاستخراج:</b> 2026-09-12 ·
 <b>الترحيل:</b> <code dir="ltr">064_qnsa_final_framework.sql</code><br>
-طُوبق نصّ كل عقدة حرفياً مع الوثيقة (376/377)؛ الاستثناء الوحيد هو <b>3.1.8</b> بصياغتك المعتمدة.</p>
+طُوبق نصّ كل عقدة حرفياً مع الوثيقة (376/377)؛ الاستثناء الوحيد هو <b>3.1.8</b> بصياغتك المعتمدة.
+${rub ? `<br>ومعها <b>سلم التقدير اللفظي</b>: ${descTotal} وصفاً في ${Object.keys(LEVELS).length} مستويات
+= <b>${phraseTotal}</b> عبارة، طُوبقت كلّها حرفياً. افتح «سلم التقدير اللفظي» تحت كل معيار فرعي.
+<br><b>تنبيه نمذجة:</b> الوصف مرتبط بالمعيار الفرعي لا بمؤشر أداء بعينه — الوثيقة تضع
+${descTotal} وصفاً مقابل ${totalInd} مؤشراً، ولا يتساوى العدد إلا في 14 معياراً فرعياً من 73.` : ''}</p>
 
 <div class="stats">
   <div class="stat"><b>${c.standards.length}</b>معيار رئيس</div>
@@ -107,6 +137,7 @@ const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-
   <div class="stat"><b>${c.subs.length}</b>معيار فرعي</div>
   <div class="stat"><b>${totalInd}</b>مؤشر أداء</div>
   <div class="stat"><b>${merges.length}</b>موضع وُصِل</div>
+  ${rub ? `<div class="stat"><b>${descTotal}</b>وصف سلم تقدير</div>` : ''}
 </div>
 
 <h2 style="background:#15803d">حدود الصفحات — حُسمت التسعة</h2>

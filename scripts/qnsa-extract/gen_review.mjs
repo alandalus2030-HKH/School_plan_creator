@@ -7,13 +7,35 @@ const SP = process.env.QNSA_WORK || path.join(DIR, 'work')   // مجلّد ال�
 const c = JSON.parse(fs.readFileSync(SP + '/catalog.json', 'utf8'))
 const flags = JSON.parse(fs.readFileSync(SP + '/flags.json', 'utf8'))
 const merges = JSON.parse(fs.readFileSync(SP + '/merges.json', 'utf8'))
+
+/* ملخّص سلم التقدير — يُحسب من البيانات لا يُكتب يدوياً */
+const rub = JSON.parse(fs.readFileSync(SP + '/rubric.json', 'utf8'))
+const rflags = JSON.parse(fs.readFileSync(SP + '/rubric_flags.json', 'utf8'))
+const RUB = {
+  levels: rub.levels,
+  descCount: rub.groups.reduce((n, g) => n + g.rows.length, 0),
+  phrases: rub.groups.reduce((n, g) =>
+    n + g.rows.reduce((k, r) => k + [1, 2, 3, 4, 5].filter(l => r[l]).length, 0), 0),
+  byLevel: rub.groups.reduce((a, g) => {
+    g.rows.forEach(r => [1, 2, 3, 4, 5].forEach(l => { if (r[l]) a[l] = (a[l] || 0) + 1 }))
+    return a
+  }, {}),
+  exact: rflags.report.filter(r => r.ok).length,
+  merged: rflags.merged.length,
+  votes: rflags.votes.length,
+  votesWrap: rflags.votes.filter(v => v.decision === 'wrap').length,
+  votesSplit: rflags.votes.filter(v => v.decision === 'split').length,
+  unterminated: rflags.integrity.unterminated.length,
+  missing: rflags.integrity.missingLevels.length,
+}
 const esc = s => String(s).replace(/\|/g, 'ǀ').replace(/\n/g, ' ')
 const totalInd = c.subs.reduce((n, s) => n + s.indicators.length, 0)
 
 let md = `# كتالوج QNSA النهائي — تقرير الاستخراج والمراجعة
 
 **المصدر:** \`دليل الاعتماد نهائي.docx\` (القسم الثاني: معايير الاعتماد المدرسي الوطني)
-**التاريخ:** 2026-09-12 · **الترحيل:** \`database/migrations/064_qnsa_final_framework.sql\`
+**التاريخ:** 2026-09-12
+**الترحيلات:** \`064_qnsa_final_framework.sql\` (الشجرة) · \`065_qnsa_rubric.sql\` (سلم التقدير)
 
 ## 1) ما استُخرج
 
@@ -94,10 +116,43 @@ ${c.aspects.map(a => {
   return `| ${a.code} ${esc(a.name)} | ${subs.length} | ${subs.reduce((n, s) => n + s.indicators.length, 0)} |`
 }).join('\n')}
 
-## 6) ما لم يُستخرج بعد
+## 6) ✅ سلم التقدير اللفظي — استُخرج (ترحيل 065)
 
-- **مصفوفة تقدير الأداء** (ضعيف · مقبول · جيد · جيد جداً · ممتاز لكل مؤشر) — موجودة في الوثيقة وتحتاج جدولاً خاصاً بها؛ مقترحة كخطوة تالية.
-- **نماذج الأدلة والوثائق** لكل جانب — قائمة منفصلة في الوثيقة، يمكن ربطها بأنواع الأدلة في النظام.
+**${RUB.descCount} وصفاً** لـ73 معياراً فرعياً × 5 مستويات = **${RUB.phrases} عبارة وصفية**،
+من 42 جدولاً بستة أعمدة. **التحقّق: ${RUB.phrases}/${RUB.phrases} مطابقة حرفياً — صفر اختلاف.**
+
+| المستوى | العبارات |
+|---|---|
+${[1, 2, 3, 4, 5].map(n => `| ${RUB.levels[n]} | ${RUB.byLevel[n] || 0} |`).join('\n')}
+
+### 6.أ ‼ قرار نمذجة: السلم يُربَط بالمعيار الفرعي لا بالمؤشر
+
+الوثيقة تضع **${RUB.descCount} وصفاً مقابل ${totalInd} مؤشراً**، ولا يتساوى العدد إلا في
+**${RUB.exact} معياراً فرعياً من 73**. فالوصف الواحد قد يجمع مؤشّرين أو يفصّل واحداً.
+لذلك ربطناه بعقدة **المستوى الثالث** مع \`row_index\`؛ وربطه بالمؤشرات واحداً لواحد
+كان سيختلق علاقةً لا تقولها الوثيقة.
+
+### 6.ب علل الوثيقة في جداول السلم — وكيف عُولجت
+
+| العلّة | المعالجة |
+|---|---|
+| ترتيب الأعمدة ينعكس بين الجداول (المعيار في 0 أو 5، والسلم تصاعدي أو تنازلي) | يُقرأ من صفّ الرأس |
+| 3 جداول بلا صفّ رأس — ولا ترث ترتيب سابقها لأن الشكل ينقلب فعلاً | يُستنتَج من عمود الأكواد |
+| «جيد جداً» / «جيد جدا» | تطبيع التشكيل والألف والياء |
+| صفوف الرأس وعناوين الجوانب تتكرّر عند كل فاصل صفحة | تُستبعَد من البيانات |
+| الوصف الواحد يُقطَّع على صفّين أو ثلاثة | وُصِل ${RUB.merged} موضعاً بشاهدٍ بنيويّ ثم بتصويت الأعمدة |
+
+### 6.ج ما يحتاج عينك
+
+- **${RUB.votes} موضعاً حُسم بتصويت الأعمدة** (وصل ${RUB.votesWrap} · فصل ${RUB.votesSplit}) — حين اختلفت الأعمدة
+  بسبب نقطة ترقيم شاردة. كلّها في \`work/rubric_flags.json\` تحت \`votes\`.
+- **${RUB.unterminated} وصفاً لا ينتهي بعلامة نهاية جملة** — خلل ترقيم في الوثيقة نفسها.
+- **${RUB.missing} وصفاً ناقص مستوى أو أكثر** — خلايا خالية في الوثيقة (أبرزها «مقبول»).
+
+## 7) ما لم يُستخرج بعد
+
+- **نماذج الأدلة والوثائق** — 15 جدولاً (واحد لكل جانب) تسمّي الأدلة المطلوبة بالاسم؛
+  تُربَط بأنواع الأدلة في النظام. الخطوة التالية المقترحة.
 - **الأسماء الإنجليزية** للعقد — الوثيقة عربية فقط؛ عمود \`name_en\` جاهز وينتظر النسخة الإنجليزية الرسمية.
 `
 
