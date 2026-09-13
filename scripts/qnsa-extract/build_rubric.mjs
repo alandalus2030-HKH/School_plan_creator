@@ -5,10 +5,12 @@
    (ضعيف · مقبول · جيد · جيد جداً · ممتاز). وخليّة المعيار الفرعي تظهر في
    أول صفّ من مجموعته وتبقى فارغة في بقيّتها.
 
-   ‼ الوصف **ليس** مقابلاً لمؤشر أداء واحد: 171 وصفاً مقابل 284 مؤشراً،
-   ولا يتطابق العدد إلا في 14 معياراً فرعياً من 73. فالسلم يحكم على
-   المعيار الفرعي بجوانب جودة قد تجمع مؤشّرين أو تفصّل واحداً. لذلك
-   يُربَط السلم بعقدة **المستوى الثالث**، ولا نفترض ربطاً بالمؤشرات.
+   ‼ الوصف **ليس** مقابلاً لمؤشر أداء واحد — والعدد يشهد: الأوصاف أقلّ من
+   المؤشرات بفارق كبير، ولا يتساويان إلا في قليل من المعايير الفرعية. فالسلم
+   يحكم على المعيار الفرعي بجوانب جودة قد تجمع مؤشّرين أو تفصّل واحداً
+   (3.1.6 مثلاً: مؤشران، وأربعة أوصاف — تهيئة وتيمز وبيرلز وبيزا).
+   لذلك يُربَط السلم بعقدة **المستوى الثالث**، ولا نفترض ربطاً بالمؤشرات.
+   (الأعداد الجارية يطبعها التشغيل، ويسجّلها docs/QNSA_CATALOG_REVIEW.md.)
 
    علل الوثيقة المعالَجة هنا:
    1. ترتيب الأعمدة ينعكس: عمود المعيار الفرعي في 0 أو 5، والسلم يجري
@@ -17,8 +19,9 @@
       الشكل ينقلب فعلاً بينها → يُستنتَج من عمود الأكواد.
    3. أسماء المستويات تختلف رسماً («جيد جداً» / «جيد جدا») → تُطبَّع.
    4. صفوف الرأس وعناوين الجوانب تتكرّر داخل الجدول عند حدود الصفحات.
-   5. الوصف الواحد يُقطَّع على صفّين أو ثلاثة في الأعمدة الخمسة معاً →
-      يُوصَل بشاهدين: بنيويّ (صفّ رأس مُعاد = فاصل صفحة) ثم تصويت الأعمدة.
+   5. الوصف الواحد يُقطَّع على صفّين أو ثلاثة → يُوصَل بشاهد موجَب فقط:
+      فاصل صفحة مسجَّل في الوثيقة، أو السابق ينتهي بحرف جرّ/عطف، أو أغلب
+      مستويات الصفّ لا تبدأ بكلمة تفتح وصفاً. ولا يُوصَل لمجرّد غياب نقطة.
       وRUBRIC_JUNCTION يستثني أيّ موضع بـ'wrap' أو 'split' عند الحاجة.
    ══════════════════════════════════════════════════════════════════ */
 import fs from 'fs'
@@ -41,6 +44,15 @@ const HEAD_SUB = new Set(['المعيار الفرعي', 'المعايير ال�
 const SUB_RE = /^(\d+\s*\.\s*\d+\s*\.\s*\d+)\s*(.*)$/s
 const tidy = c => c.replace(/\s+/g, '')
 const RENUMBER = { '2.3.4': '2.3.3' }   // القرار نفسه المطبَّق في build_catalog
+
+/* فواصل الصفحات الفعلية من الوثيقة: ti → فهارس الصفوف التي تبدأ صفحة */
+const PAGE_BREAKS = fs.existsSync(path.join(SP, 'page_breaks.json'))
+  ? JSON.parse(fs.readFileSync(path.join(SP, 'page_breaks.json'), 'utf8')) : []
+
+const firstWord = t => String(t).trim().replace(/^[«"(]+/, '').split(/\s+/)[0] || ''
+/* ما «يفتح وصفاً»: يُجمَع من صفوف الوثيقة التي تحمل أكواد المعايير الفرعية
+   (أوصاف جديدة يقيناً)، ومعه مكمّمات التدرّج التي تفتح الجملة الاسمية. */
+const OPENERS = new Set(['قلة', 'بعض', 'معظم', 'الغالبية', 'جميع'])
 
 /* ── (1) المرور على الجداول ──────────────────────────────────────── */
 let map = null            // { sub: idx, lv: {1..5: idx} } — يُورَّث عبر الجداول
@@ -77,10 +89,13 @@ for (let ti = 0; ti < T.length; ti++) {
     else notes.push({ ti, kind: 'جدول بلا رأس ولا أكواد — وُرِّث التخطيط السابق' })
   }
 
-  /* بداية جدول جديد = فاصل صفحة بالضرورة */
-  let afterBreak = true
+  /* صفّ تالٍ لصفّ رأس مُعاد: موضع انقسامٍ محتمل (شاهد بنيويّ مساعد، لا قاطع —
+     فالوثيقة تقسم الجداول والصفوف أيضاً بلا فاصل صفحة حقيقي) */
+  let afterHead = true
+  let ri = -1
 
   for (const row of table) {
+    ri++
     const cells = row.map(norm)
 
     /* صفّ رأس؟ */
@@ -89,7 +104,7 @@ for (let ti = 0; ti < T.length; ti++) {
       const lv = {}
       cells.forEach((c, k) => { const n = LEVEL_BY_FOLD.get(fold(c)); if (n) lv[n] = k })
       /* صفّ الرأس يتكرّر عند كل فاصل صفحة، فهو علامة الفاصل الموثوقة */
-      if (Object.keys(lv).length === 5) { map = { sub: iSub, lv }; afterBreak = true; continue }
+      if (Object.keys(lv).length === 5) { map = { sub: iSub, lv }; afterHead = true; continue }
       notes.push({ ti, kind: 'صفّ رأس ناقص المستويات', cells: cells.map(c => c.slice(0, 20)) })
       continue
     }
@@ -113,8 +128,14 @@ for (let ti = 0; ti < T.length; ti++) {
       notes.push({ ti, kind: 'خليّة معيار بلا كود', txt: label.slice(0, 60) })
     }
     if (!cur) { notes.push({ ti, kind: 'صفّ أوصاف قبل أيّ معيار فرعي — أُهمل' }); continue }
-    desc.afterBreak = afterBreak && !(m && m[2])   // صفّ بعد فاصل ولا يفتح مجموعة
-    afterBreak = false
+    /* الصفّ الذي يحمل كود معيارٍ فرعيّ وصفٌ جديد يقيناً، فكلماته الأولى
+       تُجمَع لتكون القائمة المرجعية لِما «يفتح وصفاً» — مستخرجةً من الوثيقة
+       لا مكتوبةً بالحدس. */
+    if (m && m[2]) for (let n = 1; n <= 5; n++)
+      if (desc[n]) OPENERS.add(firstWord(desc[n]))
+    desc.afterHead = afterHead && !(m && m[2])        // صفّ يلي رأساً مُعاداً
+    desc.pageStart = (PAGE_BREAKS[ti] || []).includes(ri)   // شاهد مادّي من الوثيقة
+    afterHead = false
     cur.rows.push(desc)
   }
   layouts[ti] = map
@@ -130,6 +151,47 @@ const RUBRIC_JUNCTION = JSON.parse(
 /* «منتهية» = تنتهي بعلامة نهاية جملة، ويُسمح بلاحقة بين قوسين بعدها
    مثل «. (إن وجد)» فهي شائعة في الوثيقة ولا تعني أن الجملة مقطوعة. */
 const ENDS = /(?:[.؟!]\s*(?:\([^)]*\)\s*)?|\))\s*$/
+
+/* ── تمييز «تكملة وصف» من «وصف جديد» ─────────────────────────────
+   الترقيم وحده لا يكفي: الوثيقة تُسقط النقطة الختامية كثيراً، فلو اعتمدنا
+   «السابق بلا نقطة ⇒ وصل» لفُصلت أوصافٌ موصولة ووُصلت أوصافٌ مستقلّة.
+   (هذا ما أوقع 1.1.1 في أربعة أوصاف ثم اثنين، وصوابها ثلاثة.)
+
+   فالقرار يقوم على شاهدين نصّيين موجَبين لا على غياب النقطة:
+   أ) السابق ينتهي بكلمة تستدعي ما بعدها (حرف جرّ · عطف · فاصلة).
+   ب) هذا الصفّ يبدأ بكلمة لا تفتح وصفاً.
+
+   وقائمة ما يفتح وصفاً مستخرجةٌ من الوثيقة نفسها: الصفوف التي تحمل كود
+   معيارٍ فرعيّ هي أوصافٌ جديدة يقيناً، وكلماتها الأولى 38 كلمة، ليس فيها
+   ما يبدأ بواو إلا «وحدة». فالبدء بواو شاهد تكملة موثوق. */
+const WAW_WORDS = new Set(['وحدة', 'وزارة', 'وضوح', 'وضع', 'وفق', 'وجود', 'وثائق', 'واقعية', 'وسائل'])
+const PARTICLES = new Set([
+  'من', 'إلى', 'على', 'في', 'عن', 'مع', 'أو', 'أم', 'مما', 'ما', 'حيث', 'بما', 'بحيث',
+  'لكن', 'إلا', 'كما', 'التي', 'الذي', 'اللذين', 'اللاتي', 'ثم', 'إذ', 'بين', 'نحو',
+  'لدى', 'ضمن', 'خلال', 'عبر', 'حسب', 'أثناء', 'تجاه', 'وذلك', 'لذلك',
+])
+const DEMANDING = new Set([...PARTICLES, 'و'])
+const lastWord = t => {
+  const w = String(t).trim().split(/\s+/)
+  return w[w.length - 1] || ''
+}
+/* يفتح وصفاً: كلمته الأولى من القائمة المستخرجة من الوثيقة (كلمات الصفوف
+   التي تحمل أكواد المعايير) أو من مكمّمات التدرّج. وما خلا ذلك لا يفتح وصفاً
+   — وهو شاهد تكملة. ويزيده تأكيداً ابتداءٌ بواو زائدة أو بحرف جرّ. */
+const opensDescriptor = t => OPENERS.has(firstWord(t))
+const startsAsCont = t => {
+  const w = firstWord(t)
+  if (!w) return false
+  if (PARTICLES.has(w)) return true
+  return w.startsWith('و') && !WAW_WORDS.has(w)
+}
+/* ينتهي مستدعياً ما بعده: حرف جرّ أو عطف أو فاصلة */
+const demandsMore = t => {
+  const s = String(t).trim()
+  if (/[،:,؛]$/.test(s)) return true
+  return DEMANDING.has(lastWord(s).replace(/[«»")]/g, ''))
+}
+
 const merged = [], votes = []
 for (const g of groups) {
   const out = []
@@ -138,27 +200,58 @@ for (const g of groups) {
     /* القرار يُتّخذ **عموداً عموداً**: الوثيقة قد تقطع وصفاً في عمود واحد
        فقط (مثلاً «ضعيف» وحده يفيض إلى صفّ تالٍ). فننظر في كل مستوى مملوء
        في الصفّ الحالي: هل نظيره في الصفّ السابق جملة مقطوعة أم تامّة؟ */
-    const cont = [], fresh = []
+    /* الشاهد الأول (بوّابة): هل في الصفّ السابق مستوى واحد على الأقل غير
+       منتهٍ بعلامة جملة؟ إن كان كله منتهياً فالصفّ الحالي وصفٌ جديد يقيناً. */
+    const open = []
+    if (prev) for (let n = 1; n <= 5; n++) {
+      if (row[n] && prev[n] && !ENDS.test(prev[n])) open.push(n)
+    }
+
+    /* الشاهدان الموجَبان، يُحسبان على المستويات المملوءة في الصفّ الحالي */
+    const demand = [], contStart = [], openers = [], nonOpeners = [], veto = []
     if (prev) for (let n = 1; n <= 5; n++) {
       if (!row[n]) continue
-      if (!prev[n]) continue                       // لا شاهد — محيَّد
-      ;(ENDS.test(prev[n]) ? fresh : cont).push(n)
+      if (prev[n] && demandsMore(prev[n])) demand.push(n)   // السابق يستدعي ما بعده
+      const cont = startsAsCont(row[n])
+      if (cont) contStart.push(n)                           // واو زائدة أو حرف جرّ
+      ;(opensDescriptor(row[n]) ? openers : nonOpeners).push(n)
+      /* نقضٌ للوصل: في هذا المستوى انتهى السابق جملةً تامّة، وهذا لا يبدأ
+         كتكملة ⇒ شاهدٌ موجَب على أنه وصف جديد. والوصل هنا يفضي إلى وصفٍ
+         بنقطةٍ في وسطه — وهو ما وقع في 1.4.1 و5.1.1 قبل هذا النقض. */
+      if (prev[n] && ENDS.test(prev[n]) && !cont) veto.push(n)
     }
-    /* القرار بثلاث مراتب:
-       1. قرار بشريّ مسجَّل في RUBRIC_JUNCTION — يغلب كل شيء.
-       2. شاهد بنيويّ: الصفّ يلي صفّ رأسٍ مُعاداً ⇒ فاصل صفحة مؤكَّد ⇒ وصل.
-       3. تصويت الأعمدة: الوصف يُقطَع كوحدة، فكل أعمدته مقطوعة. وعمودٌ يبدو
-          «جديداً» إنما لأن نصّه صادف أن انتهى بنقطة عند موضع القطع؛ وعمودٌ
-          يبدو «تكملة» إنما لأن الوصف السابق خلا من نقطةٍ ختامية. فالخطآن
-          ضجيجُ ترقيم، والأغلبية هي السؤال الصحيح: أتُجمِع الأعمدة على القطع؟ */
+
     const key = g.code + '#' + out.length
-    const byVote = cont.length > fresh.length ? 'wrap' : 'split'
-    const decision = RUBRIC_JUNCTION[key]
-      || (prev && row.afterBreak ? 'wrap' : byVote)
-    if (cont.length > 0 && fresh.length > 0 && !row.afterBreak) {
+    /* مراتب القرار:
+       1. قرار بشريّ في RUBRIC_JUNCTION — يغلب كل شيء.
+       2. شاهد مادّي: الصفّ يبدأ صفحةً جديدة في الوثيقة (lastRenderedPageBreak).
+       3. شاهدٌ نصّيّ موجَب، والبوّابة مفتوحة:
+          - السابق ينتهي بحرف جرّ/عطف/فاصلة، أو
+          - لا يبدأ أيُّ مستوى من هذا الصفّ بكلمة تفتح وصفاً.
+       وما خلا ذلك: وصفٌ جديد. فالوصل لا يحدث إلا بشاهد، لا بغياب نقطة. */
+    const evidence = !prev ? null
+      : row.pageStart ? 'فاصل صفحة في الوثيقة'
+      : open.length === 0 ? null
+      /* يُوازَن النقض بالمستويات التي تطلب التكملة: إن كانت المستويات
+         الناقضة أكثرَ أو مثلَها فهو وصف جديد، وإلا فالنقض ضجيجُ ترقيم. */
+      : veto.length >= open.length ? null
+      : demand.length ? 'السابق ينتهي بحرف جرّ أو عطف'
+      : nonOpeners.length > openers.length
+        ? `أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (${nonOpeners.length}/${nonOpeners.length + openers.length})`
+        : null
+    const decision = RUBRIC_JUNCTION[key] || (evidence ? 'wrap' : 'split')
+
+    /* يُرفع للمراجعة كل وصلٍ شاهده ضعيف، وكل فصلٍ ترك السابق مقطوعاً */
+    if (prev && decision === 'wrap' && !row.pageStart && !demand.length) {
+      votes.push({ key, code: g.code, at: out.length, decision, evidence,
+                   contStart: contStart.map(n => LEVEL_NAMES[n]),
+                   sample: (prev[open[0] || 5] || '').slice(-60) + ' ⟨' + (row[open[0] || 5] || '').slice(0, 60) + '⟩' })
+    }
+    if (prev && decision === 'split' && open.length) {
       votes.push({ key, code: g.code, at: out.length, decision,
-                   cont: cont.map(n => LEVEL_NAMES[n]), fresh: fresh.map(n => LEVEL_NAMES[n]),
-                   sample: (prev[cont[0]] || '').slice(-70) + ' ⟨' + (row[cont[0]] || '').slice(0, 70) + '⟩' })
+                   evidence: 'السابق بلا نقطة لكن هذا الصفّ يفتح وصفاً',
+                   openers: openers.map(n => LEVEL_NAMES[n]),
+                   sample: (prev[open[0]] || '').slice(-60) + ' ⟨' + (row[open[0]] || '').slice(0, 60) + '⟩' })
     }
     if (prev && decision === 'wrap') {
       for (let n = 1; n <= 5; n++) {
@@ -185,13 +278,29 @@ for (const g of groups) {
 
 /* سلامة: وصفٌ مكتملٌ ينتهي بعلامة نهاية جملة وتُملأ مستوياته الخمسة.
    ما يخالف ذلك يُرفع للمراجعة بدل أن يُمرَّر صامتاً. */
-const integrity = { unterminated: [], missingLevels: [] }
+/* فحصان متقابلان يحرسان الخطأين المتناظرين:
+   - وصفٌ لا ينتهي بعلامة جملة ⇒ احتمال وصلٍ فائت (أو سقوط نقطة في الوثيقة،
+     ويُميَّز بأوّل كلمات الوصف التالي: إن افتتح بفعل فهو وصفٌ جديد فعلاً).
+   - وصفٌ وُصِل وفيه نقطةٌ في وسطه يتبعها كلام ⇒ احتمال وصفين دُمجا. */
+const mergedSet = new Set(merged)
+const integrity = { unterminated: [], missingLevels: [], overMerged: [] }
 for (const [code, g] of byCode) {
   g.rows.forEach((row, i) => {
     const probe = row[5] || row[4] || row[3] || row[2] || row[1] || ''
-    if (probe && !ENDS.test(probe)) integrity.unterminated.push({ code, at: i, tail: probe.slice(-70) })
+    if (probe && !ENDS.test(probe)) {
+      const nxt = g.rows[i + 1]
+      const head = nxt ? String(nxt[5] || nxt[1] || '').split(/\s+/).slice(0, 4).join(' ') : null
+      integrity.unterminated.push({ code, at: i, tail: probe.slice(-70),
+        next: head, verdict: !nxt ? 'لا وصف بعده — سقوط نقطة في الوثيقة'
+          : opensDescriptor(head) ? 'التالي يفتتح بكلمة تفتح وصفاً — وصفٌ جديد'
+          : 'يحتاج مراجعة' })
+    }
     const empty = [1, 2, 3, 4, 5].filter(n => !row[n])
     if (empty.length) integrity.missingLevels.push({ code, at: i, levels: empty.map(n => LEVEL_NAMES[n]) })
+    if (mergedSet.has(code + '#' + (i + 1)) && /[.؟!]\s+(?!\()/.test(probe)) {
+      const parts = probe.split(/(?<=[.؟!])\s+/)
+      integrity.overMerged.push({ code, at: i, join: parts.slice(0, 2).join(' ▌').slice(-140) })
+    }
   })
 }
 
@@ -223,6 +332,8 @@ bad.forEach(r => console.log('   ' + r.code + ': سلم=' + r.rubricRows + ' · 
 if (notes.length) { console.log('ملاحظات تحليل:', notes.length); notes.slice(0, 10).forEach(n => console.log('   ج' + n.ti, n.kind, n.txt || '')) }
 
 console.log('سلامة — أوصاف لا تنتهي بعلامة جملة:', integrity.unterminated.length)
-integrity.unterminated.slice(0, 12).forEach(u => console.log("   " + u.code + "#" + u.at + " …" + u.tail))
+integrity.unterminated.forEach(u => console.log("   " + u.code + "#" + u.at + " → " + u.verdict))
+console.log('سلامة — أوصاف موصولة بنقطة في وسطها (شبهة دمج وصفين):', integrity.overMerged.length)
+integrity.overMerged.forEach(u => console.log("   " + u.code + "#" + u.at + " " + u.join))
 console.log('سلامة — أوصاف ناقصة المستويات:', integrity.missingLevels.length)
 integrity.missingLevels.slice(0, 12).forEach(u => console.log("   " + u.code + "#" + u.at + " ناقص: " + u.levels.join(" · ")))
