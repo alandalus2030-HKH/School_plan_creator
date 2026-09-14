@@ -75,7 +75,7 @@ console.log('عقد مفحوصة:', nodes.length,
             '· مطابِقة حرفياً:', nodes.length - miss.length,
             '· غير مطابِقة:', miss.length)
 for (const n of miss) {
-  console.log('  ✗', n.code, '(' + n.lvl + ')', n.edit ? '— وصلٌ بحذف كلمة مكرّرة عند حدّ الصفحة (قرار)' : n.decided ? '— نصّ معتمد بقرار المستخدم' : '')
+  console.log('  ✗', n.code, '(' + n.lvl + ')', n.edit ? '— وصلٌ بحذف كلمة مكرّرة عند حدّ الصفحة (نصّ مصحَّح اعتمده المستخدم)' : n.decided ? '— نصّ معتمد بقرار المستخدم' : '')
   console.log('     ' + n.text.slice(0, 120))
 }
 process.exitCode = miss.filter(n => !n.decided).length ? 1 : 0
