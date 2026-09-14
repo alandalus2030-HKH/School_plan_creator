@@ -24,6 +24,9 @@
   "2.2.9#1",
   "2.3.2#2",
   "2.3.3#3",
+  "3.1.4#1",
+  "3.1.4#2",
+  "3.1.5#1",
   "3.1.8#1",
   "3.1.8#2",
   "3.1.8#3",
@@ -57,6 +60,7 @@
   "5.3.1#4",
   "5.3.1#6",
   "5.3.2#3",
+  "5.3.2#5",
   "5.3.3#1",
   "5.3.4#1"
  ],
@@ -129,7 +133,7 @@
    "code": "1.2.4",
    "at": 3,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "ضعيف",
     "مقبول",
@@ -157,7 +161,7 @@
    "code": "1.3.1",
    "at": 1,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "مقبول",
     "جيد جداً"
@@ -234,7 +238,7 @@
    "code": "1.5.1",
    "at": 4,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (1/1)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "مقبول"
    ],
@@ -260,7 +264,7 @@
    "code": "1.5.3",
    "at": 3,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "جيد"
    ],
@@ -295,7 +299,7 @@
    "code": "1.5.4",
    "at": 2,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (1/1)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
    "contStart": [],
    "sample": "ة، إلا أنه تتم الاستفادة من هذه الزيارات بشكل محدود في تحسين ⟨الأداء وتطوير العمل في المدرسة⟩"
   },
@@ -304,7 +308,7 @@
    "code": "2.1.1",
    "at": 3,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "ضعيف",
     "مقبول",
@@ -336,11 +340,43 @@
    "sample": "فزة على الإبداع والابتكار بشكل محدود جداً، مما أدى إلى تطوير ⟨مهارات الإبداع والابتكار لدى قلة من الطلبة. أو لا يتم تطبيق ⟩"
   },
   {
+   "key": "3.1.4#1",
+   "code": "3.1.4",
+   "at": 1,
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "contStart": [
+    "ضعيف",
+    "جيد جداً"
+   ],
+   "sample": " الطلبة في المراحل المستهدفة لتحقيق تقييم موضوعي وفعال جداً. ⟨لمستوى تحصيلهم، مع توفير تدريب وتهيئة شاملة تضمن جاهزيتهم ال⟩"
+  },
+  {
+   "key": "3.1.4#2",
+   "code": "3.1.4",
+   "at": 2,
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "contStart": [
+    "جيد"
+   ],
+   "sample": "ة، ويتساوى مستوى الأداء مع/أعلى من المستوى المحلي أو الدولي. ⟨⟩"
+  },
+  {
+   "key": "3.1.5#1",
+   "code": "3.1.5",
+   "at": 1,
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
+   "contStart": [],
+   "sample": "هم مستويات مقاربة أو متفوقة على المعدلات الوطنية أو الدولية. ⟨⟩"
+  },
+  {
    "key": "3.1.8#1",
    "code": "3.1.8",
    "at": 1,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "جيد",
     "جيد جداً",
@@ -353,7 +389,7 @@
    "code": "3.2.4",
    "at": 1,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (2/2)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 2 من 5",
    "contStart": [],
    "sample": "ا أدى إلى حصر قلة من الحالات. أو لا يتم تطبيق تقييمات لتحديد ⟨حالات صعوبات التعلم.⟩"
   },
@@ -377,7 +413,7 @@
    "code": "4.1.1",
    "at": 5,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "ضعيف"
    ],
@@ -388,7 +424,7 @@
    "code": "4.1.3",
    "at": 1,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "جيد جداً"
    ],
@@ -399,7 +435,7 @@
    "code": "4.1.6",
    "at": 1,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (3/3)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "ضعيف"
    ],
@@ -419,7 +455,7 @@
    "code": "4.2.2",
    "at": 4,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (2/2)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 2 من 5",
    "contStart": [],
    "sample": "لدراسية. أو يتم عرض صور سمو الأمير والأمير الوالد ورفع العلم ⟨القطري في المدرسة، إلا أنه لا يتم أداء السلام الأميري في الم⟩"
   },
@@ -443,7 +479,7 @@
    "code": "5.2.1",
    "at": 2,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "ضعيف",
     "مقبول",
@@ -457,7 +493,7 @@
    "code": "5.2.1",
    "at": 5,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "مقبول"
    ],
@@ -479,7 +515,7 @@
    "code": "5.2.2",
    "at": 2,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (1/1)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "ضعيف"
    ],
@@ -490,7 +526,7 @@
    "code": "5.2.3",
    "at": 2,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (2/2)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
    "contStart": [
     "مقبول"
    ],
@@ -510,16 +546,27 @@
    "code": "5.2.8",
    "at": 1,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (1/1)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
    "contStart": [],
    "sample": "قة، إلا أن تفعيل المرافق يتم من قبل موظفين غير متخصصين / غير ⟨مؤهلين، مما اثر على مدى استفادة الطلبة منها، وقلل من فعاليته⟩"
+  },
+  {
+   "key": "5.3.2#5",
+   "code": "5.3.2",
+   "at": 5,
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "contStart": [
+    "ضعيف"
+   ],
+   "sample": "وقدرتهم على التصرف السريع والملائم في مختلف الحالات الطارئة. ⟨⟩"
   },
   {
    "key": "5.3.4#1",
    "code": "5.3.4",
    "at": 1,
    "decision": "wrap",
-   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (1/1)",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
    "contStart": [],
    "sample": "يات المدرسية، إلا أنه لا يتم تنفيذ إجراءات وقائية لضمان بيئة ⟨مدرسية خالية من الحشرات والقوارض⟩"
   }
@@ -582,8 +629,8 @@
   {
    "code": "1.1.2",
    "rubricRows": 3,
-   "indicators": 2,
-   "ok": false
+   "indicators": 3,
+   "ok": true
   },
   {
    "code": "1.1.3",
@@ -720,7 +767,7 @@
   {
    "code": "2.2.3",
    "rubricRows": 1,
-   "indicators": 3,
+   "indicators": 2,
    "ok": false
   },
   {
@@ -786,7 +833,7 @@
   {
    "code": "3.1.2",
    "rubricRows": 3,
-   "indicators": 5,
+   "indicators": 4,
    "ok": false
   },
   {
@@ -797,13 +844,13 @@
   },
   {
    "code": "3.1.4",
-   "rubricRows": 4,
+   "rubricRows": 2,
    "indicators": 4,
-   "ok": true
+   "ok": false
   },
   {
    "code": "3.1.5",
-   "rubricRows": 2,
+   "rubricRows": 1,
    "indicators": 4,
    "ok": false
   },
@@ -995,7 +1042,7 @@
   },
   {
    "code": "5.3.2",
-   "rubricRows": 8,
+   "rubricRows": 7,
    "indicators": 10,
    "ok": false
   },
@@ -1057,13 +1104,6 @@
     "verdict": "لا وصف بعده — سقوط نقطة في الوثيقة"
    },
    {
-    "code": "3.1.5",
-    "at": 1,
-    "tail": "أقل من المعدلات الوطنية أو الدولية",
-    "next": null,
-    "verdict": "لا وصف بعده — سقوط نقطة في الوثيقة"
-   },
-   {
     "code": "4.1.6",
     "at": 2,
     "tail": "ير مهارات التفاعل الإيجابي بين الطلبة وتوفير بيئة تعليمية محفزة وداعمة",
@@ -1087,38 +1127,10 @@
     ]
    },
    {
-    "code": "3.1.4",
-    "at": 3,
-    "levels": [
-     "ضعيف",
-     "ممتاز"
-    ]
-   },
-   {
-    "code": "3.1.5",
-    "at": 1,
-    "levels": [
-     "ضعيف",
-     "جيد",
-     "جيد جداً",
-     "ممتاز"
-    ]
-   },
-   {
     "code": "3.2.2",
     "at": 1,
     "levels": [
      "مقبول"
-    ]
-   },
-   {
-    "code": "5.3.2",
-    "at": 5,
-    "levels": [
-     "مقبول",
-     "جيد",
-     "جيد جداً",
-     "ممتاز"
     ]
    }
   ],
@@ -1127,7 +1139,3443 @@
     "code": "2.2.6",
     "at": 1,
     "join": "اً لجميع الطلبة، مع التركيز على تلبية احتياجاتهم الفردية. ▌مما يساعدهم على تحسين أدائهم، وتعزيز تعلمهم، وتطوير مهاراتهم لتحقيق أهداف التعلم."
+   },
+   {
+    "code": "3.1.4",
+    "at": 0,
+    "join": "المراحل المستهدفة لتحقيق تقييم موضوعي وفعال جداً. ▌لمستوى تحصيلهم، مع توفير تدريب وتهيئة شاملة تضمن جاهزيتهم التامة لمتطلبات هذه الاختبارات."
    }
   ]
- }
+ },
+ "trace": [
+  {
+   "key": "1.1.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "قلة",
+    "بعض",
+    "معظم",
+    "الغالبية",
+    "جميع"
+   ]
+  },
+  {
+   "key": "1.1.1#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 2,
+   "contStart": 4,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "توجهات",
+    "ووزارة",
+    "وقيمها",
+    "ورسالة",
+    "وقيمها"
+   ]
+  },
+  {
+   "key": "1.1.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 3,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 2,
+   "starts": [
+    "لا",
+    "تتوافق",
+    "تتوافق",
+    "تتوافق",
+    "تتوافق"
+   ]
+  },
+  {
+   "key": "1.1.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "تتوافق",
+    "تتوافق",
+    "تتوافق",
+    "تتوافق",
+    "تتوافق"
+   ]
+  },
+  {
+   "key": "1.1.2#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 4,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "الموارد",
+    "الموارد",
+    "الوضع",
+    "الوضع"
+   ]
+  },
+  {
+   "key": "1.1.3#1",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 2,
+   "contStart": 2,
+   "openers": 1,
+   "nonOpeners": 4,
+   "veto": 0,
+   "starts": [
+    "التعديل",
+    "تُطبق",
+    "وعمليات",
+    "المراجعة",
+    "واحتياجات"
+   ]
+  },
+  {
+   "key": "1.1.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 4,
+   "starts": [
+    "مشاركة",
+    "مشاركة",
+    "مشاركة",
+    "مشاركة",
+    "مشاركة"
+   ]
+  },
+  {
+   "key": "1.2.1#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 1,
+   "contStart": 4,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "وسياسات",
+    "وسياسات",
+    "وسياسات",
+    "لوائح",
+    "وسياسات"
+   ]
+  },
+  {
+   "key": "1.2.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "تُنفّذ",
+    "تُنفّذ",
+    "تُنفّذ",
+    "تُنفّذ",
+    "تُنفّذ"
+   ]
+  },
+  {
+   "key": "1.2.3#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 1,
+   "contStart": 2,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "جوانب",
+    "أو",
+    "لمعظم",
+    "للغالبية",
+    "واضحة"
+   ]
+  },
+  {
+   "key": "1.2.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.2.3#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "تنفيذ",
+    "تنفيذ",
+    "الالتزام",
+    "الالتزام"
+   ]
+  },
+  {
+   "key": "1.2.3#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 4,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.2.3#4",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 0,
+   "veto": 0,
+   "starts": [
+    "لا"
+   ]
+  },
+  {
+   "key": "1.2.4#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 4,
+   "starts": [
+    "تم",
+    "تم",
+    "تم",
+    "تم",
+    "تم"
+   ]
+  },
+  {
+   "key": "1.2.4#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 4,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.2.4#3",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 2,
+   "demand": 0,
+   "contStart": 3,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "مما",
+    "مما",
+    "مما",
+    "العظمى",
+    "الموظفين،"
+   ]
+  },
+  {
+   "key": "1.2.4#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 1,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.3.1#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 0,
+   "contStart": 2,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "تغذية",
+    "مما",
+    "منتظمة،",
+    "واضحة",
+    "جداً"
+   ]
+  },
+  {
+   "key": "1.3.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "تطبيق",
+    "تطبيق",
+    "تطبيق",
+    "تطبيق",
+    "تطبيق"
+   ]
+  },
+  {
+   "key": "1.3.4#1",
+   "decision": "wrap",
+   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "الدعم",
+    "الدعم",
+    "المالك/",
+    "المالك/",
+    "المالك"
+   ]
+  },
+  {
+   "key": "1.4.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 4,
+   "veto": 4,
+   "starts": [
+    "تتوفر",
+    "البيانات",
+    "البيانات",
+    "البيانات",
+    "البيانات"
+   ]
+  },
+  {
+   "key": "1.4.1#2",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "واقعية",
+    "نتائج",
+    "الداعمة",
+    "الأدلة",
+    "الأدلة"
+   ]
+  },
+  {
+   "key": "1.4.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 4,
+   "starts": [
+    "يشارك",
+    "يشارك",
+    "يشارك",
+    "يشارك",
+    "يشارك"
+   ]
+  },
+  {
+   "key": "1.4.1#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 1,
+   "starts": [
+    "تتوافق",
+    "تتوافق",
+    "تتوافق",
+    "تتوافق",
+    "تتوافق"
+   ]
+  },
+  {
+   "key": "1.4.2#1",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "لنفسها",
+    "لنفسها",
+    "لنفسها",
+    "تقرير",
+    "لنفسها"
+   ]
+  },
+  {
+   "key": "1.4.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "قلة",
+    "بعض",
+    "معظم",
+    "الغالبية",
+    "جميع"
+   ]
+  },
+  {
+   "key": "1.4.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "يوفر",
+    "يوفر",
+    "يوفر",
+    "يوفر",
+    "يوفر"
+   ]
+  },
+  {
+   "key": "1.5.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.5.1#2",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 0,
+   "veto": 0,
+   "starts": [
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.5.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.5.1#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 2,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 3,
+   "starts": [
+    "يظهر",
+    "يظهر",
+    "يظهر",
+    "يظهر",
+    "يظهر"
+   ]
+  },
+  {
+   "key": "1.5.1#4",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "بين"
+   ]
+  },
+  {
+   "key": "1.5.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.5.2#2",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 0,
+   "veto": 0,
+   "starts": [
+    "يشارك"
+   ]
+  },
+  {
+   "key": "1.5.2#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يظهر",
+    "يظهر",
+    "يظهر",
+    "يظهر",
+    "يظهر"
+   ]
+  },
+  {
+   "key": "1.5.2#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 4,
+   "starts": [
+    "لا",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.5.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "تنفيذ",
+    "تنفيذ",
+    "تنفيذ",
+    "تنفيذ"
+   ]
+  },
+  {
+   "key": "1.5.3#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "تتم",
+    "تتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.5.3#3",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "أولياء",
+    "أولياء",
+    "وملاحظات",
+    "لشكاوى",
+    "لشكاوى"
+   ]
+  },
+  {
+   "key": "1.5.3#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 4,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "1.5.3#4",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 4,
+   "nonOpeners": 1,
+   "veto": 4,
+   "starts": [
+    "يظهر",
+    "يظهر",
+    "ويظهر",
+    "يظهر",
+    "يظهر"
+   ]
+  },
+  {
+   "key": "1.5.3#5",
+   "decision": "wrap",
+   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "الرضا",
+    "الرضا",
+    "الرضا",
+    "الرضا",
+    "الرضا"
+   ]
+  },
+  {
+   "key": "1.5.4#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 4,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "إشراك",
+    "إشراك",
+    "إشراك",
+    "إشراك"
+   ]
+  },
+  {
+   "key": "1.5.4#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "الأداء"
+   ]
+  },
+  {
+   "key": "2.1.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "يتضمن",
+    "يتضمن",
+    "يتضمن",
+    "يتضمن",
+    "يتضمن"
+   ]
+  },
+  {
+   "key": "2.1.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "يعزز",
+    "يعزز",
+    "يعزز",
+    "يعزز",
+    "يعزز"
+   ]
+  },
+  {
+   "key": "2.1.1#3",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 5,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "والعالمية",
+    "والعالمية",
+    "والعالمية",
+    "والعالمية",
+    "والعالمية"
+   ]
+  },
+  {
+   "key": "2.1.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "قلة",
+    "بعض",
+    "معظم",
+    "الغالبية",
+    "جميع"
+   ]
+  },
+  {
+   "key": "2.1.4#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 1,
+   "contStart": 2,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "احتياجات",
+    "أو",
+    "تعديلات",
+    "على",
+    "تعديلات"
+   ]
+  },
+  {
+   "key": "2.2.5#1",
+   "decision": "wrap",
+   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (4/5)",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 3,
+   "demand": 0,
+   "contStart": 2,
+   "openers": 1,
+   "nonOpeners": 4,
+   "veto": 1,
+   "starts": [
+    "دافعيتهم",
+    "أو",
+    "معظم",
+    "على",
+    "بانتظام"
+   ]
+  },
+  {
+   "key": "2.2.6#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "2.2.6#2",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 5,
+   "open": 2,
+   "demand": 2,
+   "contStart": 2,
+   "openers": 1,
+   "nonOpeners": 3,
+   "veto": 1,
+   "starts": [
+    "لا",
+    "ما",
+    "الفردية،",
+    "مما"
+   ]
+  },
+  {
+   "key": "2.2.7#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يشارك",
+    "يشارك",
+    "يشارك",
+    "يشارك",
+    "يشارك"
+   ]
+  },
+  {
+   "key": "2.2.7#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "سباقات"
+   ]
+  },
+  {
+   "key": "2.2.9#1",
+   "decision": "wrap",
+   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "مهارات",
+    "بيئة",
+    "بيئة",
+    "بيئة",
+    "بيئة"
+   ]
+  },
+  {
+   "key": "2.3.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "أثاث",
+    "أثاث",
+    "أثاث",
+    "أثاث",
+    "أثاث"
+   ]
+  },
+  {
+   "key": "2.3.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "2.3.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "2.3.2#2",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 5,
+   "open": 3,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 4,
+   "veto": 1,
+   "starts": [
+    "تحقيق",
+    "التعليمية",
+    "تحقيق",
+    "الأهداف"
+   ]
+  },
+  {
+   "key": "2.3.2#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "2.3.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 4,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 4,
+   "nonOpeners": 0,
+   "veto": 4,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "2.3.3#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 4,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 4,
+   "veto": 4,
+   "starts": [
+    "يقوم",
+    "يقوم",
+    "يقوم",
+    "يقوم"
+   ]
+  },
+  {
+   "key": "2.3.3#3",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 4,
+   "open": 4,
+   "demand": 2,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "الحصص",
+    "الدعم",
+    "الدعم",
+    "بيئة",
+    "تعزيز"
+   ]
+  },
+  {
+   "key": "3.1.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 4,
+   "nonOpeners": 1,
+   "veto": 5,
+   "starts": [
+    "تقارير",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.1.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "قلة",
+    "بعض",
+    "معظم",
+    "الغالبية",
+    "جميع"
+   ]
+  },
+  {
+   "key": "3.1.2#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.1.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يظهر",
+    "يظهر",
+    "يظهر",
+    "يظهر",
+    "يظهر"
+   ]
+  },
+  {
+   "key": "3.1.4#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 2,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 3,
+   "starts": [
+    "أو",
+    "تقييم",
+    "لمستوى",
+    "وفعال",
+    "لمستوى"
+   ]
+  },
+  {
+   "key": "3.1.4#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يظهر",
+    "يظهر",
+    "يظهر",
+    "يظهر",
+    "يظهر"
+   ]
+  },
+  {
+   "key": "3.1.4#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 3,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 3,
+   "veto": 2,
+   "starts": [
+    "مستمر",
+    "أو",
+    "المستوى"
+   ]
+  },
+  {
+   "key": "3.1.5#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 1,
+   "starts": [
+    "أقل"
+   ]
+  },
+  {
+   "key": "3.1.6#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "أداء",
+    "أداء",
+    "أداء",
+    "أداء",
+    "أداء"
+   ]
+  },
+  {
+   "key": "3.1.6#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "أداء",
+    "أداء",
+    "أداء",
+    "أداء",
+    "أداء"
+   ]
+  },
+  {
+   "key": "3.1.6#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "أداء",
+    "أداء",
+    "أداء",
+    "أداء",
+    "أداء"
+   ]
+  },
+  {
+   "key": "3.1.7#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يحرز",
+    "يحرز",
+    "يحرز",
+    "يحرز",
+    "يحرز"
+   ]
+  },
+  {
+   "key": "3.1.7#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يحرز",
+    "يحرز",
+    "يحرز",
+    "يحرز",
+    "يحرز"
+   ]
+  },
+  {
+   "key": "3.1.7#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يحرز",
+    "يحرز",
+    "يحرز",
+    "يحرز",
+    "يحرز"
+   ]
+  },
+  {
+   "key": "3.1.7#4",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يحرز",
+    "يحرز",
+    "يحرز",
+    "يحرز",
+    "يحرز"
+   ]
+  },
+  {
+   "key": "3.1.8#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 3,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "قرارات",
+    "التحليل",
+    "كما",
+    "ووضوح",
+    "ووضوح"
+   ]
+  },
+  {
+   "key": "3.1.8#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.1.8#2",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "الاستفادة",
+    "التحليلات،",
+    "مدى",
+    "متعاقبة",
+    "متعاقبة"
+   ]
+  },
+  {
+   "key": "3.1.8#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.1.8#3",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 3,
+   "contStart": 0,
+   "openers": 2,
+   "nonOpeners": 3,
+   "veto": 0,
+   "starts": [
+    "المواد",
+    "المواد",
+    "معظم",
+    "الغالبية",
+    "الثانوية"
+   ]
+  },
+  {
+   "key": "3.1.8#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 4,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "تُوظف",
+    "تُوظف",
+    "تُوظف",
+    "تُوظف"
+   ]
+  },
+  {
+   "key": "3.1.8#4",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "تتوافق",
+    "تتوافق",
+    "تتوافق",
+    "تتوافق",
+    "تتوافق"
+   ]
+  },
+  {
+   "key": "3.2.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "تقوم",
+    "تقوم",
+    "تقوم",
+    "تقوم"
+   ]
+  },
+  {
+   "key": "3.2.2#1",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 3,
+   "veto": 0,
+   "starts": [
+    "لا",
+    "عليها",
+    "الخطط",
+    "الخطط"
+   ]
+  },
+  {
+   "key": "3.2.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 4,
+   "veto": 4,
+   "starts": [
+    "تظهر",
+    "تظهر",
+    "تظهر",
+    "تظهر"
+   ]
+  },
+  {
+   "key": "3.2.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.2.3#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 5,
+   "open": 2,
+   "demand": 1,
+   "contStart": 3,
+   "openers": 0,
+   "nonOpeners": 4,
+   "veto": 0,
+   "starts": [
+    "أو",
+    "خلال",
+    "ويتم",
+    "الدعم"
+   ]
+  },
+  {
+   "key": "3.2.3#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.2.4#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 2 من 5",
+   "pageStart": false,
+   "filled": 2,
+   "prevFilled": 5,
+   "open": 2,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 2,
+   "veto": 0,
+   "starts": [
+    "حالات",
+    "حالات"
+   ]
+  },
+  {
+   "key": "3.2.4#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.2.4#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 4,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.2.5#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "3.2.6#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "4.1.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "4.1.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "4.1.1#3",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 3,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "أدى",
+    "أدى",
+    "الطلبة",
+    "لسلوك",
+    "متابعة"
+   ]
+  },
+  {
+   "key": "4.1.1#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "تُطبق",
+    "تُطبق",
+    "تُطبق",
+    "تُطبق",
+    "تُطبق"
+   ]
+  },
+  {
+   "key": "4.1.1#4",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "تم",
+    "تم",
+    "تم",
+    "تم",
+    "تم"
+   ]
+  },
+  {
+   "key": "4.1.1#5",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "والإجراءات",
+    "الخاصة",
+    "الخاصة",
+    "السياسات",
+    "الخاصة"
+   ]
+  },
+  {
+   "key": "4.1.3#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "محدودة",
+    "لمعالجة",
+    "مناسبة",
+    "وحلول",
+    "إجـراءات"
+   ]
+  },
+  {
+   "key": "4.1.4#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "4.1.4#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 1,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 1,
+   "starts": [
+    "تحقيق",
+    "بشكل",
+    "بشكل",
+    "وتنظيم",
+    "فعاليات"
+   ]
+  },
+  {
+   "key": "4.1.5#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "تقوم",
+    "تقوم",
+    "تقوم",
+    "تقوم",
+    "تقوم"
+   ]
+  },
+  {
+   "key": "4.1.5#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 3,
+   "demand": 1,
+   "contStart": 3,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "أو",
+    "أو",
+    "الدعم",
+    "الدعم",
+    "إلى"
+   ]
+  },
+  {
+   "key": "4.1.5#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "4.1.6#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 3,
+   "prevFilled": 5,
+   "open": 3,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 3,
+   "veto": 0,
+   "starts": [
+    "وإحالة",
+    "إحالة",
+    "أدوات"
+   ]
+  },
+  {
+   "key": "4.1.6#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "4.1.6#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "4.1.6#3",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 2,
+   "prevFilled": 5,
+   "open": 2,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "لا",
+    "تعليمية"
+   ]
+  },
+  {
+   "key": "4.2.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "تقوم",
+    "تقوم",
+    "تقوم",
+    "تقوم"
+   ]
+  },
+  {
+   "key": "4.2.1#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 1,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 4,
+   "veto": 0,
+   "starts": [
+    "تعزيز",
+    "القطري",
+    "إيجابية",
+    "ومؤسسات"
+   ]
+  },
+  {
+   "key": "4.2.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "تقوم",
+    "تقوم",
+    "تقوم",
+    "تقوم",
+    "تقوم"
+   ]
+  },
+  {
+   "key": "4.2.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 1,
+   "nonOpeners": 4,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "تُخصص",
+    "تُخصص",
+    "تُخصص",
+    "تُخصص"
+   ]
+  },
+  {
+   "key": "4.2.2#2",
+   "decision": "wrap",
+   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (5/5)",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "الصلاة",
+    "الطلبة",
+    "المسلمين",
+    "المسلمين",
+    "بالمشاركة"
+   ]
+  },
+  {
+   "key": "4.2.2#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 3,
+   "nonOpeners": 2,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "بيئة",
+    "بيئة"
+   ]
+  },
+  {
+   "key": "4.2.2#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "4.2.2#4",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 2 من 5",
+   "pageStart": false,
+   "filled": 2,
+   "prevFilled": 5,
+   "open": 2,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 2,
+   "veto": 0,
+   "starts": [
+    "القطري",
+    "بشكل"
+   ]
+  },
+  {
+   "key": "4.2.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "قلة",
+    "بعض",
+    "معظم",
+    "الغالبية",
+    "جميع"
+   ]
+  },
+  {
+   "key": "5.1.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتناسب",
+    "يتناسب",
+    "يتناسب",
+    "يتناسب",
+    "يتناسب"
+   ]
+  },
+  {
+   "key": "5.1.1#2",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 3,
+   "prevFilled": 5,
+   "open": 3,
+   "demand": 2,
+   "contStart": 1,
+   "openers": 1,
+   "nonOpeners": 2,
+   "veto": 0,
+   "starts": [
+    "لا",
+    "أو",
+    "تعليمية"
+   ]
+  },
+  {
+   "key": "5.1.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 4,
+   "starts": [
+    "قلة",
+    "بعض",
+    "معظم",
+    "الغالبية",
+    "جميع"
+   ]
+  },
+  {
+   "key": "5.1.2#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "البرامج"
+   ]
+  },
+  {
+   "key": "5.1.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.1.3#1",
+   "decision": "wrap",
+   "evidence": "فاصل صفحة في الوثيقة",
+   "pageStart": true,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 2,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "أو",
+    "أدائهم،",
+    "يتماشى",
+    "يتماشى",
+    "أدائهم،"
+   ]
+  },
+  {
+   "key": "5.1.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يشارك",
+    "يشارك",
+    "يشارك",
+    "يشارك",
+    "يشارك"
+   ]
+  },
+  {
+   "key": "5.1.3#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "تُتابع",
+    "تُتابع",
+    "تُتابع",
+    "تُتابع",
+    "تُتابع"
+   ]
+  },
+  {
+   "key": "5.1.3#3",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 2,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 4,
+   "veto": 0,
+   "starts": [
+    "الخطط",
+    "تُتابع",
+    "الفعال",
+    "يضمن"
+   ]
+  },
+  {
+   "key": "5.2.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "قلة",
+    "بعض",
+    "معظم",
+    "الغالبية",
+    "جميع"
+   ]
+  },
+  {
+   "key": "5.2.1#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 4,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "والمرافق",
+    "والمرافق",
+    "والمرافق",
+    "الدراسية",
+    "والمرافق"
+   ]
+  },
+  {
+   "key": "5.2.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "الإضاءة",
+    "الإضاءة",
+    "الإضاءة",
+    "الإضاءة",
+    "الإضاءة"
+   ]
+  },
+  {
+   "key": "5.2.1#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "يتناسب",
+    "يتناسب",
+    "يتناسب",
+    "يتناسب"
+   ]
+  },
+  {
+   "key": "5.2.1#4",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "تكييف",
+    "تكييف",
+    "تكييف",
+    "تكييف",
+    "تكييف"
+   ]
+  },
+  {
+   "key": "5.2.1#5",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "تعلمهم",
+    "وتطورهم",
+    "مدرسية",
+    "مدرسية",
+    "تعلمهم،"
+   ]
+  },
+  {
+   "key": "5.2.1#5",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.2.2#1",
+   "decision": "wrap",
+   "evidence": "أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (2/3)",
+   "pageStart": false,
+   "filled": 3,
+   "prevFilled": 5,
+   "open": 3,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 1,
+   "nonOpeners": 2,
+   "veto": 0,
+   "starts": [
+    "والأثاث",
+    "يتناسب",
+    "تدعم"
+   ]
+  },
+  {
+   "key": "5.2.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 5,
+   "starts": [
+    "يتوفر",
+    "يتوفر",
+    "يتوفر",
+    "يتوفر",
+    "يتوفر"
+   ]
+  },
+  {
+   "key": "5.2.2#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "والمعلمين"
+   ]
+  },
+  {
+   "key": "5.2.3#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.2.3#2",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 2,
+   "prevFilled": 5,
+   "open": 2,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 2,
+   "veto": 0,
+   "starts": [
+    "السلامة",
+    "وأدوات"
+   ]
+  },
+  {
+   "key": "5.2.5#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 1,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "أو",
+    "تجهيزها",
+    "الطلبة",
+    "الطلبة",
+    "ممارسة"
+   ]
+  },
+  {
+   "key": "5.2.5#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 4,
+   "starts": [
+    "توفير",
+    "توفير",
+    "توفير",
+    "توفير",
+    "توفير"
+   ]
+  },
+  {
+   "key": "5.2.6#1",
+   "decision": "wrap",
+   "evidence": "فاصل صفحة في الوثيقة",
+   "pageStart": true,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "الطلبة",
+    "الطلبة",
+    "الطلبة",
+    "الطلبة",
+    "الطلبة"
+   ]
+  },
+  {
+   "key": "5.2.6#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.2.7#1",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 2,
+   "contStart": 1,
+   "openers": 2,
+   "nonOpeners": 3,
+   "veto": 0,
+   "starts": [
+    "لا",
+    "توفر",
+    "تعلم",
+    "تعلم",
+    "ويسهم"
+   ]
+  },
+  {
+   "key": "5.2.8#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "مؤهلين،"
+   ]
+  },
+  {
+   "key": "5.3.1#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.1#2",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 1,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 1,
+   "starts": [
+    "أثر",
+    "صيناتها",
+    "صيناتها",
+    "الوصول",
+    "صيناتها"
+   ]
+  },
+  {
+   "key": "5.3.1#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.1#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.1#4",
+   "decision": "wrap",
+   "evidence": "السابق ينتهي بحرف جرّ أو عطف",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 2,
+   "contStart": 3,
+   "openers": 2,
+   "nonOpeners": 3,
+   "veto": 0,
+   "starts": [
+    "قلة",
+    "بعض",
+    "والموظفين",
+    "والموظفين",
+    "والموظفين"
+   ]
+  },
+  {
+   "key": "5.3.1#4",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.1#5",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.1#6",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 1,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 1,
+   "starts": [
+    "إن",
+    "إن",
+    "الطلبة",
+    "الطلبة",
+    "أثناء"
+   ]
+  },
+  {
+   "key": "5.3.2#1",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "يتناسب",
+    "يتناسب",
+    "يتناسب",
+    "يتناسب"
+   ]
+  },
+  {
+   "key": "5.3.2#2",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.2#3",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 4,
+   "prevFilled": 5,
+   "open": 4,
+   "demand": 3,
+   "contStart": 2,
+   "openers": 0,
+   "nonOpeners": 4,
+   "veto": 0,
+   "starts": [
+    "المرضية",
+    "خلال",
+    "المعنية",
+    "خلال"
+   ]
+  },
+  {
+   "key": "5.3.2#3",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.2#4",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.2#5",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 1,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "والملائم"
+   ]
+  },
+  {
+   "key": "5.3.2#5",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.2#6",
+   "decision": "split",
+   "evidence": null,
+   "pageStart": false,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 0,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 5,
+   "nonOpeners": 0,
+   "veto": 5,
+   "starts": [
+    "لا",
+    "يتم",
+    "يتم",
+    "يتم",
+    "يتم"
+   ]
+  },
+  {
+   "key": "5.3.3#1",
+   "decision": "wrap",
+   "evidence": "فاصل صفحة في الوثيقة",
+   "pageStart": true,
+   "filled": 5,
+   "prevFilled": 5,
+   "open": 5,
+   "demand": 0,
+   "contStart": 4,
+   "openers": 0,
+   "nonOpeners": 5,
+   "veto": 0,
+   "starts": [
+    "والمرافق",
+    "والمرافق",
+    "والمرافق",
+    "العظمى",
+    "والمرافق"
+   ]
+  },
+  {
+   "key": "5.3.4#1",
+   "decision": "wrap",
+   "evidence": "شظيّة: لا مستوى يفتح وصفاً، وتملأ 1 من 5",
+   "pageStart": false,
+   "filled": 1,
+   "prevFilled": 5,
+   "open": 1,
+   "demand": 0,
+   "contStart": 0,
+   "openers": 0,
+   "nonOpeners": 1,
+   "veto": 0,
+   "starts": [
+    "مدرسية"
+   ]
+  }
+ ]
 }

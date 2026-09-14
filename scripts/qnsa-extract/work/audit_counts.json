@@ -1,0 +1,384 @@
+{
+ "source": "جدول المؤشرات والأوصاف بعد التدقيق اليدوي.docx",
+ "audited": "2026-09-14",
+ "note": "عدد المؤشرات والأوصاف لكل معيار فرعي كما دقّقه المستخدم يدوياً مقابل الوثيقة — مرجع verify.mjs",
+ "counts": {
+  "1.1.1": {
+   "descriptors": 3,
+   "indicators": 5,
+   "corrected": []
+  },
+  "3.1.4": {
+   "descriptors": 2,
+   "indicators": 4,
+   "corrected": [
+    "descriptors"
+   ]
+  },
+  "1.1.2": {
+   "descriptors": 3,
+   "indicators": 3,
+   "corrected": [
+    "indicators"
+   ]
+  },
+  "3.1.5": {
+   "descriptors": 1,
+   "indicators": 4,
+   "corrected": [
+    "descriptors"
+   ]
+  },
+  "1.1.3": {
+   "descriptors": 2,
+   "indicators": 3,
+   "corrected": []
+  },
+  "3.1.6": {
+   "descriptors": 4,
+   "indicators": 2,
+   "corrected": []
+  },
+  "1.2.1": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "3.1.7": {
+   "descriptors": 5,
+   "indicators": 5,
+   "corrected": []
+  },
+  "1.2.2": {
+   "descriptors": 2,
+   "indicators": 3,
+   "corrected": []
+  },
+  "3.1.8": {
+   "descriptors": 5,
+   "indicators": 4,
+   "corrected": []
+  },
+  "1.2.3": {
+   "descriptors": 4,
+   "indicators": 4,
+   "corrected": []
+  },
+  "3.2.1": {
+   "descriptors": 2,
+   "indicators": 4,
+   "corrected": []
+  },
+  "1.2.4": {
+   "descriptors": 4,
+   "indicators": 6,
+   "corrected": []
+  },
+  "3.2.2": {
+   "descriptors": 2,
+   "indicators": 2,
+   "corrected": []
+  },
+  "1.3.1": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "3.2.3": {
+   "descriptors": 3,
+   "indicators": 5,
+   "corrected": []
+  },
+  "1.3.2": {
+   "descriptors": 2,
+   "indicators": 2,
+   "corrected": []
+  },
+  "3.2.4": {
+   "descriptors": 3,
+   "indicators": 4,
+   "corrected": []
+  },
+  "1.3.3": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "3.2.5": {
+   "descriptors": 2,
+   "indicators": 5,
+   "corrected": []
+  },
+  "1.3.4": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "3.2.6": {
+   "descriptors": 2,
+   "indicators": 3,
+   "corrected": []
+  },
+  "1.4.1": {
+   "descriptors": 4,
+   "indicators": 5,
+   "corrected": []
+  },
+  "4.1.1": {
+   "descriptors": 5,
+   "indicators": 8,
+   "corrected": []
+  },
+  "1.4.2": {
+   "descriptors": 2,
+   "indicators": 2,
+   "corrected": []
+  },
+  "4.1.2": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "1.4.3": {
+   "descriptors": 2,
+   "indicators": 2,
+   "corrected": []
+  },
+  "4.1.3": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "1.5.1": {
+   "descriptors": 4,
+   "indicators": 5,
+   "corrected": []
+  },
+  "4.1.4": {
+   "descriptors": 2,
+   "indicators": 3,
+   "corrected": []
+  },
+  "1.5.2": {
+   "descriptors": 4,
+   "indicators": 3,
+   "corrected": []
+  },
+  "4.1.5": {
+   "descriptors": 3,
+   "indicators": 6,
+   "corrected": []
+  },
+  "1.5.3": {
+   "descriptors": 5,
+   "indicators": 5,
+   "corrected": []
+  },
+  "4.1.6": {
+   "descriptors": 3,
+   "indicators": 6,
+   "corrected": []
+  },
+  "1.5.4": {
+   "descriptors": 2,
+   "indicators": 3,
+   "corrected": []
+  },
+  "4.2.1": {
+   "descriptors": 3,
+   "indicators": 5,
+   "corrected": []
+  },
+  "2.1.1": {
+   "descriptors": 3,
+   "indicators": 6,
+   "corrected": []
+  },
+  "4.2.2": {
+   "descriptors": 4,
+   "indicators": 5,
+   "corrected": []
+  },
+  "2.1.2": {
+   "descriptors": 2,
+   "indicators": 4,
+   "corrected": []
+  },
+  "4.2.3": {
+   "descriptors": 2,
+   "indicators": 3,
+   "corrected": []
+  },
+  "2.1.3": {
+   "descriptors": 1,
+   "indicators": 3,
+   "corrected": []
+  },
+  "4.2.4": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "2.1.4": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "5.1.1": {
+   "descriptors": 3,
+   "indicators": 4,
+   "corrected": []
+  },
+  "2.2.1": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": []
+  },
+  "5.1.2": {
+   "descriptors": 2,
+   "indicators": 2,
+   "corrected": []
+  },
+  "2.2.2": {
+   "descriptors": 1,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.1.3": {
+   "descriptors": 3,
+   "indicators": 4,
+   "corrected": []
+  },
+  "2.2.3": {
+   "descriptors": 1,
+   "indicators": 2,
+   "corrected": [
+    "indicators"
+   ]
+  },
+  "5.2.1": {
+   "descriptors": 6,
+   "indicators": 9,
+   "corrected": []
+  },
+  "2.2.4": {
+   "descriptors": 1,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.2.2": {
+   "descriptors": 2,
+   "indicators": 6,
+   "corrected": []
+  },
+  "2.2.5": {
+   "descriptors": 1,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.2.3": {
+   "descriptors": 2,
+   "indicators": 8,
+   "corrected": []
+  },
+  "2.2.6": {
+   "descriptors": 2,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.2.4": {
+   "descriptors": 1,
+   "indicators": 5,
+   "corrected": []
+  },
+  "2.2.7": {
+   "descriptors": 2,
+   "indicators": 4,
+   "corrected": []
+  },
+  "5.2.5": {
+   "descriptors": 2,
+   "indicators": 5,
+   "corrected": []
+  },
+  "2.2.8": {
+   "descriptors": 1,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.2.6": {
+   "descriptors": 2,
+   "indicators": 4,
+   "corrected": []
+  },
+  "2.2.9": {
+   "descriptors": 1,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.2.7": {
+   "descriptors": 1,
+   "indicators": 3,
+   "corrected": []
+  },
+  "2.3.1": {
+   "descriptors": 3,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.2.8": {
+   "descriptors": 1,
+   "indicators": 4,
+   "corrected": []
+  },
+  "2.3.2": {
+   "descriptors": 3,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.3.1": {
+   "descriptors": 6,
+   "indicators": 8,
+   "corrected": []
+  },
+  "2.3.3": {
+   "descriptors": 3,
+   "indicators": 3,
+   "corrected": []
+  },
+  "5.3.2": {
+   "descriptors": 7,
+   "indicators": 10,
+   "corrected": [
+    "descriptors"
+   ]
+  },
+  "3.1.1": {
+   "descriptors": 2,
+   "indicators": 4,
+   "corrected": []
+  },
+  "5.3.3": {
+   "descriptors": 1,
+   "indicators": 4,
+   "corrected": []
+  },
+  "3.1.2": {
+   "descriptors": 3,
+   "indicators": 4,
+   "corrected": [
+    "indicators"
+   ]
+  },
+  "5.3.4": {
+   "descriptors": 1,
+   "indicators": 4,
+   "corrected": []
+  },
+  "3.1.3": {
+   "descriptors": 2,
+   "indicators": 2,
+   "corrected": []
+  }
+ }
+}

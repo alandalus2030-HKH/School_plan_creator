@@ -66,12 +66,16 @@ for (const s of c.subs) {
   s.indicators.forEach((ind, i) => nodes.push({ code: `${s.code}.${i + 1}`, lvl: 'مؤشر', text: ind }))
 }
 
+/* تعديلات نصّية مسجَّلة بقرار (wrap-dedupe) — تُقبَل كما يُقبَل 3.1.8 */
+const tep = path.join(SP, 'text_edits.json')
+const edited = new Set(fs.existsSync(tep) ? JSON.parse(fs.readFileSync(tep, 'utf8')).map(e => e.text) : [])
+nodes.forEach(n => { if (edited.has(n.text)) { n.decided = true; n.edit = true } })
 const miss = nodes.filter(n => !found(n.text))
 console.log('عقد مفحوصة:', nodes.length,
             '· مطابِقة حرفياً:', nodes.length - miss.length,
             '· غير مطابِقة:', miss.length)
 for (const n of miss) {
-  console.log('  ✗', n.code, '(' + n.lvl + ')', n.decided ? '— نصّ معتمد بقرار المستخدم' : '')
+  console.log('  ✗', n.code, '(' + n.lvl + ')', n.edit ? '— وصلٌ بحذف كلمة مكرّرة عند حدّ الصفحة (قرار)' : n.decided ? '— نصّ معتمد بقرار المستخدم' : '')
   console.log('     ' + n.text.slice(0, 120))
 }
 process.exitCode = miss.filter(n => !n.decided).length ? 1 : 0
@@ -114,4 +118,25 @@ if (fs.existsSync(rp)) {
     console.log('     ' + c.text.slice(0, 110))
   })
   if (bad.length) process.exitCode = 1
+}
+
+/* ── المرجع البشريّ: عدد المؤشرات والأوصاف لكل معيار فرعي ────────────
+   دقّقه المستخدم يدوياً مقابل الوثيقة (work/audit_counts.json). المطابقة
+   الحرفية تُثبت أن النصّ من الوثيقة، لا أن تقسيمه صحيح — وهذا يُثبت التقسيم. */
+const ap = path.join(SP, 'audit_counts.json')
+if (fs.existsSync(ap)) {
+  const audit = JSON.parse(fs.readFileSync(ap, 'utf8'))
+  const rubP = path.join(SP, 'rubric.json')
+  const rubG = fs.existsSync(rubP) ? new Map(JSON.parse(fs.readFileSync(rubP, 'utf8')).groups.map(g => [g.code, g.rows.length])) : new Map()
+  const indN = new Map(c.subs.map(s => [s.code, s.indicators.length]))
+  const off = []
+  for (const [code, want] of Object.entries(audit.counts)) {
+    if (indN.get(code) !== want.indicators) off.push(`${code} مؤشرات: ${indN.get(code)} ≠ ${want.indicators}`)
+    if (rubG.size && rubG.get(code) !== want.descriptors) off.push(`${code} أوصاف: ${rubG.get(code)} ≠ ${want.descriptors}`)
+  }
+  console.log('')
+  console.log('المرجع البشريّ (' + audit.audited + ') — معايير فرعية:', Object.keys(audit.counts).length,
+              '· اختلافات:', off.length)
+  off.forEach(o => console.log('  ✗', o))
+  if (off.length) process.exitCode = 1
 }

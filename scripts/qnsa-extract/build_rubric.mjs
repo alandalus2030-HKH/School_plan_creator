@@ -21,8 +21,10 @@
    4. صفوف الرأس وعناوين الجوانب تتكرّر داخل الجدول عند حدود الصفحات.
    5. الوصف الواحد يُقطَّع على صفّين أو ثلاثة → يُوصَل بشاهد موجَب فقط:
       فاصل صفحة مسجَّل في الوثيقة، أو السابق ينتهي بحرف جرّ/عطف، أو أغلب
-      مستويات الصفّ لا تبدأ بكلمة تفتح وصفاً. ولا يُوصَل لمجرّد غياب نقطة.
+      مستويات الصفّ لا تبدأ بكلمة تفتح وصفاً، أو بصمة الشظيّة (لا مستوى يفتح
+      وصفاً + ابتداءٌ بواو/أو/حرف جرّ أو صفٌّ شحيح). ولا يُوصَل لمجرّد غياب نقطة.
       وRUBRIC_JUNCTION يستثني أيّ موضع بـ'wrap' أو 'split' عند الحاجة.
+   6. المرجع البشريّ: work/audit_counts.json — verify.mjs يُخفق إن اختلف أيّ عدد.
    ══════════════════════════════════════════════════════════════════ */
 import fs from 'fs'
 import path from 'path'
@@ -192,7 +194,7 @@ const demandsMore = t => {
   return DEMANDING.has(lastWord(s).replace(/[«»")]/g, ''))
 }
 
-const merged = [], votes = []
+const merged = [], votes = [], trace = []
 for (const g of groups) {
   const out = []
   for (const row of g.rows) {
@@ -229,8 +231,17 @@ for (const g of groups) {
           - السابق ينتهي بحرف جرّ/عطف/فاصلة، أو
           - لا يبدأ أيُّ مستوى من هذا الصفّ بكلمة تفتح وصفاً.
        وما خلا ذلك: وصفٌ جديد. فالوصل لا يحدث إلا بشاهد، لا بغياب نقطة. */
+    const filledN = [1, 2, 3, 4, 5].filter(n => row[n]).length
+    const prevFilledN = prev ? [1, 2, 3, 4, 5].filter(n => prev[n]).length : 0
     const evidence = !prev ? null
       : row.pageStart ? 'فاصل صفحة في الوثيقة'
+      /* بصمة الشظيّة (تدقيق المستخدم 2026-09-14 — 3.1.4 و3.1.5 و5.3.2): لا
+         مستوى يبدأ بكلمة تفتح وصفاً، ومعها إمّا ابتداءٌ بواو/أو/حرف جرّ، وإمّا
+         صفٌّ شحيح يملأ مستويين أو ثلاثة أقلّ من سابقه. هذا الشاهد لا يلتفت
+         إلى نقطة السابق — فالشظايا الأربع الفائتة كان سابقها كلّه منتهياً بنقطة. */
+      : openers.length === 0 && (contStart.length > 0 || filledN <= prevFilledN - 2)
+        ? (contStart.length ? 'شظيّة: لا مستوى يفتح وصفاً، وتبدأ بواو/أو/حرف جرّ'
+                            : `شظيّة: لا مستوى يفتح وصفاً، وتملأ ${filledN} من ${prevFilledN}`)
       : open.length === 0 ? null
       /* يُوازَن النقض بالمستويات التي تطلب التكملة: إن كانت المستويات
          الناقضة أكثرَ أو مثلَها فهو وصف جديد، وإلا فالنقض ضجيجُ ترقيم. */
@@ -240,6 +251,12 @@ for (const g of groups) {
         ? `أغلب المستويات لا تبدأ بكلمة تفتح وصفاً (${nonOpeners.length}/${nonOpeners.length + openers.length})`
         : null
     const decision = RUBRIC_JUNCTION[key] || (evidence ? 'wrap' : 'split')
+    /* أثرُ كل قرار بشواهده — للتشخيص والمراجعة */
+    if (prev) trace.push({ key, decision, evidence, pageStart: row.pageStart,
+      filled: [1,2,3,4,5].filter(n => row[n]).length, prevFilled: [1,2,3,4,5].filter(n => prev[n]).length,
+      open: open.length, demand: demand.length, contStart: contStart.length,
+      openers: openers.length, nonOpeners: nonOpeners.length, veto: veto.length,
+      starts: [1,2,3,4,5].filter(n => row[n]).map(n => firstWord(row[n])) })
 
     /* يُرفع للمراجعة كل وصلٍ شاهده ضعيف، وكل فصلٍ ترك السابق مقطوعاً */
     if (prev && decision === 'wrap' && !row.pageStart && !demand.length) {
@@ -316,7 +333,7 @@ const missing = catalog.subs.map(s => s.code).filter(c => !byCode.has(c))
 fs.writeFileSync(path.join(SP, 'rubric.json'),
   JSON.stringify({ levels: LEVEL_NAMES, layouts, groups: [...byCode.values()] }, null, 1), 'utf8')
 fs.writeFileSync(path.join(SP, 'rubric_flags.json'),
-  JSON.stringify({ merged, votes, notes, report, integrity }, null, 1), 'utf8')
+  JSON.stringify({ merged, votes, notes, report, integrity, trace }, null, 1), 'utf8')
 
 /* ── (4) تقرير ───────────────────────────────────────────────────── */
 const totalRows = [...byCode.values()].reduce((n, g) => n + g.rows.length, 0)

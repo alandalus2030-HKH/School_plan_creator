@@ -5,6 +5,9 @@ const DIR = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(DIR, '../..')                      // جذر المستودع
 const SP = process.env.QNSA_WORK || path.join(DIR, 'work')   // مجلّد الوسائط
 const c = JSON.parse(fs.readFileSync(SP + '/catalog.json', 'utf8'))
+const merges = JSON.parse(fs.readFileSync(SP + '/merges.json', 'utf8'))
+const splitCount = JSON.parse(fs.readFileSync(SP + '/flags.json', 'utf8'))
+  .filter(f => f.kind.startsWith('حدّ صفحة') && f.decided).length
 const q = s => s === null || s === undefined || s === '' ? 'NULL' : "'" + String(s).replace(/'/g, "''") + "'"
 const numOf = code => parseInt(code.split('.').pop(), 10) || 0
 
@@ -26,16 +29,20 @@ const sql = `-- ═════════════════════�
 -- المرحلة 4 · الأسبوع 1 · اليوم 2.
 -- المصدر: «دليل الاعتماد نهائي.docx» — استُخرج آلياً من جداول الوثيقة
 --   (جدول الملخّص للمستويات 1-3، وجداول «مؤشرات الأداء» لكل جانب للمستوى 4)
---   ثم دُقِّق آلياً: 376 من 377 عقدة نصّها مطابق حرفياً لجداول الوثيقة
---   (scripts/qnsa-extract/verify.mjs). الاستثناء الوحيد 3.1.8 بصياغة معتمدة بقرار.
+--   ثم دُقِّق آلياً (scripts/qnsa-extract/verify.mjs) بثلاثة فحوص:
+--     · المطابقة الحرفية: نصّ كل عقدة يرد في جداول الوثيقة، إلا تعديلين بقرار
+--       صريح — صياغة 3.1.8، ووصل 3.1.2 بحذف كلمة كُرِّرت عند حدّ الصفحة.
+--     · التغطية: نصّ عمود المؤشرات كلّه في الكتالوج (المفقود عناوين وتكرار حدّ).
+--     · المرجع البشريّ: عدد المؤشرات لكل معيار فرعي يطابق تدقيق المستخدم اليدويّ
+--       (2026-09-14) في المعايير الفرعية الـ73 كلّها.
 --
 -- التوليد: node scripts/qnsa-extract/{build_catalog,gen_sql}.mjs — لا تحرّر هذا
 --   الملف يدوياً؛ حرّر السكربت وأعد التوليد.
 --
--- حدود الصفحات (قرار 2026-09-12): تسعة مواضع انقطع فيها نصّ مؤشر بين خليّتين عبر
---   فاصل صفحة. وُصِلت 8 في مؤشر واحد (الشقّ الثاني يبدأ بكلمة لا تصحّ بداية جملة،
---   وأكّد التحقّق اتصال النصّ في مجرى العمود)، وبقي 5.1.2 منفصلاً (جملة مستقلّة).
---   التفصيل في خريطة JUNCTION داخل build_catalog.mjs وفي docs/QNSA_CATALOG_REVIEW.md.
+-- حدود الصفحات: ${merges.length + splitCount} موضعاً انقطع فيها نصّ مؤشر بين خليّتين —
+--   وُصِل ${merges.length} في مؤشر واحد وبقي ${splitCount} منفصلاً، كلٌّ بقرار مسجَّل في خريطة
+--   JUNCTION داخل build_catalog.mjs. وبندٌ سقطت علامة تعداده (1.1.2) فُصِل عن سابقه.
+--   التفصيل في docs/QNSA_CATALOG_REVIEW.md.
 --
 -- المحتوى:  5 معايير رئيسة · 15 جانباً · 73 معياراً فرعياً · ${c.subs.reduce((n, s) => n + s.indicators.length, 0)} مؤشر أداء
 --   + «البيانات التوضيحية» و«أسئلة التأمل الذاتي» لكل معيار فرعي (نصّ الوثيقة حرفياً).

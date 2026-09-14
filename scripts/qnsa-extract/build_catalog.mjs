@@ -88,10 +88,41 @@ const splitCell = cell => {
   for (const re of STRONG) { const n = (cell.match(re) || []).length; if (n > bestN) { bestN = n; best = re } }
   if (!best && (cell.match(DASH) || []).length) best = DASH
   if (!best) return [cell.replace(/\s+/g, ' ').trim()].filter(Boolean)
-  return cell.split(best).map(x => x.replace(/\s+/g, ' ').trim()).filter(x => x.length > 3)
+  const parts = cell.split(best)
+  /* بندٌ سقطت علامته (1.1.2: «الوضع المالي للمدرسة…» سطرٌ بلا «*» في خليّة
+     معلَّمة): داخل البند المعلَّم، سطرٌ جديد بعد جملة تامّة ولا يبدأ كتكملة
+     = بندٌ مستقلّ. والجزء الأوّل قبل أيّ علامة يُترك سليماً — فهو تكملة
+     خليّةٍ سابقة. */
+  const out = []
+  parts.forEach((p, k) => {
+    const lines = p.split('\n').map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean)
+    if (k === 0 || lines.length < 2) { out.push(lines.join(' ')); return }
+    let curItem = lines[0]
+    for (const line of lines.slice(1)) {
+      if (/[.؟!]\s*$/.test(curItem) && !startsAsCont(line)) { out.push(curItem); curItem = line }
+      else curItem += ' ' + line
+    }
+    out.push(curItem)
+  })
+  return out.map(x => x.trim()).filter(x => x.length > 3)
+}
+
+/* يبدأ كتكملة: واوٌ زائدة أو حرفٌ لا يُفتتح به بند */
+const PARTICLES = new Set(['من', 'إلى', 'على', 'في', 'عن', 'مع', 'أو', 'مما', 'حيث', 'بما',
+  'لكن', 'إلا', 'كما', 'التي', 'الذي', 'ثم', 'بين', 'لدى', 'ضمن', 'خلال', 'عبر', 'حسب'])
+const firstWordOf = t => String(t).trim().replace(/^[«"(/]+/, '').split(/\s+/)[0] || ''
+const startsAsCont = t => {
+  const w = firstWordOf(t)
+  return PARTICLES.has(w) || /^و/.test(w)
+}
+/* تكرار كلمة عند حدّ الصفحة: «…ومهارات الطلبة.» ثم «الطلبة، وتحليل…» */
+const bare = w => w.replace(/[.،,؛:؟!()«»"]/g, '')
+const dupBoundary = (prev, next) => {
+  const pw = String(prev).trim().split(/\s+/).pop() || ''
+  return bare(pw) !== '' && bare(pw) === bare(firstWordOf(next))
 }
 /* ══ (3.1) حدود الصفحات: قرار الوصل لكل موضع ══
-   تسعة مواضع انقطع فيها نصّ «مؤشرات الأداء» بين خليّتين عبر فاصل صفحة.
+   مواضع انقطع فيها نصّ «مؤشرات الأداء» بين خليّتين عبر فاصل صفحة.
    المفتاح: «الكود@فهرس البند الذي يبدأ بعد الفاصل».
    wrap = البندان جملة واحدة مقطوعة → تُوصَل.
    split = البند التالي جملة مستقلّة → يبقيان منفصلين.
@@ -107,9 +138,14 @@ const JUNCTION = {
   '5.2.1@7': 'wrap',   // …بيئة مدرسية ‖ تدعم تعلمهم وتطورهم (إن وجد).
   '5.2.2@5': 'wrap',   // …تسهل وصول ‖ الطلبة والمعلمين إلى الموارد…
   '5.3.2@6': 'wrap',   // …مع اتخاذ ‖ الإجراءات الوقائية اللازمة…
+  /* تدقيق المستخدم اليدوي (2026-09-14): موضعان انتهى شقّهما الأوّل بنقطة
+     شاردة، ففاتا كاشفَ «السابق بلا نقطة» */
+  '2.2.3@2': 'wrap',         // …إلى العليا). ‖ وفق خصائص واحتياجات كل مرحلة عمرية…
+  '3.1.2@2': 'wrap-dedupe',  // …ومهارات الطلبة. ‖ الطلبة، وتحليل نتائجها… (كلمة مكرّرة عند الحدّ)
 }
 const flags = []
 const merges = []
+const textEdits = []   // تعديلات على النصّ الحرفيّ بقرار (wrap-dedupe)
 /* قياس التغطية: كم من نصّ عمود «مؤشرات الأداء» الخام نجا إلى المؤشرات النهائية؟
    يكشف ما يُفقَد في التفكيك والترشيح — مقياس اكتمال لا مطابقة. */
 const stripAll = s => String(s).replace(/[\s•*▪◦\-–]/g, '')
@@ -121,17 +157,29 @@ for (const s of subs.values()) {
     const parts = splitCell(cell)
     if (!parts.length) continue
     const prev = items[items.length - 1]
-    /* حدّ خلية: إن لم ينتهِ البند السابق بعلامة نهاية جملة فقد تكون الجملة
-       مقطوعة عبر صفحة. لا نصل بالتخمين — الوصل يحدث فقط بقرار مسجَّل
-       في JUNCTION أعلاه؛ وما لا قرار له يُرفع للمراجعة البشرية. */
-    if (prev && !/[.؟!]\s*$/.test(prev)) {
+    /* حدّ خلية = موضع وصلٍ محتمل إذا: لم ينتهِ السابق بعلامة جملة، أو بدأ
+       التالي كتكملة (واو · حرف جرّ)، أو تكرّرت الكلمة عند الحدّ. فالنقطة
+       وحدها لا تنفي الانقطاع — 2.2.3 و3.1.2 انتهى شقّهما الأوّل بنقطة.
+       ولا نصل بالتخمين: الوصل بقرار مسجَّل في JUNCTION، وما لا قرار له يُرفع. */
+    if (prev && (!/[.؟!]\s*$/.test(prev) || startsAsCont(parts[0]) || dupBoundary(prev, parts[0]))) {
       const key = s.code + '@' + items.length
       const decision = JUNCTION[key]
-      if (decision === 'wrap') {
+      if (decision === 'wrap' || decision === 'wrap-dedupe') {
+        const rawHead = parts.shift()
+        let head = rawHead, tail = prev
+        if (decision === 'wrap-dedupe') {
+          /* تُحذف الكلمة المكرّرة وعلامة الجملة الشاردة قبلها — تعديلٌ على
+             النصّ الحرفيّ، فيُسجَّل في textEdits ليعرفه التحقّق والتقرير */
+          tail = prev.replace(/[.؟!]\s*$/, '')
+          head = rawHead.replace(/^[^\s،,؛:.]+\s*/, '')   // الكلمة وحدها — تبقى «،» بعدها
+        }
         /* «/» و«،» و«)» تلتصق بما قبلها؛ غير ذلك تفصله مسافة واحدة */
-        const glue = /^[/،)]/.test(parts[0]) ? '' : ' '
-        items[items.length - 1] = prev + glue + parts.shift()
+        const glue = /^[/،)]/.test(head) ? '' : ' '
+        items[items.length - 1] = tail + glue + head
         merges.push({ key, text: items[items.length - 1] })
+        if (decision === 'wrap-dedupe')
+          textEdits.push({ key, text: items[items.length - 1],
+                           source: '…' + prev.slice(-45) + ' ‖ ' + rawHead.slice(0, 45) + '…' })
         if (!parts.length) continue
       } else {
         flags.push({ code: s.code, kind: 'حدّ صفحة — راجع الوصل', at: items.length,
@@ -186,6 +234,7 @@ unmatched.slice(0, 8).forEach(u => console.log('   ج' + u.ti, u.code, u.txt))
 console.log('تنبيهات مراجعة:', flags.length)
 fs.writeFileSync(SP + '/flags.json', JSON.stringify(flags, null, 1), 'utf8')
 fs.writeFileSync(SP + '/merges.json', JSON.stringify(merges, null, 1), 'utf8')
+fs.writeFileSync(SP + '/text_edits.json', JSON.stringify(textEdits, null, 1), 'utf8')
 console.log('مواضع وُصِلت بقرار:', merges.length)
 merges.forEach(m => console.log('   ' + m.key + ' → ' + m.text.slice(0, 110)))
 console.log('عدد المؤشرات لكل معيار رئيس:',
