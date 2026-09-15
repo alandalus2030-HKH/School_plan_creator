@@ -48,7 +48,13 @@ while ((m = re.exec(body))) {
   else if (tag === '</w:tr>')  { while (stack.length > 1 && cur().type !== 'tr') stack.pop(); if (stack.length > 1) stack.pop() }
   else if (tag.startsWith('<w:tc')) push({ type: 'tc', children: [] })
   else if (tag === '</w:tc>')  { while (stack.length > 1 && cur().type !== 'tc') stack.pop(); if (stack.length > 1) stack.pop() }
-  else if (tag.startsWith('<w:p')) pStart = body.indexOf('>', m.index) + 1
+  else if (tag.startsWith('<w:p')) {
+    /* فقرة فارغة مغلقة ذاتياً <w:p …/> لا تُتبَع بـ</w:p>. لو عُدّت فاتحةً لتخطّى
+       المحلّل كل ما بعدها حتى أوّل </w:p> — وهو ما ابتلع وسوم فتح جدول أدلة 2.1
+       كاملاً (الوسم الوحيد من نوعه في الوثيقة، قبل ذلك الجدول مباشرة). */
+    const gt = body.indexOf('>', m.index)
+    if (body[gt - 1] !== '/') pStart = gt + 1
+  }
 }
 
 /* نصّ خلية = فقراتها المباشرة (تتجاهل الجداول الداخلية) */
@@ -84,6 +90,19 @@ fs.writeFileSync(SP + '/tables.json', JSON.stringify(
 const pageBreaks = tables.map(t =>
   t.children.filter(c => c.type === 'tr').reduce((a, tr, ri) => (rowStartsPage(tr) && a.push(ri), a), []))
 fs.writeFileSync(SP + '/page_breaks.json', JSON.stringify(pageBreaks), 'utf8')
+
+/* اتجاه كل جدول: <w:bidiVisual/> في خصائصه = الخليّة الأولى في XML هي اليمنى بصرياً.
+   ترتيب tablesOf (عمقاً أوّلاً) هو ترتيب وسوم الفتح في الوثيقة، فالفهرس i يقابل
+   الوسم <w:tbl> رقم i. وعدد الوسوم يُطابَق بعدد الجداول تحقّقاً من ألّا يضيع جدول. */
+const tblOpens = [...body.matchAll(/<w:tbl>/g)].map(mm => mm.index)
+if (tblOpens.length !== tables.length)
+  throw new Error(`وسوم <w:tbl> في الوثيقة ${tblOpens.length} ≠ جداول محلَّلة ${tables.length} — جدولٌ ضاع`)
+const tablesMeta = tblOpens.map(at => {
+  const pr = body.slice(at, body.indexOf('<w:tr', at))
+  return { bidi: /<w:bidiVisual\/>/.test(pr) }
+})
+fs.writeFileSync(SP + '/tables_meta.json', JSON.stringify(tablesMeta), 'utf8')
+console.log('جداول:', tables.length, '= وسوم <w:tbl>:', tblOpens.length, '· معكوسة الاتجاه (bidiVisual):', tablesMeta.filter(t => t.bidi).length)
 console.log('صفوف تبدأ صفحةً جديدة:', pageBreaks.reduce((n, a) => n + a.length, 0))
 
 console.log('جداول:', tables.length)

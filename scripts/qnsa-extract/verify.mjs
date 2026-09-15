@@ -140,3 +140,18 @@ if (fs.existsSync(ap)) {
   off.forEach(o => console.log('  ✗', o))
   if (off.length) process.exitCode = 1
 }
+
+/* ── نماذج الأدلة والوثائق (إن وُجدت) ──────────────────────────────
+   كل دليل يجب أن يرد في الوثيقة: المفصول من سطر مشترك جزءٌ من نصّه، والموصول
+   من أسطر ملتفّة متّصلٌ في خليّته (كومة الأعمدة). */
+const ep = path.join(SP, 'evidence.json')
+if (fs.existsSync(ep)) {
+  const ev = JSON.parse(fs.readFileSync(ep, 'utf8'))
+  const items = ev.groups.flatMap(g => g.items.map((t, i) => ({ code: g.code + '#' + i, text: t })))
+  const bad = items.filter(it => !found(it.text))
+  console.log('')
+  console.log('نماذج الأدلة — أدلّة مفحوصة:', items.length, '· مطابِقة حرفياً:', items.length - bad.length,
+              '· غير مطابِقة:', bad.length)
+  bad.slice(0, 15).forEach(b => console.log('  ✗', b.code, b.text.slice(0, 100)))
+  if (bad.length) process.exitCode = 1
+}

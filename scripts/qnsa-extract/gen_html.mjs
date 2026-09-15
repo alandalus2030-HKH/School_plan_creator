@@ -15,6 +15,10 @@ const rub = fs.existsSync(rpath) ? JSON.parse(fs.readFileSync(rpath, 'utf8')) : 
 const LEVELS = rub ? rub.levels : {}
 const rubric = new Map(rub ? rub.groups.map(g => [g.code, g]) : [])
 const descTotal = rub ? rub.groups.reduce((n, g) => n + g.rows.length, 0) : 0
+/* نماذج الأدلة — اختيارية: تُدرَج إن كان build_evidence قد عمل */
+const epath = SP + '/evidence.json'
+const evidence = new Map(fs.existsSync(epath) ? JSON.parse(fs.readFileSync(epath, 'utf8')).groups.map(g => [g.code, g]) : [])
+const evTotal = [...evidence.values()].reduce((n, g) => n + g.items.length, 0)
 const phraseTotal = rub ? rub.groups.reduce((n, g) => n + g.rows.reduce((k, r) => k + [1,2,3,4,5].filter(l => r[l]).length, 0), 0) : 0
 const E = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const totalInd = c.subs.reduce((n, s) => n + s.indicators.length, 0)
@@ -31,6 +35,9 @@ for (const std of c.standards) {
   body += `<section class="std"><h2><span class="code">${std.code}</span> ${E(std.name)}</h2>`
   for (const asp of c.aspects.filter(a => a.parent === std.code)) {
     body += `<div class="asp"><h3><span class="code">${asp.code}</span> ${E(asp.name)}</h3>`
+    const ev = evidence.get(asp.code)
+    if (ev) body += `<details class="evd"><summary>نماذج الأدلة والوثائق — ${ev.items.length} دليلاً</summary>
+      <ol class="evl">${ev.items.map(t => `<li>${E(t)}</li>`).join('')}</ol></details>`
     for (const sub of c.subs.filter(s => s.parent === asp.code)) {
       const j = junction.get(sub.code)
       body += `<div class="sub" id="s${sub.code}">
@@ -113,6 +120,8 @@ const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-
   .stat b { display:block; font-size:1.5rem; color:var(--maroon); }
   .note { background:#f8fafc; border-right:4px solid var(--maroon); border-radius:8px; padding:10px 14px; font-size:.9rem; }
   details.rub summary { color:var(--maroon); font-weight:700; }
+  details.evd { margin:6px 0 10px; } details.evd summary { color:#0f766e; font-weight:700; }
+  ol.evl { margin:6px 0; padding-right:22px; font-size:.86rem; } ol.evl li { padding:2px 0; }
   .rwrap { overflow-x:auto; }
   table.rt { border-collapse:collapse; font-size:.8rem; margin:8px 0; min-width:900px; }
   table.rt th, table.rt td { border:1px solid var(--line); padding:6px 8px; vertical-align:top; width:19%; }
@@ -139,6 +148,7 @@ ${descTotal} وصفاً مقابل ${totalInd} مؤشراً.` : ''}</p>
   <div class="stat"><b>${totalInd}</b>مؤشر أداء</div>
   <div class="stat"><b>${merges.length}</b>موضع وُصِل</div>
   ${rub ? `<div class="stat"><b>${descTotal}</b>وصف سلم تقدير</div>` : ''}
+  ${evTotal ? `<div class="stat"><b>${evTotal}</b>نموذج دليل</div>` : ''}
 </div>
 
 <h2 style="background:#15803d">حدود الصفحات — حُسمت كلّها</h2>

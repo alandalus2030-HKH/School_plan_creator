@@ -13,10 +13,12 @@
 ```bash
 node scripts/qnsa-extract/build_catalog.mjs   # tables.json → catalog.json + flags.json + merges.json
 node scripts/qnsa-extract/build_rubric.mjs    # tables.json + catalog.json → rubric.json + rubric_flags.json
+node scripts/qnsa-extract/build_evidence.mjs  # tables.json + tables_meta.json → evidence.json + evidence_flags.json
 node scripts/qnsa-extract/verify.mjs          # مطابقة حرفية: عقد الشجرة وعبارات السلم مع الوثيقة
 node scripts/qnsa-extract/gen_sql.mjs         # → database/migrations/064_qnsa_final_framework.sql
 node scripts/qnsa-extract/gen_rubric_sql.mjs  # → database/migrations/065_qnsa_rubric.sql
 node scripts/qnsa-extract/gen_wording_sql.mjs # → database/migrations/066_qnsa_wording_decisions.sql
+node scripts/qnsa-extract/gen_evidence_sql.mjs # → database/migrations/067_qnsa_evidence_samples.sql
 node scripts/qnsa-extract/gen_review.mjs      # → docs/QNSA_CATALOG_REVIEW.md
 node scripts/qnsa-extract/gen_html.mjs        # → docs/QNSA_CATALOG_EXTRACTED.html
 ```
@@ -31,7 +33,7 @@ node scripts/qnsa-extract/gen_html.mjs        # → docs/QNSA_CATALOG_EXTRACTED.
 
 ```bash
 unzip -p "دليل الاعتماد نهائي.docx" word/document.xml > scripts/qnsa-extract/work/document.xml
-node scripts/qnsa-extract/parse2.mjs          # document.xml → tables.json
+node scripts/qnsa-extract/parse2.mjs          # document.xml → tables.json + page_breaks.json + tables_meta.json
 ```
 
 `QNSA_WORK=/path/to/dir` يغيّر مجلّد الوسائط إن أردت إبقاءه خارج المستودع.
@@ -45,8 +47,11 @@ node scripts/qnsa-extract/parse2.mjs          # document.xml → tables.json
 | `build_rubric.mjs` | يبني سلم التقدير اللفظي من الجداول الستّة الأعمدة (177 وصفاً × 5 مستويات) |
 | `verify.mjs` | يتحقّق أن نصّ كل عقدة وكل عبارة سلم يرد حرفياً في الوثيقة (يُرجع 1 عند فشل غير مُقرَّر) |
 | `gen_sql.mjs` · `gen_rubric_sql.mjs` · `gen_review.mjs` · `gen_html.mjs` | المولِّدات الأربعة (الأوّلان محميّان من الكتابة فوق ترحيل مُطبَّق) |
+| `build_evidence.mjs` | يستخرج «نماذج الأدلة والوثائق»: جدول لكل جانب (204 أدلّة في 15 جانباً) |
+| `gen_evidence_sql.mjs` | ترحيل 067: جدول `framework_evidence_samples` مرتبطاً بعقدة الجانب |
 | `gen_wording_sql.mjs` | ترحيل 066: تحديث صياغات المستوى 3 على القاعدة المثبَّتة، يتحقّق من النصّ القديم قبل أن يكتب |
 | `work/tables.json` | الوسيط المحفوظ — خلايا كل جداول الوثيقة بترتيبها |
+| `work/tables_meta.json` | اتجاه كل جدول (`bidiVisual`): أيّ خليّة هي اليمنى بصرياً |
 | `work/page_breaks.json` | الصفوف التي تبدأ صفحةً جديدة فعلاً في الوثيقة (من `parse2`) |
 | `work/audit_counts.json` | **المرجع البشريّ**: عدد المؤشرات والأوصاف لكل معيار فرعي كما دقّقه المستخدم يدوياً (2026-09-14) |
 | `work/text_edits.json` | تعديلات على النصّ الحرفيّ بقرار (`wrap-dedupe`) — يقبلها التحقّق ويعرضها التقرير |
@@ -111,6 +116,14 @@ node scripts/qnsa-extract/parse2.mjs          # document.xml → tables.json
 12. **حدّ خليّة في المؤشرات** لم يعد يُفحص عند غياب النقطة وحده، بل أيضاً حين يبدأ الشقّ
    التالي كتكملة أو **تتكرّر الكلمة عند الحدّ** (2.2.3 · 3.1.2) — وقرار `wrap-dedupe` يصل
    بحذف الكلمة المكرّرة، ويُسجَّل تعديلاً على النصّ.
+13. **فقرة فارغة مغلقة ذاتياً** (`<w:p …/>`) — واحدة في الوثيقة كلها، قبل جدول أدلة 2.1. كان المحلّل
+   يعدّها مفتوحةً فيبتلع وسوم فتح الجدول: 90 جدولاً في الوثيقة و89 محلَّلة. أُصلح، وصار `parse2`
+   **يتوقّف بخطأ** إن اختلف عدد الجداول عن وسوم `<w:tbl>`. وجاء الكتالوج والسلم بعد الإصلاح مطابقَين.
+14. **اتجاه الجداول يختلف**: `<w:bidiVisual/>` يجعل الخليّة الأولى في XML هي اليمنى — وهو ما فسّر انقلاب
+   ترتيب أعمدة السلم (تُحقِّق منه على 39 جدولاً: 39/39)، ويحدّد ترتيب قراءة عمودَي الأدلة.
+15. **قوائم الأدلة**: أدلّة ملصقة في سطر («… المساعد).- التوصيف …») تُفصَل عند شرطة تلي علامة جملة
+   فقط؛ ودليل ملتفّ على أسطر يُوصَل إن كان سابقه غير منتهٍ أو فيه قوس مفتوح؛ وسطرٌ بلا شرطة بعد دليل
+   تامّ دليلٌ سقطت شرطته.
 
 ## قرار نمذجة يلزم معرفته
 
@@ -119,7 +132,8 @@ node scripts/qnsa-extract/parse2.mjs          # document.xml → tables.json
 قد يجمع مؤشّرين أو يفصّل واحداً. وربطه بالمؤشرات واحداً لواحد اختلاقُ علاقةٍ لا
 تقولها الوثيقة. ولهذا يحمل `framework_rubric` العمود `row_index` لا `indicator_id`.
 
+**ونماذج الأدلة مرتبطة بعقدة الجانب (المستوى 2)** للسبب نفسه: الوثيقة تضع قائمة واحدة لكل جانب.
+
 ## ما لم يُستخرج بعد
 
-- **نماذج الأدلة والوثائق** — 15 جدولاً بعمودين (واحد لكل جانب) تسمّي الأدلة المطلوبة.
 - الأسماء الإنجليزية (`name_en`) — تنتظر النسخة الإنجليزية الرسمية.
