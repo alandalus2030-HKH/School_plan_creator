@@ -134,6 +134,14 @@ SELECT code, version, status FROM frameworks WHERE code = 'QNSA' ORDER BY versio
 -- المتوقّع: draft-2026 = archived · final-2026 = active
 `
 
-fs.writeFileSync(path.join(ROOT, 'database/migrations/064_qnsa_final_framework.sql'), sql, 'utf8')
+/* هذا الترحيل شُغِّل في قاعدة الإنتاج (2026-09-15). ملفّه سجلٌّ لِما نُفِّذ فعلاً،
+   فلا يُعاد توليده بمحتوى جديد — أيّ تغيير لاحق يمضي في ترحيل تحديث (066 فما بعده).
+   لإعادة التوليد عمداً (قاعدة جديدة فارغة مثلاً): QNSA_REGEN_APPLIED=1 */
+const target = path.join(ROOT, 'database/migrations/064_qnsa_final_framework.sql')
+if (fs.existsSync(target) && !process.env.QNSA_REGEN_APPLIED) {
+  console.log('⏭  064_qnsa_final_framework.sql مُطبَّق في الإنتاج — لم يُعَد توليده (QNSA_REGEN_APPLIED=1 للتجاوز)')
+} else {
+  fs.writeFileSync(target, sql, 'utf8')
+}
 console.log('صفوف:', rows.length, '· حجم SQL:', Math.round(sql.length / 1024), 'KB')
 console.log('لكل مستوى:', JSON.stringify(rows.reduce((a, r) => (a[r[1]] = (a[r[1]] || 0) + 1, a), {})))

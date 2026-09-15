@@ -71,6 +71,12 @@ for (let ti = 0; ti < T.length; ti++) {
       if (!cursor) { unmatched.push({ ti, code, txt: norm(m[2]).slice(0, 70) }); continue }
       if (!cursor.detailName) cursor.detailName = norm(m[2])   // صياغة قسم التفاصيل
     } else if (subCell && !cursor) { unmatched.push({ ti, code: '—', txt: subCell.slice(0, 70) }); continue }
+    /* اسم المعيار الفرعي في قسم التفاصيل قد يُقطَع عند حدّ صفحة فتنتقل تكملته إلى
+       خليّة المعيار في الصفّ التالي بلا كود (5.1.2: «تدريب وتأهيل الموظفين الجدد» ‖
+       «لضمان أداء مهامهم بكفاءة وجودة.»). تُوصَل ما دام الاسم لم ينتهِ بعلامة جملة. */
+    else if (subCell && cursor && cursor.detailName && !/[.؟!)]\s*$/.test(cursor.detailName)) {
+      cursor.detailName = norm(cursor.detailName + ' ' + subCell)
+    }
 
     if (!cursor) continue
     if (ind)   cursor.raw.push(ind)
@@ -216,6 +222,40 @@ for (const [code, name] of Object.entries(NAME_OVERRIDE)) {
   if (!s) { console.warn('⚠ الكود غير موجود:', code); continue }
   if (s.name !== name) { s.summaryName = s.name; s.name = name; s.decided = true }
   else s.decided = true
+  s.decidedOn = '2026-09-10'
+}
+
+/* ══ (3.6) الصياغات الأربع عشرة الباقية — قرار المستخدم (2026-09-15) ══
+   لكلٍّ منها اختار المستخدم إحدى صياغتي الوثيقة كما هي حرفياً:
+   'detail' = صياغة قسم التفاصيل · 'summary' = صياغة جدول الملخّص.
+   فالنصّ المعتمد يرد في الوثيقة، ويبقى داخل المطابقة الحرفية.
+   (أمّا 5.1.2 فلم يكن فرقاً: قُطعت تكملة اسمه عند حدّ صفحة — عولج في §2.) */
+const WORDING_CHOICE = {
+  '1.2.2': 'detail',   // (طويلة وقصيرة المدى) بين قوسين
+  '2.2.5': 'summary',  // بنقطة ختامية
+  '3.1.2': 'detail',   // فاصلة بعد «الداخلية»
+  '3.1.3': 'detail',   // (المدرسية) بين قوسين
+  '3.1.6': 'detail',   // TIMSS مكتوبة صحيحة — الملخّص يكتبها TIMMS خطأً
+  '3.1.7': 'detail',   // . (إن وجدت في المدرسة)
+  '3.2.6': 'detail',   // (خاص بالمرحلتين الإعدادية والثانوية).
+  '4.2.1': 'detail',   // «تنفيذ برامج وأنشطة…»
+  '4.2.4': 'detail',   // الفواصل بين المواد
+  '5.2.4': 'detail',   // «…والعلوم التقنية»
+  '5.2.5': 'detail',   // «…الأنشطة الرياضية المتنوعة»
+  '5.2.6': 'summary',  // «طعام/ مقصف»
+  '5.2.7': 'detail',   // «تخصّصية تتوافق»
+  '5.2.8': 'detail',   // . (إن وجد)
+}
+for (const [code, pick] of Object.entries(WORDING_CHOICE)) {
+  const s = subs.get(code)
+  if (!s) { console.warn('⚠ الكود غير موجود:', code); continue }
+  if (!s.detailName || s.detailName === s.name) {
+    console.warn('⚠ لا فرق بين الصياغتين، فالقرار بلا أثر:', code); s.decided = true; continue
+  }
+  if (pick === 'detail') { s.summaryName = s.name; s.name = s.detailName }
+  s.decided = true
+  s.decidedOn = '2026-09-15'
+  s.wordingPick = pick
 }
 
 const out = { standards: [...standards.values()], aspects: [...aspects.values()], subs: [...subs.values()] }

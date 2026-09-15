@@ -179,7 +179,15 @@ WHERE f.code = 'QNSA' AND f.version = 'final-2026';
 -- المتوقّع: ${descCount} وصفاً · 73 معياراً فرعياً
 `
 
-fs.writeFileSync(path.join(ROOT, 'database/migrations/065_qnsa_rubric.sql'), sql, 'utf8')
+/* هذا الترحيل شُغِّل في قاعدة الإنتاج (2026-09-15). ملفّه سجلٌّ لِما نُفِّذ فعلاً،
+   فلا يُعاد توليده بمحتوى جديد — أيّ تغيير لاحق يمضي في ترحيل تحديث (066 فما بعده).
+   لإعادة التوليد عمداً (قاعدة جديدة فارغة مثلاً): QNSA_REGEN_APPLIED=1 */
+const target = path.join(ROOT, 'database/migrations/065_qnsa_rubric.sql')
+if (fs.existsSync(target) && !process.env.QNSA_REGEN_APPLIED) {
+  console.log('⏭  065_qnsa_rubric.sql مُطبَّق في الإنتاج — لم يُعَد توليده (QNSA_REGEN_APPLIED=1 للتجاوز)')
+} else {
+  fs.writeFileSync(target, sql, 'utf8')
+}
 console.log('أوصاف:', descCount, '· عبارات:', rows.length, '· حجم SQL:', Math.round(sql.length / 1024), 'KB')
 const byLevel = rows.reduce((a, r) => (a[r[2]] = (a[r[2]] || 0) + 1, a), {})
 console.log('لكل مستوى:', JSON.stringify(byLevel))
