@@ -77,6 +77,13 @@ ORDER BY string_to_array(v.code, '.')::int[];
 -- المتوقّع: ${changes.length} صفّاً، كلّها «مطابق»
 `
 
-fs.writeFileSync(path.join(ROOT, 'database/migrations/066_qnsa_wording_decisions.sql'), sql, 'utf8')
+/* شُغِّل في الإنتاج (2026-09-15) وتُحقِّق منه: 12/12 مطابق. الملفّ سجلٌّ لِما نُفِّذ،
+   فلا يُكتب فوقه — أيّ قرار صياغة لاحق = ترحيل تحديث جديد (067 فما بعده). */
+const target = path.join(ROOT, 'database/migrations/066_qnsa_wording_decisions.sql')
+if (fs.existsSync(target) && !process.env.QNSA_REGEN_APPLIED) {
+  console.log('⏭  066_qnsa_wording_decisions.sql مُطبَّق في الإنتاج — لم يُعَد توليده (QNSA_REGEN_APPLIED=1 للتجاوز)')
+} else {
+  fs.writeFileSync(target, sql, 'utf8')
+}
 console.log('066: تحديث', changes.length, 'معياراً فرعياً ·', changes.map(x => x.code).join(' '))
 console.log('أُبقيت صياغة الملخّص:', keptSummary.join(' '))
