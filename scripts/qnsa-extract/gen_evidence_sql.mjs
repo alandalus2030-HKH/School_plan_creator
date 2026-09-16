@@ -130,5 +130,9 @@ WHERE f.code = 'QNSA' AND f.version = 'final-2026');
 `
 
 const target = path.join(ROOT, 'database/migrations/067_qnsa_evidence_samples.sql')
-fs.writeFileSync(target, sql, 'utf8')
-console.log('067: أدلّة', total, '· جوانب', ev.groups.length, '· حجم', Math.round(sql.length / 1024), 'KB')
+if (fs.existsSync(target) && !process.env.QNSA_REGEN_APPLIED) {
+  console.log('⏭  067 مُطبَّق في الإنتاج — لم يُعَد توليده (QNSA_REGEN_APPLIED=1 للتجاوز)')
+} else {
+  fs.writeFileSync(target, sql, 'utf8')
+  console.log('067: أدلّة', total, '· جوانب', ev.groups.length, '· حجم', Math.round(sql.length / 1024), 'KB')
+}
