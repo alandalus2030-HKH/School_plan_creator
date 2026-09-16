@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { currentAcademicYear } from '@/lib/dates'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordAudit } from '@/lib/audit'
@@ -152,7 +153,7 @@ export async function POST(req: NextRequest) {
         .insert({
           school_id:     school.id,
           name_ar:       plan_name,
-          academic_year: plan_year || '2025-2026',
+          academic_year: plan_year || currentAcademicYear(),
           level_count:   lc,
           level_names:   LEVEL_PRESETS[lc],
           kpi_levels:    [],

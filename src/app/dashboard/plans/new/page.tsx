@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Target, TrendingUp, Package, BarChart3, ArrowRight, Check, CircleCheckBig,
   LayoutGrid, Lock, AlertTriangle, ClipboardList, Sparkles, Network } from 'lucide-react'
 import { LEVEL_PRESETS } from '@/lib/planLevels'
+import { currentAcademicYear } from '@/lib/dates'
 
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => `${2024 + i}-${2025 + i}`)
 
@@ -74,7 +75,7 @@ export default function NewPlanPage() {
 
   const [step,       setStep]       = useState<1|2|3>(1)
   const [name,       setName]       = useState('')
-  const [year,       setYear]       = useState('2025-2026')
+  const [year,       setYear]       = useState(currentAcademicYear())
   const [startDate,  setStartDate]  = useState('2025-09-01')
   const [endDate,    setEndDate]    = useState('2026-06-30')
   const [levelCount, setLevelCount] = useState(4)

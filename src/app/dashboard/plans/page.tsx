@@ -12,6 +12,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
+import { currentAcademicYear } from '@/lib/dates'
 
 /* ── قائمة الأعوام الدراسية 2024-2025 حتى 2039-2040 ── */
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => {
@@ -55,7 +56,7 @@ function PlansPageInner() {
   const showArchived = searchParams.get('view') === 'archived'
   const setView = (archived: boolean) =>
     router.push(archived ? '/dashboard/plans?view=archived' : '/dashboard/plans')
-  const [selectedYear, setSelectedYear] = useState('2025-2026')
+  const [selectedYear, setSelectedYear] = useState(currentAcademicYear())
   const [menuOpen,     setMenuOpen]     = useState<string | null>(null)
   const [confirmDel,   setConfirmDel]   = useState<string | null>(null)
   const [deleting,     setDeleting]     = useState(false)
