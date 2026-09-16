@@ -1,6 +1,7 @@
 /* ════════════════════════════════════════════════════════════
    ترقيم عقد الخطة (محسوب لا مخزَّن):
-   - المستويات 1-3: تُبقي كودها الرسمي من كتالوج الاعتماد إن وُجد.
+   - المستويات 1-4: تُبقي كودها الرسمي من إطار الاعتماد إن وُجد
+     (والرابع هو مؤشر الأداء).
    - المستويات الأعمق (الأهداف وما دونها): رقم هرمي = كود الأب + ترتيبه
      بين إخوته (1..n) حسب order_num — فيُرقَّم تلقائياً ويُعاد ترقيمه
      تلقائياً عند الحذف بلا فجوات.
@@ -28,8 +29,8 @@ export function computeNodeCodes(nodes: CodeNode[]): Record<string, string> {
     const list = byParent[parentId ?? 'root'] || []
     list.forEach((n, i) => {
       const seq = i + 1
-      // الكود الرسمي يُحترَم في المستويات 1-3 فقط (كتالوج الاعتماد بثلاثة مستويات)
-      const official = n.standard_code && n.level_num <= 3 ? n.standard_code : null
+      // الكود الرسمي يُحترَم في المستويات 1-4 (الإطار بأربعة مستويات: محور ← جانب ← معيار فرعي ← مؤشر)
+      const official = n.standard_code && n.level_num <= 4 ? n.standard_code : null
       const code = official ?? (parentCode ? `${parentCode}.${seq}` : `${seq}`)
       codes[n.id] = code
       walk(n.id, code)

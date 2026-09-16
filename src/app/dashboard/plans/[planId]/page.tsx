@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { fetchOfficialCodes } from '@/lib/framework'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
@@ -122,8 +123,7 @@ export default function PlanOverviewPage() {
       supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, approved_by, frozen_at, department, plan_category, owner_id').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
-    const { data: stds } = await supabase.from('qnsa_standards').select('code').eq('is_active', true)
-    setOfficialCodes(new Set((stds || []).map((s: any) => s.code)))
+    setOfficialCodes(await fetchOfficialCodes())
     if (!planData) { router.push('/dashboard/plans'); return }
     setPlan(planData)
     setNodes(nodesData || [])

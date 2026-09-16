@@ -1,18 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { fetchFrameworkLevel, FRAMEWORK_MAX_LEVEL, type FrameworkNode } from '@/lib/framework'
 
 /**
- * منتقي معايير الاعتماد (QNSA) — يُستخدم عند إنشاء عقد الخطة:
- * - المستويات 1-3: قائمة متسلسلة من كتالوج qnsa_standards
- *   (مستوى 2/3 مفلتر بكود الأب) + خيار «بند مخصص» نص حر.
- * - البند المخصص داخل سياق الكتالوج يأخذ الرقم التالي المتاح
- *   في مستواه (معيار مخصص = 6، جانب مخصص تحت 1 = 1.6 ...).
- * - المستويات الأعلى أو أبناء بند مخصص بلا كود: نص حر مباشرة
+ * منتقي بنود إطار الاعتماد (QNSA) — يُستخدم عند إنشاء عقد الخطة:
+ * - المستويات 1-4: قائمة متسلسلة من الإطار النشط (framework_nodes)
+ *   مفلترة بكود الأب — والرابع **مؤشر الأداء**، وهو ما لم يكن في
+ *   الكتالوج الأوّل. مع خيار «بند مخصص» نص حر.
+ * - البند المخصص داخل سياق الإطار يأخذ الرقم التالي المتاح في مستواه
+ *   (معيار مخصص = 6، جانب مخصص تحت 1 = 1.6 ...).
+ * - المستويات الأعمق أو أبناء بند مخصص بلا كود: نص حر مباشرة
  *   (standardCode = null → ترقيم محسوب كما السابق).
  */
-export type StandardChoice = { name: string; standardCode: string | null }
+export type StandardChoice = {
+  name: string
+  standardCode: string | null
+  frameworkNodeId?: string | null   // معرّف بند الإطار — null للبند المخصص
+}
 
 export default function StandardPicker({
   levelNum, parentStandardCode, excludeCodes = [], placeholder,
@@ -27,9 +32,8 @@ export default function StandardPicker({
   saving?: boolean
   compact?: boolean
 }) {
-  const supabase = createClient()
-  const catalogContext = levelNum <= 3 && (levelNum === 1 || !!parentStandardCode)
-  const [options, setOptions] = useState<{ code: string; name_ar: string }[]>([])
+  const catalogContext = levelNum <= FRAMEWORK_MAX_LEVEL && (levelNum === 1 || !!parentStandardCode)
+  const [options, setOptions] = useState<FrameworkNode[]>([])
   const [loaded,  setLoaded]  = useState(!catalogContext)
   const [sel,     setSel]     = useState('')
   const [custom,  setCustom]  = useState('')
@@ -37,14 +41,8 @@ export default function StandardPicker({
   useEffect(() => {
     if (!catalogContext) return
     ;(async () => {
-      let q = supabase.from('qnsa_standards')
-        .select('code, name_ar')
-        .eq('level', levelNum)
-        .eq('is_active', true)
-        .order('sort_order')
-      if (levelNum > 1) q = q.eq('parent_code', parentStandardCode)
-      const { data } = await q
-      setOptions((data || []).filter((o: any) => !excludeCodes.includes(o.code)))
+      const rows = await fetchFrameworkLevel(levelNum, parentStandardCode)
+      setOptions(rows.filter(o => !excludeCodes.includes(o.code)))
       setLoaded(true)
     })()
     // excludeCodes ليست تبعية عمداً (مصفوفة جديدة كل render)
@@ -69,10 +67,10 @@ export default function StandardPicker({
     e.preventDefault()
     if (!canSubmit || saving) return
     if (isCustom) {
-      onSubmit({ name: custom.trim(), standardCode: nextFreeCode() })
+      onSubmit({ name: custom.trim(), standardCode: nextFreeCode(), frameworkNodeId: null })
     } else {
       const opt = options.find(o => o.code === sel)
-      if (opt) onSubmit({ name: opt.name_ar, standardCode: opt.code })
+      if (opt) onSubmit({ name: opt.name_ar, standardCode: opt.code, frameworkNodeId: opt.id })
     }
   }
 
@@ -83,7 +81,7 @@ export default function StandardPicker({
     <form onSubmit={submit} className="flex items-center gap-2 p-2 flex-wrap" onClick={e => e.stopPropagation()}>
       {showSelect && (
         <select autoFocus value={sel} onChange={e => setSel(e.target.value)} className={fieldCls}>
-          <option value="">— اختر من معايير الاعتماد —</option>
+          <option value="">— اختر من إطار الاعتماد —</option>
           {options.map(o => (
             <option key={o.code} value={o.code}>{o.code} — {o.name_ar}</option>
           ))}

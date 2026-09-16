@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { fetchFrameworkLevel, FRAMEWORK_LEVEL_NAMES, FRAMEWORK_MAX_LEVEL, type FrameworkNode } from '@/lib/framework'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin } from 'lucide-react'
@@ -115,7 +116,7 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, onAdd }
 
 type PlanNode = { id: string; plan_id: string; parent_id: string | null; level_num: number; name_ar: string; order_num: number; standard_code: string | null }
 type TaskLite = { id: string; name_ar: string; status: string; node_id: string; end_date: string | null; order_num: number | null; created_at: string | null }
-type Choice   = { name: string; standardCode: string | null }
+type Choice   = { name: string; standardCode: string | null; frameworkNodeId: string | null }
 
 const LEVEL_COLORS = ['#8a1538', '#7c3aed', '#0891b2', '#d97706', '#16a34a']
 const statusAr: Record<string, string> = { not_started:'لم تبدأ', in_progress:'جارية', submitted:'مرفوعة', completed:'منجزة', returned:'مُعادة', delayed:'متأخرة' }
@@ -134,21 +135,14 @@ function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, co
   onSelect: (id: string) => void
   onAdd: (choice: Choice) => void
 }) {
-  const supabase = createClient()
-  const catalogContext = levelNum <= 3 && (levelNum === 1 || !!parentStandardCode)
-  const [catalog, setCatalog] = useState<{ code: string; name_ar: string }[]>([])
+  const catalogContext = levelNum <= FRAMEWORK_MAX_LEVEL && (levelNum === 1 || !!parentStandardCode)
+  const [catalog, setCatalog] = useState<FrameworkNode[]>([])
   const [customMode, setCustomMode] = useState(false)
   const [customText, setCustomText] = useState('')
 
   useEffect(() => {
     if (!catalogContext) { setCatalog([]); return }
-    ;(async () => {
-      let q = supabase.from('qnsa_standards').select('code, name_ar')
-        .eq('level', levelNum).eq('is_active', true).order('sort_order')
-      if (levelNum > 1) q = q.eq('parent_code', parentStandardCode)
-      const { data } = await q
-      setCatalog(data || [])
-    })()
+    ;(async () => setCatalog(await fetchFrameworkLevel(levelNum, parentStandardCode)))()
   }, [levelNum, parentStandardCode, catalogContext])
 
   const usedCodes  = existing.map(n => n.standard_code).filter(Boolean) as string[]
@@ -161,7 +155,7 @@ function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, co
     if (val.startsWith('cat:')) {
       const code = val.slice(4)
       const opt  = catalog.find(c => c.code === code)
-      if (opt) onAdd({ name: opt.name_ar, standardCode: opt.code })
+      if (opt) onAdd({ name: opt.name_ar, standardCode: opt.code, frameworkNodeId: opt.id })
       return
     }
     onSelect(val)
@@ -170,7 +164,7 @@ function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, co
   const submitCustom = () => {
     const name = customText.trim()
     if (!name) return
-    onAdd({ name, standardCode: null })   // الترقيم الهرمي يُحسب في addChild
+    onAdd({ name, standardCode: null, frameworkNodeId: null })   // الترقيم الهرمي يُحسب في addChild
     setCustomMode(false); setCustomText('')
   }
 
@@ -193,7 +187,7 @@ function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, co
             </optgroup>
           )}
           {available.length > 0 && (
-            <optgroup label="من معايير الاعتماد (اختر لإضافته)">
+            <optgroup label={`من إطار الاعتماد — ${FRAMEWORK_LEVEL_NAMES[levelNum] || levelName} (اختر لإضافته)`}>
               {available.map(c => (
                 <option key={c.code} value={`cat:${c.code}`}>{c.code} — {c.name_ar}</option>
               ))}
@@ -280,6 +274,7 @@ export default function PlanBuildPage() {
     const { data, error } = await supabase.from('plan_nodes').insert({
       plan_id: planId, parent_id: parentId, level_num: L + 1,
       name_ar: choice.name, order_num: nextSeq, standard_code: choice.standardCode,
+      framework_node_id: choice.frameworkNodeId,
     }).select('id').single()
     setSaving(false)
     if (error) { toast(`تعذّر الإضافة: ${error.message}`, 'error'); return }
@@ -307,7 +302,7 @@ export default function PlanBuildPage() {
     let order = sibs.length ? Math.max(...sibs.map(s => s.order_num)) + 1 : 1
     const rows = names.map(name => ({
       plan_id: planId, parent_id: parent.id, level_num: parent.level_num + 1,
-      name_ar: name, order_num: order++, standard_code: null,
+      name_ar: name, order_num: order++, standard_code: null, framework_node_id: null,
     }))
     const { error } = await supabase.from('plan_nodes').insert(rows)
     if (error) { toast(`تعذّر إضافة الأهداف: ${error.message}`, 'error'); return }

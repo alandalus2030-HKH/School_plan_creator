@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
+import { fetchOfficialCodes } from '@/lib/framework'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { calcNodeRating } from '@/lib/rating'
@@ -1021,14 +1022,14 @@ export default function NodePage() {
   const [officialCodes,  setOfficialCodes]  = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
-    const [{ data: planData }, { data: allNodes }, { data: allTasks }, { data: stds }] = await Promise.all([
+    const [{ data: planData }, { data: allNodes }, { data: allTasks }, official] = await Promise.all([
       supabase.from('plans').select('id, name_ar, level_count, level_names, kpi_levels, approved_at, frozen_at').eq('id', planId).single(),
       supabase.from('plan_nodes').select('*').eq('plan_id', planId).order('order_num'),
       supabase.from('tasks').select('id, name_ar, status, priority, end_date, task_type, node_id, rating, order_num, created_at')
         .in('node_id', (await supabase.from('plan_nodes').select('id').eq('plan_id', planId)).data?.map(n=>n.id) || []),
-      supabase.from('qnsa_standards').select('code').eq('is_active', true),
+      fetchOfficialCodes(),
     ])
-    setOfficialCodes(new Set((stds || []).map((s: any) => s.code)))
+    setOfficialCodes(official)
 
     if (!planData) { router.push('/dashboard/plans'); return }
 
