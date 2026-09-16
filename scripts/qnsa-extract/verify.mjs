@@ -154,4 +154,17 @@ if (fs.existsSync(ep)) {
               '· غير مطابِقة:', bad.length)
   bad.slice(0, 15).forEach(b => console.log('  ✗', b.code, b.text.slice(0, 100)))
   if (bad.length) process.exitCode = 1
-}
+
+  /* المرجع البشريّ للأدلة: عدد الأدلة لكل جانب، راجعه المستخدم مقابل الوثيقة */
+  const eap = path.join(SP, 'evidence_audit.json')
+  if (fs.existsSync(eap)) {
+    const au = JSON.parse(fs.readFileSync(eap, 'utf8'))
+    const got = new Map(ev.groups.map(g => [g.code, g.items.length]))
+    const off = Object.entries(au.counts)
+      .filter(([code, want]) => got.get(code) !== want)
+      .map(([code, want]) => `${code}: ${got.get(code)} ≠ ${want}`)
+    console.log('المرجع البشريّ للأدلة (' + au.audited + ') — جوانب:', Object.keys(au.counts).length,
+                '· اختلافات:', off.length)
+    off.forEach(o => console.log('  ✗', o))
+    if (off.length) process.exitCode = 1
+  }}
