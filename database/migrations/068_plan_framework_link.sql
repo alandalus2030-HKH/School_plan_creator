@@ -12,18 +12,15 @@
 --      جدول plan_node_indicators (متعدّد لمتعدّد)، وهو أساس التقرير الطولي
 --      للمؤشّر عبر السنوات.
 --
--- standard_code يبقى كما هو — شبكة أمان وسِجلّ لِما كان. لا يُحذف في هذا الترحيل.
+-- لا تعبئة من القديم: بيانات ما قبل الإطلاق كانت تجريبية ومُسحت بأداة المشرف
+--   (إعادة تهيئة ما قبل الإطلاق) قبل هذا الترحيل، فلا خطط ولا عقد تُنقَل.
+--   ولذلك لا حاجة لتعطيل مُشغّل التجميد (053) هنا.
+--   ⚠ إن وُجدت عقد قديمة رغم ذلك، يُبلِّغ الترحيل عنها ولا يلمسها.
 --
--- التعبئة: مطابقة بالكود **وبالمستوى معاً**. الاشتراط الثاني ضروري لا تزيّد:
---   مؤشرات الإطار مرقّمة رباعياً (1.2.1.1)، وفي القاعدة عقدتان تجريبيتان
---   تحملان كوداً رباعياً في المستوى الرابع تسرّب من الترقيم الهرمي المحسوب،
---   فلولا شرط المستوى لالتصقت عقدة عبثية بمؤشّر صحيح.
+-- standard_code وqnsa_standards يبقيان مؤقّتاً حتى تتحوّل الواجهة إلى
+--   framework_nodes؛ ثمّ يُسقطهما الترحيل 069.
 --
--- مُشغّل التجميد (053) يمنع تعديل عقد أي خطة مجمّدة. التعبئة لا تمسّ محتوى
---   الخطة — إنما تصل العقدة بالبند الذي تشير إليه أصلاً — فيُعطَّل المُشغّل
---   للتعبئة وحدها ثم يُعاد تفعيله.
---
--- آمن لإعادة التشغيل: كل شيء IF NOT EXISTS، والتعبئة لا تمسّ عقدة مربوطة.
+-- آمن لإعادة التشغيل: كل شيء IF NOT EXISTS / DROP POLICY IF EXISTS.
 -- ════════════════════════════════════════════════════════════════
 
 -- ════ 1) الهويّة ════
@@ -82,51 +79,32 @@ USING (my_perm('manage_plans') AND EXISTS (
     AND n.deleted_at IS NULL AND p.school_id = my_school_id()
 ));
 
--- ════ 3) تعبئة الهويّة من الكتالوج القديم ════
-DO $link$
-DECLARE fw uuid; n int;
+-- ════ تنبيه إن بقيت عقد قديمة (لا يلمسها الترحيل) ════
+DO $chk$
+DECLARE n int;
 BEGIN
-  SELECT id INTO fw FROM frameworks WHERE code = 'QNSA' AND version = 'final-2026';
-  IF fw IS NULL THEN
-    RAISE EXCEPTION 'الإصدار QNSA/final-2026 غير موجود — شغّل الترحيل 064 أولاً';
+  SELECT count(*) INTO n FROM plan_nodes WHERE standard_code IS NOT NULL;
+  IF n > 0 THEN
+    RAISE WARNING 'بقيت % عقدة تحمل standard_code ولم تُربط — رُبطها الترحيل لا يشملها بعد المسح', n;
   END IF;
-
-  ALTER TABLE plan_nodes DISABLE TRIGGER freeze_guard_plan_nodes;
-
-  UPDATE plan_nodes p
-     SET framework_node_id = fn.id
-    FROM framework_nodes fn
-   WHERE fn.framework_id = fw
-     AND fn.code  = p.standard_code
-     AND fn.level = p.level_num          -- يمنع التصاق كودٍ رباعيّ بمؤشّر
-     AND p.level_num BETWEEN 1 AND 3
-     AND p.standard_code IS NOT NULL
-     AND p.framework_node_id IS NULL;
-  GET DIAGNOSTICS n = ROW_COUNT;
-
-  ALTER TABLE plan_nodes ENABLE TRIGGER freeze_guard_plan_nodes;
-
-  RAISE NOTICE 'رُبطت % عقدة بالإطار النهائي', n;
-END $link$;
+END $chk$;
 
 -- ════ التحقق ════
-SELECT 'عقد تحمل كوداً (مستوى 1–3)' AS البند,
-       count(*) AS العدد
-  FROM plan_nodes
- WHERE standard_code IS NOT NULL AND level_num BETWEEN 1 AND 3 AND deleted_at IS NULL
+SELECT 'عمود الهويّة في plan_nodes' AS البند,
+       CASE WHEN EXISTS (
+         SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'plan_nodes' AND column_name = 'framework_node_id')
+       THEN 'موجود' ELSE '✗ مفقود' END AS الحالة
 UNION ALL
-SELECT 'منها مربوطة بالإطار',
-       count(*)
-  FROM plan_nodes
- WHERE framework_node_id IS NOT NULL AND deleted_at IS NULL
+SELECT 'سياسات plan_node_indicators',
+       count(*)::text || ' (المتوقّع 3)'
+  FROM pg_policies WHERE tablename = 'plan_node_indicators'
 UNION ALL
-SELECT 'بقيت بلا ربط (كود لا يقابله بند)',
-       count(*)
+SELECT 'عقد خطط باقية في القاعدة',
+       count(*)::text
   FROM plan_nodes
- WHERE standard_code IS NOT NULL AND level_num BETWEEN 1 AND 3
-   AND framework_node_id IS NULL AND deleted_at IS NULL
 UNION ALL
-SELECT 'صيغت الوصلة: عقدة ← مؤشر',
-       count(*)
+SELECT 'وصلات عقدة ← مؤشر',
+       count(*)::text
   FROM plan_node_indicators;
--- المتوقّع: 57 · 57 · 0 · 0
+-- المتوقّع بعد المسح: موجود · 3 (المتوقّع 3) · 0 · 0
