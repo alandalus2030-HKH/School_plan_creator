@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { requireAuth } from '@/lib/supabase/server'
-import { GROQ_MODEL_SMART } from '@/lib/ai/groq'
+import { GROQ_MODEL_SMART, groqTuning } from '@/lib/ai/groq'
 
 /**
  * POST /api/plan-nodes/suggest — اقتراح أهداف أو مهام بالذكاء الاصطناعي (Groq)
@@ -64,6 +64,7 @@ ${existingList}
       model:       GROQ_MODEL_SMART,
       temperature: 0.7,
       max_tokens:  1024,
+      ...groqTuning(GROQ_MODEL_SMART),
       messages:    [{ role: 'user', content: prompt }],
     })
 

@@ -34,3 +34,22 @@ export function groqModelError(model: string, message: string): string {
   return `تعذّر استخدام النموذج «${model}»: ${message}. ` +
          `قد يكون أُوقف لدى المزوّد — يُضبط بديله في متغيّر البيئة.`
 }
+
+/**
+ * معاملات إضافية تعتمد على النموذج.
+ *
+ * نماذج الاستدلال (gpt-oss · qwen3) تُنفق رموزاً على «التفكير» قبل أن
+ * تكتب حرفاً واحداً من الإجابة، وهذه الرموز تُحسب من `max_tokens` نفسه.
+ * فإن نفدت الميزانية في التفكير عاد المحتوى **فارغاً** و`finish_reason`
+ * يساوي `length` — بلا رسالة خطأ.
+ *
+ * قياسٌ فعليّ على gpt-oss-20b بسؤال مركّب وسقف 1024:
+ *   بلا ضبط        → 1022 رمز تفكير · محتوى فارغ ✗
+ *   reasoning_effort: 'low' →    9 رموز تفكير · خمسة أهداف ✓
+ *
+ * ولا يقبله كل نموذج: `allam-2-7b` يرفضه بخطأ صريح — ولذلك يُضبط
+ * بحسب اسم النموذج لا على إطلاقه.
+ */
+export function groqTuning(model: string): Record<string, unknown> {
+  return /^(openai\/gpt-oss|qwen\/)/.test(model) ? { reasoning_effort: 'low' } : {}
+}

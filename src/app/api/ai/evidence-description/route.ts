@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import Groq from 'groq-sdk'
-import { GROQ_MODEL_FAST } from '@/lib/ai/groq'
+import { GROQ_MODEL_FAST, groqTuning } from '@/lib/ai/groq'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       ],
       temperature: 0.3,
       max_tokens: 200,
+      ...groqTuning(GROQ_MODEL_FAST),
     })
 
     const content = completion.choices[0]?.message?.content || '{}'
