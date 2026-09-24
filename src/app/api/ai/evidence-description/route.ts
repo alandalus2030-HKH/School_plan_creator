@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import Groq from 'groq-sdk'
+import { GROQ_MODEL_FAST } from '@/lib/ai/groq'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
+      model: GROQ_MODEL_FAST,
       messages: [
         {
           role: 'system',

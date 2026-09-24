@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { requireAuth } from '@/lib/supabase/server'
+import { GROQ_MODEL_SMART } from '@/lib/ai/groq'
 
 /**
  * POST /api/plan-nodes/suggest — اقتراح أهداف أو مهام بالذكاء الاصطناعي (Groq)
@@ -60,7 +61,7 @@ ${existingList}
 
     const groq   = new Groq({ apiKey })
     const result = await groq.chat.completions.create({
-      model:       'llama-3.3-70b-versatile',
+      model:       GROQ_MODEL_SMART,
       temperature: 0.7,
       max_tokens:  1024,
       messages:    [{ role: 'user', content: prompt }],
