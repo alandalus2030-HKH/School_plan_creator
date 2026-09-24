@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { fetchFrameworkLevel, FRAMEWORK_LEVEL_NAMES, FRAMEWORK_MAX_LEVEL, type FrameworkNode } from '@/lib/framework'
+import { frameworkLevelOf } from '@/lib/planLevels'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin } from 'lucide-react'
@@ -127,23 +128,24 @@ const statusColor: Record<string, string> = {
 }
 
 /* ═══ صف مستوى واحد: قائمة تجمع المضاف + كتالوج الاعتماد + بند مخصص ═══ */
-function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, codes, selectedId, saving, onSelect, onAdd }: {
-  levelNum: number; levelName: string; color: string
+function LevelRow({ levelNum, frameworkLevel, levelName, color, existing, parentStandardCode, codes, selectedId, saving, onSelect, onAdd }: {
+  levelNum: number; frameworkLevel: number | null; levelName: string; color: string
   existing: PlanNode[]; parentStandardCode: string | null
   codes: Record<string, string>
   selectedId: string; saving: boolean
   onSelect: (id: string) => void
   onAdd: (choice: Choice) => void
 }) {
-  const catalogContext = levelNum <= FRAMEWORK_MAX_LEVEL && (levelNum === 1 || !!parentStandardCode)
+  const catalogContext = !!frameworkLevel && frameworkLevel <= FRAMEWORK_MAX_LEVEL
+                         && (frameworkLevel === 1 || !!parentStandardCode)
   const [catalog, setCatalog] = useState<FrameworkNode[]>([])
   const [customMode, setCustomMode] = useState(false)
   const [customText, setCustomText] = useState('')
 
   useEffect(() => {
     if (!catalogContext) { setCatalog([]); return }
-    ;(async () => setCatalog(await fetchFrameworkLevel(levelNum, parentStandardCode)))()
-  }, [levelNum, parentStandardCode, catalogContext])
+    ;(async () => setCatalog(await fetchFrameworkLevel(frameworkLevel as number, parentStandardCode)))()
+  }, [frameworkLevel, parentStandardCode, catalogContext])
 
   const usedCodes  = existing.map(n => n.standard_code).filter(Boolean) as string[]
   const available  = catalog.filter(c => !usedCodes.includes(c.code))
@@ -187,7 +189,7 @@ function LevelRow({ levelNum, levelName, color, existing, parentStandardCode, co
             </optgroup>
           )}
           {available.length > 0 && (
-            <optgroup label={`من إطار الاعتماد — ${FRAMEWORK_LEVEL_NAMES[levelNum] || levelName} (اختر لإضافته)`}>
+            <optgroup label={`من إطار الاعتماد — ${FRAMEWORK_LEVEL_NAMES[frameworkLevel || 0] || levelName} (اختر لإضافته)`}>
               {available.map(c => (
                 <option key={c.code} value={`cat:${c.code}`}>{c.code} — {c.name_ar}</option>
               ))}
@@ -425,6 +427,7 @@ export default function PlanBuildPage() {
           <LevelRow
             key={L}
             levelNum={L + 1}
+            frameworkLevel={frameworkLevelOf(plan?.level_names, L + 1)}
             levelName={lname(L)}
             color={LEVEL_COLORS[L] || '#64748b'}
             existing={itemsAt(L)}

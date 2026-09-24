@@ -243,7 +243,7 @@ function TasksModal({
   )
 }
 
-/* ══════════════════ مودال تفاصيل مؤشرات الأداء ══════════════════ */
+/* ══════════════════ مودال تفاصيل م.أ.ر KPI ══════════════════ */
 const KPI_TYPE_LABEL: Record<string, string> = {
   impact:  'أثر بعيد',
   outcome: 'نتيجة مباشرة',
@@ -317,7 +317,7 @@ function KpiDetailModal({
       </div>`
     }).join('')
 
-    const modalTitle = `مؤشرات الأداء — ${title}`
+    const modalTitle = `م.أ.ر KPI — ${title}`
     const html = `
       <h1>${modalTitle}</h1>
       <p class="subtitle">${kpis.length} مؤشر</p>
@@ -336,7 +336,7 @@ function KpiDetailModal({
         {/* رأس */}
         <div className={`flex items-center justify-between px-6 py-4 rounded-t-2xl text-white ${headerColor}`}>
           <div>
-            <h3 className="text-base font-bold">مؤشرات الأداء — {title}</h3>
+            <h3 className="text-base font-bold">م.أ.ر KPI — {title}</h3>
             <p className="text-xs opacity-80 mt-0.5">{kpis.length} مؤشر</p>
           </div>
           <button onClick={onClose}
@@ -910,7 +910,7 @@ export default function ReportsPage() {
         </tr>`
       }).join('')
       kpiHtml = `
-        <h2 style="font-size:15px;font-weight:700;color:#1e293b;margin:24px 0 10px">مؤشرات الأداء (${filteredKpis.length})</h2>
+        <h2 style="font-size:15px;font-weight:700;color:#1e293b;margin:24px 0 10px">م.أ.ر KPI (${filteredKpis.length})</h2>
         <table>
           <thead><tr>
             <th>المؤشر</th><th>العقدة</th><th>الخط الأساسي</th><th>الهدف</th><th>آخر قراءة</th><th>التحقق</th>
@@ -967,7 +967,7 @@ export default function ReportsPage() {
   const TABS = [
     { key:'overview',   Icon: LayoutDashboard, label:'نظرة عامة'     },
     { key:'hierarchy',  Icon: Network,         label:'هيكل الخطة'    },
-    { key:'kpis',       Icon: TrendingUp,      label:`مؤشرات الأداء${filteredKpis.length>0?` (${filteredKpis.length})`:''}`},
+    { key:'kpis',       Icon: TrendingUp,      label:`م.أ.ر KPI${filteredKpis.length>0?` (${filteredKpis.length})`:''}`},
     { key:'users',      Icon: Users,           label:'الأقسام والأفراد'},
     { key:'delayed',    Icon: AlertTriangle,   label:`المتأخرات (${delayedTasks.length})`},
   ] as const
@@ -1239,14 +1239,14 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {/* ══════════ تبويب: مؤشرات الأداء KPI ══════════ */}
+      {/* ══════════ تبويب: م.أ.ر KPI KPI ══════════ */}
       {activeTab==='kpis' && (
         <div className="space-y-4">
           {filteredKpis.length===0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
               <div className="flex justify-center mb-2" style={{ color: 'var(--maroon-300)' }}><TrendingUp size={40} /></div>
-              <p>لا توجد مؤشرات أداء مضافة للخطة المحددة</p>
-              <p className="text-xs mt-1">يمكن إضافتها من صفحة مؤشرات الأداء لكل خطة</p>
+              <p>لا توجد م.أ.ر KPI مضافة للخطة المحددة</p>
+              <p className="text-xs mt-1">يمكن إضافتها من صفحة م.أ.ر KPI لكل خطة</p>
             </div>
           ) : (
             <>
@@ -1343,7 +1343,7 @@ export default function ReportsPage() {
               {/* جدول تفصيلي للمؤشرات */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-3 border-b border-slate-100 bg-slate-50">
-                  <h4 className="font-bold text-slate-700 text-sm">تفاصيل مؤشرات الأداء</h4>
+                  <h4 className="font-bold text-slate-700 text-sm">تفاصيل م.أ.ر KPI</h4>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -1588,7 +1588,7 @@ export default function ReportsPage() {
         />
       )}
 
-      {/* ══ مودال تفاصيل مؤشرات الأداء ══ */}
+      {/* ══ مودال تفاصيل م.أ.ر KPI ══ */}
       {kpiModal && (
         <KpiDetailModal
           title={kpiModal.title}

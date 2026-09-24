@@ -20,10 +20,13 @@ export type StandardChoice = {
 }
 
 export default function StandardPicker({
-  levelNum, parentStandardCode, excludeCodes = [], placeholder,
+  levelNum, frameworkLevel, parentStandardCode, excludeCodes = [], placeholder,
   onSubmit, onCancel, saving = false, compact = false,
 }: {
   levelNum: number
+  /** مستوى الإطار المقابل لهذا المستوى — null لمستوىً حرّ (الهدف وما تحته).
+      يُترك غير مُمرَّر ⇒ يُفترض التطابق مع levelNum (سلوك ما قبل التوحيد). */
+  frameworkLevel?: number | null
   parentStandardCode: string | null
   excludeCodes?: string[]
   placeholder: string
@@ -32,7 +35,8 @@ export default function StandardPicker({
   saving?: boolean
   compact?: boolean
 }) {
-  const catalogContext = levelNum <= FRAMEWORK_MAX_LEVEL && (levelNum === 1 || !!parentStandardCode)
+  const fwLevel = frameworkLevel === undefined ? levelNum : frameworkLevel
+  const catalogContext = !!fwLevel && fwLevel <= FRAMEWORK_MAX_LEVEL && (fwLevel === 1 || !!parentStandardCode)
   const [options, setOptions] = useState<FrameworkNode[]>([])
   const [loaded,  setLoaded]  = useState(!catalogContext)
   const [sel,     setSel]     = useState('')
@@ -41,12 +45,12 @@ export default function StandardPicker({
   useEffect(() => {
     if (!catalogContext) return
     ;(async () => {
-      const rows = await fetchFrameworkLevel(levelNum, parentStandardCode)
+      const rows = await fetchFrameworkLevel(fwLevel as number, parentStandardCode)
       setOptions(rows.filter(o => !excludeCodes.includes(o.code)))
       setLoaded(true)
     })()
     // excludeCodes ليست تبعية عمداً (مصفوفة جديدة كل render)
-  }, [levelNum, parentStandardCode])
+  }, [fwLevel, parentStandardCode])
 
   const showSelect = catalogContext && (options.length > 0 || !loaded)
   const isCustom   = !showSelect || sel === '__custom__'

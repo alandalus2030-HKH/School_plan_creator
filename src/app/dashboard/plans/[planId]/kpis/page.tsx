@@ -75,7 +75,7 @@ function getStatus(progress: number | null): StatusInfo {
 }
 
 /* ════════════════════════════════
-   بطاقة مؤشر الأداء
+   بطاقة م.أ.ر
    ════════════════════════════════ */
 function KpiCard({ kpi, onAddReading }: { kpi: Kpi; onAddReading: (kpi: Kpi) => void }) {
   const progress  = getProgress(kpi.latest_reading, kpi.target_value)
@@ -382,7 +382,7 @@ function ReadingModal({
 }
 
 /* ════════════════════════════════
-   الصفحة الرئيسية للوحة KPI
+   الصفحة الرئيسية للوحة م.أ.ر
    ════════════════════════════════ */
 export default function KpiDashboardPage() {
   const params   = useParams()
@@ -496,7 +496,7 @@ export default function KpiDashboardPage() {
           <ArrowRight size={18} />
         </Link>
         <div className="flex-1">
-          <h2 className="inline-flex items-center gap-2 text-xl font-bold text-slate-800"><BarChart3 size={20} /> لوحة مؤشرات الأداء</h2>
+          <h2 className="inline-flex items-center gap-2 text-xl font-bold text-slate-800"><BarChart3 size={20} /> لوحة م.أ.ر KPI</h2>
           <p className="text-slate-500 text-sm">{plan?.name_ar} · <span className="font-latin">{plan?.academic_year}</span></p>
         </div>
         {avgProgress !== null && (
@@ -530,7 +530,7 @@ export default function KpiDashboardPage() {
       {kpis.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
           <div className="flex justify-center mb-4" style={{ color: 'var(--maroon-300)' }}><BarChart3 size={48} /></div>
-          <p className="text-slate-600 font-semibold text-lg">لا توجد مؤشرات أداء بعد</p>
+          <p className="text-slate-600 font-semibold text-lg">لا توجد م.أ.ر KPI بعد</p>
           <p className="text-slate-400 text-sm mt-2">أضف مؤشرات من صفحات الأهداف والمبادرات</p>
           <Link href={`/dashboard/plans/${planId}`}
             className="inline-flex items-center gap-1.5 mt-5 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
