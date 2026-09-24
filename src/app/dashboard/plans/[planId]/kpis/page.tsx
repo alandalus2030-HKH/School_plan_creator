@@ -75,7 +75,7 @@ function getStatus(progress: number | null): StatusInfo {
 }
 
 /* ════════════════════════════════
-   بطاقة م.أ.ر
+   بطاقة م.أ.ر KPI
    ════════════════════════════════ */
 function KpiCard({ kpi, onAddReading }: { kpi: Kpi; onAddReading: (kpi: Kpi) => void }) {
   const progress  = getProgress(kpi.latest_reading, kpi.target_value)
@@ -382,7 +382,7 @@ function ReadingModal({
 }
 
 /* ════════════════════════════════
-   الصفحة الرئيسية للوحة م.أ.ر
+   الصفحة الرئيسية للوحة م.أ.ر KPI
    ════════════════════════════════ */
 export default function KpiDashboardPage() {
   const params   = useParams()

@@ -67,7 +67,7 @@ export default function PlanOverviewPage() {
     })()
   }, [])
 
-  /* ── إعدادات م.أ.ر ── */
+  /* ── إعدادات م.أ.ر KPI ── */
   type KpiLevelConfig = {
     levelIndex: number
     enabled:    boolean
@@ -235,7 +235,7 @@ export default function PlanOverviewPage() {
     await load()
   }
 
-  /* ── إعدادات م.أ.ر ── */
+  /* ── إعدادات م.أ.ر KPI ── */
   const KPI_TYPE_LABELS: Record<string,string> = {
     impact:  'أثر بعيد',
     outcome: 'نتيجة مباشرة',
@@ -622,12 +622,12 @@ export default function PlanOverviewPage() {
                 </button>
                 <Link href={`/dashboard/plans/${planId}/kpis`}
                   className="flex items-center gap-1.5 bg-violet-500/25 hover:bg-violet-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <BarChart3 size={14} /> لوحة م.أ.ر
+                  <BarChart3 size={14} /> لوحة م.أ.ر KPI
                 </Link>
                 {(isSuperAdmin || can('manage_plans')) && (
                   <button onClick={openKpiSettings}
                     className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                    <Settings size={14} /> إعدادات م.أ.ر
+                    <Settings size={14} /> إعدادات م.أ.ر KPI
                   </button>
                 )}
                 {/* اعتماد / إلغاء الاعتماد — مشرف النظام أو من يملك صلاحية اعتماد الخطط */}
@@ -993,7 +993,7 @@ export default function PlanOverviewPage() {
         </div>
       )}
 
-      {/* ══ مودال إعدادات م.أ.ر ══ */}
+      {/* ══ مودال إعدادات م.أ.ر KPI ══ */}
       {showKpiSettings && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
           onClick={() => setShowKpiSettings(false)}>

@@ -429,7 +429,7 @@ export default function NewPlanPage() {
                       )}
                     </div>
 
-                    {/* إعدادات م.أ.ر (إذا مُفعَّل) */}
+                    {/* إعدادات م.أ.ر KPI (إذا مُفعَّل) */}
                     {!locked && kl.enabled && (
                       <div className="px-4 pb-4 pt-1 border-t border-violet-200 bg-white/60 grid grid-cols-2 gap-3">
                         <div>

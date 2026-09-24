@@ -505,7 +505,7 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName, canManage=false }: {
       {/* نموذج الإضافة */}
       {adding && (
         <form onSubmit={addKpi} className="p-3 border-t border-emerald-200 bg-white/70 space-y-2">
-          <p className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 mb-1.5"><Plus size={13} /> م.أ.ر جديد</p>
+          <p className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 mb-1.5"><Plus size={13} /> م.أ.ر KPI جديد</p>
 
           {/* اسم المؤشر */}
           <input
