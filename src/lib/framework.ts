@@ -76,3 +76,92 @@ export async function fetchOfficialCodes(): Promise<Set<string>> {
     .eq('is_active', true)
   return new Set((data || []).map((r: any) => r.code as string))
 }
+
+/* ════════════════════════════════════════════════════════════
+   قراءة الإطار كاملاً — لصفحة عرض الإطار.
+   الشجرة تُحمَّل مرّة واحدة (380 عقدة)، والتفاصيل الثقيلة
+   (سلم التقدير · البيانات التوضيحية · الأدلة) تُحمَّل عند الطلب.
+   ════════════════════════════════════════════════════════════ */
+
+export type FrameworkMeta = {
+  id: string; code: string; version: string
+  name_ar: string; source_note: string | null; issued_at: string | null
+}
+
+export type TreeNode = FrameworkNode & { parent_id: string | null; source_page: number | null }
+
+export type RubricRow = {
+  row_index: number
+  group_ar: string | null
+  levels: Record<number, string>     // 5 ممتاز … 1 ضعيف
+}
+
+export type NoteItem = { sort_order: number; text_ar: string; source_page: number | null }
+
+/** الإصدار النشط من إطار QNSA — أو null إن لم يوجد. */
+export async function fetchActiveFramework(): Promise<FrameworkMeta | null> {
+  const { data } = await createClient()
+    .from('frameworks')
+    .select('id, code, version, name_ar, source_note, issued_at')
+    .eq('code', 'QNSA')
+    .eq('status', 'active')
+    .maybeSingle()
+  return (data as FrameworkMeta) ?? null
+}
+
+/** كل عقد الإصدار (المستويات 1–4) مرتّبة عددياً بالكود. */
+export async function fetchAllNodes(frameworkId: string): Promise<TreeNode[]> {
+  const { data } = await createClient()
+    .from('framework_nodes')
+    .select('id, code, name_ar, level, parent_id, source_page')
+    .eq('framework_id', frameworkId)
+    .eq('is_active', true)
+  const rows = (data || []) as TreeNode[]
+  const key = (c: string) => c.split('.').map(n => parseInt(n, 10))
+  return rows.sort((a, b) => {
+    const A = key(a.code), B = key(b.code)
+    for (let i = 0; i < Math.max(A.length, B.length); i++) {
+      const d = (A[i] ?? -1) - (B[i] ?? -1)
+      if (d) return d
+    }
+    return 0
+  })
+}
+
+/** سلم التقدير لمعيار فرعي — صفوف، كل صفّ بمستوياته الخمسة. */
+export async function fetchRubric(nodeId: string): Promise<RubricRow[]> {
+  const { data } = await createClient()
+    .from('framework_rubric')
+    .select('row_index, level, descriptor_ar, group_ar')
+    .eq('framework_node_id', nodeId)
+    .order('row_index')
+  const byRow = new Map<number, RubricRow>()
+  for (const r of (data || []) as any[]) {
+    if (!byRow.has(r.row_index)) byRow.set(r.row_index, { row_index: r.row_index, group_ar: r.group_ar, levels: {} })
+    byRow.get(r.row_index)!.levels[r.level] = r.descriptor_ar
+  }
+  return [...byRow.values()].sort((a, b) => a.row_index - b.row_index)
+}
+
+/** البيانات التوضيحية وأسئلة التأمل لمعيار فرعي. */
+export async function fetchNotes(nodeId: string): Promise<{ guidance: NoteItem[]; reflection: NoteItem[] }> {
+  const { data } = await createClient()
+    .from('framework_node_notes')
+    .select('kind, sort_order, text_ar, source_page')
+    .eq('framework_node_id', nodeId)
+    .order('sort_order')
+  const rows = (data || []) as any[]
+  const pick = (k: string) => rows.filter(r => r.kind === k)
+    .map(r => ({ sort_order: r.sort_order, text_ar: r.text_ar, source_page: r.source_page }))
+  return { guidance: pick('guidance'), reflection: pick('reflection') }
+}
+
+/** نماذج الأدلة لجانب. */
+export async function fetchEvidenceSamples(aspectNodeId: string): Promise<NoteItem[]> {
+  const { data } = await createClient()
+    .from('framework_evidence_samples')
+    .select('sort_order, text_ar, source_page')
+    .eq('framework_node_id', aspectNodeId)
+    .order('sort_order')
+  return (data || []) as NoteItem[]
+}

@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
-  Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History,
+  Library, Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History,
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: 'manager'          },
   { href: '/dashboard/my-tasks',  Icon: ClipboardList,   ar: 'مهامي',         en: 'My Tasks',   perm: 'self'             },
   { href: '/dashboard/plans',     Icon: Map,             ar: 'الخطط',         en: 'Plans',      perm: 'view_plans'       },
+  { href: '/dashboard/framework', Icon: Library,         ar: 'إطار الاعتماد', en: 'Framework',  perm: null               },
   { href: '/dashboard/tasks',     Icon: CircleCheckBig,  ar: 'كل المهام',     en: 'All Tasks',  perm: 'manage_tasks'     },
   { href: '/dashboard/teams',     Icon: Users,           ar: 'الفرق',         en: 'Teams',      perm: null               },
   { href: '/dashboard/reports',   Icon: ChartNoAxesColumn, ar: 'التقارير',      en: 'Reports',    perm: 'view_reports'     },
