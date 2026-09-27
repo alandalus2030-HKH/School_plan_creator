@@ -1,0 +1,509 @@
+<title>معمارية مسار الاعتماد</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#f7f5f6; --paper:#fff; --ink:#221c1f; --muted:#7a6a70; --faint:#a4949a;
+    --line:#e8dfe2; --line2:#d3c2c8;
+    --maroon:#8a1538; --maroon-2:#6f1029; --maroon-soft:#fbf2f4; --maroon-bd:#e9bcc6;
+    --ok:#0f766e; --ok-bg:#ecfdf5; --warn:#92600e; --warn-bg:#fffbeb; --no:#b42318; --no-bg:#fef3f2;
+    --display:'Noto Kufi Arabic','Segoe UI',Tahoma,sans-serif;
+    --body:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#141012; --paper:#1d171a; --ink:#f0e8ea; --muted:#b09ca3; --faint:#8a777e;
+    --line:#312629; --line2:#463639;
+    --maroon:#e5a2b2; --maroon-2:#f2c6d1; --maroon-soft:#2a1920; --maroon-bd:#4a2e38;
+    --ok:#5ec5ab; --ok-bg:#13302b; --warn:#ddaa50; --warn-bg:#2e2516; --no:#f0908a; --no-bg:#33191a;}}
+  :root[data-theme="dark"]{
+    --ground:#141012; --paper:#1d171a; --ink:#f0e8ea; --muted:#b09ca3; --faint:#8a777e;
+    --line:#312629; --line2:#463639;
+    --maroon:#e5a2b2; --maroon-2:#f2c6d1; --maroon-soft:#2a1920; --maroon-bd:#4a2e38;
+    --ok:#5ec5ab; --ok-bg:#13302b; --warn:#ddaa50; --warn-bg:#2e2516; --no:#f0908a; --no-bg:#33191a;}
+
+  body{direction:rtl;background:var(--ground);color:var(--ink);font-family:var(--body);
+       font-size:15.5px;line-height:1.85;padding-inline:20px;padding-block:0 80px}
+  .wrap{max-width:1180px;margin-inline:auto;display:grid;gap:32px;
+        grid-template-columns:minmax(0,1fr) 250px;align-items:start}
+  main{min-width:0;max-width:78ch}
+
+  header.top{grid-column:1/-1;padding-block:52px 26px;border-bottom:2px solid var(--maroon)}
+  .eyebrow{font-size:.74rem;font-weight:600;letter-spacing:.14em;color:var(--maroon);margin:0 0 12px}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,4.4vw,2.4rem);margin:0 0 14px;line-height:1.4}
+  .stand{color:var(--muted);margin:0;max-width:64ch}
+  .meta{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px 20px;font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+
+  nav.toc{position:sticky;top:20px;font-size:.84rem;border-inline-start:1px solid var(--line);padding-inline-start:16px}
+  nav.toc b{display:block;font-family:var(--display);font-size:.76rem;color:var(--faint);letter-spacing:.06em;margin-bottom:10px}
+  nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0;line-height:1.6}
+  nav.toc a:hover{color:var(--maroon)}
+  nav.toc a .n{font-family:var(--mono);font-size:.72rem;color:var(--faint);margin-inline-end:6px}
+
+  h2{font-family:var(--display);font-weight:700;font-size:1.3rem;margin:54px 0 8px;line-height:1.5;scroll-margin-top:20px}
+  h2 .n{font-family:var(--mono);color:var(--maroon);font-size:.9rem;margin-inline-end:10px}
+  h3{font-family:var(--display);font-weight:700;font-size:1.03rem;margin:30px 0 8px;line-height:1.6}
+  h4{font-family:var(--display);font-weight:500;font-size:.92rem;margin:20px 0 6px;color:var(--muted)}
+  p{margin:0 0 14px}
+  ul,ol{margin:0 0 14px;padding-inline-start:20px;display:grid;gap:7px}
+  li::marker{color:var(--faint)}
+  code{font-family:var(--mono);font-size:.86em;background:var(--maroon-soft);color:var(--maroon-2);
+       padding:1px 5px;border-radius:4px;direction:ltr;unicode-bidi:isolate}
+  strong{font-weight:600}
+  a{color:var(--maroon)}
+
+  .lede{color:var(--muted);margin:0 0 20px}
+  .rule{border:0;border-top:1px solid var(--line);margin:40px 0}
+
+  .box{border:1px solid var(--line2);border-radius:12px;padding:16px 18px;margin:18px 0;background:var(--paper)}
+  .box.key{background:var(--maroon-soft);border-color:var(--maroon-bd)}
+  .box.warn{background:var(--warn-bg);border-color:var(--warn)}
+  .box.no{background:var(--no-bg);border-color:var(--no)}
+  .box h4{margin-top:0;color:inherit;font-weight:700;font-size:.9rem}
+  .box p:last-child,.box ul:last-child{margin-bottom:0}
+
+  .tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--paper);margin:18px 0}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:.88rem}
+  th,td{padding:10px 13px;text-align:start;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{font-family:var(--display);font-size:.76rem;font-weight:500;color:var(--muted);border-bottom:1px solid var(--line2)}
+  tbody tr:last-child td{border-bottom:none}
+  td.c{font-family:var(--mono);white-space:nowrap;font-size:.8rem}
+
+  .flow{display:grid;gap:8px;margin:18px 0}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;
+        background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 14px}
+  .step .i{font-family:var(--mono);font-size:.72rem;color:var(--maroon);background:var(--maroon-soft);
+           border:1px solid var(--maroon-bd);border-radius:6px;width:24px;height:24px;display:grid;place-items:center}
+  .step .t{font-size:.89rem;line-height:1.65}
+  .step .t b{font-weight:600}
+
+  .layers{display:grid;gap:6px;margin:20px 0;font-size:.87rem}
+  .layer{border:1px solid var(--line2);border-radius:10px;padding:12px 15px;background:var(--paper);
+         display:grid;grid-template-columns:150px 1fr;gap:14px}
+  .layer .nm{font-family:var(--display);font-weight:700;color:var(--maroon)}
+  .layer .ds{color:var(--muted);line-height:1.65}
+  .link-row{text-align:center;font-family:var(--mono);font-size:.76rem;color:var(--faint);padding:2px}
+
+  .pill{display:inline-block;font-size:.7rem;font-weight:600;padding:2px 9px;border-radius:999px;
+        border:1px solid currentColor;white-space:nowrap;margin-inline-end:6px}
+  .pill.built{color:var(--ok);background:var(--ok-bg)}
+  .pill.todo{color:var(--warn);background:var(--warn-bg)}
+  .pill.dead{color:var(--no);background:var(--no-bg)}
+
+  footer{grid-column:1/-1;margin-top:60px;padding-top:20px;border-top:1px solid var(--line);
+         color:var(--muted);font-size:.84rem}
+
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr}
+    nav.toc{position:static;border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--paper)}
+    .layer{grid-template-columns:1fr;gap:4px}
+  }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">وثيقة معمارية · نظام متابعة الخطط المدرسية</p>
+  <h1>معمارية مسار الاعتماد</h1>
+  <p class="stand">كيف يبني النظام ملفّ اعتماد كامل لمدرسة: من جمع الأدلة وإسنادها إلى مؤشرات الإطار، إلى التقييم الذاتي بسلم التقدير، إلى تقرير الدراسة الذاتية بقالبه الرسمي — وكيف يتّسع لأطر اعتماد أخرى دون أن تتغيّر بنيته.</p>
+  <div class="meta">
+    <span>27 سبتمبر 2026</span>
+    <span>QNSA · official-2026</span>
+    <span>تحلّ محلّ ما سبقها من قرارات تصميمية</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <b>المحتويات</b>
+  <a href="#p1"><span class="n">1</span>المبدأ الحاكم</a>
+  <a href="#p2"><span class="n">2</span>الطبقات الخمس</a>
+  <a href="#p3"><span class="n">3</span>الأدلة: القلب</a>
+  <a href="#p4"><span class="n">4</span>الخطط والإسناد</a>
+  <a href="#p5"><span class="n">5</span>التقييم الذاتي</a>
+  <a href="#p6"><span class="n">6</span>التوصيات والتحسين</a>
+  <a href="#p7"><span class="n">7</span>المخرجات الرسمية</a>
+  <a href="#p8"><span class="n">8</span>الأدوار والصلاحيات</a>
+  <a href="#p9"><span class="n">9</span>المصداقية</a>
+  <a href="#p10"><span class="n">10</span>الذكاء الاصطناعي</a>
+  <a href="#p11"><span class="n">11</span>أطر متعدّدة واللغة</a>
+  <a href="#p12"><span class="n">12</span>نموذج البيانات</a>
+  <a href="#p13"><span class="n">13</span>ترتيب التنفيذ</a>
+  <a href="#p14"><span class="n">14</span>ما نُقض · وما ينتظر قرارك</a>
+</nav>
+
+<main>
+
+<h2 id="p1"><span class="n">1</span>المبدأ الحاكم: الإسناد لا الاحتواء</h2>
+
+<p>كل قرار في هذه الوثيقة مشتقّ من مبدأ واحد: <strong>شجرة الخطة ليست نسخةً من شجرة الإطار.</strong></p>
+
+<p>المدرسة تخطّط بمفرداتها — مبادرات وأهداف استراتيجية وتشغيلية — بعمقٍ يختلف من فرع لآخر. والإطار قائمةٌ ثابتة من المعايير والمؤشرات تصدرها الجهة. وإجبار الأولى على شكل الثانية يُنتج ما يسمّيه المستخدم بدقّة: <strong>تسطيحاً وتكلّفاً</strong> — أهدافٌ تُخترع لملء مستوىً فارغ تحت مؤشّرٍ تنفيذيّ لا يحتاج إلى هدف.</p>
+
+<div class="box key">
+  <h4>القاعدة</h4>
+  <p>الإطار <strong>بُعد تصنيف</strong> يُسنَد إليه، لا <strong>وعاء احتواء</strong> يُسكَن فيه. وموقع العقدة في شجرة الخطة لا علاقة له بموقعها في الإطار.</p>
+</div>
+
+<p>وهذا ما تفعله منصّات الامتثال العالمية: الإطار فيه متطلّبات، والعمل يُنظَّم في ضوابط، والضابط الواحد يخدم متطلّبات عدّة ويُعاد استعماله عبر أطر مختلفة. ولا أحد يبني شجرة عمل تطابق شجرة معيار.</p>
+
+<h3>ومن المبدأ تتفرّع ثلاث نتائج</h3>
+<ul>
+  <li><strong>مسمّيات مستويات الخطة تعود للمدرسة</strong>، ومطابقة الإطار تصير قالباً من قوالب لا قاعدةً.</li>
+  <li><strong>العمق متغيّر لكل فرع</strong>: مهمّة تُعلَّق مباشرةً على مؤشّر تنفيذي، وأخرى تحتها ثلاثة أهداف.</li>
+  <li><strong>الرابط علاقة متعدّد لمتعدّد</strong> بين عقد الخطة والأدلة من جهة، ومؤشرات الإطار من جهة أخرى.</li>
+</ul>
+
+<h2 id="p2"><span class="n">2</span>الطبقات الخمس</h2>
+
+<div class="layers">
+  <div class="layer"><span class="nm">1 · الأطر المرجعية</span><span class="ds">QNSA · التقييم الإلزامي · كوجنيا. ثابتة، مُصدَّرة، تملكها الجهة. <span class="pill built">مبنيّ</span></span></div>
+  <div class="link-row">↑ إسناد ↑</div>
+  <div class="layer"><span class="nm">2 · مخزن الأدلة</span><span class="ds">قائمة مسطّحة لا شجرة. كل دليل له مراسٍ في إطارٍ أو أكثر، وعامٌ منسوب، وهويّة ثابتة. <span class="pill todo">مركز العمل القادم</span></span></div>
+  <div class="link-row">↑ مصدران ↑</div>
+  <div class="layer"><span class="nm">3 · خطط المدرسة</span><span class="ds">خمسة أنواع بمسمّيات حرّة وعمق متغيّر. ترفد المخزن بأدلة مهامّها. <span class="pill built">مبنيّ · يحتاج تحريراً</span></span></div>
+  <div class="layer"><span class="nm">4 · التقييم الذاتي</span><span class="ds">حكمٌ بسلم التقدير على كل معيار فرعي، مستنداً إلى أدلة المخزن، ينتج سرداً ومجالات تحسين. <span class="pill todo">غير مبنيّ</span></span></div>
+  <div class="layer"><span class="nm">5 · المخرجات</span><span class="ds">تقرير الدراسة الذاتية · تقرير المتابعة · حزمة المقيّم · الحزمة الورقية. <span class="pill todo">غير مبنيّ</span></span></div>
+</div>
+
+<p class="lede">الطبقتان الأولى والثالثة قائمتان اليوم. والعمل القادم كلّه في 2 و4 و5.</p>
+
+<h2 id="p3"><span class="n">3</span>الأدلة: قلب النظام</h2>
+
+<p>المخرَج النهائي للمدرسة ليس شجرة خطة، بل <strong>ملفّ دراسة ذاتية مدعوم بأدلة مصنَّفة على تسلسل الإطار</strong>. ولذلك يتقدّم المخزن على كل ما عداه في الترتيب.</p>
+
+<div class="box">
+  <h4>الحجم — وهو ما يحكم التصميم</h4>
+  <p>آخر دراسة ذاتية للمدرسة ضمّت <strong>945 دليلاً</strong>. والمتوقّع لدورة ستّ سنوات <strong>أكثر من 2000</strong>. فكل قرار هنا يُقاس بسؤال: هل يحتمل ألفي دليل؟</p>
+</div>
+
+<h3>3.1 · قناتا الدخول</h3>
+
+<div class="tbl"><table>
+<thead><tr><th>القناة</th><th>كيف تبدأ</th><th>من يحدّد المرساة</th></tr></thead>
+<tbody>
+<tr><td><strong>من خطة</strong></td><td>دليل يُرفع على مهمّة</td><td>موروث من عقدة الخطة — والمقيّم يؤكّد</td></tr>
+<tr><td><strong>رفع مباشر</strong></td><td>موظّف مخوَّل يرفع من المخزن</td><td>الرافع يحدّد المعيار الفرعي، والمقيّم يكمل المؤشرات</td></tr>
+<tr><td><strong>طلب دليل موجَّه</strong></td><td>فريق التركيز يطلب دليلاً ناقصاً من موظّف</td><td><strong>الطلب يحمل مرساته سلفاً</strong> — والموظّف يرفع الملفّ فقط</td></tr>
+</tbody></table></div>
+
+<div class="box key">
+  <h4>لماذا «طلب الدليل» أهمّ ممّا يبدو</h4>
+  <p>هو ما يحلّ معضلة الجمع والإسناد معاً: منسّق الجودة — وهو من يعرف الإطار — يحدّد المؤشّر عند الطلب، فينتقل عبء الدقّة إلى من يملكها، ويُرفع عن المعلّم تماماً. ويظهر للمكلَّف في قائمة <strong>«أدلة مطلوبة»</strong> بجوار «مهامي».</p>
+  <p><strong>ولا يُستعمل جدول المهامّ لهذا</strong>: مهام الخطط تخضع لمُشغّل التجميد ولإشعارات التأخير ولعدّادات الإنجاز. سجلٌّ خفيف مستقلّ، وتجربة مستخدم واحدة.</p>
+</div>
+
+<h3>3.2 · دورة حياة الدليل</h3>
+
+<div class="flow">
+  <div class="step"><span class="i">1</span><span class="t"><b>الرفع</b> — الملفّ، والعام المنسوب، وتاريخ الوثيقة، والسبب المصنَّف إن كان خارج خطة، والمعيار الفرعي إلزاماً.</span></div>
+  <div class="step"><span class="i">2</span><span class="t"><b>ختم النظام</b> — الرافع · تاريخ الرفع · بصمة المحتوى · وسم «بأثر رجعيّ» إن كان العام سابقاً.</span></div>
+  <div class="step"><span class="i">3</span><span class="t"><b>الفرز</b> — يدخل طابور منسّق الجودة، والنظام يقترح <b>فريق التركيز المالك</b> تلقائياً من المعيار الرئيس.</span></div>
+  <div class="step"><span class="i">4</span><span class="t"><b>التقييم</b> — عضو الفريق يفحص، <b>يكمل الإسناد بالمؤشرات</b>، ثم يقبل أو يرفض بسبب من قائمة مغلقة.</span></div>
+  <div class="step"><span class="i">5</span><span class="t"><b>القبول</b> — يُمنح <b>الرقم الثابت</b>، ويدخل المخزن، ويُحتسب في التغطية.</span></div>
+</div>
+
+<h4>أسباب الرفض — قائمة مغلقة ليمكن تحليلها</h4>
+<p>غير مطابق للمؤشّر · غير مقروء · ناقص التوثيق · مكرّر · خارج الفترة · أخرى (بنصّ).</p>
+
+<h3>3.3 · الإسناد: ما يغطّيه الدليل</h3>
+
+<p>نصّ الدليل الرسمي يشترط أن يكون تقييم المعيار الفرعي «وفقاً لمؤشرات الأداء المحددة لكل معيار فرعي» (ص 223). فدليلٌ لا يقول لأيّ مؤشّر يشهد لا يدخل التغطية ولا يخدم السرد.</p>
+
+<div class="box key">
+  <h4>الإلزام وصيغته</h4>
+  <p><strong>إلزاميّ على المقيّم عند القبول</strong> في القناتين. وصيغته <strong>«حدِّد ما يغطّيه»</strong> لا «اختر مؤشّراً بعينه» — فـ«يغطّي المعيار الفرعي كاملاً» إجابة مشروعة تُسجَّل <strong>تغطية ضمنية</strong> وتُعرَض بلون مختلف في كل مؤشراته.</p>
+</div>
+
+<ul>
+  <li><strong>مراسٍ متعدّدة</strong>: واحدة على الأقل، بلا حدّ أقصى. دليلٌ واحد قد يخدم مؤشرات في ثلاثة معايير.</li>
+  <li><strong>المرساة معرّف ثابت</strong> لعقدة الإطار لا كود نصّي — فبين الإصدارين الأخيرين تغيّر معنى 172 مؤشّراً تحت الكود نفسه.</li>
+  <li><strong>التمييز بين المخصوص والضمنيّ عدّادان منفصلان</strong> — لأن المقيّم يفرّق بين «عندنا سياسة» و«عندنا دليل تطبيق».</li>
+</ul>
+
+<h4>تعديل الإسناد</h4>
+<div class="tbl"><table>
+<thead><tr><th>المرحلة</th><th>ما يُسمح</th></tr></thead>
+<tbody>
+<tr><td>قبل القبول</td><td>تعديل حرّ</td></tr>
+<tr><td>بعد القبول</td><td>تعديل مسموح <strong>ويُسجَّل</strong>: من · متى · لماذا</td></tr>
+<tr><td>بعد إقفال دورة تقرير</td><td>تعديل موثّق يظهر في سجلّ التغييرات — <strong>لا كتابة صامتة</strong></td></tr>
+</tbody></table></div>
+<p><strong>وقيد دائم:</strong> لا يُحذف آخر إسناد. الدليل بلا مرساة دليلٌ تائه، فإمّا تبقى له مرساة وإمّا يعود مسوّدة خارج المخزن.</p>
+
+<h3>3.4 · الترقيم والتنظيم</h3>
+
+<p>الدليل الرسمي لا يفرض صيغة ترقيم؛ يطلب <strong>التصنيف وفق المعايير والجوانب</strong> والجاهزية والوضوح والتنوّع (ص 231). فالترقيم قرارنا.</p>
+
+<div class="tbl"><table>
+<thead><tr><th>الطبقة</th><th>الصيغة</th><th>الخاصية</th></tr></thead>
+<tbody>
+<tr><td><strong>الهويّة</strong></td><td class="c">E-2026-0142</td><td>تُمنح عند القبول ولا تتغيّر أبداً — تُذكر في التقرير ومراسلات المقيّم</td></tr>
+<tr><td><strong>الفهرسة العرضية</strong></td><td class="c">3.1.2.2 · 3 من 7</td><td>تُحسب ولا تُخزَّن — تتغيّر بتغيّر الأدلة</td></tr>
+</tbody></table></div>
+
+<div class="box">
+  <h4>لماذا لا يميّز الكود مصدر الدليل</h4>
+  <p>الدليل الواحد قد يكون أرشيفياً ومُستشهَداً به في مهمّة معاً · والمصدر قد يتغيّر · <strong>وأهمّها أن الرقم يجب ألّا يوحي للمقيّم بحكمٍ مسبق على قيمة الدليل</strong>. والتمييز يكون بالوسوم والفلاتر: المصدر · السبب المصنَّف · العام · بأثر رجعيّ · الحالة · النوع · الفريق · الرافع · المعيار بمستوياته الأربعة.</p>
+</div>
+
+<h3>3.5 · الاستشهاد بدليل قديم</h3>
+<p>مسموح — <strong>استشهاد لا إعادة رفع</strong>. والدليل <strong>يحتفظ بعامه</strong> مهما استُشهد به. <strong>تحذير ظاهر لا منع آليّ</strong>: «هذا الدليل من 2023-2024 وسيُحتسب في عامه»، والقرار للمقيّم.</p>
+<p>وسبب رفض المنع عمليّ: المنع يدفع الناس إلى رفع نسخة جديدة من الملفّ نفسه، فيتضخّم الأرشيف ويتكرّر الدليل ويضيع أثره. <strong>الشفافية تحمي البيانات أكثر من المنع.</strong></p>
+
+<h3>3.6 · الحجم: ما يلزم لألفي دليل</h3>
+<ul>
+  <li><strong>رفع جماعي بالمجلّدات</strong> — مئتا ملفّ دفعةً واحدة.</li>
+  <li><strong>إسناد دفعيّ</strong> — تحديد عشرين دليلاً وإسنادها بنقرة.</li>
+  <li><strong>اقتراح آليّ</strong> من اسم الملفّ ومن نماذج الأدلة الـ245 ومن البيانات التوضيحية.</li>
+  <li><strong>كشف التكرار بالبصمة</strong> — في ألفي ملفّ التكرار مؤكَّد.</li>
+  <li><strong>شاشة فرز سريعة</strong> — بطاقة واحدة، أزرار قبول/رفض/إسناد، اختصارات لوحة مفاتيح.</li>
+  <li><strong>توزيع الحمل على خمسة فرق</strong> — 400 دليل للفريق لا طابور واحد يختنق.</li>
+</ul>
+
+<div class="box warn">
+  <h4>متطلّب غير برمجيّ — يُقرَّر قبل رفع الأرشيف</h4>
+  <p>ألفا ملفّ بمتوسّط ميغابايتين = <strong>نحو أربعة غيغابايت لمدرسة واحدة</strong>. يتجاوز الحدّ المجاني في Supabase ويستلزم قراراً في الباقة والتكلفة.</p>
+</div>
+
+<h3>3.7 · الأدلة غير الملفّية</h3>
+<p>المفتّش يتحقّق عبر ثمانية مصادر: نتائج الاختبارات الداخلية والخارجية والدولية · الزيارات التفقدية للمرافق · فحص الوثائق · المقابلات (طلبة · أولياء أمور · موظفون · مجلس الآباء والأمناء) · التقارير الرسمية مثل بطاقة الأداء المدرسي · الاستبانات · مقابلة المالك · مقابلة المدير وفريق الإدارة العليا.</p>
+<p><strong>القرار الحالي:</strong> برمجية جمع المقابلات والاستبانات وتحليلها <strong>مؤجَّلة إلى خطة التطوير المستقبلي</strong>. ويُكتفى الآن بوثيقة تلخّص كل دليل وتُعامَل معاملة الدليل الملفّي سواءً بسواء. ويبقى حقل <strong>نوع الدليل</strong> متّسعاً لها من اليوم حتى لا تُعاد هيكلة البيانات لاحقاً.</p>
+
+<h2 id="p4"><span class="n">4</span>الخطط والإسناد الموروث</h2>
+
+<h3>4.1 · قوالب الخطط</h3>
+<p>مسمّيات المستويات تختلف بين المدارس، والمرونة مطلب. فالقالب يحمل ثلاثة أشياء: <strong>مسمّيات مستوياته</strong> · <strong>سياسة عمقه</strong> (ثابت أو متغيّر) · <strong>سياسة إسناده</strong> (إجباري · اختياري · بلا).</p>
+
+<div class="tbl"><table>
+<thead><tr><th>النوع</th><th>المستويات</th><th>الإسناد</th></tr></thead>
+<tbody>
+<tr><td>استراتيجية (5 سنوات)</td><td>هدف استراتيجي · هدف عام</td><td>اختياري عند الهدف العام</td></tr>
+<tr><td>تشغيلية سنوية</td><td>هدف عام · هدف تشغيلي · مهام</td><td>عند الهدف العام، موروث لأسفل</td></tr>
+<tr><td><strong>تحسين</strong></td><td>معيار رئيس · جانب · مجالات تحسين · إجراءات</td><td><strong>إجباري — القالب نفسه مبنيّ على الإطار</strong></td></tr>
+<tr><td>أقسام ولجان</td><td>هدف عام · هدف تشغيلي · إجراءات</td><td>خفيف أو بلا</td></tr>
+<tr><td>جداول تشغيل</td><td>مهام · مسؤول · استحقاق · تحقّق</td><td>بلا</td></tr>
+</tbody></table></div>
+
+<p>ولاحظ أن <strong>خطة التحسين وحدها مطابقة للإطار بطبيعتها</strong> — لأن الجهة صمّمت قالبها هكذا. وهذا يثبت أن الخطأ لم يكن في وجود قالبٍ مطابق، بل في فرضه على كل الخطط.</p>
+
+<h3>4.2 · الإسناد الموروث — علاج التكلّف</h3>
+<div class="flow">
+  <div class="step"><span class="i">1</span><span class="t">المخطِّط يُسند <b>المبادرة أو الهدف العام</b> إلى مؤشرات الإطار التي تخدمها — بضع نقرات، مرّةً واحدة.</span></div>
+  <div class="step"><span class="i">2</span><span class="t">كل مهمّة تحتها <b>ترث الإسناد</b>، وكل دليل يُرفع عليها يرث بدوره.</span></div>
+  <div class="step"><span class="i">3</span><span class="t">التعديل عند الحاجة فقط: مهمّة تُضيف مؤشّراً خاصاً أو تحذف موروثاً.</span></div>
+  <div class="step"><span class="i">4</span><span class="t">المقيّم يضبط عند القبول — <b>تأكيدٌ لا إدخالٌ من الصفر</b>.</span></div>
+</div>
+<p><strong>فالتكلفة: إسنادٌ واحد لكل مبادرة يخدم عشرات الأدلة.</strong></p>
+
+<h2 id="p5"><span class="n">5</span>التقييم الذاتي بسلم التقدير</h2>
+
+<p>عندنا <strong>168 وصفاً بخمسة مستويات = 840 عبارة</strong>، مرتبطة بالمعيار الفرعي لا بالمؤشّر — وهذا يحدّد موضع الحكم.</p>
+
+<div class="flow">
+  <div class="step"><span class="i">1</span><span class="t"><b>دورة تقييم ذاتي</b> تُفتح لعامٍ أو لدورة اعتماد.</span></div>
+  <div class="step"><span class="i">2</span><span class="t">لكل معيار فرعي: تُعرض <b>أوصاف السلم الخمسة</b> جنباً إلى جنب، وتحتها <b>أدلّة المعيار من المخزن</b> مصفّاة بالفترة، ومعها البيانات التوضيحية وأسئلة التأمل.</span></div>
+  <div class="step"><span class="i">3</span><span class="t">الفريق يختار الوصف المنطبق — <b>فيكون الحكم مستنداً إلى نصّ الوثيقة لا إلى رقم مجرّد</b> — ويكتب مبرّره ويؤشّر على الأدلة.</span></div>
+  <div class="step"><span class="i">4</span><span class="t">يحدّد <b>جوانب القوة</b> و<b>مجالات التحسين</b> — وهذه تصير بنود خطة التحسين مباشرةً.</span></div>
+  <div class="step"><span class="i">5</span><span class="t"><b>التجميع</b> إلى الجانب فالمعيار الرئيس بقاعدة مُعلنة، ثم <b>الإقفال</b> عند إصدار التقرير.</span></div>
+</div>
+
+<div class="box warn">
+  <h4>قرار منهجيّ ينتظر المستخدم</h4>
+  <p>قاعدة تجميع المؤشرات إلى حكم المعيار الفرعي، والمعايير الفرعية إلى الجانب: <strong>الأدنى</strong>؟ <strong>الأغلب</strong>؟ <strong>المتوسّط</strong>؟ وأياً كانت، <strong>تُحفظ مع الحكم</strong> — فلو تغيّرت بين عامين ظهر «نموّ» سببه الحساب لا الأداء.</p>
+</div>
+
+<h3>ما يعرضه النظام قبل الحكم</h3>
+<p>«هذا المعيار له 12 دليلاً: 9 وثائق نظامية، ولا دليل واحد نابع من خطة تحسين» — فيحكم الفريق على بيّنة، ويرى المقيّم لاحقاً الأساس نفسه.</p>
+
+<h2 id="p6"><span class="n">6</span>التوصية كياناً أوّلياً وخطة التحسين</h2>
+
+<p>قالب تقرير المتابعة (ص 240) يفرض جدولاً بأعمدة محدّدة، مقسّماً على المعايير الرئيسة الخمسة:</p>
+<p class="c" style="font-family:var(--mono);font-size:.82rem;color:var(--muted)">م · التوصيات الواردة في تقرير زيارة الاعتماد · الإجراءات التي قامت بها المدرسة · مستوى الإنجاز المحقّق · الأدلة الداعمة</p>
+
+<div class="box key">
+  <h4>النتيجة المعمارية</h4>
+  <p><strong>التوصية كيان أوّليّ في النظام</strong>، لا سطرٌ في وثيقة: توصية مرقّمة من تقرير الزيارة، مسنَدة إلى معيار رئيس (وإلى معايير فرعية ومؤشرات حيث أمكن)، تحتها إجراءات لها مالك وموعد، ولها <strong>مستوى إنجاز</strong> وأدلة داعمة قد تكون من سنوات سابقة.</p>
+</div>
+
+<h3>مستويات الإنجاز — قائمة مغلقة من الجهة (ص 230)</h3>
+<div class="tbl"><table>
+<thead><tr><th>المستوى</th><th>تعريفه في الدليل</th></tr></thead>
+<tbody>
+<tr><td>لم يتم البدء بالعمل بعد</td><td>لم يبدأ التنفيذ، لأسباب موثّقة</td></tr>
+<tr><td>تم البدء بالعمل</td><td>خطوات فعلية أوّلية موثّقة</td></tr>
+<tr><td>قيد التنفيذ</td><td>تنفيذ مستمرّ وتقدّم فعليّ لم يكتمل</td></tr>
+<tr><td>مكتمل</td><td>انتهى التنفيذ ولم يتحقّق المستهدف كاملاً</td></tr>
+<tr><td>مكتمل بنجاح</td><td>انتهى التنفيذ وتحقّق المستهدف</td></tr>
+</tbody></table></div>
+
+<p><strong>وخطة التحسين هي العمود الفقري</strong> الذي يغذّي ثلاثة مخرجات: فصل «مدى التقدّم» في الدراسة الذاتية · الجزءين الثاني والخامس من تقرير المتابعة · ولوحة متابعة داخلية طوال دورة الاعتماد. وتبقى مرنة: تقبل إجراءات أضافتها المدرسة من تقييمها السنوي، لا من التوصيات وحدها.</p>
+
+<h2 id="p7"><span class="n">7</span>المخرجات الرسمية</h2>
+
+<h3>7.1 · تقرير الدراسة الذاتية — خمسة فصول (ص 212)</h3>
+<div class="tbl"><table>
+<thead><tr><th>الفصل</th><th>مصدره في النظام</th></tr></thead>
+<tbody>
+<tr><td>1 · المشهد المدرسي</td><td><strong>إدخال يدويّ</strong> عند الكتابة (قرار المستخدم): ديموغرافيا ومعدّلات انتقال ثلاثة أعوام وإنجازات وتحدّيات</td></tr>
+<tr><td>2 · مدى التقدّم</td><td>مولَّد من <strong>خطة التحسين</strong> ومستويات إنجاز توصياتها</td></tr>
+<tr><td>3 · تقييم الأداء وفق المعايير</td><td>مولَّد من <strong>التقييم الذاتي</strong>: التقدير · الوصف اللفظي حرفياً · السرد · القوة · مجالات التحسين · الأدلة</td></tr>
+<tr><td>4 · خطة التحسين</td><td>مولَّدة من <strong>مجالات التحسين</strong> المحدَّدة في الفصل الثالث</td></tr>
+<tr><td>5 · الأدلة والوثائق</td><td>مولَّد من <strong>المخزن</strong>، مصنَّفاً وفق المعايير والجوانب</td></tr>
+</tbody></table></div>
+
+<h3>7.2 · تقرير متابعة الأداء — خمسة أجزاء (ص 236)</h3>
+<p>بيانات المدرسة ومستجدّاتها وإنجازات الفترة · <strong>مدى التقدّم في تنفيذ خطة التحسين</strong> بجدوله المفروض · مراجعة موجزة لكل جانب من الخمسة عشر · أولويات التحسين المستقبلية · <strong>خطة التحسين المحدَّثة</strong>.</p>
+
+<h3>7.3 · حزمة المقيّم الخارجي</h3>
+<p>لا يحتاج المقيّم حساباً في النظام. تُصدَّر له: التقرير بالقالب الرسمي · فهرس الأدلة بأرقامها الثابتة وبصماتها · مصفوفة التغطية · سجلّ العهدة.</p>
+
+<h3>7.4 · الجاهزية الورقية</h3>
+<ul>
+  <li><strong>ورقة غلاف لكل دليل</strong>: الرقم الثابت · المسار الكامل في الإطار · العام · تاريخ الوثيقة · من رفع ومن اعتمد · البصمة · <strong>رمز QR يفتح النسخة الرقمية</strong>.</li>
+  <li><strong>فهرس مطبوع</strong> بترتيب الإطار يذكر موضع كل دليل في حاويته.</li>
+  <li><strong>ملصقات الحاويات</strong>: «المعيار الرئيس الثالث · الجانب 3.1 · الأدلة 041–078».</li>
+  <li><strong>حزمة طباعة</strong> بملفّ واحد مرتّب: الفهرس ثم الأدلة كلٌّ مسبوقاً بورقة غلافه.</li>
+</ul>
+
+<h2 id="p8"><span class="n">8</span>الأدوار والصلاحيات</h2>
+
+<p>البنية التنظيمية للمدرسة تُترجَم مباشرةً إلى نموذج صلاحيات:</p>
+<div class="tbl"><table>
+<thead><tr><th>الدور</th><th>ما يراه ويفعله</th></tr></thead>
+<tbody>
+<tr><td><strong>فريق تركيز</strong> (خمسة — على اسم المعايير الرئيسة)</td><td>طابور أدلة معياره · الفرز والتنقيح · إكمال الإسناد · القبول والرفض · كتابة سرد فصله</td></tr>
+<tr><td><strong>منسّق الجودة</strong></td><td>الطوابير كلّها · الإسناد والتحويل · طلبات الأدلة · المتابعة</td></tr>
+<tr><td><strong>لجنة القيادة</strong> (المنسّق + القادة الخمسة + المدير)</td><td>التجميع · الاعتماد · الإقفال · الإصدار</td></tr>
+<tr><td><strong>موظّف</strong></td><td>رفع أدلة · تلبية «أدلة مطلوبة»</td></tr>
+<tr><td><strong>مقيّم خارجي</strong></td><td>قراءة فقط: التقرير · الأدلة · التغطية · سجلّ العهدة</td></tr>
+</tbody></table></div>
+<p><strong>وقاعدة ثابتة:</strong> منع التقييم الذاتي — من رفع الدليل لا يقبله ولو كان المنسّق؛ ويُصعَّد عند غياب غيره.</p>
+
+<h2 id="p9"><span class="n">9</span>المصداقية أمام الجهة المانحة</h2>
+
+<ol>
+  <li><strong>سلسلة عهدة غير قابلة للتحرير</strong> — من رفع · متى · من قبل · متى · وكل تغيير لاحق بفاعله وسببه.</li>
+  <li><strong>بصمة محتوى لكل ملفّ</strong> تُدرَج في التقرير — فيتحقّق المقيّم بنفسه أن الملفّ لم يُستبدَل بعد الإصدار.</li>
+  <li><strong>إفصاحٌ لا إخفاء</strong> — «وثيقة من 2023 أُضيفت في 2026» ظاهرة. الإفصاح يبني ثقةً أكثر ممّا يكلّف.</li>
+  <li><strong>إقفال الدورة</strong> — التقرير المُصدَّر مجمَّد، وأيّ تعديل بعده نسخة جديدة موثّقة.</li>
+  <li><strong>وضع المقيّم</strong> — حساب قراءة فقط لا يرى إدارة المدرسة.</li>
+</ol>
+
+<div class="box no">
+  <h4>حدّ الصدق</h4>
+  <p>لا نظام يمنع التزوير. ما نقدّمه أن نجعله <strong>مرئياً ومكلفاً ومحفوظاً في سجل</strong> — وهذا سقف ما تطلبه جهات الاعتماد فعلاً.</p>
+</div>
+
+<h2 id="p10"><span class="n">10</span>الذكاء الاصطناعي وحوكمته</h2>
+
+<div class="tbl"><table>
+<thead><tr><th>الاستعمال</th><th>ما هو واقعيّ</th><th>حدّه</th></tr></thead>
+<tbody>
+<tr><td>تحليل الوثائق</td><td>استخراج النصّ · اقتراح المرساة · كشف التكرار · فحص التاريخ والاعتماد والتوقيع وقابلية القراءة</td><td>يفحص الشكل، لا يحكم على القيمة</td></tr>
+<tr><td>التقييم بالسلم</td><td>يقارن الأدلة والسرد بالأوصاف الخمسة ويقترح المستوى <strong>مع مبرّره والوصف المطابق</strong></td><td>اقتراح — والحكم للفريق</td></tr>
+<tr><td>صياغة السرد</td><td>مسوّدة أولى من الأدلة وأسئلة التأمل والبيانات التوضيحية</td><td>أعلى عائد عملي: 76 معياراً لا تُكتب يدوياً</td></tr>
+<tr><td><strong>كشف التعارض</strong></td><td>بين ادّعاءات السرد وحجم الأدلة · وبين التقدير والتغطية</td><td>أثمن ميزة مصداقية</td></tr>
+<tr><td>التدقيق اللغوي</td><td>مباشر</td><td>—</td></tr>
+</tbody></table></div>
+
+<h4>مثال على كشف التعارض</h4>
+<ul>
+  <li>السرد يدّعي «تغذية راجعة أسبوعية في جميع المواد»، والأدلة ثلاث عيّنات من صفّ واحد وفصل واحد → تنبيه.</li>
+  <li>التقدير «ممتاز» على معيارٍ أحد مؤشراته بلا دليل → تنبيه <strong>بقواعد حسابية بحتة، بلا ذكاء اصطناعي</strong>.</li>
+</ul>
+
+<div class="box key">
+  <h4>الحوكمة — شرط لا تحسين</h4>
+  <ul>
+    <li>كل ناتج آليّ <strong>موسوم «مسوّدة آلية»</strong>، ولا يدخل تقريراً نهائياً إلا باعتماد بشريّ مسجَّل باسمه.</li>
+    <li>يُرسَل <strong>نصّ لا ملفّات كاملة</strong>، والميزة تُعطَّل لكل مدرسة على حدة.</li>
+    <li><strong>تنبيهات التعارض أداة داخلية</strong> للفريق أثناء الإعداد — لا تُعرض للجهة. الذي يُعرض: مصفوفة التغطية النهائية وسجلّ العهدة.</li>
+  </ul>
+</div>
+
+<h2 id="p11"><span class="n">11</span>أطر متعدّدة واللغة</h2>
+
+<h3>11.1 · التقييم الإلزامي وكوجنيا</h3>
+<p><strong>التقييم الإلزامي إطارٌ قائم بذاته</strong> — نسخة مصغّرة تتحقّق من أهلية المدرسة قبل دخول منظومة الاعتماد، تتقاطع مع QNSA جزئياً ولا تغطّيه. وتخدم شريحة المدارس المتقدّمة لأول مرّة؛ أمّا المعتمَدة فتجدّد عبر QNSA مباشرةً.</p>
+<p>والبنية تحتمله اليوم: جدول الأطر يقبل أطراً متعدّدة بإصدارات متعدّدة، وسلم التقدير مرتبط بالإطار لا بالنظام — فكوجنيا بمستوياتها وDSIB بستّة تعمل بلا تعديل مخطّط.</p>
+<p><strong>والمطلوب إضافةً:</strong> إسناد متعدّد الأطر للدليل الواحد · <strong>جدول تحويل</strong> يقترح المقابلات ويؤكّدها بشر <strong>لا مطابقة آلية بالأكواد</strong> · دورات تقييم مستقلّة لكل إطار.</p>
+<div class="box key">
+  <h4>القيمة التجارية</h4>
+  <p>مدرسة تجتاز التقييم الإلزامي ثم تدخل الاعتماد: يقترح النظام «هذه الأدلة الـ180 تقابل 43 مؤشراً في QNSA — أتنقلها؟». <strong>رفعٌ مرّة، واحتسابٌ في أطر عدّة</strong> — وهذا الخندق لا الميزة.</p>
+</div>
+
+<h3>11.2 · الإنجليزية</h3>
+<div class="tbl"><table>
+<thead><tr><th>الطبقة</th><th>الحالة</th></tr></thead>
+<tbody>
+<tr><td>الواجهة</td><td>الأساس مبنيّ (قاموس ar/en) — يبقى الاستخراج التدريجي للنصوص</td></tr>
+<tr><td>محتوى الإطار</td><td><code>name_en</code> و<code>description_en</code> موجودة — تُستورد النسخة الرسمية <strong>في الإصدار نفسه</strong> لا في إصدار منفصل</td></tr>
+<tr><td>محتوى المدرسة</td><td>بلغتها، بلا ترجمة آلية في التقارير الرسمية</td></tr>
+</tbody></table></div>
+<p>ويلزم معجم مصطلحات معتمد يوافق ما تعرفه المدارس الدولية: Standard · Aspect · Sub-standard · <strong>Performance Indicator</strong> · Evidence · Self-Study Report · Follow-up Report. وقوالب تقارير بنسختين، وضبط اتجاه الطباعة والتواريخ والأرقام.</p>
+
+<h2 id="p12"><span class="n">12</span>نموذج البيانات</h2>
+
+<h3>القائم اليوم <span class="pill built">مبنيّ</span></h3>
+<p><code>frameworks</code> · <code>framework_levels</code> · <code>framework_nodes</code> · <code>framework_rating_scale</code> · <code>framework_rubric</code> · <code>framework_evidence_samples</code> · <code>framework_node_notes</code> · <code>plan_nodes.framework_node_id</code> · <code>plan_node_indicators</code> · <code>evidence</code> + <code>evidence_files</code> + <code>evidence_links</code></p>
+
+<h3>المطلوب إضافةً <span class="pill todo">مقترح</span></h3>
+<div class="tbl"><table>
+<thead><tr><th>الجدول</th><th>دوره</th></tr></thead>
+<tbody>
+<tr><td><code>evidence</code> (أعمدة)</td><td>school_id · source · reason_code · academic_year · document_date · content_hash · code الثابت · type</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>المراسي: evidence_id · framework_node_id · kind (مخصوص/ضمنيّ) · من أسند ومتى</td></tr>
+<tr><td><code>evidence_requests</code></td><td>طلب دليل موجَّه: المرساة · المكلَّف · المهلة · الحالة</td></tr>
+<tr><td><code>evidence_assignments</code></td><td>سجلّ الفرز والإسناد والقرار وسببه وتاريخ إعادة الإسناد</td></tr>
+<tr><td><code>focus_teams</code></td><td>ربط المعيار الرئيس بفريق تركيز وأعضائه</td></tr>
+<tr><td><code>self_review_cycles</code></td><td>دورة تقييم: الإطار · الفترة · الحالة (مسودة/مقدَّمة/مقفلة) · قاعدة التجميع</td></tr>
+<tr><td><code>self_review_judgments</code></td><td>الحكم لكل عقدة: التقدير · الوصف المختار · السرد · القوة · مجالات التحسين</td></tr>
+<tr><td><code>judgment_evidence</code></td><td>الأدلة المستنَد إليها في كل حكم</td></tr>
+<tr><td><code>recommendations</code></td><td>توصيات تقرير الزيارة: الرقم · النصّ · المعيار · الحالة</td></tr>
+<tr><td><code>improvement_items</code></td><td>مجال تحسين/إجراء: مصدره (توصية أو تقييم ذاتي) · المالك · <strong>مستوى الإنجاز</strong> · الأدلة</td></tr>
+<tr><td><code>report_exports</code></td><td>لقطة التقرير المجمَّد: النوع · الفترة · البصمات · من أصدر ومتى</td></tr>
+<tr><td><code>framework_crosswalk</code></td><td>مقابلات بين إصدارات الأطر، بتأكيد بشريّ</td></tr>
+<tr><td><code>plan_templates</code></td><td>مسمّيات المستويات · سياسة العمق · سياسة الإسناد</td></tr>
+</tbody></table></div>
+
+<h2 id="p13"><span class="n">13</span>ترتيب التنفيذ</h2>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>المرحلة</th><th>لماذا هنا</th></tr></thead>
+<tbody>
+<tr><td class="c">1</td><td><strong>المخزن + القناة المباشرة + طلب الدليل + الرفع الجماعي + الفرز بفرق التركيز</strong></td><td>ألفا دليل تنتظر · قيمة من اليوم الأول بلا خطة واحدة</td></tr>
+<tr><td class="c">2</td><td>الإسناد الموروث + قوالب الخطط والعمق المتغيّر</td><td>يُنهي التكلّف ويربط ما ينتجه النظام</td></tr>
+<tr><td class="c">3</td><td>التقييم الذاتي بالسلم + مجالات التحسين</td><td>يحتاج مخزناً ممتلئاً ليكون ذا معنى</td></tr>
+<tr><td class="c">4</td><td><strong>مولّد تقرير الدراسة الذاتية بالقالب الرسمي</strong></td><td>الثمرة — وهو ما يشتري المدرسة</td></tr>
+<tr><td class="c">5</td><td>التوصيات وخطة التحسين وتقرير المتابعة</td><td>يغلق الدورة</td></tr>
+<tr><td class="c">6</td><td>الأطر المتعدّدة وجدول التحويل</td><td>عند طلب السوق</td></tr>
+</tbody></table></div>
+<p>ولاحظ أن الترتيب <strong>انقلب</strong>: كنّا نبني التخطيط ثم نُلحق به الاعتماد. والصواب أن الأدلة والإطار هما المركز، والتخطيط أحد روافدهما.</p>
+
+<h2 id="p14"><span class="n">14</span>ما نُقض · وما ينتظر قرارك</h2>
+
+<h3>قرارات نُقضت</h3>
+<div class="box no">
+  <ul>
+    <li><strong>جعل شجرة الخطة نسخةً من شجرة الإطار</strong> (24 سبتمبر). العلّة كانت صحيحة — الاسم لا يكذب على البيانات — والعلاج خاطئاً.</li>
+    <li><strong>قفل مسمّيات المستويات</strong> — سقط تبعاً له.</li>
+    <li><strong>القوائم القصيرة (مستويان وثلاثة)</strong> — لا حاجة إليها بعد أن صار العمق متغيّراً.</li>
+    <li><strong>عرض تنبيهات التعارض على الجهة</strong> — صُحِّح: أداة داخلية للفريق.</li>
+  </ul>
+</div>
+
+<h3>قرارات تنتظرك</h3>
+<ol>
+  <li><strong>قاعدة التجميع</strong> من المؤشرات إلى المعيار الفرعي فالجانب: الأدنى · الأغلب · المتوسّط.</li>
+  <li><strong>باقة التخزين</strong> قبل رفع الأرشيف (نحو 4 غيغابايت للمدرسة).</li>
+  <li><strong>وثيقة التقييم الإلزامي</strong> لقياس التقاطع الفعليّ مع QNSA.</li>
+  <li><strong>النسخة الإنجليزية من الإطار</strong> حين تصل من الهيئة.</li>
+  <li><strong>مصير الالتزامات الثلاثة غير المرفوعة</strong> من قرار 24 سبتمبر — بعضها يقع تحت ما نُقض.</li>
+</ol>
+
+</main>
+
+<footer>
+  <p>مصادر الإلزام في هذه الوثيقة من «الدليل الإرشادي للاعتماد المدرسي الوطني لدولة قطر 2026» — إدارة تقييم المدارس، قطاع شؤون التقييم: قالب الدراسة الذاتية ص 212 · شرط التقييم بالمؤشرات ص 223 · مستويات الإنجاز ص 230 · إرشادات الأدلة ص 231 · قالب تقرير المتابعة ص 236 · جدول مدى التقدّم ص 240.</p>
+  <p>ما عدا ذلك قرارات تصميمية تخصّ هذا النظام، اتُّخذت في جلستَي 21 و27 سبتمبر 2026. <strong>لم يُنفَّذ منها سطر كود بعد.</strong></p>
+</footer>
+
+</div>
