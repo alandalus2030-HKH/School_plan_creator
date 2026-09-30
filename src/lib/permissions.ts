@@ -21,6 +21,9 @@ export const ALL_PERMISSIONS = [
   { code: 'manage_evidence',       label: 'إضافة/تعديل/حذف الأدلة',    icon: 'Paperclip'      },
   { code: 'review_evidence',       label: 'اعتماد/رفض الأدلة',         icon: 'BadgeCheck'     },
   { code: 'view_evidence',         label: 'خزانة الأدلة',              icon: 'FolderOpen'     },
+  // مخزن الاعتماد — الفرز عملٌ يوميّ، والقبول قرارٌ أضيق يمنح الهويّة الثابتة
+  { code: 'triage_evidence',       label: 'فرز أدلة الاعتماد وإسنادها', icon: 'ListFilter'     },
+  { code: 'accept_evidence',       label: 'قبول/رفض أدلة الاعتماد',    icon: 'ShieldCheck'    },
   // المتابعة والتقارير
   { code: 'view_reports',          label: 'عرض التقارير',              icon: 'ChartNoAxesColumn' },
   { code: 'view_aggregate',        label: 'عرض لوحة التجميع',          icon: 'Layers'         },
@@ -44,6 +47,7 @@ export const PERMISSION_GROUPS: { title: string; codes: string[] }[] = [
   { title: 'الخطط',                 codes: ['view_plans', 'manage_plans', 'approve_plans', 'freeze_plans', 'delete_plans'] },
   { title: 'المهام',                codes: ['manage_tasks', 'view_tasks', 'rate_tasks'] },
   { title: 'الأدلة',                codes: ['manage_evidence', 'review_evidence', 'view_evidence'] },
+  { title: 'مخزن الاعتماد',         codes: ['triage_evidence', 'accept_evidence'] },
   { title: 'المتابعة والتقارير',    codes: ['view_reports', 'view_aggregate'] },
   { title: 'الاجتماعات',            codes: ['manage_meetings'] },
   { title: 'الأوسمة',               codes: ['manage_badges', 'grant_badges'] },
