@@ -27,6 +27,7 @@ Next.js 16.2.6 **معدّل** (Turbopack — اقرأ `node_modules/next/dist/do
 - **`X is not a function` رغم الاستيراد:** ابحث عن **متغير محلي يحجب المستورد** (shadowing) أولاً.
 - **قيم enum/status جديدة:** تحقّق من **قيود CHECK** في القاعدة (مثل `tasks_status_check`) — قد ترفض القيمة صامتاً.
 - **لا تبتلع أخطاء القاعدة:** افحص `error` و`.select()` لعدد الصفوف بعد UPDATE/INSERT في الـ API.
+- **`dropdown_options` جدول مشترك بين ميزات لا تعرف بعضها:** افحص الفئة قبل بذرها. بذرتُ `evidence_type` وكانت قائمة منذ 021 لأدلة المهام، فظهرت مترادفات في شاشة المعلّم. والأخطر أن `tasks.required_evidence_types` تُطابَق **حرفياً** — فتعديل قيمة قديمة يُفرغ شرط مهامّ قائمة صامتاً.
 - **التصدير من الوحدات المشتركة:** `export const` (لا تنشغل بـ function).
 - **ترجمة Chrome المدمجة** تكسر React بـ insertBefore — `<meta name="google" content="notranslate">` موجود.
 - **أسماء أيقونات lucide تحجب كائنات JS العامة:** `import { Map }`/`Image`/`Text` يكسر `new Map()` بـ"lacks construct signature". استورد كـ `Map as MapIcon`.
