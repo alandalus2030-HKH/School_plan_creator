@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
-  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList } from 'lucide-react'
+  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -158,6 +158,12 @@ export default function EvidenceLockerPage() {
           <h1 className="text-2xl font-bold text-slate-800">خزانة الأدلة</h1>
           <p className="text-sm text-slate-500">كل أدلة المدرسة منظّمةً بالمعيار مع تحليل التغطية</p>
         </div>
+        {/* القناة المباشرة — دليل بلا مهمّة ولا خطة */}
+        <Link href="/dashboard/evidence/new"
+          className="ms-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:brightness-95 transition">
+          <span className="inline-flex"><Plus size={16} /></span>
+          <span>رفع دليل</span>
+        </Link>
       </div>
 
       {/* إحصاءات */}
