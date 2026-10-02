@@ -38,15 +38,16 @@ export async function GET() {
   const { data: plansRaw } = await admin.from('plans')
     .select('id, name_ar, department, plan_category, is_archived').eq('school_id', schoolId)
   const plans = (plansRaw || []).filter((p: any) => !p.is_archived)
-  if (plans.length === 0) {
-    return NextResponse.json({ evidence: [], standards: [], stats: emptyStats() })
-  }
+  /* لا خروج مبكر عند غياب الخطط: المخزن يحتوي أدلةً بلا مهمّة (القناة
+     المباشرة وما بعدها)، والخزانة واحدة للقنوات الأربع — 3.1 */
   const planIds = plans.map((p: any) => p.id)
   const planById = new Map(plans.map((p: any) => [p.id, p]))
 
   /* العقد */
-  const { data: nodes } = await admin.from('plan_nodes')
-    .select('id, parent_id, order_num, standard_code, name_ar, plan_id').in('plan_id', planIds)
+  const { data: nodes } = planIds.length
+    ? await admin.from('plan_nodes')
+        .select('id, parent_id, order_num, standard_code, name_ar, plan_id').in('plan_id', planIds)
+    : { data: [] as any[] }
   const nodeById = new Map((nodes || []).map((n: any) => [n.id, n]))
 
   /* المعيار الحاكم لعقدة = أعمق سلف له standard_code */
@@ -92,13 +93,42 @@ export async function GET() {
   const taskById = new Map(tasks.map((t: any) => [t.id, t]))
   const taskIds = tasks.map((t: any) => t.id)
 
-  /* الأدلة المملوكة */
-  const evidence = taskIds.length
-    ? (await admin.from('evidence')
-        .select('id, name, evidence_number, file_type, file_size, status, created_at, task_id')
-        .in('task_id', taskIds).is('deleted_at', null)).data || []
-    : []
+  /* ════════════════════════════════════════════════════════════
+     الأدلة — **كل أدلة المدرسة** لا أدلة المهام وحدها.
+     المسار المباشر `evidence.school_id` (ترحيل 073) حلّ محلّ السلسلة
+     دليل←مهمة←عقدة←خطة، فصارت الخزانة واحدةً للقنوات الأربع (3.1):
+     ما له `task_id` يُثرى بسياق الخطة، وما لا مهمّة له بمراسيه.
+     ════════════════════════════════════════════════════════════ */
+  const { data: evidenceRaw } = await admin.from('evidence')
+    .select('id, name, evidence_number, code, file_type, file_size, status, created_at, task_id, source, academic_year, document_date, evidence_type, reason_code, owner_team_id')
+    .eq('school_id', schoolId).is('deleted_at', null)
+    .order('created_at', { ascending: false })
+  const evidence = evidenceRaw || []
   const evidenceIds = evidence.map((e: any) => e.id)
+
+  /* المراسي في الإطار + الفرق المالكة */
+  const [anchorsRes, teamsRes] = await Promise.all([
+    evidenceIds.length
+      ? admin.from('evidence_anchors')
+          .select('evidence_id, framework_node_id, kind, confirm_status').in('evidence_id', evidenceIds)
+      : Promise.resolve({ data: [] as any[] }),
+    admin.from('focus_teams').select('id, name_ar, standard_code').eq('school_id', schoolId),
+  ])
+  const anchorNodeIds = [...new Set((anchorsRes.data || []).map((a: any) => a.framework_node_id))]
+  const { data: fwNodes } = anchorNodeIds.length
+    ? await admin.from('framework_nodes').select('id, code, name_ar').in('id', anchorNodeIds)
+    : { data: [] as any[] }
+  const fwById   = new Map((fwNodes || []).map((n: any) => [n.id, n]))
+  const teamById = new Map((teamsRes.data || []).map((t: any) => [t.id, t]))
+  const anchorsOf = new Map<string, any[]>()
+  for (const a of anchorsRes.data || []) {
+    const n = fwById.get(a.framework_node_id)
+    if (!anchorsOf.has(a.evidence_id)) anchorsOf.set(a.evidence_id, [])
+    anchorsOf.get(a.evidence_id)!.push({
+      code: n?.code || '', name: n?.name_ar || '',
+      kind: a.kind, confirmStatus: a.confirm_status,
+    })
+  }
 
   /* عدد الملفات + الحجم لكل دليل */
   const filesCount: Record<string, number> = {}
@@ -129,20 +159,33 @@ export async function GET() {
 
   /* بناء قائمة الأدلة بسياق المعيار/الخطة (بمستويات المعيار الثلاثة) */
   const evList = evidence.map((e: any) => {
-    const t = taskById.get(e.task_id)
+    const t = e.task_id ? taskById.get(e.task_id) : null
     const lvl = t ? standardLevels(t.node_id) : { main: null, aspect: null, sub: null }
     const plan = t ? planOfNode(t.node_id) : null
+    const anchors = anchorsOf.get(e.id) || []
+    const team = e.owner_team_id ? teamById.get(e.owner_team_id) : null
+    /* المعيار المعروض: المرساة أولاً (معرّف ثابت)، وإلا سياق الخطة (كود نصّي) */
+    const anchored = anchors[0]
+      ? { code: anchors[0].code, name: anchors[0].name }
+      : null
     return {
-      id: e.id, name: e.name, number: e.evidence_number,
+      id: e.id, name: e.name, number: e.evidence_number, code: e.code,
       file_type: e.file_type, status: e.status, created_at: e.created_at,
+      source: e.source || (e.task_id ? 'plan' : 'direct'),
+      academicYear: e.academic_year, documentDate: e.document_date,
+      type: e.evidence_type, reason: e.reason_code,
       filesCount: filesCount[e.id] || 1,
       size: sizeByEv[e.id] || e.file_size || 0,
       linkedCount: linkedCount[e.id] || 0,
       task: t ? { id: t.id, name_ar: t.name_ar, status: t.status } : null,
       plan: plan ? { name_ar: plan.name_ar, department: plan.department, category: plan.plan_category } : null,
-      standard: lvl.sub,
+      standard: anchored || lvl.sub,
       standardMain: lvl.main,
       standardAspect: lvl.aspect,
+      anchors,
+      /* بلا مرساة = لا يدخل تغطية الإطار. أدلة الخطط كلّها كذلك حتى م1‑3ج */
+      hasAnchor: anchors.length > 0,
+      team: team ? { name: team.name_ar, standard: team.standard_code } : null,
     }
   })
 
@@ -178,8 +221,11 @@ export async function GET() {
 
   /* إحصاءات */
   const byType: Record<string, number> = {}
-  let totalSize = 0, shared = 0, accepted = 0, pending = 0, rejected = 0
+  const bySource: Record<string, number> = {}
+  let totalSize = 0, shared = 0, accepted = 0, pending = 0, rejected = 0, unanchored = 0
   for (const e of evList) {
+    bySource[e.source] = (bySource[e.source] || 0) + 1
+    if (!e.hasAnchor) unanchored++
     const cat = e.file_type === 'video/youtube' ? 'video'
       : e.file_type?.startsWith('image') ? 'image'
       : e.file_type === 'application/pdf' ? 'pdf'
@@ -197,7 +243,7 @@ export async function GET() {
     standards,
     myDepartment: me.department || null,
     stats: {
-      total: evList.length, byType, totalSize, shared, accepted, pending, rejected,
+      total: evList.length, byType, bySource, unanchored, totalSize, shared, accepted, pending, rejected,
       totalTasks: tasks.length,           // كل المهام (للمرجع)
       accreditationTasks: mappedTotal,    // المرتبطة بمعيار (مقام التغطية)
       coveredTasks: mappedCovered,        // المرتبطة بمعيار ولها دليل معتمد
@@ -208,5 +254,5 @@ export async function GET() {
 }
 
 function emptyStats() {
-  return { total: 0, byType: {}, totalSize: 0, shared: 0, accepted: 0, pending: 0, rejected: 0, totalTasks: 0, accreditationTasks: 0, coveredTasks: 0, unmappedTasks: 0, coverage: 0 }
+  return { total: 0, byType: {}, bySource: {}, unanchored: 0, totalSize: 0, shared: 0, accepted: 0, pending: 0, rejected: 0, totalTasks: 0, accreditationTasks: 0, coveredTasks: 0, unmappedTasks: 0, coverage: 0 }
 }

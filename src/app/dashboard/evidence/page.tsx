@@ -8,16 +8,33 @@ import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
 
+type Anchor = { code: string; name: string; kind: string; confirmStatus: string }
 type Ev = {
-  id: string; name: string; number: string; file_type: string | null; status: string
+  id: string; name: string; number: string; code: string | null
+  file_type: string | null; status: string
   created_at: string; filesCount: number; size: number; linkedCount: number
+  /* القناة التي دخل منها الدليل — تُسجَّل مرّةً ولا تتبدّل (الوثيقة 3.4) */
+  source: string
+  academicYear: string | null; documentDate: string | null
+  type: string | null; reason: string | null
   task: { id: string; name_ar: string; status: string } | null
   plan: { name_ar: string; department: string | null; category: string | null } | null
   standard: { code: string; name: string } | null
   standardMain: { code: string; name: string } | null
   standardAspect: { code: string; name: string } | null
+  anchors: Anchor[]
+  /* بلا مرساة = خارج تغطية الإطار (أدلة الخطط كلّها كذلك حتى م1‑3ج) */
+  hasAnchor: boolean
+  team: { name: string; standard: string } | null
 }
 type Std = { code: string | null; name: string; plan: string; department: string | null; total: number; covered: number; without: { id: string; name_ar: string }[] }
+
+const SOURCE_META: Record<string, { ar: string; cls: string }> = {
+  plan:      { ar: 'من خطة',       cls: 'bg-slate-100 text-slate-600' },
+  direct:    { ar: 'رفع مباشر',    cls: 'bg-violet-50 text-violet-700 border border-violet-100' },
+  request:   { ar: 'طلب موجَّه',   cls: 'bg-sky-50 text-sky-700 border border-sky-100' },
+  recurring: { ar: 'مهمّة دورية',  cls: 'bg-teal-50 text-teal-700 border border-teal-100' },
+}
 
 const STATUS_META: Record<string, { ar: string; cls: string }> = {
   pending:  { ar: 'قيد المراجعة', cls: 'bg-slate-100 text-slate-600' },
@@ -58,6 +75,8 @@ export default function EvidenceLockerPage() {
   const [fStd, setFStd] = useState('')
   const [fStatus, setFStatus] = useState('')
   const [sharedOnly, setSharedOnly] = useState(false)
+  const [fSource, setFSource] = useState('')
+  const [noAnchorOnly, setNoAnchorOnly] = useState(false)
   const [fFrom, setFFrom] = useState('')
   const [fTo, setFTo] = useState('')
   const [exporting, setExporting] = useState(false)
@@ -91,17 +110,20 @@ export default function EvidenceLockerPage() {
     if (fAspect && e.standardAspect?.code !== fAspect) return false
     if (fStd && e.standard?.code !== fStd) return false
     if (fStatus && e.status !== fStatus) return false
+    if (fSource && e.source !== fSource) return false
+    if (noAnchorOnly && e.hasAnchor) return false
     if (sharedOnly && e.linkedCount === 0) return false
     const day = (e.created_at || '').slice(0, 10)
     if (fFrom && day < fFrom) return false
     if (fTo && day > fTo) return false
     return true
-  }), [evidence, search, fType, fDept, fMain, fAspect, fStd, fStatus, sharedOnly, fFrom, fTo])
+  }), [evidence, search, fType, fDept, fMain, fAspect, fStd, fStatus, fSource, noAnchorOnly, sharedOnly, fFrom, fTo])
 
-  const anyFilter = !!(search || fType || fDept || fMain || fAspect || fStd || fStatus || sharedOnly || fFrom || fTo)
+  const anyFilter = !!(search || fType || fDept || fMain || fAspect || fStd || fStatus || fSource || noAnchorOnly || sharedOnly || fFrom || fTo)
   const clearFilters = () => {
     setSearch(''); setFType(''); setFDept(''); setFMain(''); setFAspect('')
-    setFStd(''); setFStatus(''); setSharedOnly(false); setFFrom(''); setFTo('')
+    setFStd(''); setFStatus(''); setFSource(''); setNoAnchorOnly(false)
+    setSharedOnly(false); setFFrom(''); setFTo('')
   }
 
   const exportXlsx = async () => {
@@ -159,11 +181,13 @@ export default function EvidenceLockerPage() {
           <p className="text-sm text-slate-500">كل أدلة المدرسة منظّمةً بالمعيار مع تحليل التغطية</p>
         </div>
         {/* القناة المباشرة — دليل بلا مهمّة ولا خطة */}
+        {(isSuperAdmin || can('manage_evidence')) && (
         <Link href="/dashboard/evidence/new"
           className="ms-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:brightness-95 transition">
           <span className="inline-flex"><Plus size={16} /></span>
           <span>رفع دليل</span>
         </Link>
+        )}
       </div>
 
       {/* إحصاءات */}
@@ -198,6 +222,7 @@ export default function EvidenceLockerPage() {
             {aspectOptions.length > 0 && <Select value={fAspect} onChange={v => { setFAspect(v); setFStd('') }} placeholder="الجانب" options={aspectOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
             {subOptions.length > 0 && <Select value={fStd} onChange={setFStd} placeholder="المعيار الفرعي" options={subOptions.map(s => ({ v: s.code, l: `${s.code} ${s.name}` }))} />}
             <Select value={fStatus} onChange={setFStatus} placeholder="كل الحالات" options={[{ v: 'pending', l: 'قيد المراجعة' }, { v: 'accepted', l: 'معتمد' }, { v: 'rejected', l: 'مرفوض' }]} />
+            <Select value={fSource} onChange={setFSource} placeholder="كل المصادر" options={Object.keys(SOURCE_META).map(k => ({ v: k, l: SOURCE_META[k].ar }))} />
             {/* فترة الرفع: من / إلى */}
             <div className="flex items-center gap-1.5 text-xs text-slate-500 w-full sm:w-auto">
               <span className="text-slate-400">من</span>
@@ -207,6 +232,14 @@ export default function EvidenceLockerPage() {
               <input type="date" value={fTo} onChange={e => setFTo(e.target.value)} min={fFrom || undefined}
                 className="flex-1 min-w-0 sm:flex-none px-2.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400" />
             </div>
+            {(stats?.unanchored ?? 0) > 0 && (
+              <button onClick={() => setNoAnchorOnly(v => !v)}
+                title="أدلة لم تُسنَد بعدُ إلى بند في الإطار — لا تدخل تغطية الاعتماد"
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-colors ${noAnchorOnly ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-700 border-amber-200 hover:border-amber-400'}`}>
+                <span className="inline-flex"><AlertTriangle size={14} /></span>
+                <span>بلا مرساة ({stats.unanchored})</span>
+              </button>
+            )}
             <button onClick={() => setSharedOnly(v => !v)}
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-colors ${sharedOnly ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}>
               <Link2 size={14} /> المشتركة فقط
@@ -244,13 +277,35 @@ export default function EvidenceLockerPage() {
                         className="text-sm font-semibold text-slate-800 truncate hover:text-violet-700 hover:underline">{e.name}</a>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${sm.cls}`}>{sm.ar}</span>
                       {e.standard
-                        ? <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100" title="المعيار"><ClipboardList size={11} /> معيار {e.standard.code}</span>
+                        ? <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100"
+                            title={e.hasAnchor ? `مرساة في الإطار: ${e.standard.name}` : `من سياق الخطة: ${e.standard.name}`}>
+                            <span className="inline-flex"><ClipboardList size={11} /></span>
+                            <span>معيار {e.standard.code}</span>
+                          </span>
                         : <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-400" title="غير مرتبط بمعيار">بلا معيار</span>}
+                      {!e.hasAnchor && (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100"
+                          title="لم يُسنَد إلى بند في الإطار بمعرّفه الثابت — فلا يدخل تغطية الاعتماد">
+                          <span className="inline-flex"><AlertTriangle size={11} /></span>
+                          <span>بلا مرساة</span>
+                        </span>
+                      )}
+                      {e.anchors.length > 1 && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-100"
+                          title={e.anchors.map(a => `${a.code} — ${a.name}`).join(' · ')}>
+                          +{e.anchors.length - 1} مرساة
+                        </span>
+                      )}
                       {e.linkedCount > 0 && <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700"><Link2 size={11} /> {e.linkedCount}</span>}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap mt-1 text-xs text-slate-400">
                       <span className="inline-flex items-center gap-1"><TI size={13} /> {TYPE_LABEL[typeOf(e.file_type)]}</span>
                       <span className="inline-flex items-center gap-1">· <Paperclip size={12} /> {e.filesCount}</span>
+                      <span className={`px-1.5 py-0.5 rounded-md ${(SOURCE_META[e.source] || SOURCE_META.plan).cls}`}>
+                        {(SOURCE_META[e.source] || SOURCE_META.plan).ar}
+                      </span>
+                      {e.academicYear && <span className="font-latin">· {e.academicYear}</span>}
+                      {e.team && <span>· {e.team.name}</span>}
                       {e.plan?.department && <span>· {e.plan.department}</span>}
                       {e.task && <Link href={`/dashboard/tasks/${e.task.id}`} className="text-violet-500 hover:underline">· {e.task.name_ar}</Link>}
                     </div>
