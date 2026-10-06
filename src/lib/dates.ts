@@ -17,3 +17,31 @@ export function currentAcademicYear(now: Date = new Date()): string {
   const start = now.getMonth() + 1 >= ACADEMIC_YEAR_START_MONTH ? y : y - 1
   return `${start}-${start + 1}`
 }
+
+/* ── حدّا العام الدراسي: أغسطس ← 30 يونيو من العام التالي ──
+   مصدرٌ واحد للحدّين، فلا تتفرّق تواريخ افتراضية في الشاشات.
+   والدوال تقبل تسمية العام «2026-2027» وتُرجع YYYY-MM-DD. */
+
+export const ACADEMIC_YEAR_END_MONTH = 6
+export const ACADEMIC_YEAR_END_DAY   = 30
+
+const yearParts = (label: string): [number, number] | null => {
+  const m = /^(\d{4})-(\d{4})$/.exec(String(label).trim())
+  return m ? [Number(m[1]), Number(m[2])] : null
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+/** أول يوم في العام الدراسي: «2026-2027» ⇒ «2026-08-01» */
+export function academicYearStart(label: string): string {
+  const p = yearParts(label)
+  if (!p) return ''
+  return `${p[0]}-${pad(ACADEMIC_YEAR_START_MONTH)}-01`
+}
+
+/** آخر يوم في العام الدراسي: «2026-2027» ⇒ «2027-06-30» */
+export function academicYearEnd(label: string): string {
+  const p = yearParts(label)
+  if (!p) return ''
+  return `${p[1]}-${pad(ACADEMIC_YEAR_END_MONTH)}-${pad(ACADEMIC_YEAR_END_DAY)}`
+}

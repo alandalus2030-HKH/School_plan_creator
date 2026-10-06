@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Target, TrendingUp, Package, BarChart3, ArrowRight, Check, CircleCheckBig,
   LayoutGrid, Lock, AlertTriangle, ClipboardList, Sparkles, Network } from 'lucide-react'
 import { LEVEL_PRESETS } from '@/lib/planLevels'
-import { currentAcademicYear } from '@/lib/dates'
+import { currentAcademicYear, academicYearStart, academicYearEnd } from '@/lib/dates'
 
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => `${2024 + i}-${2025 + i}`)
 
@@ -76,8 +76,9 @@ export default function NewPlanPage() {
   const [step,       setStep]       = useState<1|2|3>(1)
   const [name,       setName]       = useState('')
   const [year,       setYear]       = useState(currentAcademicYear())
-  const [startDate,  setStartDate]  = useState('2025-09-01')
-  const [endDate,    setEndDate]    = useState('2026-06-30')
+  /* حدّا العام الدراسي لا تاريخين مكتوبين بخطّ اليد — نصٌّ مكتوب يشيخ بلا أن يشتكي */
+  const [startDate,  setStartDate]  = useState(academicYearStart(currentAcademicYear()))
+  const [endDate,    setEndDate]    = useState(academicYearEnd(currentAcademicYear()))
   const [levelCount, setLevelCount] = useState(4)
   const [levelNames, setLevelNames] = useState(LEVEL_PRESETS[4])
   const [kpiLevels,  setKpiLevels]  = useState<KpiLevelConfig[]>([])
@@ -237,7 +238,13 @@ export default function NewPlanPage() {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">العام الدراسي</label>
-              <select value={year} onChange={e => setYear(e.target.value)}
+              <select value={year} onChange={e => {
+                  const v = e.target.value
+                  /* التاريخان يتبعان العام ما لم يُعدّلهما المستخدم يدوياً */
+                  if (startDate === academicYearStart(year)) setStartDate(academicYearStart(v))
+                  if (endDate   === academicYearEnd(year))   setEndDate(academicYearEnd(v))
+                  setYear(v)
+                }}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-slate-50 text-slate-800">
                 {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
