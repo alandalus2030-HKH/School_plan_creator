@@ -13,7 +13,7 @@ import {
 type Row = {
   id: string; name_ar: string; is_active: boolean
   plans: number; tasks_total: number; tasks_done: number
-  tasks_delayed: number; tasks_overdue: number; completion: number
+  tasks_overdue: number; completion: number
   kpi_count: number; kpi_avg: number | null; users: number; active_users: number
 }
 

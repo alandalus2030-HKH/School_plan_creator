@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         await admin.from('profiles').upsert({
           id: found.id, email,
           name_ar: name_ar || email,
-          role: role || 'teacher',
+          role: role || 'staff',
         }, { onConflict: 'id' })
         return NextResponse.json({ ok: true, note: 'existing_user_updated' })
       }
@@ -57,11 +57,11 @@ export async function POST(req: NextRequest) {
         id: data.user.id,
         email,
         name_ar: name_ar || email,
-        role: role || 'teacher',
+        role: role || 'staff',
       }, { onConflict: 'id' })
     }
 
-    await recordAudit({ req, userId: auth.user.id, action: 'user_invited', table: 'profiles', recordId: data?.user?.id, after: { email, role: role || 'teacher' } })
+    await recordAudit({ req, userId: auth.user.id, action: 'user_invited', table: 'profiles', recordId: data?.user?.id, after: { email, role: role || 'staff' } })
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {

@@ -78,12 +78,6 @@ function renderWithMentions(text: string) {
   )
 }
 const typeAr:   Record<string, string> = { academic: 'أكاديمية', administrative: 'إدارية', general: 'عامة' }
-const statusList = [
-  { value: 'not_started', label: 'لم تبدأ',  ring: 'ring-slate-400',  bg: 'bg-slate-100  text-slate-700  border-slate-200  hover:bg-slate-200'  },
-  { value: 'in_progress', label: 'جارية',    ring: 'ring-violet-400', bg: 'bg-violet-50  text-violet-700 border-violet-200 hover:bg-violet-100' },
-  { value: 'completed',   label: 'منجزة',    ring: 'ring-violet-600', bg: 'bg-violet-100 text-violet-900 border-violet-300 hover:bg-violet-200' },
-  { value: 'delayed',     label: 'متأخرة',   ring: 'ring-red-400',    bg: 'bg-red-50    text-red-700    border-red-200    hover:bg-red-100'    },
-]
 const priorityInfo: Record<string, { label: string; dot: string; cls: string }> = {
   high:   { label: 'عالية',   dot: '#dc2626', cls: 'text-red-600   bg-red-50   border-red-200'   },
   medium: { label: 'متوسطة', dot: '#d97706', cls: 'text-amber-600 bg-amber-50 border-amber-200' },

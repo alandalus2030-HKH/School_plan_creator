@@ -82,7 +82,6 @@ export async function GET() {
     return {
       id: sid, name_ar: s.name_ar, is_active: s.is_active,
       plans: schoolPlans.length, tasks_total: total, tasks_done: completed,
-      tasks_delayed: schoolTasks.filter(t => t.status === 'delayed').length,
       tasks_overdue: overdue, completion: rate,
       kpi_count: schoolKpis.length, kpi_avg: kpiAvg, rating_avg: null,
       users: users.length, active_users: users.filter(p => p.is_active).length,

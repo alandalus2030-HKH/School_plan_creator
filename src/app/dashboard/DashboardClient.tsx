@@ -21,7 +21,7 @@ type Props = {
   plansCount:      number
   tasksCount:      number
   completedCount:  number
-  delayedCount:    number
+  overdueCount:    number
   completionRate:  number
   reopenRequestsCount: number
   recentTasks:     Task[]
@@ -122,9 +122,9 @@ export default function DashboardClient(props: Props) {
             <AlertTriangle size={16} />
             المهام المتأخرة
           </h3>
-          <div className="text-4xl font-bold" style={{ color: 'var(--maroon-600)' }}>{props.delayedCount}</div>
+          <div className="text-4xl font-bold" style={{ color: 'var(--maroon-600)' }}>{props.overdueCount}</div>
           <p className="text-sm text-slate-500 mt-1">مهمة تجاوزت موعدها</p>
-          <Link href="/dashboard/tasks?status=delayed" prefetch={false}
+          <Link href="/dashboard/tasks" prefetch={false}
             className="mt-3 inline-flex items-center gap-1 text-xs font-medium hover:underline"
             style={{ color: 'var(--maroon-600)' }}>
             عرض المهام المتأخرة <ArrowLeft size={13} />

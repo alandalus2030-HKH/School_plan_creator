@@ -46,14 +46,21 @@ export default async function DashboardPage() {
   const [
     { count: tasksCount     },
     { count: completedCount },
-    { count: delayedCount   },
+    { count: overdueCount   },
     { count: plansCount     },
     { data:  recentTasks    },
     reopenRes,
   ] = await Promise.all([
     supabase.from('tasks').select('*', { count: 'exact', head: true }),
     supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-    supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'delayed'),
+    /* «متأخرة» وسمٌ محسوب لا حالة (CLAUDE.md): الترحيل 021 حوّل كل
+       مهمّة delayed إلى in_progress، فالعدّ بالحالة صفرٌ أبديّ.
+       والشرط هنا نفس isOverdue: موعدٌ مضى ولم تُنجَز. */
+    supabase.from('tasks').select('*', { count: 'exact', head: true })
+      .not('end_date', 'is', null)
+      .lt('end_date', new Date().toISOString().slice(0, 10))
+      .neq('status', 'completed')
+      .is('deleted_at', null),
     supabase.from('plans').select('*', { count: 'exact', head: true }),
     supabase.from('tasks')
       .select('id, name_ar, status, end_date, task_type')
@@ -74,7 +81,7 @@ export default async function DashboardPage() {
       plansCount={plansCount      || 0}
       tasksCount={tasksCount      || 0}
       completedCount={completedCount || 0}
-      delayedCount={delayedCount  || 0}
+      overdueCount={overdueCount  || 0}
       completionRate={completionRate}
       reopenRequestsCount={reopenRequestsCount}
       recentTasks={(recentTasks   || []) as any}

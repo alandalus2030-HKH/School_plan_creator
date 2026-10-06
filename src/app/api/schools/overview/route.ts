@@ -66,7 +66,6 @@ export async function GET() {
 
     const total     = schoolTasks.length
     const completed = schoolTasks.filter(t => t.status === 'completed').length
-    const delayed   = schoolTasks.filter(t => t.status === 'delayed').length
     const overdue   = schoolTasks.filter(t =>
       t.end_date && t.end_date < today && t.status !== 'completed').length
     const rate = total > 0 ? Math.round((completed / total) * 100) : 0
@@ -93,7 +92,6 @@ export async function GET() {
       plans:        schoolPlans.length,
       tasks_total:  total,
       tasks_done:   completed,
-      tasks_delayed: delayed,
       tasks_overdue: overdue,
       completion:   rate,
       kpi_count:    schoolKpis.length,

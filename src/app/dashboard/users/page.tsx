@@ -39,12 +39,17 @@ type TeamMembership = { team_id: string; is_leader: boolean }
 import { ALL_PERMISSIONS } from '@/lib/permissions'
 
 /* ══════════════════════ بيانات احتياطية ══════════════════════ */
+/* صورةٌ من جدول الأدوار (ترحيل 055) — لا تظهر إلا إن تعذّر الاستعلام.
+   وكانت تحمل `supervisor` و`teacher` وهما مُزالان، فتُضلّل حين تظهر. */
 const FALLBACK_ROLES: RoleItem[] = [
-  { code: 'super_admin',  name_ar: 'مشرف عام المنصة',    color: '#7c3aed' },
-  { code: 'school_admin', name_ar: 'مشرف نظام المدرسة', color: '#2563eb' },
-  { code: 'supervisor',   name_ar: 'مشرف',          color: '#0891b2' },
-  { code: 'teacher',      name_ar: 'معلم',          color: '#059669' },
-  { code: 'staff',        name_ar: 'موظف إداري',    color: '#6b7280' },
+  { code: 'super_admin',         name_ar: 'مشرف المنصة',             color: '#8a1538' },
+  { code: 'school_admin',        name_ar: 'مدير المدرسة',            color: '#2563eb' },
+  { code: 'evaluator',           name_ar: 'مقيّم',                   color: '#6b7280' },
+  { code: 'department_head',     name_ar: 'رئيس قسم',                color: '#d98ea0' },
+  { code: 'deputy_principal',    name_ar: 'نائب المدير',             color: '#8a1538' },
+  { code: 'staff',               name_ar: 'موظف',                    color: '#8a1538' },
+  { code: 'quality_coordinator', name_ar: 'منسّق الجودة والتطوير',  color: '#b45309' },
+  { code: 'viewer',              name_ar: 'مُطّلِع (قراءة فقط)',     color: '#0f766e' },
 ]
 
 const FALLBACK_DEPARTMENTS = [
@@ -78,7 +83,7 @@ const EMPTY_FORM = {
   phone:          '',
   email:          '',
   username:       '',
-  role:           'teacher',
+  role:           'staff',   // أقلّ الأدوار سلطةً — و'teacher' مُزال في 055
   is_active:      true,
   notif_enabled:  true,   // مدير النظام يتحكم في الإشعارات
   notif_email:    true,
