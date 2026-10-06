@@ -366,7 +366,9 @@ function NewTaskForm() {
                     value={selLevels[i] || ''}
                     onChange={e => handleLevelSelect(i, e.target.value)}
                     disabled={isDisabled}
-                    className={`flex-1 px-3 py-2.5 rounded-xl border focus:outline-none focus:ring-2 text-sm transition-all
+                    /* min-w-0: عنصر flex لا ينكمش دون عرض محتواه (min-width:auto)،
+                       و<select> عرضُه الذاتيّ بطول أطول خيار — فيخرج عن الإطار */
+                    className={`flex-1 min-w-0 px-3 py-2.5 rounded-xl border focus:outline-none focus:ring-2 text-sm transition-all
                       ${isDisabled
                         ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
                         : isSelected && isLast
