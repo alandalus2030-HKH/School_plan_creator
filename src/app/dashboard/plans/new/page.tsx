@@ -79,11 +79,14 @@ export default function NewPlanPage() {
   /* حدّا العام الدراسي لا تاريخين مكتوبين بخطّ اليد — نصٌّ مكتوب يشيخ بلا أن يشتكي */
   const [startDate,  setStartDate]  = useState(academicYearStart(currentAcademicYear()))
   const [endDate,    setEndDate]    = useState(academicYearEnd(currentAcademicYear()))
-  /* الافتراض خمسة على نمط الإطار: رئيس · جانب · فرعي · مؤشّر · هدف
-     (قرار المستخدم 2026-10-07). ويبقى اختياراً لا إلزاماً — فشجرة الخطة
-     ليست نسخةً من شجرة الإطار (الوثيقة المعمارية §1). */
-  const [levelCount, setLevelCount] = useState(5)
-  const [levelNames, setLevelNames] = useState(LEVEL_PRESETS[5])
+  /* الافتراض أربعة — وعُدِل إلى خمسة في 2026-10-07 ثم رُوجع في اليوم
+     نفسه. والعلّة أن المهمة لا تُعلَّق إلا على العقدة الأعمق، فالعمق
+     المتغيّر الذي تفترضه الوثيقة (§1: مهمّة على مؤشّر تنفيذيّ مباشرةً،
+     وأخرى تحتها ثلاثة أهداف) غير مبنيّ بعد. فخمسةٌ افتراضاً تعني
+     **إجبار كل فرع على خمسة**، وهو عين التكلّف الذي نقضته الوثيقة.
+     ويُحسم هذا في م2‑2 «قوالب الخطط»: لكل قالب عمقه ومسمّياته. */
+  const [levelCount, setLevelCount] = useState(4)
+  const [levelNames, setLevelNames] = useState(LEVEL_PRESETS[4])
   const [kpiLevels,  setKpiLevels]  = useState<KpiLevelConfig[]>([])
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState('')
