@@ -15,7 +15,7 @@ import { fetchFrameworkLevel, FRAMEWORK_LEVEL_NAMES, FRAMEWORK_MAX_LEVEL, type F
 import { frameworkLevelOf } from '@/lib/planLevels'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin } from 'lucide-react'
+import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin, Loader2 } from 'lucide-react'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
@@ -115,7 +115,7 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, onAdd }
   )
 }
 
-type PlanNode = { id: string; plan_id: string; parent_id: string | null; level_num: number; name_ar: string; order_num: number; standard_code: string | null }
+type PlanNode = { id: string; plan_id: string; parent_id: string | null; level_num: number; name_ar: string; order_num: number; standard_code: string | null; framework_node_id: string | null }
 type TaskLite = { id: string; name_ar: string; status: string; node_id: string; end_date: string | null; order_num: number | null; created_at: string | null }
 type Choice   = { name: string; standardCode: string | null; frameworkNodeId: string | null }
 
@@ -128,6 +128,142 @@ const statusColor: Record<string, string> = {
 }
 
 /* ═══ صف مستوى واحد: قائمة تجمع المضاف + كتالوج الاعتماد + بند مخصص ═══ */
+/* ════════════════════════════════════════════════════════════
+   ⚗️ تجربة 2026-10-07 — الهدف من مؤشّر الإطار: **استرشادٌ لا نسخ**.
+   اقلب المفتاح إلى false ليختفي المكوّن ويعود السلوك كما كان.
+
+   المبدأ: المؤشّر **معيارُ قياس**، والهدف **تغييرٌ مقصود** — وبينهما
+   فعلٌ ومقدارٌ وموعد. فلا يُلصق نصّ المؤشّر اسماً للهدف، بل يُصاغ منه
+   هدفٌ قابل للتحرير. والمكسب الذي يبرّر الفكرة كلّها: **الإسناد يهبط
+   من المعيار الفرعي (76) إلى المؤشّر (284)**، فتقول المصفوفة «هذا
+   المؤشّر بعينه له عملٌ مخطَّط» لا «هذا المعيار الفرعي مغطّى».
+   والإسناد **إلزاميّ** هنا بقرار المستخدم: من اختار من الإطار فقد قصده.
+
+   وحدّه من الوثيقة (§1): شجرة الخطة ليست نسخةً من شجرة الإطار — فلا
+   يُخزَّن كود المؤشّر في standard_code، ويبقى ترقيم العقدة ترقيمَ
+   الخطة. المرساة معرّف ثابت لا كود نصّيّ.
+   ════════════════════════════════════════════════════════════ */
+const GOAL_FROM_INDICATOR = true
+
+function GoalFromIndicator({ subCode, planName, existing, onAdd }: {
+  subCode: string
+  planName: string
+  existing: string[]
+  onAdd: (items: { name: string; frameworkNodeId: string }[]) => Promise<void>
+}) {
+  const [inds,    setInds]    = useState<FrameworkNode[]>([])
+  const [openId,  setOpenId]  = useState<string | null>(null)
+  const [drafts,  setDrafts]  = useState<{ name: string; checked: boolean }[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving,  setSaving]  = useState(false)
+  const [manual,  setManual]  = useState('')
+  const [error,   setError]   = useState('')
+
+  useEffect(() => { fetchFrameworkLevel(4, subCode).then(setInds) }, [subCode])
+
+  const current = inds.find(i => i.id === openId) || null
+
+  const open = async (ind: FrameworkNode) => {
+    setOpenId(ind.id); setDrafts([]); setManual(''); setError(''); setLoading(true)
+    try {
+      const res = await fetch('/api/plan-nodes/suggest', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'goal', contextName: ind.name_ar, contextCode: ind.code, planName, existing,
+        }),
+      })
+      const j = await res.json()
+      if (!res.ok) setError(j.error || 'تعذّر التوليد — اكتب الهدف يدوياً')
+      else setDrafts((j.suggestions || []).map((name: string) => ({ name, checked: false })))
+    } catch { setError('تعذّر الاتصال — اكتب الهدف يدوياً') }
+    finally { setLoading(false) }
+  }
+
+  const save = async () => {
+    if (!current) return
+    const chosen = [
+      ...drafts.filter(d => d.checked).map(d => d.name.trim()),
+      ...(manual.trim() ? [manual.trim()] : []),
+    ].filter(Boolean)
+    if (!chosen.length) return
+    setSaving(true)
+    await onAdd(chosen.map(name => ({ name, frameworkNodeId: current.id })))
+    setSaving(false); setOpenId(null); setDrafts([]); setManual('')
+  }
+
+  if (!inds.length) return null
+
+  /* تطابق نصّ الهدف مع نصّ المؤشّر — يُعرَض ولا يُمنع */
+  const verbatim = !!current && manual.trim() === current.name_ar.trim()
+
+  return (
+    <div className="mt-3 border border-emerald-200 bg-emerald-50/50 rounded-xl p-3">
+      <p className="text-xs font-bold text-emerald-800 mb-1 flex items-center gap-1.5">
+        <span className="inline-flex"><Sparkles size={13} /></span>
+        <span>أهداف مستمدّة من مؤشرات هذا المعيار الفرعي</span>
+      </p>
+      <p className="text-[11px] text-emerald-700/80 mb-2.5">
+        المؤشّر يصف <strong>ما يُقاس</strong>، والهدف يصف <strong>تغييراً تريده</strong>.
+        فاختر مؤشّراً ليُصاغ منه هدف — ويُسنَد الهدف إليه تلقائياً.
+      </p>
+
+      <div className="space-y-1.5">
+        {inds.map(ind => (
+          <div key={ind.id} className="bg-white border border-emerald-100 rounded-lg">
+            <button type="button" onClick={() => openId === ind.id ? setOpenId(null) : open(ind)}
+              className="w-full text-right p-2.5 hover:bg-emerald-50/60 transition-colors rounded-lg">
+              <span className="text-[11px] font-mono text-emerald-700 ms-1.5">{ind.code}</span>
+              <span className="text-xs text-slate-700">{ind.name_ar}</span>
+            </button>
+
+            {openId === ind.id && (
+              <div className="border-t border-emerald-100 p-2.5 space-y-2">
+                {loading && (
+                  <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                    <span className="inline-flex"><Loader2 size={12} className="animate-spin" /></span>
+                    <span>تُصاغ أهدافٌ من المؤشّر…</span>
+                  </p>
+                )}
+                {error && <p className="text-[11px] text-amber-700">{error}</p>}
+
+                {drafts.map((d, i) => (
+                  <label key={i} className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
+                    <input type="checkbox" checked={d.checked} className="mt-0.5"
+                      onChange={e => setDrafts(p => p.map((x, j) => j === i ? { ...x, checked: e.target.checked } : x))} />
+                    <input value={d.name} onChange={e => setDrafts(p => p.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                      className="flex-1 px-2 py-1 rounded-lg border border-slate-200 text-xs" />
+                  </label>
+                ))}
+
+                <input value={manual} onChange={e => setManual(e.target.value)}
+                  placeholder="أو اكتب الهدف بنفسك…"
+                  className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs" />
+
+                {verbatim && (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                    هذا <strong>نصّ المؤشّر كما هو</strong> — والهدف يصف تغييراً تريده بفعلٍ ومقدارٍ وموعد.
+                    ولك أن تمضي.
+                  </p>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={save} disabled={saving}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:brightness-95 px-3 py-1.5 rounded-lg disabled:opacity-50">
+                    <span className="inline-flex">{saving ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}</span>
+                    <span>{saving ? 'يُضاف…' : 'أضف هدفاً مُسنَداً إلى هذا المؤشّر'}</span>
+                  </button>
+                  <button type="button" onClick={() => setOpenId(null)}
+                    className="text-[11px] text-slate-400 hover:text-slate-600">إلغاء</button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function LevelRow({ levelNum, frameworkLevel, levelName, color, existing, parentStandardCode, codes, selectedId, saving, onSelect, onAdd }: {
   levelNum: number; frameworkLevel: number | null; levelName: string; color: string
   existing: PlanNode[]; parentStandardCode: string | null
@@ -238,7 +374,7 @@ export default function PlanBuildPage() {
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
       supabase.from('plans').select('id, name_ar, level_count, level_names, approved_at, frozen_at').eq('id', planId).single(),
-      supabase.from('plan_nodes').select('id, plan_id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
+      supabase.from('plan_nodes').select('id, plan_id, parent_id, level_num, name_ar, order_num, standard_code, framework_node_id').eq('plan_id', planId).order('order_num'),
     ])
     setPlan(planData)
     setNodes(nodesData || [])
@@ -299,13 +435,19 @@ export default function PlanBuildPage() {
   }
 
   /* إضافة دفعة أهداف (أبناء العقدة المختارة) من اقتراحات الذكاء الاصطناعي */
-  const addGoals = async (parent: PlanNode, names: string[]) => {
+  const addGoals = async (parent: PlanNode, items: (string | { name: string; frameworkNodeId: string })[]) => {
     const sibs = nodes.filter(n => n.level_num === parent.level_num + 1 && n.parent_id === parent.id)
     let order = sibs.length ? Math.max(...sibs.map(s => s.order_num)) + 1 : 1
-    const rows = names.map(name => ({
-      plan_id: planId, parent_id: parent.id, level_num: parent.level_num + 1,
-      name_ar: name, order_num: order++, standard_code: null, framework_node_id: null,
-    }))
+    /* standard_code يبقى null ولو كان الهدف مستمدّاً من مؤشّر: ترقيم العقدة
+       ترقيمُ الخطة، والمرساة معرّف ثابت — شجرة الخطة ليست نسخة الإطار (§1). */
+    const rows = items.map(it => {
+      const o = typeof it === 'string' ? { name: it, frameworkNodeId: null } : it
+      return {
+        plan_id: planId, parent_id: parent.id, level_num: parent.level_num + 1,
+        name_ar: o.name, order_num: order++, standard_code: null,
+        framework_node_id: o.frameworkNodeId,
+      }
+    })
     const { error } = await supabase.from('plan_nodes').insert(rows)
     if (error) { toast(`تعذّر إضافة الأهداف: ${error.message}`, 'error'); return }
     await load()
@@ -539,6 +681,16 @@ export default function PlanBuildPage() {
                     planName={plan.name_ar}
                     existing={nodes.filter(n => n.parent_id === sel.id && n.level_num === levelCount).map(n => n.name_ar)}
                     onAdd={names => addGoals(sel, names)}
+                  />
+                )}
+                {/* ⚗️ الهدف من مؤشّر — حين يكون أب الأهداف معياراً فرعياً (كود من ثلاثة أجزاء) */}
+                {GOAL_FROM_INDICATOR && sel.level_num === levelCount - 1
+                  && !!sel.standard_code && sel.standard_code.split('.').length === 3 && (
+                  <GoalFromIndicator
+                    subCode={sel.standard_code}
+                    planName={plan.name_ar}
+                    existing={nodes.filter(n => n.parent_id === sel.id && n.level_num === levelCount).map(n => n.name_ar)}
+                    onAdd={items => addGoals(sel, items)}
                   />
                 )}
               </>
