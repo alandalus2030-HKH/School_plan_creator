@@ -717,8 +717,9 @@ export default function UsersPage() {
   const ROLE_STRIP = true
 
   const stats = ROLE_STRIP ? [
-    { label: 'إجمالي', value: profiles.length,                          Icon: Users,        tone: 'dark'   },
-    { label: 'نشطون',  value: profiles.filter(p => p.is_active).length,  Icon: CheckCircle2, tone: 'medium' },
+    { label: 'إجمالي',  value: profiles.length,                           Icon: Users,        tone: 'dark'   },
+    { label: 'نشطون',   value: profiles.filter(p => p.is_active).length,   Icon: CheckCircle2, tone: 'medium' },
+    { label: 'معطّلون', value: profiles.filter(p => !p.is_active).length,  Icon: UserRound,    tone: 'light'  },
   ] : [
     { label: 'إجمالي',  value: profiles.length,                                                     Icon: Users,        tone: 'dark'   },
     { label: 'نشطون',   value: profiles.filter(p => p.is_active).length,                            Icon: CheckCircle2, tone: 'medium' },
@@ -776,7 +777,7 @@ export default function UsersPage() {
       </div>
 
       {/* ── إحصائيات ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className={ROLE_STRIP ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 sm:grid-cols-4 gap-3"}>
         {stats.map(s => {
           const t = statTones[s.tone]
           return (
