@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
 import { LEVEL_COUNTS, levelOptionLabel } from '@/lib/planLevels'
+import { currentAcademicYear } from '@/lib/dates'
 import {
   Building2, UserRound, Map, Upload, ImageIcon, Loader2, Check,
   ArrowLeft, ArrowRight, PartyPopper, LogIn, Trash2,
@@ -43,7 +44,8 @@ export default function OnboardingPage() {
 
   /* الخطة (اختياري) */
   const [planName, setPlanName] = useState('')
-  const [planYear, setPlanYear] = useState('2025-2026')
+  /* العام الجاري محسوباً لا نصّاً متجمّداً — نصٌّ مكتوب يشيخ بلا أن يشتكي */
+  const [planYear, setPlanYear] = useState(currentAcademicYear())
   const [planLevels, setPlanLevels] = useState(4)
 
   /* حارس مشرف النظام */

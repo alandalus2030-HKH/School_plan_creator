@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { toast } from '@/components/Toast'
 import {
   Building2, Loader2, Upload, ImageIcon, Save, Phone, Mail, MapPin,
-  UserRound, Hash, FileText, Eye, Target, Trash2,
+  UserRound, Hash, FileText, Eye, Target, Trash2, CalendarDays,
 } from 'lucide-react'
+import { currentAcademicYear, ACADEMIC_YEAR_START_MONTH } from '@/lib/dates'
 
 type SchoolData = {
   id: string
@@ -149,6 +150,21 @@ export default function SchoolProfile() {
             <div>
               <label className={labelCls}>اسم المدرسة (إنجليزي)</label>
               <input value={data.name_en || ''} onChange={e => setField('name_en', e.target.value)} dir="ltr" className={inputCls} />
+            </div>
+
+            {/* العام الجاري — للقراءة: محسوبٌ من التاريخ لا إعدادٌ يُنسى كل أغسطس */}
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="inline-flex text-slate-400 mt-0.5"><CalendarDays size={15} /></span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-xs text-slate-500">
+                  العام الدراسي الجاري:
+                  {' '}<strong className="text-slate-800 font-latin">{currentAcademicYear()}</strong>
+                </span>
+                <span className="block text-[11px] text-slate-400 mt-0.5">
+                  يُحتسب آلياً من التاريخ — يبدأ في الشهر {ACADEMIC_YEAR_START_MONTH} (أغسطس) وينتهي في 30 يونيو.
+                  وهو <strong>اقتراحٌ</strong> في نماذج الخطط والأدلة، والقيمة المحفوظة تبقى لكل خطة ودليل على حدة.
+                </span>
+              </span>
             </div>
           </div>
         </div>
