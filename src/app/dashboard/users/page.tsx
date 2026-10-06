@@ -700,12 +700,40 @@ export default function UsersPage() {
     light2: { bg: '#fbf2f4',                                  fg: '#8a1538', iconFg: '#d98ea0' },
     light:  { bg: '#f4dde2',                                  fg: '#6f1029', iconFg: '#c25c74' },
   }
-  const stats = [
+  /* ════════════════════════════════════════════════════════════
+     ⚗️ تجربة 2026-10-06 — ملخّص الأدوار بدل البطاقتين الثابتتين.
+     اقلب المفتاح إلى false لتعود البطاقتان القديمتان كما كانتا،
+     ثم يُحذف الخاسر منهما. (أو `git revert` للالتزام كلّه.)
+
+     ولمَ تُستبدلان؟
+     • «معلمون» تَعُدّ `role === 'teacher'` — ودورٌ بهذا الاسم **أُزيل
+       في الترحيل 055**، فالبطاقة صفرٌ أبديّ لا يتحرّك مهما أُضيف.
+     • «إداريون» تُعرَّف **بالنفي** (ليس معلماً ولا موظفاً) — وتعريفٌ
+       بالنفي يشيخ مع كل دورٍ جديد: «أمين مكتبة» غداً يصير إدارياً
+       بلا أن يقرّر ذلك أحد.
+     • والاثنتان معاً لا تجمعان الإجمالي: 3 + 0 ≠ 5، فيسأل المستخدم
+       أين ذهب الباقون.
+     ════════════════════════════════════════════════════════════ */
+  const ROLE_STRIP = true
+
+  const stats = ROLE_STRIP ? [
+    { label: 'إجمالي', value: profiles.length,                          Icon: Users,        tone: 'dark'   },
+    { label: 'نشطون',  value: profiles.filter(p => p.is_active).length,  Icon: CheckCircle2, tone: 'medium' },
+  ] : [
     { label: 'إجمالي',  value: profiles.length,                                                     Icon: Users,        tone: 'dark'   },
     { label: 'نشطون',   value: profiles.filter(p => p.is_active).length,                            Icon: CheckCircle2, tone: 'medium' },
     { label: 'معلمون',  value: profiles.filter(p => p.role === 'teacher').length,                   Icon: BookOpen,     tone: 'light2' },
     { label: 'إداريون', value: profiles.filter(p => !['teacher','staff'].includes(p.role)).length,  Icon: Crown,        tone: 'light'  },
   ]
+
+  /* توزيع المستخدمين على الأدوار — بترتيب جدول الأدوار (sort_order)،
+     فلا يقفز موضع الرقاقة بتغيّر الأعداد. و`super_admin` يُستثنى:
+     دور منصّة لا دور مدرسة. */
+  const roleCounts = roles
+    .filter(r => r.code !== 'super_admin')
+    .map(r => ({ ...r, count: profiles.filter(p => p.role === r.code).length }))
+  const rolesUsed  = roleCounts.filter(r => r.count > 0)
+  const rolesEmpty = roleCounts.filter(r => r.count === 0)
 
   /* ════ حماية الوصول ════ */
   if (!permsLoading && !can('manage_users')) return <NoAccess />
@@ -761,6 +789,41 @@ export default function UsersPage() {
           )
         })}
       </div>
+
+      {/* ── ⚗️ شريط الأدوار (تجربة 2026-10-06) ── */}
+      {ROLE_STRIP && rolesUsed.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-slate-500 ms-1">حسب الدور:</span>
+            {rolesUsed.map(r => {
+              const on = roleFilter === r.code
+              return (
+                <button key={r.code} type="button"
+                  onClick={() => setRoleFilter(on ? '' : r.code)}
+                  title={on ? 'إزالة الترشيح' : `عرض ${r.name_ar} فقط`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition`}
+                  style={on
+                    ? { background: r.color || '#6b7280', color: '#fff', borderColor: r.color || '#6b7280' }
+                    : { background: `${r.color || '#6b7280'}14`, color: r.color || '#6b7280', borderColor: `${r.color || '#6b7280'}33` }}>
+                  <span>{r.name_ar}</span>
+                  <span className="font-latin opacity-80">{r.count}</span>
+                </button>
+              )
+            })}
+            {roleFilter && (
+              <button type="button" onClick={() => setRoleFilter('')}
+                className="text-[11px] text-slate-400 hover:text-slate-600 underline underline-offset-2">
+                إزالة الترشيح
+              </button>
+            )}
+          </div>
+          {rolesEmpty.length > 0 && (
+            <p className="text-[11px] text-slate-400 mt-2 ms-1">
+              أدوار بلا مستخدمين: {rolesEmpty.map(r => r.name_ar).join(' · ')}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── بحث وتصفية ── */}
       <div className="flex items-center gap-3 flex-wrap">
