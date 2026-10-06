@@ -124,6 +124,9 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
   }
 
   /* تعديل الخطة */
+  /* أعمق مستوى فيه عقدة فعلاً — حدّ الإنقاص (ترحيل 078 يحرسه في القاعدة) */
+  const planDepth = nodes.reduce((m: number, n: any) => Math.max(m, n.level_num || 0), 0)
+
   const openEditPlan = () => {
     setEditPlanName(plan.name_ar); setEditPlanYear(plan.academic_year)
     const lc = plan.level_count || 3
@@ -142,11 +145,17 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
     if (!editPlanName.trim()) return
     setSavingPlan(true)
     const prevOwner = plan.owner_id || ''
-    await supabase.from('plans').update({
+    const { error: planErr } = await supabase.from('plans').update({
       name_ar: editPlanName.trim(), academic_year: editPlanYear,
       level_count: editLevelCount, level_names: editLevelNames,
       department: editDept || null, plan_category: editCategory || null, owner_id: editOwner || null,
     }).eq('id', planId)
+    /* رفض القاعدة يُعرَض ولا يُبتلَع: حارس العمق (078) · التجميد (053) */
+    if (planErr) {
+      setSavingPlan(false)
+      toast(planErr.message || 'تعذّر حفظ تعديلات الخطة', 'error')
+      return
+    }
     if (editOwner && editOwner !== prevOwner && editOwner !== userId) {
       await createNotification({
         recipientId: editOwner, senderId: userId, type: 'task_status_changed',
@@ -494,11 +503,24 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
             <div className="bg-white/10 rounded-xl p-4 space-y-3">
               <p className="inline-flex items-center gap-1.5 text-white text-sm font-bold"><Layers size={14} /> عدد مستويات الهيكل الهرمي</p>
               <div className="flex gap-2">
-                {[2, 3, 4, 5].map(n => (
-                  <button key={n} type="button" onClick={() => handleLevelCountChange(n)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${editLevelCount === n ? 'bg-white text-violet-700 shadow' : 'bg-white/15 text-white/80 hover:bg-white/25'}`}>{n}</button>
-                ))}
+                {[2, 3, 4, 5].map(n => {
+                  /* لا ينزل العدد دون أعمق عقدة: الإنقاص يُخفي ولا يحذف */
+                  const blocked = n < planDepth
+                  return (
+                    <button key={n} type="button" disabled={blocked} onClick={() => handleLevelCountChange(n)}
+                      title={blocked ? `في الخطة عقدٌ في المستوى ${planDepth} — احذفها من شاشة البناء أولاً` : ''}
+                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${editLevelCount === n ? 'bg-white text-violet-700 shadow' : blocked ? 'bg-white/5 text-white/30 cursor-not-allowed' : 'bg-white/15 text-white/80 hover:bg-white/25'}`}>{n}</button>
+                  )
+                })}
               </div>
+              {planDepth > 0 && (
+                <p className="text-[11px] text-white/60 leading-relaxed">
+                  أعمق عقدة في الخطة: <span className="font-bold text-white">المستوى {planDepth}</span>.
+                  {' '}تعديل <span className="font-bold text-white">الأسماء</span> آمنٌ دائماً،
+                  {' '}وإنقاص العدد دون ذلك <span className="font-bold text-white">يُخفي</span> العقد الأعمق
+                  {' '}وما تحتها من مهامّ وأدلة ولا يحذفها — فاحذفها من شاشة البناء أولاً.
+                </p>
+              )}
               <div className="space-y-2 mt-2">
                 {editLevelNames.map((lname, idx) => (
                   <div key={idx} className="flex items-center gap-2">
