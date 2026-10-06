@@ -79,8 +79,11 @@ export default function NewPlanPage() {
   /* حدّا العام الدراسي لا تاريخين مكتوبين بخطّ اليد — نصٌّ مكتوب يشيخ بلا أن يشتكي */
   const [startDate,  setStartDate]  = useState(academicYearStart(currentAcademicYear()))
   const [endDate,    setEndDate]    = useState(academicYearEnd(currentAcademicYear()))
-  const [levelCount, setLevelCount] = useState(4)
-  const [levelNames, setLevelNames] = useState(LEVEL_PRESETS[4])
+  /* الافتراض خمسة على نمط الإطار: رئيس · جانب · فرعي · مؤشّر · هدف
+     (قرار المستخدم 2026-10-07). ويبقى اختياراً لا إلزاماً — فشجرة الخطة
+     ليست نسخةً من شجرة الإطار (الوثيقة المعمارية §1). */
+  const [levelCount, setLevelCount] = useState(5)
+  const [levelNames, setLevelNames] = useState(LEVEL_PRESETS[5])
   const [kpiLevels,  setKpiLevels]  = useState<KpiLevelConfig[]>([])
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState('')
