@@ -67,7 +67,7 @@ export default function PlanOverviewPage() {
     })()
   }, [])
 
-  /* ── إعدادات م.أ.ر KPI ── */
+  /* ── إعدادات مؤشرات قياس الأداء الرئيسية KPI ── */
   type KpiLevelConfig = {
     levelIndex: number
     enabled:    boolean
@@ -244,7 +244,7 @@ export default function PlanOverviewPage() {
     await load()
   }
 
-  /* ── إعدادات م.أ.ر KPI ── */
+  /* ── إعدادات مؤشرات قياس الأداء الرئيسية KPI ── */
   const KPI_TYPE_LABELS: Record<string,string> = {
     impact:  'أثر بعيد',
     outcome: 'نتيجة مباشرة',
@@ -631,12 +631,12 @@ export default function PlanOverviewPage() {
                 </button>
                 <Link href={`/dashboard/plans/${planId}/kpis`}
                   className="flex items-center gap-1.5 bg-violet-500/25 hover:bg-violet-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <BarChart3 size={14} /> لوحة م.أ.ر KPI
+                  <BarChart3 size={14} /> لوحة مؤشرات قياس الأداء الرئيسية KPI
                 </Link>
                 {(isSuperAdmin || can('manage_plans')) && (
                   <button onClick={openKpiSettings}
                     className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                    <Settings size={14} /> إعدادات م.أ.ر KPI
+                    <Settings size={14} /> إعدادات مؤشرات قياس الأداء الرئيسية KPI
                   </button>
                 )}
                 {/* اعتماد / إلغاء الاعتماد — مشرف النظام أو من يملك صلاحية اعتماد الخطط */}
@@ -1018,7 +1018,7 @@ export default function PlanOverviewPage() {
         </div>
       )}
 
-      {/* ══ مودال إعدادات م.أ.ر KPI ══ */}
+      {/* ══ مودال إعدادات مؤشرات قياس الأداء الرئيسية KPI ══ */}
       {showKpiSettings && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
           onClick={() => setShowKpiSettings(false)}>
@@ -1028,8 +1028,8 @@ export default function PlanOverviewPage() {
             {/* رأس المودال */}
             <div className="flex items-center justify-between p-5 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 size={18} /> إعدادات م.أ.ر KPI</h3>
-                <p className="text-xs text-slate-400 mt-0.5">فعّل أو عطّل م.أ.ر KPI لكل مستوى من مستويات الخطة</p>
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 size={18} /> إعدادات مؤشرات قياس الأداء الرئيسية KPI</h3>
+                <p className="text-xs text-slate-400 mt-0.5">فعّل أو عطّل مؤشرات قياس الأداء الرئيسية KPI لكل مستوى من مستويات الخطة</p>
               </div>
               <button onClick={() => setShowKpiSettings(false)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100"><X size={18} /></button>
             </div>

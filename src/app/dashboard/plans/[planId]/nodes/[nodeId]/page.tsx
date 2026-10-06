@@ -50,7 +50,7 @@ const KPI_FREQ_LABEL: Record<string,string> = {
 }
 
 /* ═══════════════════════════════════════════
-   مكوّن قسم م.أ.ر KPI KPI لعقدة محددة
+   مكوّن قسم مؤشرات قياس الأداء الرئيسية KPI لعقدة محددة
    ═══════════════════════════════════════════ */
 type KpiSuggestion = {
   name_ar:        string
@@ -256,7 +256,7 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName, canManage=false }: {
       <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border-b border-emerald-200 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <ChartNoAxesColumn size={15} className="text-emerald-700" />
-          <span className="text-xs font-bold text-emerald-800">م.أ.ر KPI</span>
+          <span className="text-xs font-bold text-emerald-800">مؤشرات قياس الأداء الرئيسية KPI</span>
           <span className="text-xs bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-full font-semibold">{kpis.length}</span>
           <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
             {KPI_TYPE_LABEL[kpiConf.kpiType] || kpiConf.kpiType} · {KPI_FREQ_LABEL[kpiConf.frequency] || kpiConf.frequency}
@@ -319,7 +319,7 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName, canManage=false }: {
           {generating && (
             <div className="px-3 py-6 text-center text-xs text-violet-600">
               <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              يقوم الذكاء الاصطناعي بتحليل الهدف وإنشاء م.أ.ر KPI...
+              يقوم الذكاء الاصطناعي بتحليل الهدف وإنشاء مؤشرات قياس الأداء الرئيسية KPI...
             </div>
           )}
 
@@ -498,14 +498,14 @@ function KpiSection({ nodeId, kpiConf, nodeName, planName, canManage=false }: {
       {/* حالة فارغة */}
       {kpis.length === 0 && !adding && (
         <div className="px-3 py-4 text-center text-xs text-emerald-600/70">
-          لم يتم إضافة م.أ.ر KPI بعد — اضغط <strong>إضافة مؤشر</strong> للبدء
+          لم يتم إضافة مؤشرات قياس الأداء الرئيسية KPI بعد — اضغط <strong>إضافة مؤشر</strong> للبدء
         </div>
       )}
 
       {/* نموذج الإضافة */}
       {adding && (
         <form onSubmit={addKpi} className="p-3 border-t border-emerald-200 bg-white/70 space-y-2">
-          <p className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 mb-1.5"><Plus size={13} /> م.أ.ر KPI جديد</p>
+          <p className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 mb-1.5"><Plus size={13} /> مؤشرات قياس الأداء الرئيسية KPI جديد</p>
 
           {/* اسم المؤشر */}
           <input
@@ -873,7 +873,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
       {isOpen && (
       <div className={`mr-5 mt-1 space-y-1 pb-2 ${depth > 0 ? 'border-r-2 border-slate-100 pr-3' : ''}`}>
 
-        {/* ══ قسم م.أ.ر KPI KPI ══ */}
+        {/* ══ قسم مؤشرات قياس الأداء الرئيسية KPI ══ */}
         {kpiConf && (
           <KpiSection
             nodeId={node.id}

@@ -3,7 +3,7 @@
 /* ════════════════════════════════════════════════════════════
    رأس الخطة وأدواتها — مكوّن مشترك بين العرضين (الهرمي والقوائم)
    لضمان تكافؤ كامل بلا ازدواج كود: نسبة الإنجاز + تقدير الجودة +
-   تصدير/استيراد Excel + إعدادات م.أ.ر KPI + لوحة م.أ.ر KPI + تقرير QNSA +
+   تصدير/استيراد Excel + إعدادات مؤشرات قياس الأداء الرئيسية KPI + لوحة مؤشرات قياس الأداء الرئيسية KPI + تقرير QNSA +
    الاعتماد + تنبيه صاحب الخطة + التعديل + الحذف + زر التحويل بين العرضين.
    يفتح بياناته بنفسه؛ ويُعلم الصفحة الأم عبر onChanged لإعادة تحميل المحتوى.
    ════════════════════════════════════════════════════════════ */
@@ -198,7 +198,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
     await load(); onChanged()
   }
 
-  /* إعدادات م.أ.ر KPI */
+  /* إعدادات مؤشرات قياس الأداء الرئيسية KPI */
   const openKpiSettings = () => {
     const lc     = plan.level_count || 3
     const saved  = (plan.kpi_levels || []) as KpiLevelConfig[]
@@ -423,12 +423,12 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                 </button>
                 <Link href={`/dashboard/plans/${planId}/kpis`}
                   className="flex items-center gap-1.5 bg-violet-500/25 hover:bg-violet-500/40 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                  <BarChart3 size={14} /> لوحة م.أ.ر KPI
+                  <BarChart3 size={14} /> لوحة مؤشرات قياس الأداء الرئيسية KPI
                 </Link>
                 {(isSuperAdmin || can('manage_plans')) && !plan.frozen_at && (
                   <button onClick={openKpiSettings}
                     className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
-                    <Settings size={14} /> إعدادات م.أ.ر KPI
+                    <Settings size={14} /> إعدادات مؤشرات قياس الأداء الرئيسية KPI
                   </button>
                 )}
                 {(isSuperAdmin || can('approve_plans')) && (
@@ -602,14 +602,14 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
         </div>
       )}
 
-      {/* ══ مودال إعدادات م.أ.ر KPI ══ */}
+      {/* ══ مودال إعدادات مؤشرات قياس الأداء الرئيسية KPI ══ */}
       {showKpiSettings && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowKpiSettings(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 size={18} /> إعدادات م.أ.ر KPI</h3>
-                <p className="text-xs text-slate-400 mt-0.5">فعّل أو عطّل م.أ.ر KPI لكل مستوى من مستويات الخطة</p>
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><BarChart3 size={18} /> إعدادات مؤشرات قياس الأداء الرئيسية KPI</h3>
+                <p className="text-xs text-slate-400 mt-0.5">فعّل أو عطّل مؤشرات قياس الأداء الرئيسية KPI لكل مستوى من مستويات الخطة</p>
               </div>
               <button onClick={() => setShowKpiSettings(false)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100"><X size={18} /></button>
             </div>

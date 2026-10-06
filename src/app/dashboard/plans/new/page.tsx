@@ -210,7 +210,7 @@ export default function NewPlanPage() {
         {[
           { n: 1, label: 'البيانات الأساسية' },
           { n: 2, label: 'هيكل المستويات' },
-          { n: 3, label: 'م.أ.ر KPI' },
+          { n: 3, label: 'مؤشرات قياس الأداء الرئيسية KPI' },
         ].map(({ n, label }, i) => (
           <div key={n} className="flex items-center gap-2 flex-1">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all flex-shrink-0
@@ -378,7 +378,7 @@ export default function NewPlanPage() {
             <div className="flex gap-3">
               <button onClick={goToKpiStep}
                 className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl transition-colors shadow-lg shadow-violet-200">
-                التالي: إعداد م.أ.ر KPI ›
+                التالي: إعداد مؤشرات قياس الأداء الرئيسية KPI ›
               </button>
               <button onClick={() => setStep(1)}
                 className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
@@ -393,7 +393,7 @@ export default function NewPlanPage() {
           <div className="space-y-5">
 
             <div className="bg-violet-50 rounded-xl p-4 border border-violet-100">
-              <p className="text-sm font-semibold text-violet-800 mb-1 flex items-center gap-1"><BarChart3 size={14} /> م.أ.ر KPI الرئيسية (KPIs)</p>
+              <p className="text-sm font-semibold text-violet-800 mb-1 flex items-center gap-1"><BarChart3 size={14} /> مؤشرات قياس الأداء الرئيسية (KPIs)</p>
               <p className="text-xs text-violet-600">
                 حدد المستويات التي ستحتوي على مؤشرات قياس الأداء.
                 المستوى الأول محجوز (حاوٍ عام). المهام كيان منفصل أسفل الهيكل.
@@ -425,7 +425,7 @@ export default function NewPlanPage() {
                         <p className="text-xs text-slate-400">
                           {locked
                             ? 'مستوى جذر — حاوٍ عام للخطة'
-                            : kl.enabled ? 'مُفعَّل للـ KPIs' : 'بدون م.أ.ر KPI'}
+                            : kl.enabled ? 'مُفعَّل للـ KPIs' : 'بدون مؤشرات قياس الأداء الرئيسية KPI'}
                         </p>
                       </div>
                       {!locked && (
@@ -442,7 +442,7 @@ export default function NewPlanPage() {
                       )}
                     </div>
 
-                    {/* إعدادات م.أ.ر KPI (إذا مُفعَّل) */}
+                    {/* إعدادات مؤشرات قياس الأداء الرئيسية KPI (إذا مُفعَّل) */}
                     {!locked && kl.enabled && (
                       <div className="px-4 pb-4 pt-1 border-t border-violet-200 bg-white/60 grid grid-cols-2 gap-3">
                         <div>

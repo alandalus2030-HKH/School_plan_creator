@@ -31,7 +31,7 @@ export const FRAMEWORK_LEVEL_LABELS: Record<number, string> = {
 export const GOAL_LABEL = 'الهدف'
 
 /** تسمية مؤشرات الأداء الرئيسية الخاصة بالخطة (تمييزاً عن مؤشر الإطار). */
-export const KPI_LABEL = 'م.أ.ر KPI'
+export const KPI_LABEL = 'مؤشرات قياس الأداء الرئيسية KPI'
 
 export const LEVEL_PRESETS: Record<number, string[]> = {
   /* مفردات التخطيط: الخطة التشغيلية وخطط الأقسام */
