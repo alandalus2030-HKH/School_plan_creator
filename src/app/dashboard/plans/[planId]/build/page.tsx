@@ -24,12 +24,14 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 
 /* ═══ لوحة اقتراح أهداف/مهام بالذكاء الاصطناعي (Groq) ═══ */
-function AiSuggest({ kind, contextName, contextCode, planName, existing, onAdd }: {
+function AiSuggest({ kind, contextName, contextCode, planName, existing, nodeId, onAdd }: {
   kind: 'goal' | 'task'
   contextName: string
   contextCode: string | null
   planName: string
   existing: string[]
+  /** عقدة الهدف — يجمع المنفذ منها المعيار الفرعي والمؤشّر ونماذج الأدلة */
+  nodeId?: string
   onAdd: (names: string[]) => Promise<void>
 }) {
   const [open,    setOpen]    = useState(false)
@@ -45,7 +47,7 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, onAdd }
     try {
       const res = await fetch('/api/plan-nodes/suggest', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, contextName, contextCode, planName, existing }),
+        body: JSON.stringify({ kind, contextName, contextCode, planName, existing, nodeId }),
       })
       const j = await res.json()
       if (!res.ok) { setError(j.error || 'تعذّر التوليد'); return }
@@ -662,6 +664,7 @@ export default function PlanBuildPage() {
                   contextCode={codes[leafSelected.id] || null}
                   planName={plan.name_ar}
                   existing={leafTasks.map(t => t.name_ar)}
+                  nodeId={leafSelected.id}
                   onAdd={names => addTasks(leafSelected.id, names)}
                 />
               </div>
