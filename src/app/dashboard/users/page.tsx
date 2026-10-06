@@ -7,7 +7,7 @@ import NoAccess from '@/components/NoAccess'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { toast } from '@/components/Toast'
 import * as XLSX from 'xlsx'
-import { Users, CheckCircle2, BookOpen, Crown, UserRound,
+import { Users, CheckCircle2, UserRound,
   UserPlus, Plus, Upload, Download, FileSpreadsheet, Search, X, AlertTriangle, KeyRound, Loader2,
   Pencil, Trash2, Check, Copy, User, Lock, Eye, EyeOff, Mail, ShieldCheck, Star, Bell, ArrowRight, ArrowLeft, Save } from 'lucide-react'
 
@@ -700,31 +700,15 @@ export default function UsersPage() {
     light2: { bg: '#fbf2f4',                                  fg: '#8a1538', iconFg: '#d98ea0' },
     light:  { bg: '#f4dde2',                                  fg: '#6f1029', iconFg: '#c25c74' },
   }
-  /* ════════════════════════════════════════════════════════════
-     ⚗️ تجربة 2026-10-06 — ملخّص الأدوار بدل البطاقتين الثابتتين.
-     اقلب المفتاح إلى false لتعود البطاقتان القديمتان كما كانتا،
-     ثم يُحذف الخاسر منهما. (أو `git revert` للالتزام كلّه.)
-
-     ولمَ تُستبدلان؟
-     • «معلمون» تَعُدّ `role === 'teacher'` — ودورٌ بهذا الاسم **أُزيل
-       في الترحيل 055**، فالبطاقة صفرٌ أبديّ لا يتحرّك مهما أُضيف.
-     • «إداريون» تُعرَّف **بالنفي** (ليس معلماً ولا موظفاً) — وتعريفٌ
-       بالنفي يشيخ مع كل دورٍ جديد: «أمين مكتبة» غداً يصير إدارياً
-       بلا أن يقرّر ذلك أحد.
-     • والاثنتان معاً لا تجمعان الإجمالي: 3 + 0 ≠ 5، فيسأل المستخدم
-       أين ذهب الباقون.
-     ════════════════════════════════════════════════════════════ */
-  const ROLE_STRIP = true
-
-  const stats = ROLE_STRIP ? [
+  /* ── الصفّ الأعلى: تقسيمٌ كامل بالحالة (نشطون + معطّلون = الإجمالي) ──
+     وحلّ محلّ بطاقتَي «معلمون» و«إداريون» (أُسقطتا 2026-10-07):
+     الأولى كانت تَعُدّ `role === 'teacher'` ودورٌ بهذا الاسم أُزيل في
+     الترحيل 055 — فصفرٌ أبديّ. والثانية تُعرَّف بالنفي، وتعريفٌ بالنفي
+     يشيخ مع كل دورٍ جديد. والتقسيم بالصلاحية موضعه شريط الأدوار أدناه. */
+  const stats = [
     { label: 'إجمالي',  value: profiles.length,                           Icon: Users,        tone: 'dark'   },
     { label: 'نشطون',   value: profiles.filter(p => p.is_active).length,   Icon: CheckCircle2, tone: 'medium' },
     { label: 'معطّلون', value: profiles.filter(p => !p.is_active).length,  Icon: UserRound,    tone: 'light'  },
-  ] : [
-    { label: 'إجمالي',  value: profiles.length,                                                     Icon: Users,        tone: 'dark'   },
-    { label: 'نشطون',   value: profiles.filter(p => p.is_active).length,                            Icon: CheckCircle2, tone: 'medium' },
-    { label: 'معلمون',  value: profiles.filter(p => p.role === 'teacher').length,                   Icon: BookOpen,     tone: 'light2' },
-    { label: 'إداريون', value: profiles.filter(p => !['teacher','staff'].includes(p.role)).length,  Icon: Crown,        tone: 'light'  },
   ]
 
   /* توزيع المستخدمين على الأدوار — بترتيب جدول الأدوار (sort_order)،
@@ -777,7 +761,7 @@ export default function UsersPage() {
       </div>
 
       {/* ── إحصائيات ── */}
-      <div className={ROLE_STRIP ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 sm:grid-cols-4 gap-3"}>
+      <div className="grid grid-cols-3 gap-3">
         {stats.map(s => {
           const t = statTones[s.tone]
           return (
@@ -791,8 +775,8 @@ export default function UsersPage() {
         })}
       </div>
 
-      {/* ── ⚗️ شريط الأدوار (تجربة 2026-10-06) ── */}
-      {ROLE_STRIP && rolesUsed.length > 0 && (
+      {/* ── شريط الأدوار: تقسيمٌ كامل بالصلاحية، ومُرشِّحٌ بنقرة ── */}
+      {rolesUsed.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-slate-500 ms-1">حسب الدور:</span>
