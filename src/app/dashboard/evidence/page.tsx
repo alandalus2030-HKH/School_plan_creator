@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
-  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus } from 'lucide-react'
+  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -180,14 +180,31 @@ export default function EvidenceLockerPage() {
           <h1 className="text-2xl font-bold text-slate-800">خزانة الأدلة</h1>
           <p className="text-sm text-slate-500">كل أدلة المدرسة منظّمةً بالمعيار مع تحليل التغطية</p>
         </div>
-        {/* القناة المباشرة — دليل بلا مهمّة ولا خطة */}
-        {(isSuperAdmin || can('manage_evidence')) && (
-        <Link href="/dashboard/evidence/new"
-          className="ms-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:brightness-95 transition">
-          <span className="inline-flex"><Plus size={16} /></span>
-          <span>رفع دليل</span>
-        </Link>
-        )}
+        <div className="ms-auto flex flex-wrap items-center gap-2">
+          {/* الفرز وفرقه — من يملك triage_evidence (الوثيقة 3.2 · 3.6) */}
+          {(isSuperAdmin || can('triage_evidence')) && (
+            <>
+              <Link href="/dashboard/evidence/triage"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-200 bg-white text-violet-700 text-sm font-semibold hover:bg-violet-50 transition">
+                <span className="inline-flex"><ShieldCheck size={16} /></span>
+                <span>طابور الفرز{stats?.pending ? ` (${stats.pending})` : ''}</span>
+              </Link>
+              <Link href="/dashboard/evidence/teams"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:border-violet-300 transition">
+                <span className="inline-flex"><Users size={16} /></span>
+                <span>فرق التركيز</span>
+              </Link>
+            </>
+          )}
+          {/* القناة المباشرة — دليل بلا مهمّة ولا خطة */}
+          {(isSuperAdmin || can('manage_evidence')) && (
+            <Link href="/dashboard/evidence/new"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:brightness-95 transition">
+              <span className="inline-flex"><Plus size={16} /></span>
+              <span>رفع دليل</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* إحصاءات */}
