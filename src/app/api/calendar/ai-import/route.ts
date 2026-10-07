@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { GROQ_MODEL_VISION } from '@/lib/ai/groq'
+import { parseAiArray } from '@/lib/ai/json'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 const MAX_SIZE_MB = 10
@@ -98,12 +99,14 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json()
     const content = data?.choices?.[0]?.message?.content || '[]'
-    const match = content.match(/\[[\s\S]*\]/)
-    if (!match) return NextResponse.json({ events: [] })
-
-    const raw: any[] = JSON.parse(match[0])
+    /* بعدّ الأقواس لا بتعبيرٍ نمطيّ جَشِع — انظر `src/lib/ai/json.ts` */
+    const raw = parseAiArray(content)
+    if (!raw) {
+      console.error('[calendar/ai-import] ردٌّ غير مفهوم:', String(content).slice(0, 600))
+      return NextResponse.json({ events: [] })
+    }
     const VALID_KINDS = ['holiday', 'break', 'national', 'eid', 'exam', 'other']
-    const events = raw
+    const events = (raw as any[])
       .filter(e => e && typeof e.title === 'string' && e.title.trim())
       .map(e => ({
         title:       String(e.title).trim(),

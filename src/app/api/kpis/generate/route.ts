@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { requireAuth } from '@/lib/supabase/server'
-import { GROQ_MODEL_SMART, groqTuning } from '@/lib/ai/groq'
+import { GROQ_MODEL_SMART, groqTuning, groqModelError } from '@/lib/ai/groq'
+import { parseAiArray } from '@/lib/ai/json'
 
 const KPI_TYPE_LABEL: Record<string, string> = {
   impact:  'الأثر البعيد — تغيير حقيقي في الواقع التعليمي',
@@ -55,8 +56,8 @@ ${existingList}
 4. تتناسب مع نوع المؤشر المطلوب
 5. مكتوبة بالعربية الفصيحة
 
-أجب فقط بمصفوفة JSON خالصة بدون أي نص أو markdown، مثال:
-[{"name_ar":"...","target_value":85,"unit":"%","baseline_value":60,"description":"..."}]`
+أجب بكائن JSON واحد لا غير، مفتاحه "items" وقيمته مصفوفة المؤشرات، بدون أي نص أو markdown، مثال:
+{"items":[{"name_ar":"...","target_value":85,"unit":"%","baseline_value":60,"description":"..."}]}`
 
     const groq   = new Groq({ apiKey })
     const result = await groq.chat.completions.create({
@@ -64,24 +65,26 @@ ${existingList}
       temperature: 0.7,
       max_tokens:  1024,
       ...groqTuning(GROQ_MODEL_SMART),
+      response_format: { type: 'json_object' },
       messages:    [{ role: 'user', content: prompt }],
     })
 
     const rawText = result.choices[0]?.message?.content?.trim() || ''
 
-    const jsonMatch = rawText.match(/\[[\s\S]*\]/)
-    if (!jsonMatch) {
-      return NextResponse.json({ error: 'تعذّر تحليل رد الذكاء الاصطناعي' }, { status: 500 })
+    /* بعدّ الأقواس لا بتعبيرٍ نمطيّ جَشِع — انظر `src/lib/ai/json.ts` */
+    const suggestions = parseAiArray(rawText)
+    if (!suggestions) {
+      console.error('[kpis/generate] ردٌّ غير مفهوم:', rawText.slice(0, 600))
+      return NextResponse.json({ error: 'تعذّر فهم ردّ الذكاء الاصطناعي — أعد المحاولة' }, { status: 500 })
     }
 
-    const suggestions = JSON.parse(jsonMatch[0])
     return NextResponse.json({ suggestions })
 
   } catch (err: any) {
     console.error('[kpis/generate]', err)
-    return NextResponse.json(
-      { error: err?.message || 'خطأ في الخادم' },
-      { status: 500 }
-    )
+    const msg = err?.status === 404
+      ? groqModelError(GROQ_MODEL_SMART, err?.message || '')
+      : 'تعذّر توليد المؤشرات — أعد المحاولة بعد قليل'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

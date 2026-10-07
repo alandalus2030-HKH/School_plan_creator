@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { requireAuth } from '@/lib/supabase/server'
-import { GROQ_MODEL_SMART, groqTuning } from '@/lib/ai/groq'
+import { GROQ_MODEL_SMART, groqTuning, groqModelError } from '@/lib/ai/groq'
+import { parseAiStrings } from '@/lib/ai/json'
 
 /**
  * POST /api/plan-nodes/suggest — اقتراح أهداف أو مهام بالذكاء الاصطناعي (Groq)
@@ -20,6 +21,12 @@ import { GROQ_MODEL_SMART, groqTuning } from '@/lib/ai/groq'
  *     (ص 231). ولو قُدِّمت حاصرةً لحُصر تفكير النموذج في اثني عشر نموذجاً
  *     ومُنع من اقتراح ما هو أنسب — وهو تقييدٌ لا إثراء.
  * والجمع في الخادم لا في المتصفّح: رحلةٌ واحدة بدل أربع.
+ *
+ * ── قراءة الردّ (2026-10-07) ──
+ * يُطلب الجواب **كائناً** `{"items":[…]}` في وضع JSON الصارم، ويُقرأ
+ * بـ`parseAiStrings` التي تعدّ الأقواس بدل التعبير النمطيّ الجَشِع.
+ * والسبب: إثراء السياق أطال الطلب فأطال الجواب، فزاد احتمال أن يُتبعه
+ * النموذج بسطر شرحٍ — وكان اللقط الجَشِع يبتلعه فينفجر التحليل.
  */
 export async function POST(req: NextRequest) {
   const auth = await requireAuth()
@@ -106,8 +113,8 @@ ${existingList}
 7. وإن ذُكر مؤشّر الأداء المُسنَد، فاجعل المهامّ **تشهد له بعينه** لا للمعيار عموماً.
 8. مكتوبة بالعربية الفصيحة، جملة قصيرة لكل مهمة.
 
-أجب فقط بمصفوفة JSON من نصوص (أسماء المهام) بلا أي شرح أو markdown، مثال:
-["إعداد كشف بأسماء ...","تنفيذ ورشة ...","توثيق ..."]`
+أجب بكائن JSON واحد لا غير، مفتاحه "items" وقيمته مصفوفة نصوص (أسماء المهام)، بلا أي شرح أو markdown، مثال:
+{"items":["إعداد كشف بأسماء ...","تنفيذ ورشة ...","توثيق ..."]}`
       : `أنت خبير في التخطيط التربوي والاستراتيجي. مهمتك اقتراح أهداف تشغيلية مناسبة لمعيار اعتماد فرعي.
 
 السياق:
@@ -122,31 +129,40 @@ ${existingList}
 3. واقعي وغير عام.
 4. مكتوب بالعربية الفصيحة، جملة قصيرة لكل هدف.
 
-أجب فقط بمصفوفة JSON من نصوص (أسماء الأهداف) بلا أي شرح أو markdown، مثال:
-["رفع نسبة ...","تحسين ...","ضمان ..."]`
+أجب بكائن JSON واحد لا غير، مفتاحه "items" وقيمته مصفوفة نصوص (أسماء الأهداف)، بلا أي شرح أو markdown، مثال:
+{"items":["رفع نسبة ...","تحسين ...","ضمان ..."]}`
 
     const groq   = new Groq({ apiKey })
     const result = await groq.chat.completions.create({
       model:       GROQ_MODEL_SMART,
       temperature: 0.7,
-      max_tokens:  1024,
+      /* المهامّ أطول من الأهداف، والسياق المُثرى يُطيل الجواب — ورموز
+         «التفكير» تُحسب من السقف نفسه، فالبتر يعود جواباً ناقصاً */
+      max_tokens:  kind === 'task' ? 1500 : 1024,
       ...groqTuning(GROQ_MODEL_SMART),
+      response_format: { type: 'json_object' },
       messages:    [{ role: 'user', content: prompt }],
     })
 
-    const rawText   = result.choices[0]?.message?.content?.trim() || ''
-    const jsonMatch = rawText.match(/\[[\s\S]*\]/)
-    if (!jsonMatch) return NextResponse.json({ error: 'تعذّر تحليل رد الذكاء الاصطناعي' }, { status: 500 })
+    const rawText     = result.choices[0]?.message?.content?.trim() || ''
+    const suggestions = parseAiStrings(rawText)
 
-    const parsed = JSON.parse(jsonMatch[0])
-    const suggestions = (Array.isArray(parsed) ? parsed : [])
-      .map((s: any) => (typeof s === 'string' ? s : s?.name_ar || s?.name || ''))
-      .map((s: string) => s.trim())
-      .filter(Boolean)
+    if (!suggestions) {
+      console.error('[plan-nodes/suggest] ردٌّ غير مفهوم:', rawText.slice(0, 600))
+      return NextResponse.json({ error: 'تعذّر فهم ردّ الذكاء الاصطناعي — أعد المحاولة أو اكتب بنفسك' }, { status: 500 })
+    }
+    if (!suggestions.length) {
+      console.error('[plan-nodes/suggest] قائمة فارغة · finish_reason:', result.choices[0]?.finish_reason)
+      return NextResponse.json({ error: 'لم يُرجع النموذج اقتراحات — أعد المحاولة' }, { status: 500 })
+    }
 
     return NextResponse.json({ suggestions })
   } catch (err: any) {
     console.error('[plan-nodes/suggest]', err)
-    return NextResponse.json({ error: err?.message || 'خطأ في الخادم' }, { status: 500 })
+    /* لا تُعرض رسالة المزوّد الخام على المدرسة — إلّا حين تكون قابلة للعلاج */
+    const msg = err?.status === 404
+      ? groqModelError(GROQ_MODEL_SMART, err?.message || '')
+      : 'تعذّر توليد الاقتراحات — أعد المحاولة بعد قليل'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
