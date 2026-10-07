@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
+import { PLAN_LEVEL_OPTIONS } from '@/lib/planLevels'
 import { Award, BarChart3, Star, Settings, Pencil, Trash2, BadgeCheck, ShieldOff, Bell, ListTree, ClipboardList, Lock, LockOpen,
   Tag, User, Calendar, Upload, Download, CircleCheckBig, X, Layers, FolderTree, Save, Lightbulb, Loader2 } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
@@ -503,7 +504,7 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
             <div className="bg-white/10 rounded-xl p-4 space-y-3">
               <p className="inline-flex items-center gap-1.5 text-white text-sm font-bold"><Layers size={14} /> عدد مستويات الهيكل الهرمي</p>
               <div className="flex gap-2">
-                {[2, 3, 4, 5].map(n => {
+                {PLAN_LEVEL_OPTIONS.map(n => {
                   /* لا ينزل العدد دون أعمق عقدة: الإنقاص يُخفي ولا يحذف */
                   const blocked = n < planDepth
                   return (

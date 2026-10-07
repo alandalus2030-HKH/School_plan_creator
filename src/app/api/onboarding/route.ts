@@ -3,7 +3,7 @@ import { currentAcademicYear } from '@/lib/dates'
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordAudit } from '@/lib/audit'
-import { LEVEL_PRESETS } from '@/lib/planLevels'
+import { LEVEL_PRESETS, PLAN_LEVEL_OPTIONS } from '@/lib/planLevels'
 
 /**
  * POST /api/onboarding  (multipart/form-data)
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     /* ── 4) خطة أولى (اختياري) ── */
     let planId: string | null = null
     if (plan_name) {
-      const lc = [2, 3, 4, 5].includes(plan_levels) ? plan_levels : 4
+      const lc = PLAN_LEVEL_OPTIONS.includes(plan_levels) ? plan_levels : 4
       const { data: plan } = await admin
         .from('plans')
         .insert({

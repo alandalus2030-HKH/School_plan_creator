@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Target, TrendingUp, Package, BarChart3, ArrowRight, Check, CircleCheckBig,
   LayoutGrid, Lock, AlertTriangle, ClipboardList, Sparkles, Network } from 'lucide-react'
-import { LEVEL_PRESETS } from '@/lib/planLevels'
+import { LEVEL_PRESETS, PLAN_LEVEL_OPTIONS } from '@/lib/planLevels'
 import { currentAcademicYear, academicYearStart, academicYearEnd } from '@/lib/dates'
 
 const ACADEMIC_YEARS = Array.from({ length: 16 }, (_, i) => `${2024 + i}-${2025 + i}`)
@@ -322,8 +322,8 @@ export default function NewPlanPage() {
               <label className="block text-sm font-semibold text-slate-700 mb-3">
                 عدد مستويات الهيكل (قبل المهمة)
               </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[2, 3, 4, 5].map(n => (
+              <div className="grid grid-cols-3 gap-2">
+                {PLAN_LEVEL_OPTIONS.map(n => (
                   <button key={n} onClick={() => handleLevelCount(n)}
                     className={`p-3 rounded-xl border-2 text-center transition-all
                       ${levelCount === n

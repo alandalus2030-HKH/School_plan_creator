@@ -13,7 +13,7 @@ import { ClipboardList, Target, TrendingUp, Package, BarChart3, Star,
 import { generateQnsaReport } from '@/lib/qnsaReport'
 import { toast } from '@/components/Toast'
 import StandardPicker from '@/components/StandardPicker'
-import { frameworkLevelOf } from '@/lib/planLevels'
+import { frameworkLevelOf, PLAN_LEVEL_OPTIONS } from '@/lib/planLevels'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -728,7 +728,7 @@ export default function PlanOverviewPage() {
             <div className="bg-white/10 rounded-xl p-4 space-y-3">
               <p className="inline-flex items-center gap-1.5 text-white text-sm font-bold"><Layers size={14} /> عدد مستويات الهيكل الهرمي</p>
               <div className="flex gap-2">
-                {[2, 3, 4, 5].map(n => {
+                {PLAN_LEVEL_OPTIONS.map(n => {
                   /* لا ينزل العدد دون أعمق عقدة: الإنقاص يُخفي ولا يحذف */
                   const blocked = n < planDepth
                   return (
