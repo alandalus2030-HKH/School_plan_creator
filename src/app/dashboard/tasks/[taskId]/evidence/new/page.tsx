@@ -493,7 +493,10 @@ export default function NewEvidencePage() {
                           <span className="text-sm text-slate-700 flex-1 truncate">{r.name}</span>
                           <button type="button" onClick={() => linkExisting(r.id)} disabled={linkingId === r.id}
                             className="px-3 py-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium disabled:opacity-50 flex-shrink-0">
-                            <span className="inline-flex items-center gap-1">{linkingId === r.id ? '...' : <><Link2 size={12} /> إرفاق</>}</span>
+                            <span className="inline-flex items-center gap-1">
+                              <span className="inline-flex">{linkingId === r.id ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}</span>
+                              <span>{linkingId === r.id ? '...' : 'إرفاق'}</span>
+                            </span>
                           </button>
                         </div>
                       ))}

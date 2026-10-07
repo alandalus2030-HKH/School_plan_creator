@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { calcAvgRating } from '@/lib/rating'
-import { PLAN_LEVEL_OPTIONS } from '@/lib/planLevels'
+import { PLAN_LEVEL_OPTIONS, MAX_PLAN_LEVELS } from '@/lib/planLevels'
 import { Award, BarChart3, Star, Settings, Pencil, Trash2, BadgeCheck, ShieldOff, Bell, ListTree, ClipboardList, Lock, LockOpen,
   Tag, User, Calendar, Upload, Download, CircleCheckBig, X, Layers, FolderTree, Save, Lightbulb, Loader2 } from 'lucide-react'
 import { generateQnsaReport } from '@/lib/qnsaReport'
@@ -64,6 +64,8 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
   const [editPlanName,   setEditPlanName]   = useState('')
   const [editPlanYear,   setEditPlanYear]   = useState('')
   const [editLevelCount, setEditLevelCount] = useState(3)
+  const [freshDepth, setFreshDepth]         = useState<number | null>(null)
+  const [editCappedFrom, setEditCappedFrom] = useState(0)
   const [editLevelNames, setEditLevelNames] = useState<string[]>([])
   const [editDept,       setEditDept]       = useState('')
   const [editCategory,   setEditCategory]   = useState('')
@@ -125,17 +127,26 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
   }
 
   /* تعديل الخطة */
-  /* أعمق مستوى فيه عقدة فعلاً — حدّ الإنقاص (ترحيل 078 يحرسه في القاعدة) */
-  const planDepth = nodes.reduce((m: number, n: any) => Math.max(m, n.level_num || 0), 0)
+  /* أعمق مستوى فيه عقدة فعلاً — حدّ الإنقاص (ترحيل 078 يحرسه في القاعدة).
+     `freshDepth` يُقرأ عند فتح النافذة، فيسبق نسخةَ الصفحة إن تغيّرت الشجرة. */
+  const planDepth = freshDepth ?? nodes.reduce((m: number, n: any) => Math.max(m, n.level_num || 0), 0)
 
-  const openEditPlan = () => {
+  const openEditPlan = async () => {
     setEditPlanName(plan.name_ar); setEditPlanYear(plan.academic_year)
-    const lc = plan.level_count || 3
+    const raw = plan.level_count || 3
+    /* خطّةٌ أُنشئت قبل السقف تُقصّ إليه — ويُعلَن ذلك ولا يُفعل صامتاً */
+    const lc  = Math.min(raw, MAX_PLAN_LEVELS)
     const ln: string[] = plan.level_names || []
     setEditLevelCount(lc)
     setEditLevelNames(Array.from({ length: lc }, (_, i) => ln[i] || `المستوى ${i + 1}`))
+    setEditCappedFrom(raw > MAX_PLAN_LEVELS ? raw : 0)
     setEditDept(plan.department || ''); setEditCategory(plan.plan_category || ''); setEditOwner(plan.owner_id || '')
     setEditingPlan(true)
+    /* العمق يُسأل عنه الآن لا عند فتح الصفحة: عقدةٌ حُذفت في تبويبٍ آخر
+       كانت تُبقي الحارس يمنع ما صار مباحاً (سياسة 028 تُخفي المحذوف) */
+    const { data: fresh } = await supabase.from('plan_nodes')
+      .select('level_num').eq('plan_id', planId).order('level_num', { ascending: false }).limit(1)
+    setFreshDepth(fresh?.[0]?.level_num ?? 0)
   }
   const handleLevelCountChange = (newCount: number) => {
     setEditLevelCount(newCount)
@@ -522,6 +533,14 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
                   {' '}وما تحتها من مهامّ وأدلة ولا يحذفها — فاحذفها من شاشة البناء أولاً.
                 </p>
               )}
+              {editCappedFrom > 0 && (
+                <p className="text-[11px] text-amber-100 bg-amber-500/20 border border-amber-300/30 rounded-lg p-2 leading-relaxed">
+                  هذه الخطة مسجَّلة بـ<span className="font-bold">{editCappedFrom} مستويات</span>،
+                  {' '}وسقف النظام اليوم <span className="font-bold">{MAX_PLAN_LEVELS}</span> —
+                  {' '}فالحفظ يثبّتها على <span className="font-bold">{MAX_PLAN_LEVELS}</span>.
+                  {' '}ولو بقيت عقدةٌ حيّة أعمق لرفضت القاعدة الحفظ وأخبرتك.
+                </p>
+              )}
               <div className="space-y-2 mt-2">
                 {editLevelNames.map((lname, idx) => (
                   <div key={idx} className="flex items-center gap-2">
@@ -553,7 +572,10 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
               </select>
             </div>
             <button type="submit" disabled={savingPlan} className="w-full py-3 bg-white text-violet-700 font-bold rounded-xl disabled:opacity-60">
-              <span className="inline-flex items-center justify-center gap-1.5">{savingPlan ? 'جارٍ الحفظ...' : <><Save size={14} /> حفظ التعديلات</>}</span>
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <span className="inline-flex">{savingPlan ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}</span>
+                <span>{savingPlan ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}</span>
+              </span>
             </button>
           </form>
         </div>
@@ -596,7 +618,10 @@ export default function PlanHeaderBar({ planId, active, onChanged }: {
               <button onClick={() => setShowImport(false)} className="px-5 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50">إغلاق</button>
               <button onClick={runImport} disabled={importing || !!importMsg.startsWith('✅')}
                 className="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl disabled:opacity-60 transition-colors">
-                <span className="inline-flex items-center gap-1.5">{importing ? 'جارٍ الاستيراد...' : <><Upload size={14} /> استيراد {importRows.length} صف</>}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex">{importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}</span>
+                  <span>{importing ? 'جارٍ الاستيراد...' : `استيراد ${importRows.length} صف`}</span>
+                </span>
               </button>
             </div>
           </div>

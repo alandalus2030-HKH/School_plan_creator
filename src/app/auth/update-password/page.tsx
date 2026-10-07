@@ -163,7 +163,10 @@ function UpdatePasswordForm() {
 
             <button type="submit" disabled={loading}
               className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl disabled:opacity-60 transition-colors mt-2">
-              <span className="inline-flex items-center justify-center gap-1.5">{loading ? 'جارٍ الحفظ...' : <><Lock size={15} /> تعيين كلمة المرور</>}</span>
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <span className="inline-flex"><Lock size={15} /></span>
+                <span>{loading ? 'جارٍ الحفظ...' : 'تعيين كلمة المرور'}</span>
+              </span>
             </button>
           </form>
         )}

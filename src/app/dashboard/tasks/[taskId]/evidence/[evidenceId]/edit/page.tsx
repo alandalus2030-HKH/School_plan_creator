@@ -405,7 +405,10 @@ export default function EditEvidencePage() {
             <div className="flex gap-3 pt-1">
               <button type="submit" disabled={saving || totalCount === 0}
                 className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 shadow-lg shadow-violet-200">
-                <span className="inline-flex items-center justify-center gap-1.5">{saving ? 'جارٍ الحفظ...' : <><Save size={16} /> حفظ التعديلات ({totalCount} مرفق)</>}</span>
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <span className="inline-flex">{saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}</span>
+                  <span>{saving ? 'جارٍ الحفظ...' : `حفظ التعديلات (${totalCount} مرفق)`}</span>
+                </span>
               </button>
               <button type="button" onClick={() => router.back()}
                 className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">إلغاء</button>
