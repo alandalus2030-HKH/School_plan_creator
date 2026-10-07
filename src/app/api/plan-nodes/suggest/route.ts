@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { requireAuth } from '@/lib/supabase/server'
 import { GROQ_MODEL_SMART, groqTuning, groqModelError } from '@/lib/ai/groq'
-import { parseAiStrings } from '@/lib/ai/json'
+import { parseAiArray } from '@/lib/ai/json'
 
 /**
  * POST /api/plan-nodes/suggest — اقتراح أهداف أو مهام بالذكاء الاصطناعي (Groq)
@@ -263,8 +263,24 @@ ${existingList}
       messages:    [{ role: 'user', content: prompt }],
     })
 
-    const rawText     = result.choices[0]?.message?.content?.trim() || ''
-    const suggestions = parseAiStrings(rawText)
+    const rawText = result.choices[0]?.message?.content?.trim() || ''
+    const parsed  = parseAiArray(rawText)
+
+    /* الصفّ الواحد: اسمٌ وأثرٌ (للمهامّ) أو مؤشّرٌ (للأهداف).
+       و`suggestions` يبقى للمستدعين الذين يكتفون بالأسماء. */
+    const items = (parsed || [])
+      .map((it: any) => (typeof it === 'string'
+        ? { name: it, evidence: '', indicator: '' }
+        : { name: it?.name || it?.name_ar || it?.text || '',
+            evidence:  it?.evidence  || '',
+            indicator: it?.indicator || '' }))
+      .map((it: any) => ({
+        name: String(it.name).trim(),
+        evidence: String(it.evidence).trim(),
+        indicator: String(it.indicator).trim(),
+      }))
+      .filter((it: any) => it.name)
+    const suggestions = parsed ? items.map((i: any) => i.name) : null
 
     if (!suggestions) {
       console.error('[plan-nodes/suggest] ردٌّ غير مفهوم:', rawText.slice(0, 600))
@@ -275,7 +291,7 @@ ${existingList}
       return NextResponse.json({ error: 'لم يُرجع النموذج اقتراحات — أعد المحاولة' }, { status: 500 })
     }
 
-    return NextResponse.json({ suggestions })
+    return NextResponse.json({ suggestions, items })
   } catch (err: any) {
     console.error('[plan-nodes/suggest]', err)
     /* لا تُعرض رسالة المزوّد الخام على المدرسة — إلّا حين تكون قابلة للعلاج */

@@ -15,7 +15,7 @@ import { fetchFrameworkLevel, FRAMEWORK_LEVEL_NAMES, FRAMEWORK_MAX_LEVEL, type F
 import { frameworkLevelOf } from '@/lib/planLevels'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin, Loader2 } from 'lucide-react'
+import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin, Loader2, FileCheck } from 'lucide-react'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
@@ -38,7 +38,7 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, nodeId,
   const [loading, setLoading] = useState(false)
   const [saving,  setSaving]  = useState(false)
   const [error,   setError]   = useState('')
-  const [items,   setItems]   = useState<{ name: string; checked: boolean }[]>([])
+  const [items,   setItems]   = useState<{ name: string; evidence: string; checked: boolean }[]>([])
 
   const label = kind === 'goal' ? 'أهداف' : 'مهام'
 
@@ -51,7 +51,10 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, nodeId,
       })
       const j = await res.json()
       if (!res.ok) { setError(j.error || 'تعذّر التوليد'); return }
-      setItems((j.suggestions || []).map((name: string) => ({ name, checked: true })))
+      /* `items` تحمل الأثر؛ و`suggestions` احتياطٌ لو عاد المنفذ بالأسماء وحدها */
+      setItems(j.items?.length
+        ? j.items.map((it: any) => ({ name: it.name, evidence: it.evidence || '', checked: true }))
+        : (j.suggestions || []).map((name: string) => ({ name, evidence: '', checked: true })))
     } catch { setError('تعذّر الاتصال بالخادم') }
     finally { setLoading(false) }
   }
@@ -93,11 +96,20 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, nodeId,
           {!loading && items.length > 0 && (
             <div className="p-3 space-y-1.5">
               {items.map((it, idx) => (
-                <label key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100 cursor-pointer hover:border-violet-200">
+                <label key={idx} className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-100 cursor-pointer hover:border-violet-200">
                   <input type="checkbox" checked={it.checked}
                     onChange={() => setItems(prev => prev.map((x, i) => i === idx ? { ...x, checked: !x.checked } : x))}
-                    className="accent-violet-600" />
-                  <span className="text-sm text-slate-700">{it.name}</span>
+                    className="accent-violet-600 mt-0.5 shrink-0" />
+                  <span className="min-w-0">
+                    <span className="block text-sm text-slate-700">{it.name}</span>
+                    {/* الأثر: ما تتركه المهمّة حين تُنفَّذ — إرشادٌ للقارئ، ولا يُخزَّن مع الاسم */}
+                    {!!it.evidence && (
+                      <span className="mt-0.5 flex items-start gap-1 text-[11px] text-slate-500">
+                        <span className="inline-flex shrink-0 mt-px"><FileCheck size={11} /></span>
+                        <span>الأثر: {it.evidence}</span>
+                      </span>
+                    )}
+                  </span>
                 </label>
               ))}
               <div className="flex gap-2 pt-1">
