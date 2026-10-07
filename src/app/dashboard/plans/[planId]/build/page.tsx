@@ -32,7 +32,7 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, nodeId,
   existing: string[]
   /** عقدة الهدف — يجمع المنفذ منها المعيار الفرعي والمؤشّر ونماذج الأدلة */
   nodeId?: string
-  onAdd: (names: string[]) => Promise<void>
+  onAdd: (items: { name: string; evidence: string }[]) => Promise<void>
 }) {
   const [open,    setOpen]    = useState(false)
   const [loading, setLoading] = useState(false)
@@ -60,7 +60,7 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, nodeId,
   }
 
   const save = async () => {
-    const chosen = items.filter(i => i.checked).map(i => i.name)
+    const chosen = items.filter(i => i.checked).map(i => ({ name: i.name, evidence: i.evidence }))
     if (!chosen.length) return
     setSaving(true)
     await onAdd(chosen)
@@ -102,11 +102,11 @@ function AiSuggest({ kind, contextName, contextCode, planName, existing, nodeId,
                     className="accent-violet-600 mt-0.5 shrink-0" />
                   <span className="min-w-0">
                     <span className="block text-sm text-slate-700">{it.name}</span>
-                    {/* الأثر: ما تتركه المهمّة حين تُنفَّذ — إرشادٌ للقارئ، ولا يُخزَّن مع الاسم */}
+                    {/* الدليل المتوقَّع: ما تتركه المهمّة حين تُنفَّذ — ويهبط قيمةً مبدئية في «أدلة الإنجاز المطلوبة» */}
                     {!!it.evidence && (
                       <span className="mt-0.5 flex items-start gap-1 text-[11px] text-slate-500">
                         <span className="inline-flex shrink-0 mt-px"><FileCheck size={11} /></span>
-                        <span>الأثر: {it.evidence}</span>
+                        <span>الدليل المتوقَّع: {it.evidence}</span>
                       </span>
                     )}
                   </span>
@@ -471,10 +471,18 @@ export default function PlanBuildPage() {
   }
 
   /* إضافة دفعة مهام تحت الهدف من اقتراحات الذكاء الاصطناعي */
-  const addTasks = async (nodeId: string, names: string[]) => {
+  const addTasks = async (nodeId: string, items: (string | { name: string; evidence?: string })[]) => {
     const sibs = tasks.filter(t => t.node_id === nodeId)
     let order = sibs.length ? Math.max(...sibs.map(s => s.order_num ?? 0)) + 1 : 1
-    const rows = names.map(name => ({ name_ar: name, node_id: nodeId, order_num: order++ }))
+    /* الدليل المتوقَّع يهبط في `evidence_required` (نصّ حرّ) لا في
+       `required_evidence_types` — فتلك قائمةٌ مغلقة وبوّابةُ إنجاز. */
+    const rows = items.map(it => {
+      const o = typeof it === 'string' ? { name: it, evidence: '' } : it
+      return {
+        name_ar: o.name, node_id: nodeId, order_num: order++,
+        evidence_required: o.evidence?.trim() || null,
+      }
+    })
     const { error } = await supabase.from('tasks').insert(rows)
     if (error) { toast(`تعذّر إضافة المهام: ${error.message}`, 'error'); return }
     await load()
@@ -680,7 +688,7 @@ export default function PlanBuildPage() {
                   planName={plan.name_ar}
                   existing={leafTasks.map(t => t.name_ar)}
                   nodeId={leafSelected.id}
-                  onAdd={names => addTasks(leafSelected.id, names)}
+                  onAdd={its => addTasks(leafSelected.id, its)}
                 />
               </div>
             )}
@@ -699,7 +707,7 @@ export default function PlanBuildPage() {
                     planName={plan.name_ar}
                     existing={nodes.filter(n => n.parent_id === sel.id && n.level_num === levelCount).map(n => n.name_ar)}
                     nodeId={sel.id}
-                    onAdd={names => addGoals(sel, names)}
+                    onAdd={its => addGoals(sel, its.map(i => i.name))}
                   />
                 )}
                 {/* ⚗️ الهدف من مؤشّر — حين يكون أب الأهداف معياراً فرعياً (كود من ثلاثة أجزاء) */}
