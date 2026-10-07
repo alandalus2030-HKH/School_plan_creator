@@ -33,14 +33,82 @@ export async function POST(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
 
   try {
-    const { kind, contextName, contextCode, planName, existing, nodeId } = await req.json()
+    const { kind, contextName, contextCode, planName, existing, nodeId, frameworkNodeId } = await req.json()
     if (!contextName) return NextResponse.json({ error: 'السياق مطلوب' }, { status: 400 })
+
+    const db = auth.supabase
+
+    /* ── سياقٌ مشترك: مدّة الخطة وملفّ المدرسة ──
+       بلا مدّةٍ يكتب النموذج مواعيد من ذاكرته (رُصد: «يونيو 2024» في خطة
+       2026‑2027)، وبلا ملفّ المدرسة يخترع ما لا وجود له («جميع الفروع»). */
+    let period = '', school = ''
+    if (nodeId) {
+      try {
+        const { data: pn } = await db.from('plan_nodes').select('plan_id').eq('id', nodeId).maybeSingle()
+        if (pn?.plan_id) {
+          const { data: p } = await db.from('plans')
+            .select('academic_year, start_date, end_date, school_id').eq('id', pn.plan_id).maybeSingle()
+          if (p) {
+            period = [
+              p.academic_year ? `العام الدراسي ${p.academic_year}` : '',
+              p.start_date && p.end_date ? `مدّتها من ${p.start_date} إلى ${p.end_date}` : '',
+            ].filter(Boolean).join(' · ')
+          }
+          if (p?.school_id) {
+            const { data: s } = await db.from('schools')
+              .select('name_ar, vision_ar, mission_ar').eq('id', p.school_id).maybeSingle()
+            if (s) {
+              school = [
+                `- المدرسة: "${s.name_ar}"`,
+                s.vision_ar  ? `- رؤيتها: "${s.vision_ar}"`   : '',
+                s.mission_ar ? `- رسالتها: "${s.mission_ar}"` : '',
+              ].filter(Boolean).join('\n')
+            }
+          }
+        }
+      } catch { /* السياق إثراءٌ لا شرط */ }
+    }
+
+    /* ── سياق الأهداف: مؤشرات المعيار الفرعي · وصف «ممتاز» من سلّم التقدير ──
+       وصف «ممتاز» هو **صورة الحال المنشود** و**وحدة الحكم** التي يُقاس
+       عليها فعلاً (§6 من الوثيقة المعمارية) — فهو أدقّ ما يُلقَّن. */
+    let indList: { code: string; name: string }[] = [], excellence: string[] = []
+    if (kind === 'goal') {
+      try {
+        /* عقدة المعيار الفرعي في الإطار: إمّا من مؤشّرٍ اختير، وإمّا من مرساة عقدة الخطة */
+        let subId: string | null = null
+        if (frameworkNodeId) {
+          const { data: ind } = await db.from('framework_nodes')
+            .select('parent_id').eq('id', frameworkNodeId).maybeSingle()
+          subId = ind?.parent_id || null
+        }
+        if (!subId && nodeId) {
+          const { data: pn } = await db.from('plan_nodes')
+            .select('framework_node_id, standard_code').eq('id', nodeId).maybeSingle()
+          if (pn?.framework_node_id) subId = pn.framework_node_id
+          else if (pn?.standard_code && pn.standard_code.split('.').length === 3) {
+            const { data: fn } = await db.from('framework_nodes')
+              .select('id, frameworks!inner(status)')
+              .eq('code', pn.standard_code).eq('level', 3).eq('frameworks.status', 'active').maybeSingle()
+            subId = fn?.id || null
+          }
+        }
+
+        if (subId) {
+          const [{ data: inds }, { data: rub }] = await Promise.all([
+            db.from('framework_nodes').select('code, name_ar').eq('parent_id', subId).eq('level', 4).order('code'),
+            db.from('framework_rubric').select('descriptor_ar').eq('framework_node_id', subId).eq('level', 5).order('row_index'),
+          ])
+          indList    = (inds || []).map((i: any) => ({ code: i.code, name: i.name_ar }))
+          excellence = (rub  || []).map((r: any) => r.descriptor_ar).filter(Boolean)
+        }
+      } catch { /* السياق إثراءٌ لا شرط */ }
+    }
 
     /* ── سياق إضافيّ للمهام: المعيار الفرعي · المؤشّر المُسنَد · نماذج الأدلة ── */
     let subStd = '', indicator = '', samples: string[] = []
     if (kind === 'task' && nodeId) {
       try {
-        const db = auth.supabase
         const { data: goal } = await db.from('plan_nodes')
           .select('parent_id, framework_node_id').eq('id', nodeId).maybeSingle()
 
@@ -115,30 +183,45 @@ ${existingList}
 
 أجب بكائن JSON واحد لا غير، مفتاحه "items" وقيمته مصفوفة نصوص (أسماء المهام)، بلا أي شرح أو markdown، مثال:
 {"items":["إعداد كشف بأسماء ...","تنفيذ ورشة ...","توثيق ..."]}`
-      : `أنت خبير في التخطيط التربوي والاستراتيجي. مهمتك اقتراح أهداف تشغيلية مناسبة لمعيار اعتماد فرعي.
+      : `أنت خبير في التخطيط التربوي والاستراتيجي في مدرسة قطرية خاصة، تصوغ أهدافاً تشغيلية لمعيار اعتماد فرعي.
 
 السياق:
-- الخطة: ${planName || 'خطة تشغيلية مدرسية'}
+${school || '- المدرسة: مدرسة قطرية خاصة'}
+- الخطة: ${planName || 'خطة تشغيلية مدرسية'}${period ? ` · ${period}` : ''}
 - المعيار الفرعي${contextCode ? ` (${contextCode})` : ''}: "${contextName}"
+${indList.length ? `- مؤشرات الأداء تحته:\n${indList.map(i => `  • (${i.code}) ${i.name}`).join('\n')}` : ''}
+${excellence.length ? `- وصف الأداء «ممتاز» في سلّم التقدير — وهو ما يُحكَم به على المدرسة فعلاً:\n${excellence.map(d => `  • ${d}`).join('\n')}` : ''}
 ${existingList}
 
-المطلوب: اقترح 6 أهداف تشغيلية تحقّق هذا المعيار الفرعي في بيئة مدرسة قطرية خاصة.
-قواعد:
-1. كل هدف محدد وقابل للتحقيق ويخدم المعيار الفرعي مباشرة.
-2. صياغة هدف (نتيجة مرجوّة) لا مهمة تنفيذية.
-3. واقعي وغير عام.
-4. مكتوب بالعربية الفصيحة، جملة قصيرة لكل هدف.
+المطلوب: اقترح **حتى 4** أهداف تشغيلية، مرتَّبةً بالأهمية، تُقرّب المدرسة من وصف «ممتاز» أعلاه.
 
-أجب بكائن JSON واحد لا غير، مفتاحه "items" وقيمته مصفوفة نصوص (أسماء الأهداف)، بلا أي شرح أو markdown، مثال:
-{"items":["رفع نسبة ...","تحسين ...","ضمان ..."]}`
+قواعد مُلزِمة:
+1. الهدف **نتيجة مرجوّة** لا نشاطاً: «يشغل كل موظف وظيفةً تطابق مؤهّله» هدف، و«تدريب الفريق» و«توثيق العمليات» مهامّ موضعها المستوى الذي تحته.
+2. **هدف واحد في كل جملة** — لا تجمع هدفين بحرف «و».
+3. كل هدف يخدم **مؤشّراً بعينه** من المؤشرات أعلاه، واذكر رمزه في الحقل indicator. ووزّع الأهداف على المؤشرات ولا تحشدها على واحد.
+4. **المواعيد من مدّة الخطة وحدها** — ولا موعد خارجها البتّة. وإن لم تكن المدّة مذكورة فلا تذكر تاريخاً.
+5. **لا تذكر ما ليس في السياق**: لا فروع ولا جهات ولا شهادات ولا أرقام لم تُعطَ لك. وإن لم تُذكر رؤية المدرسة فلا تخترعها.
+6. **الكفاءة لا العدد**: إن لم تجد إلا هدفين دقيقين فاكتفِ بهما — ولا تُكمل العدد بحشو.
+7. العربية الفصيحة، جملة قصيرة واحدة لكل هدف.
+
+أمثلة للحكم لا للنسخ:
+✗ «تدريب فريق الموارد البشرية على السياسة الجديدة» — نشاطٌ لا نتيجة.
+✗ «ضمان توثيق عمليات التوظيف وتوفير ملفّ إلكتروني مركزي» — هدفان في جملة.
+✗ «اعتماد معايير الاختيار بحلول يونيو 2024» — موعدٌ خارج مدّة الخطة.
+✗ «تطبيق الدليل في جميع الفروع» — معلومةٌ ليست في السياق.
+✓ «تتوافق وظائف جميع الموظفين مع مؤهلاتهم وخبراتهم بنهاية الفصل الدراسي الأول» — نتيجةٌ واحدة، تخدم مؤشّراً بعينه، وموعدها داخل المدّة.
+
+أجب بكائن JSON واحد لا غير، مفتاحه "items"، بلا أي شرح أو markdown، مثال:
+{"items":[{"name":"نصّ الهدف","indicator":"${indList[0]?.code || contextCode || '0.0.0'}"}]}`
 
     const groq   = new Groq({ apiKey })
     const result = await groq.chat.completions.create({
       model:       GROQ_MODEL_SMART,
-      temperature: 0.7,
+      /* الأهداف تُطلب دقيقةً لا متنوّعة — والحرارة العالية تُفقدها الالتزام بالقواعد */
+      temperature: kind === 'task' ? 0.7 : 0.35,
       /* المهامّ أطول من الأهداف، والسياق المُثرى يُطيل الجواب — ورموز
          «التفكير» تُحسب من السقف نفسه، فالبتر يعود جواباً ناقصاً */
-      max_tokens:  kind === 'task' ? 1500 : 1024,
+      max_tokens:  kind === 'task' ? 1500 : 1200,
       ...groqTuning(GROQ_MODEL_SMART),
       response_format: { type: 'json_object' },
       messages:    [{ role: 'user', content: prompt }],

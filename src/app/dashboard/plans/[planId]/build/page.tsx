@@ -147,8 +147,10 @@ const statusColor: Record<string, string> = {
    ════════════════════════════════════════════════════════════ */
 const GOAL_FROM_INDICATOR = true
 
-function GoalFromIndicator({ subCode, planName, existing, onAdd }: {
+function GoalFromIndicator({ subCode, nodeId, planName, existing, onAdd }: {
   subCode: string
+  /** عقدة المعيار الفرعي في الخطة — منها يقرأ المنفذ مدّة الخطة وملفّ المدرسة */
+  nodeId: string
   planName: string
   existing: string[]
   onAdd: (items: { name: string; frameworkNodeId: string }[]) => Promise<void>
@@ -172,6 +174,7 @@ function GoalFromIndicator({ subCode, planName, existing, onAdd }: {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           kind: 'goal', contextName: ind.name_ar, contextCode: ind.code, planName, existing,
+          nodeId, frameworkNodeId: ind.id,
         }),
       })
       const j = await res.json()
@@ -683,6 +686,7 @@ export default function PlanBuildPage() {
                     contextCode={codes[sel.id] || null}
                     planName={plan.name_ar}
                     existing={nodes.filter(n => n.parent_id === sel.id && n.level_num === levelCount).map(n => n.name_ar)}
+                    nodeId={sel.id}
                     onAdd={names => addGoals(sel, names)}
                   />
                 )}
@@ -691,6 +695,7 @@ export default function PlanBuildPage() {
                   && !!sel.standard_code && sel.standard_code.split('.').length === 3 && (
                   <GoalFromIndicator
                     subCode={sel.standard_code}
+                    nodeId={sel.id}
                     planName={plan.name_ar}
                     existing={nodes.filter(n => n.parent_id === sel.id && n.level_num === levelCount).map(n => n.name_ar)}
                     onAdd={items => addGoals(sel, items)}
