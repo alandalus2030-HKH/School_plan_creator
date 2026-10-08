@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
-  Library, Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History,
+  Library, Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History, UsersRound,
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -23,6 +23,9 @@ const NAV_ITEMS = [
   { href: '/dashboard/reports',   Icon: ChartNoAxesColumn, ar: 'التقارير',      en: 'Reports',    perm: 'view_reports'     },
   { href: '/dashboard/aggregate', Icon: LayoutGrid,      ar: 'لوحة التجميع',  en: 'Aggregate',  perm: 'view_aggregate'   },
   { href: '/dashboard/evidence',  Icon: FolderOpen,      ar: 'خزانة الأدلة',  en: 'Evidence',   perm: 'view_evidence'    },
+  /* فرق التركيز — غير «الفرق» أعلاه: تلك لمهامّ الخطط، وهذه خمسةٌ
+     لمعايير الاعتماد تفرز الأدلة وتقبلها (الوثيقة 3.2 · 3.6) */
+  { href: '/dashboard/evidence/teams', Icon: UsersRound, ar: 'فرق التركيز', en: 'Focus Teams', perm: 'triage_evidence' },
   { href: '/dashboard/meetings',  Icon: CalendarDays,    ar: 'الاجتماعات',    en: 'Meetings',   perm: null               },
   { href: '/dashboard/users',     Icon: UserRound,       ar: 'المستخدمون',   en: 'Users',      perm: 'manage_users'     },
   { href: '/dashboard/badges',    Icon: Award,           ar: 'الأوسمة',       en: 'Badges',     perm: 'badges'           },
