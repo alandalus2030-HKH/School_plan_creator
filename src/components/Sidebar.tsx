@@ -145,9 +145,14 @@ export default function Sidebar({ lang, collapsed: collapsedProp = false, onTogg
         {visibleNav.map(item => {
           /* مسارات تُطابَق تماماً (لها مسارات فرعية تحتها) */
           const exactOnly = ['/dashboard', '/dashboard/group']
-          const active = exactOnly.includes(item.href)
-            ? pathname === item.href
-            : (pathname === item.href || pathname.startsWith(item.href))
+          const matches = (href: string) =>
+            exactOnly.includes(href) ? pathname === href : (pathname === href || pathname.startsWith(href + '/'))
+          /* **أطولُ تطابقٍ يفوز**: «فرق التركيز» (/dashboard/evidence/teams)
+             يقع تحت «خزانة الأدلة» (/dashboard/evidence)، فكان البندان
+             يُضيئان معاً. فيُضاء صاحب أطول عنوانٍ مطابق وحده — ويبقى
+             الأب مضيئاً في صفحاته التي لا بند لها (/new · /triage). */
+          const bestLen = Math.max(0, ...visibleNav.filter(i => matches(i.href)).map(i => i.href.length))
+          const active = matches(item.href) && item.href.length === bestLen
 
           return (
             <Link
