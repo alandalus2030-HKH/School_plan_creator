@@ -15,7 +15,7 @@ import { fetchFrameworkLevel, FRAMEWORK_LEVEL_NAMES, FRAMEWORK_MAX_LEVEL, type F
 import { frameworkLevelOf } from '@/lib/planLevels'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin, Loader2, FileCheck } from 'lucide-react'
+import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin, Loader2, FileCheck, Pencil, Save } from 'lucide-react'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
@@ -382,6 +382,10 @@ export default function PlanBuildPage() {
   const [path,    setPath]    = useState<string[]>([])      // معرّف العقدة المختارة لكل مستوى
   const [saving,  setSaving]  = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
+  /* تعديل اسم البند المخصّص من شاشة القوائم */
+  const [renaming,   setRenaming]   = useState(false)
+  const [renameVal,  setRenameVal]  = useState('')
+  const [savingName, setSavingName] = useState(false)
   const [deleting,   setDeleting]   = useState(false)
   const [newTaskName, setNewTaskName] = useState('')
   const [addingTask,  setAddingTask]  = useState(false)
@@ -510,6 +514,18 @@ export default function PlanBuildPage() {
     return out
   }
 
+  /* تعديل اسم العقدة المخصّصة */
+  const saveRename = async (id: string) => {
+    const name = renameVal.trim()
+    if (!name) return
+    setSavingName(true)
+    const { error } = await supabase.from('plan_nodes').update({ name_ar: name }).eq('id', id)
+    setSavingName(false)
+    if (error) { toast(`تعذّر التعديل: ${error.message}`, 'error'); return }
+    setRenaming(false)
+    await load()
+  }
+
   /* حذف عقدة (متسلسل خادمياً) ثم العودة لمستوى الأب */
   const deleteNode = async (id: string, level: number) => {
     setDeleting(true)
@@ -556,6 +572,10 @@ export default function PlanBuildPage() {
   const sel  = last >= 0 ? byId(path[last]) : null
   const selTaskCount = sel ? tasks.filter(t => subtreeIds(sel.id).includes(t.node_id)).length : 0
   const canDelete = sel && !plan.approved_at
+  /* الاسم الرسميّ لا يُعدَّل والمخصّص يُعدَّل — القاعدة نفسها في العرض
+     الشجريّ (plans/[planId]/page.tsx). والمخصّص هو ما لا standard_code له:
+     الكود الرسميّ وحده يُخزَّن عند الاختيار من الكتالوج. */
+  const canRename = !!sel && !plan.approved_at && !sel.standard_code
 
   return (
     <div className="space-y-4">
@@ -615,13 +635,39 @@ export default function PlanBuildPage() {
         ) : (
           <>
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm flex items-center gap-2 flex-wrap flex-1">
-                <Flag size={15} className="text-slate-500" /> أنت في:
-                <span className="font-semibold" style={{ color: LEVEL_COLORS[last] || '#64748b' }}>{lname(last)}</span>
-                <span className="text-slate-700">— {codes[sel.id] ? `${codes[sel.id]} ` : ''}{sel.name_ar}</span>
-              </p>
+              {renaming ? (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <input autoFocus value={renameVal} onChange={e => setRenameVal(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveRename(sel.id); if (e.key === 'Escape') setRenaming(false) }}
+                    className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-sm font-medium" />
+                  <button onClick={() => saveRename(sel.id)} disabled={savingName || !renameVal.trim()}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-500 text-white text-xs rounded-xl font-semibold disabled:opacity-50">
+                    <span className="inline-flex">{savingName ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}</span>
+                    <span>حفظ</span>
+                  </button>
+                  <button onClick={() => setRenaming(false)}
+                    className="px-3 py-2 text-xs text-slate-500 hover:text-slate-700">إلغاء</button>
+                </div>
+              ) : (
+                <p className="text-sm flex items-center gap-2 flex-wrap flex-1">
+                  <Flag size={15} className="text-slate-500" /> أنت في:
+                  <span className="font-semibold" style={{ color: LEVEL_COLORS[last] || '#64748b' }}>{lname(last)}</span>
+                  <span className="text-slate-700">— {codes[sel.id] ? `${codes[sel.id]} ` : ''}{sel.name_ar}</span>
+                </p>
+              )}
+              {/* تعديل اسم البند المخصّص — والرسميّ لا يُعدَّل لئلّا يكذب الاسم على المرساة */}
+              {!renaming && canRename && (
+                <button onClick={() => { setRenameVal(sel.name_ar); setRenaming(true) }}
+                  className="flex items-center gap-1 text-xs text-amber-600 hover:bg-amber-50 px-2.5 py-1 rounded-lg transition-colors">
+                  <Pencil size={13} /> تعديل الاسم
+                </button>
+              )}
+              {!renaming && !!sel.standard_code && !plan.approved_at && (
+                <span title="بندٌ مأخوذ من إطار الاعتماد — اسمه رسميّ لا يُعدَّل. والبند المخصّص يُعدَّل."
+                  className="text-[11px] text-slate-400 px-2 py-1">اسمٌ رسميّ</span>
+              )}
               {/* حذف العقدة المختارة (متسلسل) — يفتح نافذة تأكيد */}
-              {canDelete && (
+              {!renaming && canDelete && (
                 <button onClick={() => setConfirmDel(true)}
                   className="flex items-center gap-1 text-xs text-red-500 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors">
                   <Trash2 size={13} /> حذف {lname(last)}
