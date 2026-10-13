@@ -50,3 +50,6 @@ next-env.d.ts
 # وثائق الدليل الضخمة (محلية فقط)
 docs/qnsa_guide.pdf
 docs/qnsa_guide.docx
+
+# استخراج الإطار الكامل — مولَّد من القاعدة، صغيرٌ ويُتتبَّع عمداً
+!docs/QNSA_FRAMEWORK_FULL.docx
