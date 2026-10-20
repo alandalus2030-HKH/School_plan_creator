@@ -42,11 +42,16 @@
 ## التشغيل
 
 ```bash
-node scripts/qnsa-official-2026/verify_db.mjs        # القاعدة ↔ JSON — 17 فحصاً · 2284 عنصراً
+npm run framework:verify                             # القاعدة ↔ JSON — 17 فحصاً · 2284 عنصراً
+npm run framework:docx                               # → docs/QNSA_FRAMEWORK_FULL.docx (نسخة Word كاملة)
 node scripts/qnsa-official-2026/verify_sources.mjs   # JSON ↔ Excel — يُخفق إن اختلفا
 node scripts/qnsa-official-2026/gen_audit_page.mjs   # → docs/QNSA_OFFICIAL_2026_AUDIT.html
 node scripts/qnsa-official-2026/gen_sql.mjs          # → database/migrations/070 · 071 · 072
 ```
+
+و`build_docx.mjs` يسأل القاعدة مباشرةً ويُرشّح بعقد الإصدار النشط، **ويتوقّف بخطأ إن خالفت
+الأرقام الرسمية** (5/15/76/284 · 168 · 840 · 245 · 819) — فلا يُسلَّم مستندٌ ناقص. وتُعاد النسخة
+بأمرٍ واحد كلّما حُدِّث الإطار.
 
 المولّد **لا يكتب فوق ترحيلٍ موجود** (`QNSA_REGEN_APPLIED=1` للتجاوز عمداً).
 
