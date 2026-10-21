@@ -335,8 +335,8 @@ export default function EvidenceLockerPage() {
                         وهنا يبقى **إعادة الفتح** فقط — وهو ردٌّ إلى الطابور لا حكم. */}
                     {canReview && (!deptScopedReview || (!!e.plan?.department && e.plan.department === myDept)) && (
                       e.status === 'pending' ? (
-                        <Link href="/dashboard/evidence/triage"
-                          title="القبول والرفض من طابور الفرز"
+                        <Link href={`/dashboard/evidence/triage?id=${e.id}`}
+                          title="القبول والرفض من طابور الفرز — يفتح على هذا الدليل"
                           className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-lg hover:bg-violet-100">
                           <span className="inline-flex"><ShieldCheck size={13} /></span>
                           <span>افرز</span>

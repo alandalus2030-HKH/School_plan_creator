@@ -56,9 +56,20 @@ export default function TriagePage() {
     const res = await fetch('/api/evidence/queue')
     if (res.status === 403) { setDenied(true); setLoading(false); return }
     const j = await res.json()
-    setItems(j.items || []); setTeams(j.teams || []); setMyTeamIds(j.myTeamIds || [])
+    const list = j.items || []
+    setItems(list); setTeams(j.teams || []); setMyTeamIds(j.myTeamIds || [])
     setReasons(j.rejectReasons || []); setCanAccept(!!j.canAccept)
-    setIdx(0); setLoading(false)
+
+    /* قفزةٌ إلى دليلٍ بعينه: «افرز» في الخزانة يُمرّر ?id=
+       (تُقرأ من العنوان لا بـuseSearchParams — فلا يلزمها حدّ Suspense) */
+    const wanted = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('id') : null
+    if (wanted) {
+      const at = list.findIndex((x: Item) => x.id === wanted)
+      if (at >= 0) { setMineOnly(false); setIdx(at) }
+      else { toast('لم يعد هذا الدليل في الطابور — حُكم عليه', 'info'); setIdx(0) }
+    } else setIdx(0)
+    setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
 
