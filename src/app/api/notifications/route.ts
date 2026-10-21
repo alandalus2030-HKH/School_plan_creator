@@ -22,16 +22,31 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const unreadCount = unread
-    ? (data?.length || 0)
-    : (await supabase
-        .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('recipient_id', user.id)
-        .eq('is_read', false)
-      ).count || 0
+  /* ── عدّان مفصولان: مسار الاعتماد وما سواه ──
+     البالونة شطران: أحمر للمهامّ والخطط، أزرق لأحكام الأدلة. والمحور
+     **نوع الحدث** لا مصدر الدليل: طابور الفرز يحكم على أدلة الخطط
+     وأدلة القناة المباشرة سواء، فلو قُسّم بالمصدر لأنتجت الشاشةُ
+     الواحدة لونين متناوبين لا يفسّرهما شيء. */
+  const EVIDENCE_TYPES = ['evidence_status']
 
-  return NextResponse.json({ notifications: data || [], unreadCount })
+  const countOf = async (types: string[], inList: boolean) => {
+    let q = supabase.from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient_id', user.id).eq('is_read', false)
+    q = inList ? q.in('type', types) : q.not('type', 'in', `(${types.join(',')})`)
+    return (await q).count || 0
+  }
+
+  const [unreadEvidence, unreadOther] = unread
+    ? [ (data || []).filter((n: any) =>  EVIDENCE_TYPES.includes(n.type)).length,
+        (data || []).filter((n: any) => !EVIDENCE_TYPES.includes(n.type)).length ]
+    : await Promise.all([countOf(EVIDENCE_TYPES, true), countOf(EVIDENCE_TYPES, false)])
+
+  return NextResponse.json({
+    notifications: data || [],
+    unreadCount: unreadEvidence + unreadOther,
+    unreadEvidence, unreadOther,
+  })
 }
 
 /* PATCH /api/notifications — تحديث حالة القراءة */

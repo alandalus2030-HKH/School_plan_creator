@@ -8,6 +8,9 @@ import { Bell, Trash2, ClipboardList, Clock, AlertTriangle,
   RefreshCw, MessageCircle, TrendingUp, Trophy, Map,
   CalendarDays, FolderOpen } from 'lucide-react'
 
+/** أنواع مسار الاعتماد — الشطر الأزرق. ويلحق بها لاحقاً الطلب الموجَّه والمهامّ الدورية. */
+const EVIDENCE_TYPES = ['evidence_status']
+
 /* خريطة أسماء Lucide → مكوّنات */
 const LUCIDE_MAP: Record<string, React.ElementType> = {
   ClipboardList, Clock, AlertTriangle, RefreshCw,
@@ -32,6 +35,12 @@ export default function NotificationBell() {
   const [open,        setOpen]        = useState(false)
   const [notifs,      setNotifs]      = useState<Notif[]>([])
   const [unread,      setUnread]      = useState(0)
+  /* شطرا البالونة: أحمر للمهامّ والخطط · أزرق لأحكام الأدلة (مسار الاعتماد).
+     والمحور **نوع الحدث** لا مصدر الدليل — فطابور الفرز يحكم على
+     أدلة الخطط وأدلة القناة المباشرة سواء. */
+  const [unreadEv,    setUnreadEv]    = useState(0)
+  const [unreadOther, setUnreadOther] = useState(0)
+  const [lens,        setLens]        = useState<'all' | 'evidence' | 'other'>('all')
   const [fetching,    setFetching]    = useState(false)
   const [clearing,    setClearing]    = useState(false)
 
@@ -44,6 +53,8 @@ export default function NotificationBell() {
       const json = await res.json()
       setNotifs(json.notifications || [])
       setUnread(json.unreadCount   || 0)
+      setUnreadEv(json.unreadEvidence ?? 0)
+      setUnreadOther(json.unreadOther ?? (json.unreadCount || 0))
     } catch { /* تجاهل أخطاء الشبكة */ }
   }, [userId])
 
@@ -102,23 +113,37 @@ export default function NotificationBell() {
     setClearing(false)
   }
 
-  const unreadNotifs = notifs.filter(n => !n.is_read)
-  const readNotifs   = notifs.filter(n =>  n.is_read)
+  const isEvidence   = (n: Notif) => EVIDENCE_TYPES.includes(n.type)
+  const inLens       = (n: Notif) =>
+    lens === 'all' ? true : lens === 'evidence' ? isEvidence(n) : !isEvidence(n)
+  const shown        = notifs.filter(inLens)
+  const unreadNotifs = shown.filter(n => !n.is_read)
+  const readNotifs   = shown.filter(n =>  n.is_read)
 
   return (
     <div className="relative" ref={dropdownRef}>
 
       {/* ── زر الجرس ── */}
       <button
-        onClick={() => { setOpen(o => !o); if (!open) fetchNotifs() }}
+        onClick={() => { setOpen(o => !o); if (!open) { setLens('all'); fetchNotifs() } }}
         className="relative p-2 text-slate-500 hover:text-violet-700 hover:bg-violet-50 rounded-full transition-colors"
         title="الإشعارات"
       >
         <Bell size={20} />
+        {/* بالونةٌ واحدة بشطرين — لا بالونتان طائرتان تتزاحمان على الجوال */}
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white
-                           text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
-            {unread > 99 ? '99+' : unread}
+          <span className="absolute -top-1 -right-1 flex items-stretch rounded-full overflow-hidden
+                           shadow ring-1 ring-white text-[10px] font-bold leading-none">
+            {unreadOther > 0 && (
+              <span className="bg-red-500 text-white min-w-[17px] h-[17px] flex items-center justify-center px-1">
+                {unreadOther > 99 ? '99+' : unreadOther}
+              </span>
+            )}
+            {unreadEv > 0 && (
+              <span className="bg-sky-600 text-white min-w-[17px] h-[17px] flex items-center justify-center px-1">
+                {unreadEv > 99 ? '99+' : unreadEv}
+              </span>
+            )}
           </span>
         )}
       </button>
@@ -130,13 +155,22 @@ export default function NotificationBell() {
 
           {/* رأس القائمة */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="font-bold text-slate-800 text-sm">الإشعارات</span>
-              {unread > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {unread} جديد
-                </span>
-              )}
+              {/* النقر على الشطر يفتح نوعه — فصلٌ قبل الفتح وبعده */}
+              {([
+                { k: 'all',      ar: 'الكل',          n: unread,      cls: 'bg-slate-600' },
+                { k: 'other',    ar: 'مهامّ وخطط',    n: unreadOther, cls: 'bg-red-500'   },
+                { k: 'evidence', ar: 'أدلة',          n: unreadEv,    cls: 'bg-sky-600'   },
+              ] as const).map(t => (
+                (t.k === 'all' || t.n > 0 || lens === t.k) && (
+                  <button key={t.k} onClick={() => setLens(t.k)}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors
+                      ${lens === t.k ? `${t.cls} text-white` : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}>
+                    {t.ar}{t.n > 0 ? ` ${t.n}` : ''}
+                  </button>
+                )
+              ))}
             </div>
             <div className="flex items-center gap-2">
               {unread > 0 && (
@@ -151,10 +185,12 @@ export default function NotificationBell() {
           {/* قائمة الإشعارات */}
           <div className="overflow-y-auto" style={{ maxHeight: 'calc(80vh - 100px)' }}>
 
-            {notifs.length === 0 ? (
+            {shown.length === 0 ? (
               <div className="py-12 text-center">
                 <Bell size={32} className="mx-auto mb-2 opacity-30" />
-                <p className="text-slate-400 text-sm">لا توجد إشعارات</p>
+                <p className="text-slate-400 text-sm">
+                  {lens === 'evidence' ? 'لا إشعارات عن الأدلة' : lens === 'other' ? 'لا إشعارات عن المهامّ والخطط' : 'لا توجد إشعارات'}
+                </p>
               </div>
             ) : (
               <>
