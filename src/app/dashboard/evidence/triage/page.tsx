@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { Loader2, ShieldCheck, AlertTriangle, Check, X, SkipForward, Users, Keyboard,
+import { Loader2, ShieldCheck, AlertTriangle, Check, X, SkipForward, SkipBack, Users, Keyboard,
   FileText, ExternalLink, Clock, Inbox } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
@@ -86,6 +86,11 @@ export default function TriagePage() {
     setIdx(i => Math.min(i + 1, Math.max(queue.length - 1, 0)))
   }, [queue.length])
 
+  const prev = useCallback(() => {
+    setRejecting(false); setReason(''); setNote('')
+    setIdx(i => Math.max(i - 1, 0))
+  }, [])
+
   const act = useCallback(async (action: 'accept' | 'reject', reasonCode?: string, noteTxt?: string) => {
     if (!cur || busy) return
     setBusy(true)
@@ -114,14 +119,14 @@ export default function TriagePage() {
       const el = e.target as HTMLElement
       if (el && /INPUT|TEXTAREA|SELECT/.test(el.tagName)) return
       if (e.key === 'ArrowLeft')  { next(); return }                 // التالي (RTL: اليسار يتقدّم)
-      if (e.key === 'ArrowRight') { setIdx(i => Math.max(i - 1, 0)); return }
+      if (e.key === 'ArrowRight') { prev(); return }
       if (e.key === 'a' || e.key === 'A') { if (canAccept && cur && !cur.blockers.length && !cur.isMine) act('accept') }
       if (e.key === 'r' || e.key === 'R') setRejecting(true)
       if (e.key === 'Escape') setRejecting(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [act, next, canAccept, cur])
+  }, [act, next, prev, canAccept, cur])
 
   if (denied) return <NoAccess message="فرز الأدلة يتطلّب صلاحية «فرز الأدلة»." />
   if (loading) return (
@@ -300,8 +305,17 @@ export default function TriagePage() {
                     <span className="inline-flex"><X size={15} /></span>
                     <span>رفض</span>
                   </button>
-                  <button onClick={next} disabled={busy}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm hover:border-violet-300">
+                  {/* التنقّل في الطابور — كلٌّ يُعطَّل عند حدّه، فلا يبقى زرٌّ
+                      يُضغَط بلا أثر. والاختصارات (← →) تبقى عصب السرعة (3.6). */}
+                  <button onClick={prev} disabled={busy || idx === 0}
+                    title={idx === 0 ? 'أنت عند أوّل الطابور' : 'الدليل السابق (→)'}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm hover:border-violet-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-slate-200">
+                    <span className="inline-flex"><SkipBack size={15} /></span>
+                    <span>السابق</span>
+                  </button>
+                  <button onClick={next} disabled={busy || idx >= queue.length - 1}
+                    title={idx >= queue.length - 1 ? 'أنت عند آخر الطابور' : 'تخطٍّ إلى التالي (←)'}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm hover:border-violet-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-slate-200">
                     <span className="inline-flex"><SkipForward size={15} /></span>
                     <span>تخطٍّ</span>
                   </button>
