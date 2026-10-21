@@ -37,19 +37,43 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   const { status, note } = await req.json()
   if (!VALID.includes(status)) return NextResponse.json({ error: 'حالة غير صالحة' }, { status: 400 })
 
-  /* تأكيد أن الدليل ضمن مدرسة المستخدم (الدليل → المهمة → العقدة → الخطة) */
-  const { data: ev } = await admin.from('evidence').select('id, name, task_id').eq('id', evidenceId).maybeSingle()
+  /* ── النطاق المدرسيّ من **الدليل نفسه** لا من خطّته ──
+     كان يُستنتج عبر السلسلة (الدليل → المهمة → العقدة → الخطة)، ودليل
+     القناة المباشرة بلا مهمّة (3.1: «رفع مباشر — موظّف مخوَّل يرفع من
+     المخزن») — فتنقطع السلسلة عند أوّل حلقة ويُحكَم عليه بأنه «خارج
+     مدرستك» وهو فيها. ولهذا أُنشئ `evidence.school_id` في 073: ليملك
+     الدليلُ مدرستَه بنفسه. وسلسلة المهمّة تبقى لما يخصّ المهمّة وحدها. */
+  const { data: ev } = await admin.from('evidence')
+    .select('id, name, task_id, school_id, uploaded_by').eq('id', evidenceId).maybeSingle()
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
-  const { data: t } = await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id, assigned_to_team_id, assigned_to_department').eq('id', ev.task_id).maybeSingle()
+  if (ev.school_id !== schoolId) {
+    return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
+  }
+
+  /* سياق المهمّة — إن كان الدليل من خطة. ويبقى `p` فارغاً في القناة المباشرة. */
+  const { data: t } = ev.task_id
+    ? await admin.from('tasks').select('node_id, name_ar, status, assigned_to_user_id, assigned_to_team_id, assigned_to_department').eq('id', ev.task_id).maybeSingle()
+    : { data: null }
   const { data: n } = t?.node_id ? await admin.from('plan_nodes').select('plan_id').eq('id', t.node_id).maybeSingle() : { data: null }
   const { data: p } = n?.plan_id ? await admin.from('plans').select('school_id, owner_id, department').eq('id', n.plan_id).maybeSingle() : { data: null }
-  if (!p || p.school_id !== schoolId) return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
+
+  /* ولا يَقبل الدليلَ من رفعه — في القنوات كلّها (3.2). والحارس القديم
+     أدناه مبنيّ على المكلَّف بالمهمّة، فدليل القناة المباشرة كان يفلت منه. */
+  if (status === 'accepted' && ev.uploaded_by === auth.user.id) {
+    return NextResponse.json(
+      { error: 'لا تقبل دليلاً رفعتَه بنفسك — القبول لعضوٍ آخر من فريق التركيز' }, { status: 403 })
+  }
 
   /* حصر مراجعة رؤساء الأقسام بأدلة قسمهم فقط — النطاق المدرسي يبقى
      لمدير المدرسة/نائبه/منسّق الجودة/المشرف. (تشديد حوكمي: لا تدخّل قسم في آخر) */
   const DEPT_SCOPED_REVIEW_ROLES = ['department_head']
   if (!me.is_super_admin && DEPT_SCOPED_REVIEW_ROLES.includes(me.role)) {
     const planDept = (p as any)?.department || null
+    /* ودليلٌ بلا خطة لا قسم له يُقاس عليه — فرزه بفريق التركيز لا بالقسم (3.2) */
+    if (!p) {
+      return NextResponse.json(
+        { error: 'هذا دليلٌ بلا خطة — فرزه من طابور فريق التركيز' }, { status: 403 })
+    }
     if (!me.department || planDept !== me.department) {
       return NextResponse.json({ error: 'يمكنك مراجعة أدلة قسمك فقط' }, { status: 403 })
     }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
-  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users } from 'lucide-react'
+  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -158,6 +158,7 @@ export default function EvidenceLockerPage() {
     finally { setExporting(false) }
   }
 
+  /* إعادة الفتح وحدها تمرّ من هنا — والحكم (قبول/رفض) في الطابور */
   const changeStatus = async (id: string, status: string) => {
     const res = await fetch(`/api/evidence/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
@@ -328,15 +329,27 @@ export default function EvidenceLockerPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0 w-full sm:w-auto justify-end border-t border-slate-100 pt-2 sm:pt-0 sm:border-0">
+                    {/* ── بابٌ واحد للحكم (3.2) ──
+                        القبول والرفض في طابور الفرز وحده: هناك تُعرض المرساة
+                        والعام والفريق المالك، ويُطلب سبب الرفض من قائمة مغلقة.
+                        وهنا يبقى **إعادة الفتح** فقط — وهو ردٌّ إلى الطابور لا حكم. */}
                     {canReview && (!deptScopedReview || (!!e.plan?.department && e.plan.department === myDept)) && (
-                      <select value={e.status} onChange={ev => changeStatus(e.id, ev.target.value)}
-                        disabled={e.task?.status === 'completed'}
-                        title={e.task?.status === 'completed' ? 'المهمة منجزة — أعد فتحها لتغيير الحالة' : ''}
-                        className="text-xs px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <option value="pending">قيد المراجعة</option>
-                        <option value="accepted">معتمد</option>
-                        <option value="rejected">مرفوض</option>
-                      </select>
+                      e.status === 'pending' ? (
+                        <Link href="/dashboard/evidence/triage"
+                          title="القبول والرفض من طابور الفرز"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-lg hover:bg-violet-100">
+                          <span className="inline-flex"><ShieldCheck size={13} /></span>
+                          <span>افرز</span>
+                        </Link>
+                      ) : (
+                        <button onClick={() => changeStatus(e.id, 'pending')}
+                          disabled={e.task?.status === 'completed'}
+                          title={e.task?.status === 'completed' ? 'المهمة منجزة — أعد فتحها أولاً' : 'يعود الدليل إلى طابور الفرز'}
+                          className="inline-flex items-center gap-1.5 text-xs text-slate-500 border border-slate-200 px-3 py-1.5 rounded-lg hover:border-violet-300 hover:text-violet-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                          <span className="inline-flex"><RefreshCw size={13} /></span>
+                          <span>إعادة فتح</span>
+                        </button>
+                      )
                     )}
                     <a href={`/dashboard/evidence/${e.id}/print`} target="_blank" title="طباعة"
                       className="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"><Printer size={15} /></a>

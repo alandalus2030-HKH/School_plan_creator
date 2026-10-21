@@ -33,6 +33,7 @@ export default function EvidencePrintPage() {
         .from('evidence')
         .select(`
           id, name, description, evidence_number, file_url, video_url, file_type, created_at,
+          school_id, code, source, academic_year,
           evidence_files ( id, name, file_url, file_type, file_size, video_url, order_num ),
           task:tasks ( id, name_ar, order_num, node_id )
         `)
@@ -41,6 +42,17 @@ export default function EvidencePrintPage() {
 
       if (!data) { setLoading(false); return }
       setEv(data)
+
+      /* ‏── المدرسة من **الدليل نفسه** ──
+         كانت تُقرأ من `plan.school_id` بعد سلسلة (مهمّة ← عقدة ← خطة)، ودليل
+         القناة المباشرة بلا مهمّة (3.1) — فتبقى الترويسة بلا اسمٍ ولا شعار،
+         ويظهر البديل «المدرسة» وحرفها الأول. و`evidence.school_id` مملوءٌ
+         دائماً منذ 073، فهو الأصل والخطة تفصيلٌ بعده. */
+      if (data.school_id) {
+        const { data: sch } = await supabase
+          .from('schools').select('name_ar, logo_url').eq('id', data.school_id).single()
+        if (sch) setSchool(sch)
+      }
 
       /* مهمة السياق: للدليل المشترك نستخدم المهمة المستعيرة (?task=) ورقمها الخاص */
       let t = data.task as any
@@ -69,7 +81,8 @@ export default function EvidencePrintPage() {
           if (plan) {
             setPlanName(plan.name_ar)
             /* المدرسة (الاسم + الشعار) */
-            if (plan.school_id) {
+            /* لا تُكتب المدرسة من الخطة فوق ما قُرئ من الدليل — إلّا إن غاب */
+            if (plan.school_id && !data.school_id) {
               const { data: sch } = await supabase
                 .from('schools').select('name_ar, logo_url').eq('id', plan.school_id).single()
               if (sch) setSchool(sch)
