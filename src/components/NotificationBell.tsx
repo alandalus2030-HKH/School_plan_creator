@@ -126,25 +126,24 @@ export default function NotificationBell() {
       {/* ── زر الجرس ── */}
       <button
         onClick={() => { setOpen(o => !o); if (!open) { setLens('all'); fetchNotifs() } }}
-        className="relative p-2 text-slate-500 hover:text-violet-700 hover:bg-violet-50 rounded-full transition-colors"
+        className="relative p-2 text-slate-500 hover:text-[#8a1538] hover:bg-[#fbf2f4] rounded-full transition-colors"
         title="الإشعارات"
       >
         <Bell size={20} />
-        {/* بالونةٌ واحدة بشطرين — لا بالونتان طائرتان تتزاحمان على الجوال */}
+        {/* رقمٌ واحد بالمجموع — ونقطةٌ زرقاء تقول «فيها جديدٌ من مسار الاعتماد».
+            ورقمان على أيقونة 20px يتزاحمان ويُقرآن كعطل. */}
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 flex items-stretch rounded-full overflow-hidden
-                           shadow ring-1 ring-white text-[10px] font-bold leading-none">
-            {unreadOther > 0 && (
-              <span className="bg-red-500 text-white min-w-[17px] h-[17px] flex items-center justify-center px-1">
-                {unreadOther > 99 ? '99+' : unreadOther}
-              </span>
-            )}
+          <>
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] text-white
+                             text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none"
+                  style={{ background: 'var(--maroon-700, #8a1538)' }}>
+              {unread > 99 ? '99+' : unread}
+            </span>
             {unreadEv > 0 && (
-              <span className="bg-sky-600 text-white min-w-[17px] h-[17px] flex items-center justify-center px-1">
-                {unreadEv > 99 ? '99+' : unreadEv}
-              </span>
+              <span title={`${unreadEv} من مسار الاعتماد`}
+                className="absolute bottom-0.5 left-0.5 w-[9px] h-[9px] rounded-full bg-sky-600 ring-2 ring-white" />
             )}
-          </span>
+          </>
         )}
       </button>
 
@@ -154,31 +153,31 @@ export default function NotificationBell() {
              style={{ maxHeight: '80vh' }}>
 
           {/* رأس القائمة */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
-            <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 space-y-2">
+            <div className="flex items-center justify-between gap-2">
               <span className="font-bold text-slate-800 text-sm">الإشعارات</span>
-              {/* النقر على الشطر يفتح نوعه — فصلٌ قبل الفتح وبعده */}
+              {unread > 0 && (
+                <button onClick={markAllRead} disabled={fetching}
+                  className="text-[11px] text-[#8a1538] hover:brightness-75 font-medium transition-colors">
+                  {fetching ? '...' : 'تحديد الكل كمقروء'}
+                </button>
+              )}
+            </div>
+            {/* المرشِّح في صفٍّ مستقلّ — كان يلتفّ على سطرين ويزاحم «تحديد الكل» */}
+            <div className="flex items-center gap-1.5">
               {([
-                { k: 'all',      ar: 'الكل',          n: unread,      cls: 'bg-slate-600' },
-                { k: 'other',    ar: 'مهامّ وخطط',    n: unreadOther, cls: 'bg-red-500'   },
-                { k: 'evidence', ar: 'أدلة',          n: unreadEv,    cls: 'bg-sky-600'   },
+                { k: 'all',      ar: 'الكل',       n: unread,      on: 'bg-slate-700' },
+                { k: 'other',    ar: 'مهامّ وخطط', n: unreadOther, on: 'bg-[#8a1538]' },
+                { k: 'evidence', ar: 'أدلة',       n: unreadEv,    on: 'bg-sky-600'   },
               ] as const).map(t => (
                 (t.k === 'all' || t.n > 0 || lens === t.k) && (
                   <button key={t.k} onClick={() => setLens(t.k)}
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors
-                      ${lens === t.k ? `${t.cls} text-white` : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}>
+                    className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full transition-colors
+                      ${lens === t.k ? `${t.on} text-white` : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}>
                     {t.ar}{t.n > 0 ? ` ${t.n}` : ''}
                   </button>
                 )
               ))}
-            </div>
-            <div className="flex items-center gap-2">
-              {unread > 0 && (
-                <button onClick={markAllRead} disabled={fetching}
-                  className="text-[11px] text-violet-600 hover:text-violet-800 font-medium transition-colors">
-                  {fetching ? '...' : 'تحديد الكل كمقروء'}
-                </button>
-              )}
             </div>
           </div>
 
@@ -194,14 +193,21 @@ export default function NotificationBell() {
               </div>
             ) : (
               <>
-                {/* غير المقروءة */}
-                {unreadNotifs.length > 0 && (
-                  <div>
-                    {unreadNotifs.map(n => (
-                      <NotifItem key={n.id} notif={n} onClick={handleClick} />
-                    ))}
-                  </div>
-                )}
+                {/* غير المقروءة — مجموعتان حين يختلط النوعان في مرشِّح «الكل» */}
+                {unreadNotifs.length > 0 && (() => {
+                  const evN  = unreadNotifs.filter(isEvidence)
+                  const oth  = unreadNotifs.filter(n => !isEvidence(n))
+                  const mixed = lens === 'all' && evN.length > 0 && oth.length > 0
+                  if (!mixed) return <div>{unreadNotifs.map(n => <NotifItem key={n.id} notif={n} onClick={handleClick} />)}</div>
+                  return (
+                    <div>
+                      <GroupHead ar="مسار الاعتماد" cls="bg-sky-50 text-sky-800 border-sky-100" />
+                      {evN.map(n => <NotifItem key={n.id} notif={n} onClick={handleClick} />)}
+                      <GroupHead ar="المهامّ والخطط" cls="bg-slate-50 text-slate-500 border-slate-100" />
+                      {oth.map(n => <NotifItem key={n.id} notif={n} onClick={handleClick} />)}
+                    </div>
+                  )
+                })()}
 
                 {/* المقروءة */}
                 {readNotifs.length > 0 && (
@@ -236,35 +242,57 @@ export default function NotificationBell() {
   )
 }
 
+/* ── رأس مجموعة داخل القائمة ── */
+function GroupHead({ ar, cls }: { ar: string; cls: string }) {
+  return (
+    <div className={`px-4 py-1 border-y ${cls}`}>
+      <span className="text-[10px] font-semibold tracking-wide">{ar}</span>
+    </div>
+  )
+}
+
 /* ── عنصر إشعار واحد ── */
 function NotifItem({ notif, onClick }: { notif: Notif; onClick: (n: Notif) => void }) {
   const iconName  = NOTIF_ICONS[notif.type] || 'Bell'
   const IconComp  = LUCIDE_MAP[iconName] || Bell
+  const ev        = EVIDENCE_TYPES.includes(notif.type)
+  const unread    = !notif.is_read
+
+  /* لون النوع: أزرق لمسار الاعتماد · عنابيّ للمهامّ والخطط.
+     والمقروء يفقد لونه فيتراجع بصرياً بلا أن يختفي. */
+  const tone = !unread
+    ? { bar: '#e2e8f0', ring: 'bg-slate-100', icon: '#94a3b8', label: 'text-slate-400', bg: 'bg-white' }
+    : ev
+      ? { bar: '#0284c7', ring: 'bg-sky-50',    icon: '#0369a1', label: 'text-sky-700',    bg: 'bg-sky-50/40' }
+      : { bar: '#8a1538', ring: 'bg-maroon-50', icon: '#8a1538', label: 'text-[#993556]',  bg: 'bg-rose-50/40' }
 
   return (
     <button
       onClick={() => onClick(notif)}
-      className={`w-full text-right px-4 py-3 flex items-start gap-3 hover:bg-slate-50
-                  transition-colors border-b border-slate-50 last:border-0
-                  ${!notif.is_read ? 'bg-violet-50/60' : 'bg-white'}`}
+      style={{ borderRightWidth: 3, borderRightStyle: 'solid', borderRightColor: tone.bar }}
+      className={`w-full text-right px-3.5 py-3 flex items-start gap-2.5 hover:bg-slate-50
+                  transition-colors border-b border-slate-50 last:border-0 ${tone.bg}`}
     >
-      {/* أيقونة النوع */}
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-                        ${!notif.is_read ? 'bg-violet-100' : 'bg-slate-100'}`}>
-        <IconComp size={16} style={{ color: notif.is_read ? '#94a3b8' : 'var(--maroon-600)' }} />
+      {/* أيقونة النوع بلون نوعها */}
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${tone.ring}`}
+           style={!unread ? undefined : { background: ev ? '#e0f2fe' : 'var(--maroon-50, #fbf2f4)' }}>
+        <IconComp size={16} style={{ color: tone.icon }} />
       </div>
 
-      {/* المحتوى */}
       <div className="flex-1 min-w-0 text-right">
+        {/* وسم النوع — التسميات كانت في الكود ولا تُعرض */}
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-xs leading-snug flex-1
-                         ${!notif.is_read ? 'font-semibold text-slate-800' : 'font-medium text-slate-600'}`}>
-            {notif.title}
+          <p className={`text-[10px] font-semibold ${tone.label} leading-none`}>
+            {NOTIF_LABELS[notif.type] || 'إشعار'}{!unread ? ' · مقروء' : ''}
           </p>
-          {!notif.is_read && (
-            <span className="w-2 h-2 bg-violet-500 rounded-full flex-shrink-0 mt-1" />
+          {unread && (
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tone.bar }} />
           )}
         </div>
+        <p className={`text-xs leading-snug mt-1
+                       ${unread ? 'font-semibold text-slate-800' : 'font-medium text-slate-500'}`}>
+          {notif.title}
+        </p>
         {notif.body && (
           <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{notif.body}</p>
         )}
