@@ -16,6 +16,7 @@ export type NotifType =
   | 'plan_updated'
   | 'meeting_invite'
   | 'meeting_updated'
+  | 'evidence_status'
   | 'system'
 
 // أسماء مكوّنات Lucide المقابلة لكل نوع إشعار
@@ -30,6 +31,7 @@ export const NOTIF_ICONS: Record<string, string> = {
   plan_updated:        'Map',
   meeting_invite:      'CalendarDays',
   meeting_updated:     'CalendarDays',
+  evidence_status:     'FolderOpen',
   system:              'Bell',
 }
 
@@ -44,6 +46,7 @@ export const NOTIF_LABELS: Record<string, string> = {
   plan_updated:        'تحديث خطة',
   meeting_invite:      'دعوة اجتماع',
   meeting_updated:     'تحديث اجتماع',
+  evidence_status:     'حكمٌ على دليل',
   system:              'إشعار نظام',
 }
 

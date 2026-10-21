@@ -6,12 +6,12 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import { NOTIF_ICONS, NOTIF_LABELS, timeAgo } from '@/lib/notifications'
 import { Bell, Trash2, ClipboardList, Clock, AlertTriangle,
   RefreshCw, MessageCircle, TrendingUp, Trophy, Map,
-  CalendarDays } from 'lucide-react'
+  CalendarDays, FolderOpen } from 'lucide-react'
 
 /* خريطة أسماء Lucide → مكوّنات */
 const LUCIDE_MAP: Record<string, React.ElementType> = {
   ClipboardList, Clock, AlertTriangle, RefreshCw,
-  MessageCircle, TrendingUp, Trophy, Map, CalendarDays, Bell,
+  MessageCircle, TrendingUp, Trophy, Map, CalendarDays, Bell, FolderOpen,
 }
 
 type Notif = {

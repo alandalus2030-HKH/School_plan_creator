@@ -122,5 +122,33 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
       : { status: 'rejected', reason: reasonCode, ...(note ? { note } : {}) },
   })
 
+  /* ── الحكم يصل صاحبه ──
+     كان يُسجَّل في سجلّ التدقيق ولا يبلغ الرافع، فيصير الرفض طريقاً
+     مسدوداً صامتاً. والمنفذ القديم يُشعر المكلَّف بالمهمّة — ودليل
+     القناة المباشرة بلا مهمّة، فتخرج قائمته فارغة.
+     والمبدأ من 3.1: «رُفض الدليل → يعود إلى المكلَّف **ومعه سبب
+     الرفض**» — فالسبب المصنَّف يُحلَّل **ويصل**.
+     ولا يُشعَر من حكم بنفسه، وتُحترم تفضيلات المستقبِل. */
+  const recipient = ev.uploaded_by
+  if (recipient && recipient !== auth.user.id) {
+    const { data: pref } = await admin.from('profiles')
+      .select('notif_enabled, notif_inapp').eq('id', recipient).maybeSingle()
+    if (pref?.notif_enabled !== false && pref?.notif_inapp !== false) {
+      await admin.from('notifications').insert({
+        recipient_id: recipient,
+        sender_id:    auth.user.id,
+        type:         'evidence_status',
+        title: action === 'accept'
+          ? `قُبل دليلك: ${ev.name}`
+          : `رُفض دليلك: ${ev.name}`,
+        body: action === 'accept'
+          ? `هويّته الثابتة ${updated.code || '—'} — ودخل مخزن الأدلة واحتُسب في التغطية.`
+          : `السبب: ${reasonCode}${note ? ` — ${note}` : ''}`,
+        link: '/dashboard/evidence',
+        is_read: false, send_email: false,
+      })
+    }
+  }
+
   return NextResponse.json({ ok: true, status: updated.status, code: updated.code })
 }
