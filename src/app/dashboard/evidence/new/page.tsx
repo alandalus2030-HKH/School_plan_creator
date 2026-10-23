@@ -17,7 +17,7 @@
    المعلّم تماماً**».
    ════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -44,7 +44,18 @@ type ReqBrief = {
   requester: { name_ar: string } | null
 }
 
+/* الغلاف: `useSearchParams` يلزمه حدُّ Suspense في الصفحات المُولّدة
+   سلفاً — وبغيره **يُخفق البناء كلّه** عند التوليد المسبق لا عند العرض.
+   وهو النمط نفسه في `plans` و`tasks/new` و`login`. */
 export default function NewDirectEvidencePage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-slate-400">…</div>}>
+      <NewDirectEvidenceInner />
+    </Suspense>
+  )
+}
+
+function NewDirectEvidenceInner() {
   const router   = useRouter()
   const params   = useSearchParams()
   const requestId = params.get('request') || ''
