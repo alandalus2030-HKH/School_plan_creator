@@ -151,6 +151,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'إجمالي الحجم يتجاوز 150 ميغابايت — ارفعها على دفعات' }, { status: 400 })
   }
 
+  /* ── مساحةُ الباقة تُفحص **قبل** الرفع لا بعده (16 · م1‑11ب) ──
+     «والامتلاء المفاجئ هو الخطر الحقيقيّ: رفعٌ يتوقّف في منتصف دفعة،
+      فتبقى ملفّات في المخزن وأخرى خارجه.» فالدفعة التي لا تسعها الباقة
+     تُرَدّ **كلّها** قبل أن يُرفع منها بايت، ويُقال كم يلزم.
+     وإن لم يُشغَّل ترحيل 092 مضى الرفع: المؤشّر حمايةٌ لا شرطُ عمل. */
+  {
+    const { data: plan } = await admin.from('storage_plan')
+      .select('quota_bytes, warn_pct, plan_name').eq('id', 1).maybeSingle()
+    if (plan) {
+      const { data: usage } = await admin.rpc('storage_usage')
+      const used  = (usage || []).reduce((a: number, b: any) => a + Number(b.bytes || 0), 0)
+      const quota = Number(plan.quota_bytes) || 0
+      const free  = quota - used
+      if (quota > 0 && total > free) {
+        const mb = (n: number) => Math.max(0, Math.round(n / 1048576))
+        return NextResponse.json({
+          error: `لا تسع الباقة هذه الدفعة: المتاح ${mb(free)} ميغابايت والدفعة ${mb(total)}. `
+               + `رقِّ باقة التخزين أو قسّم الدفعة — فالرفع لا يُبدأ ليتوقّف في منتصفه (16).`,
+          storageFull: true, freeBytes: Math.max(0, free), neededBytes: total,
+        }, { status: 507 })
+      }
+    }
+  }
+
   /* دفعةٌ قائمة تُستكمل، أو تُفتح جديدة */
   let batch: any = null
   if (batchId) {
