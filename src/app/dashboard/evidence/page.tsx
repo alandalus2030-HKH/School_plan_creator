@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
-  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw, Inbox } from 'lucide-react'
+  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw, Inbox, FileStack } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -243,6 +243,14 @@ export default function EvidenceLockerPage() {
                 <span>فرق التركيز</span>
               </Link>
             </>
+          )}
+          {/* الرفع الجماعي — أسلوب إدخالٍ يخدم القناة المباشرة لا قناةٌ خامسة (3.6.1) */}
+          {(isSuperAdmin || can('manage_evidence')) && (
+            <Link href="/dashboard/evidence/batch"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-200 bg-white text-violet-700 text-sm font-semibold hover:bg-violet-50 transition">
+              <span className="inline-flex"><FileStack size={16} /></span>
+              <span>رفعٌ جماعي</span>
+            </Link>
           )}
           {/* القناة المباشرة — دليل بلا مهمّة ولا خطة */}
           {(isSuperAdmin || can('manage_evidence')) && (

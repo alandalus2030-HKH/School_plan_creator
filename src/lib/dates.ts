@@ -45,3 +45,23 @@ export function academicYearEnd(label: string): string {
   if (!p) return ''
   return `${p[1]}-${pad(ACADEMIC_YEAR_END_MONTH)}-${pad(ACADEMIC_YEAR_END_DAY)}`
 }
+
+/**
+ * أعوام تُعرض لنسبة الدليل: الجاري وما قبله وما بعده — مشتقّةً من
+ * `currentAcademicYear()` لا مكتوبةً بخطّ اليد (درس «القيم الشائخة»).
+ *
+ * والمدى افتراضاً أربعة أعوام خلفاً وواحدٌ أماماً: دورة الاعتماد تنظر
+ * في ثلاث سنوات (3.8)، والخلف أوسع لأن الأرشيف يُرفَع بعد حينه.
+ */
+export function academicYearOptions(back = 4, fwd = 1): string[] {
+  const start = Number(currentAcademicYear().split('-')[0])
+  const out: string[] = []
+  for (let y = start + fwd; y >= start - back; y--) out.push(`${y}-${y + 1}`)
+  return out
+}
+
+/** النافذة الانتقالية (3.8): يوليو ← سبتمبر، حيث لا يُنسَب العام صامتاً. */
+export function inTransitionWindow(d: Date = new Date()): boolean {
+  const m = d.getMonth() + 1
+  return m >= 7 && m <= 9
+}

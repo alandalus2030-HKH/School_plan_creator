@@ -16,7 +16,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { Loader2, ShieldCheck, AlertTriangle, Check, X, SkipForward, SkipBack, Users, Keyboard,
   FileText, ExternalLink, Clock, Inbox, Plus, Lock } from 'lucide-react'
-import { fetchFrameworkLevel, type FrameworkNode } from '@/lib/framework'
+import { fetchFrameworkLevel, fetchFrameworkAllAtLevel, type FrameworkNode } from '@/lib/framework'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 
@@ -130,7 +130,7 @@ export default function TriagePage() {
   /* المعايير الفرعية تُجلب مرّةً عند أوّل فتح — 76 بنداً تكفيها رحلة */
   const openAnchor = async () => {
     setAnchoring(true); setPicked([]); setWhole(false)
-    if (!subs.length) setSubs(await fetchFrameworkLevel(3, null))
+    if (!subs.length) setSubs(await fetchFrameworkAllAtLevel(3))
   }
   useEffect(() => {
     if (!subCode) { setInds([]); return }

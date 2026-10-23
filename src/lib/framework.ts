@@ -165,3 +165,26 @@ export async function fetchEvidenceSamples(aspectNodeId: string): Promise<NoteIt
     .order('sort_order')
   return (data || []) as NoteItem[]
 }
+
+/**
+ * كل بنود مستوىً في الإطار النشط — للقوائم **المسطّحة**: قائمةٌ واحدة
+ * فيها المعايير الفرعية الستّة والسبعون، تُختار منها مباشرةً بلا تتبُّعٍ
+ * لمحورٍ فجانبٍ فمعيار.
+ *
+ * ولم أوسّع `fetchFrameworkLevel` لتقبل أباً فارغاً بمعنى «الكلّ»، لأن
+ * من دعاها بكودٍ لم يُختر بعد (`''`) يتوقّع قائمةً فارغة لا أربعة
+ * وثمانين مؤشّراً — فالتسطيح نيّةٌ تُطلب صريحةً لا تُستنتج من غياب أب.
+ */
+export async function fetchFrameworkAllAtLevel(levelNum: number): Promise<FrameworkNode[]> {
+  if (levelNum < 1 || levelNum > FRAMEWORK_MAX_LEVEL) return []
+  const { data, error } = await createClient()
+    .from('framework_nodes')
+    .select('id, code, name_ar, level, frameworks!inner(code, status)')
+    .eq('frameworks.code', 'QNSA')
+    .eq('frameworks.status', 'active')
+    .eq('level', levelNum)
+    .eq('is_active', true)
+    .order('sort_order')
+  if (error || !data) return []
+  return data.map(({ id, code, name_ar, level }: any) => ({ id, code, name_ar, level }))
+}

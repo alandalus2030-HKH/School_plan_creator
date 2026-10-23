@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { fetchFrameworkLevel, type FrameworkNode } from '@/lib/framework'
-import { currentAcademicYear, todayInput } from '@/lib/dates'
+import { currentAcademicYear, todayInput, academicYearOptions, inTransitionWindow } from '@/lib/dates'
 import { sha256 } from '@/lib/hash'
 
 type Picked = { file: File; hash: string | null }
@@ -28,20 +28,7 @@ type Dup    = { hash: string; fileName: string; evidenceId: string; name: string
 
 const ACCEPT = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx'
 
-/** الأعوام المعروضة: الجاري وأربعة قبله وواحد بعده. */
-function yearOptions(): string[] {
-  const cur   = currentAcademicYear()
-  const start = parseInt(cur.split('-')[0], 10)
-  const out: string[] = []
-  for (let y = start + 1; y >= start - 4; y--) out.push(`${y}-${y + 1}`)
-  return out
-}
-
-/** النافذة الانتقالية (3.8): يوليو ← سبتمبر، حيث لا يُنسَب العام صامتاً. */
-function inTransitionWindow(d: Date = new Date()): boolean {
-  const m = d.getMonth() + 1
-  return m >= 7 && m <= 9
-}
+/* الأعوام والنافذة الانتقالية من `@/lib/dates` — مصدرٌ واحد (3.8). */
 
 export default function NewDirectEvidencePage() {
   const router   = useRouter()
@@ -323,7 +310,7 @@ export default function NewDirectEvidencePage() {
               <label className={labelCls}>العام المنسوب <span className="text-rose-500">*</span></label>
               <select value={academicYear} onChange={e => setAcademicYear(e.target.value)}
                 className={`${fieldCls} font-latin`}>
-                {yearOptions().map(y => <option key={y} value={y}>{y}</option>)}
+                {academicYearOptions().map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
           </div>
