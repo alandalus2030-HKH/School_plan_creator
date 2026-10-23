@@ -14,7 +14,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Loader2, Upload, Clock, AlertTriangle, CheckCircle2,
-         FileQuestion, CornerUpLeft } from 'lucide-react'
+         FileQuestion, CornerUpLeft, Users, MinusCircle, X, Repeat } from 'lucide-react'
 import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
 
@@ -28,12 +28,18 @@ type Req = {
   indicators: { code: string; name_ar: string }[]
   requester: { id: string; name_ar: string } | null
   evidence: { id: string; name: string; status: string } | null
+  target: 'person' | 'department' | 'job'
+  targetName: string | null
+  cycle: { id: string; period_label: string; recurring_task_id: string } | null
 }
 
 export default function RequestedPage() {
   const { loading: permsLoading } = usePermissions()
   const [rows, setRows] = useState<Req[]>([])
   const [loading, setLoading] = useState(true)
+  const [skipping, setSkipping] = useState<Req | null>(null)
+  const [why,      setWhy]      = useState('')
+  const [busy,     setBusy]     = useState(false)
 
   const load = useCallback(async () => {
     const r = await fetch('/api/evidence/requests?scope=mine')
@@ -43,6 +49,21 @@ export default function RequestedPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  /* «لم تُنفَّذ هذه الدورة — والسبب…» إجابةٌ مشروعة تُسجَّل (5.2) */
+  const skip = async () => {
+    if (!skipping?.cycle || !why.trim()) return
+    setBusy(true)
+    const r = await fetch('/api/recurring-tasks/cycles', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cycleId: skipping.cycle.id, action: 'skip', justification: why.trim() }),
+    })
+    const j = await r.json().catch(() => ({}))
+    setBusy(false)
+    if (!r.ok) { toast(j.error || 'تعذّر التسجيل', 'error'); return }
+    toast('سُجّل المبرّر — والدورة مقبولةٌ لا مهملة', 'success')
+    setSkipping(null); setWhy(''); await load()
+  }
 
   const open     = rows.filter(r => r.status === 'open')
   const inReview = rows.filter(r => r.status === 'in_review')
@@ -95,6 +116,19 @@ export default function RequestedPage() {
               </span>
             )}
             {r.requester && <span>طلبه: {r.requester.name_ar}</span>}
+            {r.target !== 'person' && (
+              <span className="inline-flex items-center gap-1 text-slate-600"
+                title="مُسنَدٌ إلى وجهةٍ مؤسسية لا إلى شخص — فلا يموت برحيل أحد">
+                <span className="inline-flex"><Users size={11} /></span>
+                <span>مطلوبٌ من {r.target === 'job' ? 'منصب' : 'قسم'} «{r.targetName}»</span>
+              </span>
+            )}
+            {r.cycle && (
+              <span className="inline-flex items-center gap-1 text-[#8a1538]">
+                <span className="inline-flex"><Repeat size={11} /></span>
+                <span>دورة {r.cycle.period_label}</span>
+              </span>
+            )}
           </div>
 
           {/* الرفض يعود بسببه — «ومعه سبب الرفض من القائمة المغلقة» (3.1) */}
@@ -110,12 +144,59 @@ export default function RequestedPage() {
             </p>
           )}
 
-          <Link href={`/dashboard/evidence/new?request=${r.id}`}
-            className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-white text-sm font-semibold hover:brightness-95">
-            <span className="inline-flex"><Upload size={15} /></span><span>ارفع الدليل</span>
-          </Link>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link href={`/dashboard/evidence/new?request=${r.id}`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-white text-sm font-semibold hover:brightness-95">
+              <span className="inline-flex"><Upload size={15} /></span><span>ارفع الدليل</span>
+            </Link>
+            {r.cycle && (
+              <button onClick={() => { setSkipping(r); setWhy('') }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs hover:border-slate-400">
+                <span className="inline-flex"><MinusCircle size={14} /></span>
+                <span>لم تُنفَّذ — سجّل المبرّر</span>
+              </button>
+            )}
+          </div>
         </div>
       ))}
+
+      {/* نافذة المبرّر — والصدق أسهلُ من التحايل، وهو ما يحمي المخزن (5.2) */}
+      {skipping && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-md my-8">
+            <div className="p-4 border-b border-slate-100 flex items-center gap-2">
+              <span className="inline-flex text-slate-500"><MinusCircle size={17} /></span>
+              <h2 className="font-bold text-slate-800 text-sm">دورةٌ لم تُنفَّذ</h2>
+              <button onClick={() => setSkipping(null)} className="ms-auto text-slate-400 hover:text-slate-700">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-4 space-y-3 text-sm">
+              <p className="text-xs text-slate-600"><strong>{skipping.what_is_asked}</strong></p>
+              <label className="block">
+                <span className="text-xs font-semibold text-slate-600">المبرّر *</span>
+                <textarea value={why} onChange={e => setWhy(e.target.value)} rows={3}
+                  placeholder="مثال: أُلغي الاجتماع لتعارضه مع زيارة الوزارة، ونُقل إلى الفصل الثاني"
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200" />
+              </label>
+              <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-2 leading-relaxed">
+                الدورة غير المنفَّذة بمبرّرٍ مسجَّل <strong>مقبولة لا مهملة</strong> —
+                <strong> والمبرّر جزء من السجل يقرؤه المقيّم</strong>. فلا تُرفَع أدلّةٌ بلا قيمة
+                لتُغلق دورة، والمهملة وحدها تُعدّ فجوة (5.3).
+              </p>
+            </div>
+            <div className="p-4 border-t border-slate-100 flex items-center gap-2">
+              <button onClick={skip} disabled={!why.trim() || busy}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 text-white text-sm font-bold disabled:opacity-40">
+                <span className="inline-flex">{busy ? <Loader2 size={14} className="animate-spin" /> : <MinusCircle size={14} />}</span>
+                <span>سجّل المبرّر</span>
+              </button>
+              <button onClick={() => setSkipping(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* قيد التقييم: يخرج من قائمة العمل ولا يختفي — فيعرف أنه أدّى ما عليه */}
       {!!inReview.length && (

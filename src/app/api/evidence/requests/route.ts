@@ -27,7 +27,7 @@ import { recordAudit } from '@/lib/audit'
 async function ctxOf(userId: string) {
   const admin = createAdminClient()
   const { data: me } = await admin.from('profiles')
-    .select('id, name_ar, school_id, active_school_id, is_super_admin, role')
+    .select('id, name_ar, school_id, active_school_id, is_super_admin, role, department, job_title')
     .eq('id', userId).single()
   if (!me) return null
   const schoolId = (me.is_super_admin && me.active_school_id) ? me.active_school_id : me.school_id
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
   const ctx = await ctxOf(auth.user.id)
   if (!ctx?.schoolId) return NextResponse.json({ error: 'لا توجد مدرسة مرتبطة' }, { status: 400 })
-  const { admin, schoolId, can } = ctx
+  const { admin, me, schoolId, can } = ctx
 
   const mine = req.nextUrl.searchParams.get('scope') === 'mine'
   const one  = req.nextUrl.searchParams.get('id')
@@ -70,6 +70,7 @@ export async function GET(req: NextRequest) {
     .select(`id, status, what_is_asked, expected_type, academic_year, due_date,
              sub_node_id, indicator_ids, attempts, last_reject, diverted_note,
              created_at, closed_at, evidence_id,
+             assigned_to, assigned_department, assigned_job_title,
              requester:profiles!evidence_requests_requested_by_fkey(id, name_ar),
              assignee:profiles!evidence_requests_assigned_to_fkey(id, name_ar),
              evidence:evidence!evidence_requests_evidence_id_fkey(id, name, code, status)`)
@@ -79,11 +80,28 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
 
   if (one)  q = q.eq('id', one)
-  if (mine) q = q.eq('assigned_to', auth.user.id).neq('status', 'closed')
+  /* ── «أدلة مطلوبة»: ما أُسند إليّ شخصياً **أو إلى قسمي أو منصبي** ──
+     فطلبُ الدورة مُسنَدٌ إلى وجهةٍ مؤسسية لا إلى شخص (5.2)، «فالممارسة
+     مؤسسية، وإسنادها لشخصٍ بعينه يقتلها عند رحيله». ومن يشغل الوجهة
+     اليوم يراها، فلا إعادة إسنادٍ عند تبدّل الناس. */
+  if (mine) {
+    const ors = [`assigned_to.eq.${auth.user.id}`]
+    if (me.department) ors.push(`assigned_department.eq.${me.department}`)
+    if (me.job_title)  ors.push(`assigned_job_title.eq.${me.job_title}`)
+    q = q.or(ors.join(',')).neq('status', 'closed')
+  }
 
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   const rows = data || []
+
+  /* طلبُ الدورة يُعرَف ليُعرَض معه بابُ المبرّر (5.2) */
+  const { data: cycleRows } = rows.length
+    ? await admin.from('recurring_task_cycles')
+        .select('id, request_id, period_label, recurring_task_id')
+        .in('request_id', rows.map((r: any) => r.id))
+    : { data: [] as any[] }
+  const cycleOf = new Map((cycleRows || []).map((c: any) => [c.request_id, c]))
 
   const nodes = await nodeMap(admin, [
     ...rows.map((r: any) => r.sub_node_id),
@@ -97,6 +115,11 @@ export async function GET(req: NextRequest) {
     /* فراغ المؤشرات «يغطّي المعيار الفرعي كاملاً» — تغطيةٌ ضمنية (3.3) */
     whole: !(r.indicator_ids || []).length,
     overdue: overdue(r),
+    /* وجهةُ الطلب — شخصٌ أو وجهةٌ مؤسسية (5.2) */
+    target: r.assigned_to ? 'person' : (r.assigned_job_title ? 'job' : 'department'),
+    targetName: r.assigned_to ? (r.assignee?.name_ar || '—')
+                : (r.assigned_job_title || r.assigned_department),
+    cycle: cycleOf.get(r.id) || null,
   }))
 
   return NextResponse.json({
