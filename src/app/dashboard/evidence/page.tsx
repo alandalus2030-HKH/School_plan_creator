@@ -312,7 +312,16 @@ export default function EvidenceLockerPage() {
                 <div key={e.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3.5 hover:bg-slate-50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {e.number && <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full" title="رقم الدليل">{e.number}</span>}
+                      {/* الهويّة الثابتة أوّلاً — «تُذكر في التقرير ومراسلات المقيّم» (3.4).
+                          و`number` رقمُ الدليل **داخل مهمّته** لا هويّته، فيبقى ثانوياً. */}
+                      {e.code && (
+                        <span className="text-xs font-mono bg-[#8a1538] text-white px-2 py-0.5 rounded-full"
+                          title="الهويّة الثابتة — تُمنح عند القبول ولا تتغيّر (3.4)">{e.code}</span>
+                      )}
+                      {e.number && (
+                        <span className="text-[11px] font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full"
+                          title="رقم الدليل داخل مهمّته">{e.number}</span>
+                      )}
                       <a href={`/dashboard/evidence/${e.id}/print`} target="_blank" rel="noopener noreferrer"
                         className="text-sm font-semibold text-slate-800 truncate hover:text-violet-700 hover:underline">{e.name}</a>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full ${sm.cls}`}>{sm.ar}</span>

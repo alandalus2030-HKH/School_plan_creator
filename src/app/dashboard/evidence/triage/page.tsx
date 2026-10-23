@@ -26,7 +26,7 @@ type Item = {
   file_url: string | null; file_type: string | null; file_size: number | null; video_url: string | null
   evidence_type: string | null; source: string; reason_code: string | null
   academic_year: string | null; document_date: string | null; created_at: string
-  uploaded_by: string | null; owner_team_id: string | null; task_id: string | null
+  uploaded_by: string | null; owner_team_id: string | null; task_id: string | null; code: string | null
   uploader: string; taskName: string | null
   anchors: Anchor[]; blockers: string[]; isMine: boolean
 }
@@ -265,6 +265,11 @@ export default function TriagePage() {
                 <span>{new Date(cur.created_at).toLocaleDateString('ar-QA')}</span>
               </span>
               <span className="text-xs text-slate-500">رفعه: {cur.uploader}</span>
+              {/* الهويّة إن كانت — تظهر للمقبول الذي أُعيد فتحه، فتبقى هي نفسها (3.4) */}
+              {cur.code && (
+                <span className="text-[11px] font-mono bg-[#8a1538] text-white px-2 py-0.5 rounded-full"
+                  title="الهويّة الثابتة — لا تتغيّر ولو أُعيد الفتح">{cur.code}</span>
+              )}
             </div>
 
             <div className="p-4 space-y-3">

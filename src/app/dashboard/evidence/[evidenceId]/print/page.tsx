@@ -216,10 +216,19 @@ export default function EvidencePrintPage() {
         {/* ── رقم الدليل المميَّز ── */}
         <div className="mx-6 mb-8 mt-2 rounded-2xl border-2 p-6 text-center"
           style={{ borderColor: 'var(--maroon-600, #8a1538)', background: '#fbf2f4' }}>
-          <p className="text-xs font-semibold text-slate-400 mb-2">الدليل</p>
-          <p className="text-5xl font-mono font-bold tracking-wider mb-3" style={{ color: 'var(--maroon-700, #6f1029)' }}>
-            {displayNum || ev.evidence_number}
+          {/* الهويّة الثابتة هي الرقم الرسميّ — «تُذكر في التقرير ومراسلات
+              المقيّم» (3.4). ورقم الدليل داخل مهمّته تابعٌ يُذكر تحتها. */}
+          <p className="text-xs font-semibold text-slate-400 mb-2">
+            {ev.code ? 'الهويّة الثابتة' : 'الدليل'}
           </p>
+          <p className="text-5xl font-mono font-bold tracking-wider mb-2" style={{ color: 'var(--maroon-700, #6f1029)' }}>
+            {ev.code || displayNum || ev.evidence_number}
+          </p>
+          {ev.code && (displayNum || ev.evidence_number) && (
+            <p className="text-xs text-slate-400 font-mono mb-3">
+              رقمه في مهمّته: {displayNum || ev.evidence_number}
+            </p>
+          )}
           <p className="text-lg font-bold text-slate-800">{ev.name}</p>
           {files.length > 1 && (
             <p className="text-sm text-slate-500 mt-2">عدد المرفقات ({files.length})</p>
