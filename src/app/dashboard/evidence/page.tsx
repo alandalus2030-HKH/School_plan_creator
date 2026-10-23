@@ -3,8 +3,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
-  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw, Inbox, FileStack, FileQuestion } from 'lucide-react'
+  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw, Inbox, FileStack, FileQuestion, History, X,
+  Upload, CheckCircle2, XCircle, RotateCcw, PencilLine, Target, Fingerprint, Undo2, EyeOff } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
+import { EVIDENCE_EVENTS, FIELD_LABELS, type EvidenceEvent } from '@/lib/evidenceLog'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
 
@@ -162,6 +164,7 @@ export default function EvidenceLockerPage() {
      سببٌ مكتوب (3.3) · وإن كان الدليل سنداً لمهمّة منجزة فقرارٌ صريح
      في مصيرها. والقبول والرفض في الطابور وحده. */
   const [reopen,     setReopen]     = useState<Ev | null>(null)
+  const [logOf,      setLogOf]      = useState<{ id: string; name: string; code: string | null } | null>(null)
   const [reason,     setReason]     = useState('')
   const [taskAction, setTaskAction] = useState<'' | 'return' | 'keep'>('')
   const [reopening,  setReopening]  = useState(false)
@@ -442,6 +445,12 @@ export default function EvidenceLockerPage() {
                         </button>
                       )
                     )}
+                    {/* سجلّ الدليل — «كيف صار إلى هنا» (9.3) */}
+                    <button onClick={() => setLogOf({ id: e.id, name: e.name, code: e.code })}
+                      title="سجلّ الدليل — من رفعه ومتى، ومن قبله، وما تغيّر بعد القبول"
+                      className="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors">
+                      <History size={15} />
+                    </button>
                     <a href={`/dashboard/evidence/${e.id}/print`} target="_blank" title="طباعة"
                       className="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"><Printer size={15} /></a>
                   </div>
@@ -512,6 +521,8 @@ export default function EvidenceLockerPage() {
       )}
 
       {/* ══ نافذة إعادة الفتح — نقضُ حكمٍ بسببٍ مكتوب (3.3) ══ */}
+      {logOf && <EvidenceLog ev={logOf} onClose={() => setLogOf(null)} />}
+
       {reopen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
              onClick={() => !reopening && setReopen(null)}>
@@ -599,5 +610,133 @@ function Select({ value, onChange, placeholder, options }: { value: string; onCh
       <option value="">{placeholder}</option>
       {options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
     </select>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════
+   سجلّ الدليل (الوثيقة 9.3)
+
+   «والفهرس يقول ماذا عندك، ومصفوفة التغطية تقول أين يقع، **وهذا يقول
+    كيف صار إلى هنا**… فالمقيّم لا يسأل «هل عندكم دليل؟» بل «أهذا
+    معاصرٌ للعمل أم صُنع قبل الزيارة؟».»
+
+   فالعرض يُبرز ما يجيب ذلك السؤال: تاريخُ الواقعة وفاعلها، **والرافع
+   غير القابل فيُرى منع التقييم الذاتي ولا يُدَّعى**. ووسمُ «داخليّ»
+   يقول صريحاً ما لا يخرج للمقيّم، فلا يُفاجأ أحدٌ بما حُجب.
+   ════════════════════════════════════════════════════════════ */
+
+const LOG_ICONS: Record<string, React.ElementType> = {
+  Upload, CheckCircle2, XCircle, RotateCcw, PencilLine, Target, BadgeCheck, Undo2, Fingerprint,
+}
+const TONE_CLS: Record<string, string> = {
+  slate:   'bg-slate-50 text-slate-600 border-slate-200',
+  emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  rose:    'bg-rose-50 text-rose-700 border-rose-200',
+  amber:   'bg-amber-50 text-amber-800 border-amber-200',
+  sky:     'bg-sky-50 text-sky-700 border-sky-200',
+  violet:  'bg-violet-50 text-violet-700 border-violet-200',
+}
+
+function EvidenceLog({ ev, onClose }: { ev: { id: string; name: string; code: string | null }; onClose: () => void }) {
+  const [entries, setEntries] = useState<any[]>([])
+  const [hidden,  setHidden]  = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [err,     setErr]     = useState('')
+
+  useEffect(() => {
+    ;(async () => {
+      const r = await fetch(`/api/evidence/${ev.id}/log`)
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) setErr(j.error || 'تعذّر قراءة السجلّ')
+      else { setEntries(j.entries || []); setHidden(j.hidden || 0) }
+      setLoading(false)
+    })()
+  }, [ev.id])
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-start justify-center p-4 overflow-y-auto"
+      onClick={onClose}>
+      <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-xl my-8" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-slate-100 flex items-start gap-2">
+          <span className="inline-flex text-sky-600 mt-0.5"><History size={18} /></span>
+          <div className="min-w-0">
+            <h2 className="font-bold text-slate-800 text-sm truncate">سجلّ الدليل — {ev.name}</h2>
+            <p className="text-[11px] text-slate-400">
+              {ev.code ? <span className="font-latin">{ev.code} · </span> : null}
+              سجلٌّ لا يُحرَّر: كيف صار هذا الدليل إلى هنا
+            </p>
+          </div>
+          <button onClick={onClose} className="ms-auto text-slate-400 hover:text-slate-700 flex-shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-4">
+          {loading ? (
+            <p className="text-center text-slate-400 py-6"><Loader2 className="animate-spin inline" /></p>
+          ) : err ? (
+            <p className="text-sm text-rose-600">{err}</p>
+          ) : !entries.length ? (
+            <p className="text-sm text-slate-400 text-center py-6">لا وقائع — السجلّ يبدأ من تشغيل الترحيل 091</p>
+          ) : (
+            <ol className="space-y-2.5">
+              {entries.map(en => {
+                const spec = EVIDENCE_EVENTS[en.event as EvidenceEvent]
+                const Icon = LOG_ICONS[spec?.icon || 'Upload'] || Upload
+                return (
+                  <li key={en.id} className={`rounded-xl border px-3 py-2.5 ${TONE_CLS[spec?.tone || 'slate']}`}>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                      <span className="inline-flex"><Icon size={14} /></span>
+                      <span className="font-bold">{spec?.label || en.event}</span>
+                      {en.actor
+                        ? <span>· {en.actor}</span>
+                        : <span className="opacity-60">· مجهول الفاعل</span>}
+                      <span className="font-latin opacity-70 ms-auto">
+                        {new Date(en.at).toLocaleString('ar-QA', { dateStyle: 'short', timeStyle: 'short' })}
+                      </span>
+                    </div>
+
+                    {/* ما يخصّ الواقعة وحدها */}
+                    <div className="mt-1 text-[11px] opacity-90 space-y-0.5">
+                      {en.node && <p><span className="font-latin">{en.node.code}</span> — {en.node.name_ar}</p>}
+                      {en.reasonCode && <p>السبب المصنَّف: {en.reasonCode}</p>}
+                      {en.reasonText && <p>{en.reasonText}</p>}
+                      {en.event === 'uploaded' && en.detail?.source && (
+                        <p>القناة: {(SOURCE_META[en.detail.source] || SOURCE_META.plan).ar}</p>
+                      )}
+                      {en.event === 'accepted' && en.detail?.code && (
+                        <p>الهويّة الثابتة <span className="font-latin">{en.detail.code}</span></p>
+                      )}
+                      {en.event === 'edited_after_accept' && Array.isArray(en.detail?.fields) && (
+                        <p>تغيّر: {en.detail.fields.map((f: string) => FIELD_LABELS[f] || f).join(' · ')}</p>
+                      )}
+                      {en.event === 'fixity_alert' && (
+                        <p>{en.detail?.file} — {en.detail?.state === 'missing' ? 'الملفّ مفقود' : 'البصمة تبدّلت'}</p>
+                      )}
+                      {en.backfilled && (
+                        <p className="opacity-60">واقعةٌ بُذرت من بيانات الدليل عند تشغيل السجلّ</p>
+                      )}
+                      {spec && !spec.external && (
+                        <p className="inline-flex items-center gap-1 opacity-70">
+                          <span className="inline-flex"><EyeOff size={10} /></span>
+                          <span>داخليّ — لا يخرج في حزمة المقيّم (9.3)</span>
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          )}
+
+          {hidden > 0 && (
+            <p className="mt-3 text-[11px] text-slate-400 border-t border-slate-100 pt-2.5">
+              منها <strong>{hidden}</strong> واقعةٌ لا تخرج للمقيّم الخارجي — «يخرج ما يخصّ الدليل
+              المقبول، ولا يخرج ما يخصّ المداولة». والسبب أن المداولة شرطُ جودةِ الحكم لا موضوعُه.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

@@ -142,6 +142,10 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
 
   const { error } = await admin.from('evidence').update({
     status,
+    /* ختمُ سجلّ الدليل (9.3 · 091): الفاعل، ومعه سبب النقض المكتوب —
+       فكان السبب يُسجَّل في سجلّ التدقيق وحده، وسجلّ الدليل أحقُّ به. */
+    changed_by:    auth.user.id,
+    change_reason: undoing ? String(reason).trim() : (note?.trim() || null),
     /* سبب الرفض يُحفظ كإرشاد لصاحب المهمة؛ يُمسح عند الاعتماد أو إلغاء الرفض يدوياً */
     review_note: status === 'rejected' ? (note?.trim() || null) : null,
     reviewed_by: status === 'pending' ? null : auth.user.id,

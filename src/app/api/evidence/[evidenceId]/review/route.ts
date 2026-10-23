@@ -128,6 +128,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
   const patch: Record<string, any> = {
     status:      action === 'accept' ? 'accepted' : 'rejected',
     reviewed_by: auth.user.id,
+    /* ختمُ سجلّ الدليل: الفاعل يُنسب ولا يُفترض (9.3 · ترحيل 091) */
+    changed_by:  auth.user.id,
     reviewed_at: now,
     last_reviewed_at: now,
     review_note:        action === 'reject' ? (note || null) : null,
