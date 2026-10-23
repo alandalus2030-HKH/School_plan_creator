@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
   Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw, Inbox, FileStack, FileQuestion, History, X,
-  Upload, CheckCircle2, XCircle, RotateCcw, PencilLine, Target, Fingerprint, Undo2, EyeOff } from 'lucide-react'
+  Upload, CheckCircle2, XCircle, RotateCcw, PencilLine, Target, Fingerprint, Undo2, EyeOff, LayoutGrid } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { EVIDENCE_EVENTS, FIELD_LABELS, type EvidenceEvent } from '@/lib/evidenceLog'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -239,6 +239,12 @@ export default function EvidenceLockerPage() {
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-sm font-semibold hover:bg-sky-100 transition">
                 <span className="inline-flex"><Inbox size={16} /></span>
                 <span>إسنادٌ وارد</span>
+              </Link>
+              {/* مصفوفة التغطية — «تقول أين يقع» (3.3) */}
+              <Link href="/dashboard/evidence/coverage"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-200 bg-white text-violet-700 text-sm font-semibold hover:bg-violet-50 transition">
+                <span className="inline-flex"><LayoutGrid size={16} /></span>
+                <span>مصفوفة التغطية</span>
               </Link>
               {/* طلب الدليل الموجَّه — «طلبات الأدلة» من أدوار المنسّق (10) */}
               <Link href="/dashboard/evidence/requests"
@@ -642,13 +648,19 @@ function EvidenceLog({ ev, onClose }: { ev: { id: string; name: string; code: st
   const [hidden,  setHidden]  = useState(0)
   const [loading, setLoading] = useState(true)
   const [err,     setErr]     = useState('')
+  /* الفهرسة العرضية — تُحسب عند العرض ولا تُخزَّن (3.4) */
+  const [xidx,    setXidx]    = useState<any[]>([])
 
   useEffect(() => {
     ;(async () => {
-      const r = await fetch(`/api/evidence/${ev.id}/log`)
+      const [r, rx] = await Promise.all([
+        fetch(`/api/evidence/${ev.id}/log`),
+        fetch(`/api/evidence/${ev.id}/crossindex`),
+      ])
       const j = await r.json().catch(() => ({}))
       if (!r.ok) setErr(j.error || 'تعذّر قراءة السجلّ')
       else { setEntries(j.entries || []); setHidden(j.hidden || 0) }
+      if (rx.ok) setXidx(((await rx.json()) || {}).entries || [])
       setLoading(false)
     })()
   }, [ev.id])
@@ -672,6 +684,25 @@ function EvidenceLog({ ev, onClose }: { ev: { id: string; name: string; code: st
         </div>
 
         <div className="p-4">
+          {/* موضعه من الإطار: `3.1.2.2 · 3 من 7` — «تُحسب ولا تُخزَّن،
+              تتغيّر بتغيّر الأدلة» (3.4). والترتيب بالهويّة الثابتة. */}
+          {xidx.length > 0 && (
+            <div className="mb-3 pb-3 border-b border-slate-100">
+              <p className="text-[11px] font-semibold text-slate-500 mb-1.5">موضعه من الإطار</p>
+              <div className="flex flex-wrap gap-1.5">
+                {xidx.map((x: any) => (
+                  <span key={x.nodeId} title={x.name}
+                    className="text-[11px] px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-600 font-latin">
+                    {x.label}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                ترتيبه بين أدلة البند — يتغيّر بتغيّر الأدلة، فلا يُخزَّن
+              </p>
+            </div>
+          )}
+
           {loading ? (
             <p className="text-center text-slate-400 py-6"><Loader2 className="animate-spin inline" /></p>
           ) : err ? (
