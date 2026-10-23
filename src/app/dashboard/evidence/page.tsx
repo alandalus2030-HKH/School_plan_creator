@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
-  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw } from 'lucide-react'
+  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw, Inbox } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -206,6 +206,11 @@ export default function EvidenceLockerPage() {
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-200 bg-white text-violet-700 text-sm font-semibold hover:bg-violet-50 transition">
                 <span className="inline-flex"><ShieldCheck size={16} /></span>
                 <span>طابور الفرز{stats?.pending ? ` (${stats.pending})` : ''}</span>
+              </Link>
+              <Link href="/dashboard/evidence/incoming"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-sm font-semibold hover:bg-sky-100 transition">
+                <span className="inline-flex"><Inbox size={16} /></span>
+                <span>إسنادٌ وارد</span>
               </Link>
               <Link href="/dashboard/evidence/teams"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:border-violet-300 transition">

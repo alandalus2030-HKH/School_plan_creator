@@ -58,6 +58,8 @@ export default function TriagePage() {
   const [whole,      setWhole]      = useState(false)
   const [anchorBusy, setAnchorBusy] = useState(false)
   const [permanent,  setPermanent]  = useState(false)
+  /* عدّاد الإسناد الوارد — ليُرى الطابور الثاني ولا يُنسى (3.2) */
+  const [incoming,   setIncoming]   = useState(0)
   const [reason,  setReason]  = useState('')
   const [note,    setNote]    = useState('')
 
@@ -82,6 +84,12 @@ export default function TriagePage() {
     setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    fetch('/api/evidence/incoming-anchors')
+      .then(r => r.ok ? r.json() : null)
+      .then(j => setIncoming(j?.items?.length || 0))
+      .catch(() => {})
+  }, [])
 
   /* طابور فريقي — هو ما يمنع «طابوراً واحداً يختنق» (3.6) */
   const queue = useMemo(
@@ -205,6 +213,13 @@ export default function TriagePage() {
               <span className="inline-flex"><Users size={14} /></span>
               <span>طابور فريقي</span>
             </button>
+          )}
+          {incoming > 0 && (
+            <Link href="/dashboard/evidence/incoming"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100">
+              <span className="inline-flex"><Inbox size={14} /></span>
+              <span>إسنادٌ وارد ({incoming})</span>
+            </Link>
           )}
           <Link href="/dashboard/evidence"
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border border-slate-200 bg-white text-slate-600 hover:border-violet-300">
