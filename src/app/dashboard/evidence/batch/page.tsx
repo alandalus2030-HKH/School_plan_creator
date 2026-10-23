@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { Loader2, Upload, Inbox, Send, Trash2, Check, AlertTriangle, Merge, X, FileStack } from 'lucide-react'
+import { Loader2, Upload, Inbox, Send, Trash2, Check, AlertTriangle, Merge, X, FileStack, HardDrive } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -43,6 +43,8 @@ export default function BatchPage() {
   const [subs,    setSubs]    = useState<FrameworkNode[]>([])
   const [loading, setLoading] = useState(true)
   const [busy,    setBusy]    = useState(false)
+  /* ضيقُ المساحة — حكمٌ لا رقم (16): الباقة حدُّ النظام كلّه لا حدُّ مدرسة */
+  const [tight,   setTight]   = useState<{ tight: boolean; critical: boolean } | null>(null)
   const [upPct,   setUpPct]   = useState<number | null>(null)
 
   const allowed = isSuperAdmin || can('manage_evidence')
@@ -62,6 +64,21 @@ export default function BatchPage() {
   }, [subs.length])
 
   useEffect(() => { if (allowed) loadList() }, [allowed, loadList])
+
+  /* ── الإنذار **قبل أن يَجمع** لا بعد أن يَضغط ──
+     حاجزُ الباقة في الخادم يردّ الدفعة كلّها، ولو كان هو وحده لانتقلت
+     المفاجأة من مشرف النظام إلى الموظّف: يجمع مئتي ملفّ ثم يُرَدّ.
+     فهذا يُنذره أوّلاً، ويدلّه على من يملك العلاج — لا على رقمٍ لا
+     يعنيه ولا يستطيع تغييره. */
+  useEffect(() => {
+    if (!allowed) return
+    ;(async () => {
+      try {
+        const r = await fetch('/api/storage/headroom')
+        if (r.ok) setTight(await r.json())
+      } catch { /* الإنذار تحسينٌ لا شرط — والحاجز في الخادم على أيّ حال */ }
+    })()
+  }, [allowed])
 
   const ingest = async (files: FileList | null, intoId?: string) => {
     if (!files || !files.length) return
@@ -139,6 +156,26 @@ export default function BatchPage() {
           <span className="inline-flex"><Inbox size={14} /></span><span>الخزانة</span>
         </Link>
       </div>
+
+      {/* شريطُ ضيق المساحة — بلا نسبةٍ ولا بايت (16) */}
+      {tight?.tight && (
+        <div className={`rounded-2xl border p-3.5 flex items-start gap-2 text-xs ${
+          tight.critical ? 'bg-red-50 border-red-200 text-red-900'
+                         : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+          <span className="inline-flex mt-0.5"><HardDrive size={15} /></span>
+          <span>
+            <strong>
+              {tight.critical
+                ? 'مساحة النظام على وشك الامتلاء'
+                : 'مساحة النظام تضيق'}
+            </strong>
+            <span className="block mt-0.5 leading-relaxed">
+              أبلِغ مشرف النظام قبل رفع دفعةٍ كبيرة. والدفعة التي لا تسعها المساحة
+              <strong> تُرَدّ كلّها</strong> ولا يُرفع منها شيء — فلا تبقى ملفّات في المخزن وأخرى خارجه.
+            </span>
+          </span>
+        </div>
+      )}
 
       {!batch && (
         <>
