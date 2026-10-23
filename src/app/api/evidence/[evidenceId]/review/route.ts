@@ -21,6 +21,8 @@ import { recordAudit } from '@/lib/audit'
  */
 
 const REJECT_WITH_NOTE = 'أخرى'   // السبب الوحيد الذي يلزمه نصّ
+/** من يملك تجاوز الفريق المالك — ويُسجَّل تجاوزه */
+const ADMIN_ROLES = ['super_admin', 'school_admin', 'admin']
 
 export async function POST(req: NextRequest, context: { params: Promise<{ evidenceId: string }> }) {
   const auth = await requireAuth()
@@ -57,11 +59,34 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
 
   /* الدليل من مدرستك وغير محذوف */
   const { data: ev } = await admin.from('evidence')
-    .select('id, name, school_id, status, uploaded_by, academic_year, code, deleted_at')
+    .select('id, name, school_id, status, uploaded_by, academic_year, code, deleted_at, owner_team_id')
     .eq('id', evidenceId).maybeSingle()
   if (!ev || ev.deleted_at) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
   if (ev.school_id !== schoolId) {
     return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
+  }
+
+  /* ── الملكيّة: الحكم لعضو الفريق المالك (3.2) ──
+     «مالكٌ واحد — فريق المعيار الرئيس للمرساة التي دخل بها، **وهو وحده
+      يقبل أو يرفض**… وكل فريق يبقى سيّد تغطيته». وعلّته منصوصة: أن
+     يقبله فريقٌ ويُسنده إلى مؤشرات فريقٍ آخر، فتُحتسب في تغطية الثاني
+     أدلّةٌ لم يفحصها، ثم يكتب سرد فصله على تغطيةٍ لا يثق بها (6.3).
+     ومن خارج الفريق يمرّ **تجاوزاً صريحاً يُسجَّل باسمه** — فالمسؤولية
+     الإدارية قائمة، لكنّ الفعل يُنسب ولا يُخفى. */
+  let override = false
+  if (ev.owner_team_id) {
+    const { data: member } = await admin.from('focus_team_members')
+      .select('profile_id').eq('team_id', ev.owner_team_id).eq('profile_id', auth.user.id).maybeSingle()
+    if (!member) {
+      const canOverride = me.is_super_admin || perms.includes('all') || ADMIN_ROLES.includes(me.role)
+      if (!canOverride) {
+        const { data: team } = await admin.from('focus_teams')
+          .select('name_ar').eq('id', ev.owner_team_id).maybeSingle()
+        return NextResponse.json(
+          { error: `هذا الدليل لفريق «${team?.name_ar || '—'}» — والحكم لعضوٍ منه` }, { status: 403 })
+      }
+      override = true
+    }
   }
 
   /* ── مانع 1: لا يَقبل الدليلَ من رفعه ── */
@@ -118,8 +143,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
     action: action === 'accept' ? 'evidence_accepted' : 'evidence_rejected',
     table: 'evidence', recordId: evidenceId,
     after: action === 'accept'
-      ? { status: 'accepted', code: updated.code }
-      : { status: 'rejected', reason: reasonCode, ...(note ? { note } : {}) },
+      ? { status: 'accepted', code: updated.code, ...(override ? { override: 'من خارج الفريق المالك' } : {}) }
+      : { status: 'rejected', reason: reasonCode, ...(note ? { note } : {}), ...(override ? { override: 'من خارج الفريق المالك' } : {}) },
   })
 
   /* ── الحكم يصل صاحبه ──

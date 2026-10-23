@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
     || perms.includes('all') || perms.includes('review_evidence')
   if (!canReview) return NextResponse.json({ error: 'لا تملك صلاحية مراجعة الأدلة' }, { status: 403 })
 
-  const { status, note } = await req.json()
+  const { status, note, reason, taskAction } = await req.json()
   if (!VALID.includes(status)) return NextResponse.json({ error: 'حالة غير صالحة' }, { status: 400 })
 
   /* ── النطاق المدرسيّ من **الدليل نفسه** لا من خطّته ──
@@ -44,7 +44,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
      مدرستك» وهو فيها. ولهذا أُنشئ `evidence.school_id` في 073: ليملك
      الدليلُ مدرستَه بنفسه. وسلسلة المهمّة تبقى لما يخصّ المهمّة وحدها. */
   const { data: ev } = await admin.from('evidence')
-    .select('id, name, task_id, school_id, uploaded_by').eq('id', evidenceId).maybeSingle()
+    .select('id, name, task_id, school_id, uploaded_by, status, owner_team_id, code').eq('id', evidenceId).maybeSingle()
   if (!ev) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
   if (ev.school_id !== schoolId) {
     return NextResponse.json({ error: 'الدليل خارج نطاق مدرستك' }, { status: 403 })
@@ -93,9 +93,51 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
     return NextResponse.json({ error: 'لا يمكنك مراجعة دليل على مهمة أنت مكلَّف بها — المراجعة للمقيّم فقط' }, { status: 403 })
   }
 
-  /* المهمة المنجزة مقفلة — لا تُغيَّر حالة أدلتها إلا بعد إعادة فتحها */
-  if (t?.status === 'completed') {
-    return NextResponse.json({ error: 'المهمة منجزة — أعد فتحها أولاً لتغيير حالة الأدلة' }, { status: 409 })
+  /* ── إعادة الفتح: حكمٌ يُنقض، فله شروط الحكم ──
+     (3.3) «بعد القبول: تعديل مسموح **ويُسجَّل**: من · متى · **لماذا**».
+     فالسبب إلزاميّ عند نقض حكمٍ قائم (مقبول أو مرفوض)، ويُسجَّل في
+     سجلّ التدقيق ويصل الرافع. */
+  const undoing = status === 'pending' && (ev.status === 'accepted' || ev.status === 'rejected')
+  if (undoing && !String(reason || '').trim()) {
+    return NextResponse.json(
+      { error: 'سبب إعادة الفتح مطلوب — الحكم يُنقض بسببٍ مكتوب (3.3)' }, { status: 400 })
+  }
+
+  /* ── الملكيّة: نقض الحكم لعضو الفريق المالك، ومن سواه تجاوزٌ يُسجَّل (3.2) ── */
+  let override = false
+  if (undoing && ev.owner_team_id) {
+    const { data: member } = await admin.from('focus_team_members')
+      .select('profile_id').eq('team_id', ev.owner_team_id).eq('profile_id', auth.user.id).maybeSingle()
+    if (!member) {
+      const canOverride = me.is_super_admin || perms.includes('all') || ADMIN_ROLES.includes(me.role)
+      if (!canOverride) {
+        const { data: team } = await admin.from('focus_teams')
+          .select('name_ar').eq('id', ev.owner_team_id).maybeSingle()
+        return NextResponse.json(
+          { error: `هذا الدليل لفريق «${team?.name_ar || '—'}» — ونقض حكمه لعضوٍ منه` }, { status: 403 })
+      }
+      override = true
+    }
+  }
+
+  /* ── تبعية الحكم: الدليل سندٌ لشيءٍ مُقفَل ──
+     اليوم: مهمّة منجزة. وغداً: دورة مهمّة دورية موثّقة · وحكمُ فريقٍ في
+     صفّ سلم (6.3). فالصيغة عامّة لئلّا يتسرّب الخلل إلى ما يُبنى لاحقاً.
+     ولم يعد منعاً: المهمّة أُنجزت لأن دليلها قُبل، فنقضُ القبول يُفرغ
+     سندها — **فيُنبَّه ويُطلب قرارٌ صريح**، ولا يُمنع التصحيح.
+     ويبقى **منعاً واحداً**: الخطة المجمّدة — فالتجميد فعلٌ مقصود من
+     المدرسة له حارسه في القاعدة (053)، لا أثرٌ جانبيّ. */
+  if (undoing && t?.status === 'completed') {
+    if (taskAction !== 'return' && taskAction !== 'keep') {
+      return NextResponse.json({
+        error: 'هذه المهمّة منجزة وسندها هذا الدليل — اختر: إعادتها إلى التقييم معه، أو إبقاؤها',
+        needsTaskDecision: true,
+        taskName: t?.name_ar || null,
+      }, { status: 409 })
+    }
+    if (taskAction === 'return') {
+      await admin.from('tasks').update({ status: 'submitted', updated_by: auth.user.id }).eq('id', ev.task_id)
+    }
   }
 
   const { error } = await admin.from('evidence').update({
@@ -110,8 +152,31 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ evide
   await recordAudit({
     req, userId: auth.user.id, schoolId,
     action: status === 'accepted' ? 'evidence_accepted' : status === 'rejected' ? 'evidence_rejected' : 'evidence_reset',
-    table: 'evidence', recordId: evidenceId, after: { status, ...(note?.trim() ? { note: note.trim() } : {}) },
+    table: 'evidence', recordId: evidenceId,
+    after: {
+      status,
+      ...(note?.trim() ? { note: note.trim() } : {}),
+      ...(undoing ? { reason: String(reason).trim(), was: ev.status, code: ev.code || null } : {}),
+      ...(undoing && t?.status === 'completed' ? { task: taskAction === 'return' ? 'أُعيدت إلى التقييم' : 'أُبقيت منجزة' } : {}),
+      ...(override ? { override: 'من خارج الفريق المالك' } : {}),
+    },
   })
+
+  /* ── نقضُ الحكم يصل صاحبه ──
+     الرافع عرف بالقبول أو الرفض (إشعار /review)، فيُعلَم بنقضه كذلك
+     وإلّا رأى دليله يتنقّل بين الحالات بلا خبر. */
+  if (undoing && ev.uploaded_by && ev.uploaded_by !== auth.user.id) {
+    const { data: pref } = await admin.from('profiles')
+      .select('notif_enabled, notif_inapp').eq('id', ev.uploaded_by).maybeSingle()
+    if (pref?.notif_enabled !== false && pref?.notif_inapp !== false) {
+      await admin.from('notifications').insert({
+        recipient_id: ev.uploaded_by, sender_id: auth.user.id, type: 'evidence_status',
+        title: `أُعيد فتح دليلك: ${ev.name}`,
+        body: `عاد إلى طابور الفرز — السبب: ${String(reason).trim()}`,
+        link: '/dashboard/evidence', is_read: false, send_email: false,
+      })
+    }
+  }
 
   /* إشعارات الرفض (مع سبب اختياري) — تشمل المكلَّف الفردي أو أعضاء القسم + صاحب الخطة */
   if (status === 'rejected') {

@@ -158,13 +158,30 @@ export default function EvidenceLockerPage() {
     finally { setExporting(false) }
   }
 
-  /* إعادة الفتح وحدها تمرّ من هنا — والحكم (قبول/رفض) في الطابور */
-  const changeStatus = async (id: string, status: string) => {
-    const res = await fetch(`/api/evidence/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+  /* ── إعادة الفتح: نقضُ حكمٍ قائم، فله شروط الحكم ──
+     سببٌ مكتوب (3.3) · وإن كان الدليل سنداً لمهمّة منجزة فقرارٌ صريح
+     في مصيرها. والقبول والرفض في الطابور وحده. */
+  const [reopen,     setReopen]     = useState<Ev | null>(null)
+  const [reason,     setReason]     = useState('')
+  const [taskAction, setTaskAction] = useState<'' | 'return' | 'keep'>('')
+  const [reopening,  setReopening]  = useState(false)
+  const [needsTask,  setNeedsTask]  = useState(false)
+
+  const doReopen = async () => {
+    if (!reopen || !reason.trim()) return
+    setReopening(true)
+    const res = await fetch(`/api/evidence/${reopen.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'pending', reason: reason.trim(), taskAction: taskAction || undefined }),
     })
-    if (!res.ok) { const j = await res.json().catch(() => ({})); toast(j.error || 'تعذّر تغيير الحالة', 'error'); return }
-    setEvidence(prev => prev.map(e => e.id === id ? { ...e, status } : e))
+    const j = await res.json().catch(() => ({}))
+    setReopening(false)
+    /* المهمّة المنجزة: تحذيرٌ وقرار — لا منع */
+    if (res.status === 409 && j.needsTaskDecision) { setNeedsTask(true); return }
+    if (!res.ok) { toast(j.error || 'تعذّر إعادة الفتح', 'error'); return }
+    setEvidence(prev => prev.map(e => e.id === reopen.id ? { ...e, status: 'pending' } : e))
+    toast('أُعيد الدليل إلى طابور الفرز وأُبلغ رافعه', 'success')
+    setReopen(null); setNeedsTask(false); setReason(''); setTaskAction('')
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 size={28} className="animate-spin text-violet-500" /></div>
@@ -342,9 +359,8 @@ export default function EvidenceLockerPage() {
                           <span>افرز</span>
                         </Link>
                       ) : (
-                        <button onClick={() => changeStatus(e.id, 'pending')}
-                          disabled={e.task?.status === 'completed'}
-                          title={e.task?.status === 'completed' ? 'المهمة منجزة — أعد فتحها أولاً' : 'يعود الدليل إلى طابور الفرز'}
+                        <button onClick={() => { setReopen(e); setReason(''); setTaskAction('') }}
+                          title="نقضُ الحكم — يلزمه سبب مكتوب"
                           className="inline-flex items-center gap-1.5 text-xs text-slate-500 border border-slate-200 px-3 py-1.5 rounded-lg hover:border-violet-300 hover:text-violet-700 disabled:opacity-50 disabled:cursor-not-allowed">
                           <span className="inline-flex"><RefreshCw size={13} /></span>
                           <span>إعادة فتح</span>
@@ -417,6 +433,67 @@ export default function EvidenceLockerPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* ══ نافذة إعادة الفتح — نقضُ حكمٍ بسببٍ مكتوب (3.3) ══ */}
+      {reopen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+             onClick={() => !reopening && setReopen(null)}>
+          <div onClick={ev => ev.stopPropagation()}
+               className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-3">
+            <div className="flex items-start gap-2">
+              <span className="inline-flex text-amber-500 mt-0.5"><AlertTriangle size={18} /></span>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-800 text-sm">إعادة فتح الدليل</p>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  «{reopen.name}» — حُكم عليه بـ<strong>{STATUS_META[reopen.status]?.ar || reopen.status}</strong>
+                  {reopen.code ? <> وهويّته <span className="font-mono">{reopen.code}</span> (وتبقى له)</> : null}.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">سبب إعادة الفتح — إلزاميّ ويُسجَّل</label>
+              <textarea value={reason} onChange={e => setReason(e.target.value.slice(0, 300))} rows={2} autoFocus
+                placeholder="مثال: قُبل بالخطأ · تبيّن أنه مكرّر · الملفّ غير مقروء"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-400" />
+              <p className="text-[10px] text-slate-400 mt-0.5">يصل رافع الدليل ويُحفظ في سجلّ التدقيق.</p>
+            </div>
+
+            {/* تبعية الحكم: المهمّة المنجزة سندها هذا الدليل */}
+            {needsTask && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                <p className="text-xs text-amber-900 leading-relaxed">
+                  <strong>هذه المهمّة منجزة وسندها هذا الدليل</strong> — ونقضُ القبول يُفرغ سندها.
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {([
+                    { v: 'return', ar: 'أعد المهمّة إلى التقييم معه' },
+                    { v: 'keep',   ar: 'أبقِ المهمّة منجزة واقبل الأثر' },
+                  ] as const).map(o => (
+                    <label key={o.v} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                      <input type="radio" name="ta" checked={taskAction === o.v}
+                        onChange={() => setTaskAction(o.v)} className="accent-amber-600" />
+                      <span>{o.ar}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[10px] text-amber-700">والقرار يُسجَّل في سجلّ التدقيق.</p>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={doReopen}
+                disabled={reopening || !reason.trim() || (needsTask && !taskAction)}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#8a1538] text-white text-sm font-bold disabled:opacity-40">
+                <span className="inline-flex">{reopening ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}</span>
+                <span>إعادة الفتح</span>
+              </button>
+              <button onClick={() => { setReopen(null); setNeedsTask(false) }} disabled={reopening}
+                className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">إلغاء</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
