@@ -35,6 +35,10 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
   const reasonCode  = typeof body?.reasonCode === 'string' ? body.reasonCode.trim() : ''
   const note        = typeof body?.note === 'string' ? body.note.trim() : ''
   const ownerTeamId = typeof body?.ownerTeamId === 'string' ? body.ownerTeamId : null
+  /* وسم الدوام يختاره المقيّم عند القبول — والافتراض «دليل فترة» (3.5) */
+  const permanence  = body?.permanence === 'permanent' ? 'permanent' : 'period'
+  const lastReviewed = typeof body?.lastReviewedAt === 'string' && body.lastReviewedAt
+    ? body.lastReviewedAt : null
 
   if (action !== 'accept' && action !== 'reject') {
     return NextResponse.json({ error: 'إجراءٌ غير معروف' }, { status: 400 })
@@ -120,6 +124,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
   }
 
   const now = new Date().toISOString()
+  const today = now.slice(0, 10)
   const patch: Record<string, any> = {
     status:      action === 'accept' ? 'accepted' : 'rejected',
     reviewed_by: auth.user.id,
@@ -130,6 +135,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
   }
   /* الفرز قد يُصحّح الفريق المالك قبل الحكم (3.2) */
   if (ownerTeamId) patch.owner_team_id = ownerTeamId
+
+  /* ── وسم الدوام عند القبول (3.5) ──
+     «الوسم قرار المقيّم عند القبول لا اختيار الرافع — فهو من يعرف أيّ
+      شيء يشهد له الدليل. والافتراض «دليل فترة»، لأن الدوام دعوى
+      تُراجَع لا أصلٌ يُفترَض.» وللدائمة تاريخ آخر مراجعة، فسياسةٌ
+     عمرها ثماني سنوات «سارية» شكلاً وميّتة فعلاً. */
+  if (action === 'accept') {
+    patch.permanence = permanence
+    patch.last_reviewed_at = permanence === 'permanent' ? (lastReviewed || today) : null
+  }
 
   const { data: updated, error } = await admin.from('evidence')
     .update(patch).eq('id', evidenceId).select('id, status, code').maybeSingle()
@@ -143,7 +158,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
     action: action === 'accept' ? 'evidence_accepted' : 'evidence_rejected',
     table: 'evidence', recordId: evidenceId,
     after: action === 'accept'
-      ? { status: 'accepted', code: updated.code, ...(override ? { override: 'من خارج الفريق المالك' } : {}) }
+      ? { status: 'accepted', code: updated.code, permanence,
+          ...(permanence === 'permanent' ? { last_reviewed_at: lastReviewed || today } : {}),
+          ...(override ? { override: 'من خارج الفريق المالك' } : {}) }
       : { status: 'rejected', reason: reasonCode, ...(note ? { note } : {}), ...(override ? { override: 'من خارج الفريق المالك' } : {}) },
   })
 
@@ -168,6 +185,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
           : `رُفض دليلك: ${ev.name}`,
         body: action === 'accept'
           ? `هويّته الثابتة ${updated.code || '—'} — ودخل مخزن الأدلة واحتُسب في التغطية.`
+            + (permanence === 'permanent' ? ' ووُسم وثيقةً دائمة.' : '')
           : `السبب: ${reasonCode}${note ? ` — ${note}` : ''}`,
         link: '/dashboard/evidence',
         is_read: false, send_email: false,

@@ -15,7 +15,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { Loader2, ShieldCheck, AlertTriangle, Check, X, SkipForward, SkipBack, Users, Keyboard,
-  FileText, ExternalLink, Clock, Inbox } from 'lucide-react'
+  FileText, ExternalLink, Clock, Inbox, Plus, Lock } from 'lucide-react'
+import { fetchFrameworkLevel, type FrameworkNode } from '@/lib/framework'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 
@@ -48,6 +49,15 @@ export default function TriagePage() {
   const [mineOnly, setMineOnly] = useState(false)
   const [busy,    setBusy]    = useState(false)
   const [rejecting, setRejecting] = useState(false)
+  /* «حدِّد ما يغطّيه» (3.3) ووسم الدوام (3.5) */
+  const [anchoring,  setAnchoring]  = useState(false)
+  const [subCode,    setSubCode]    = useState('')
+  const [subs,       setSubs]       = useState<FrameworkNode[]>([])
+  const [inds,       setInds]       = useState<FrameworkNode[]>([])
+  const [picked,     setPicked]     = useState<string[]>([])
+  const [whole,      setWhole]      = useState(false)
+  const [anchorBusy, setAnchorBusy] = useState(false)
+  const [permanent,  setPermanent]  = useState(false)
   const [reason,  setReason]  = useState('')
   const [note,    setNote]    = useState('')
 
@@ -82,12 +92,12 @@ export default function TriagePage() {
   const teamOf = (id: string | null) => teams.find(t => t.id === id) || null
 
   const next = useCallback(() => {
-    setRejecting(false); setReason(''); setNote('')
+    setRejecting(false); setReason(''); setNote(''); setPermanent(false); setAnchoring(false)
     setIdx(i => Math.min(i + 1, Math.max(queue.length - 1, 0)))
   }, [queue.length])
 
   const prev = useCallback(() => {
-    setRejecting(false); setReason(''); setNote('')
+    setRejecting(false); setReason(''); setNote(''); setPermanent(false); setAnchoring(false)
     setIdx(i => Math.max(i - 1, 0))
   }, [])
 
@@ -96,7 +106,8 @@ export default function TriagePage() {
     setBusy(true)
     const res = await fetch(`/api/evidence/${cur.id}/review`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, reasonCode, note: noteTxt, ownerTeamId: cur.owner_team_id }),
+      body: JSON.stringify({ action, reasonCode, note: noteTxt, ownerTeamId: cur.owner_team_id,
+                             permanence: permanent ? 'permanent' : 'period' }),
     })
     const j = await res.json().catch(() => ({}))
     setBusy(false)
@@ -106,7 +117,44 @@ export default function TriagePage() {
     setItems(prev => prev.filter(x => x.id !== cur.id))
     setRejecting(false); setReason(''); setNote('')
     setIdx(i => Math.min(i, Math.max(queue.length - 2, 0)))
-  }, [cur, busy, queue.length])
+  }, [cur, busy, queue.length, permanent])
+
+  /* المعايير الفرعية تُجلب مرّةً عند أوّل فتح — 76 بنداً تكفيها رحلة */
+  const openAnchor = async () => {
+    setAnchoring(true); setPicked([]); setWhole(false)
+    if (!subs.length) setSubs(await fetchFrameworkLevel(3, null))
+  }
+  useEffect(() => {
+    if (!subCode) { setInds([]); return }
+    fetchFrameworkLevel(4, subCode).then(setInds)
+    setPicked([])
+  }, [subCode])
+
+  const saveAnchor = async () => {
+    if (!cur || !subCode) return
+    setAnchorBusy(true)
+    const res = await fetch(`/api/evidence/${cur.id}/anchors`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subCode, whole, indicatorIds: picked }),
+    })
+    const j = await res.json().catch(() => ({}))
+    setAnchorBusy(false)
+    if (!res.ok) { toast(j.error || 'تعذّر الإسناد', 'error'); return }
+    toast(j.incoming ? 'أُسند — وينتظر تأكيد فريقه المالك' : `أُسند (${j.added})`, 'success')
+    setAnchoring(false); setSubCode(''); setPicked([]); setWhole(false)
+    await load()
+  }
+
+  const dropAnchor = async (a: Anchor) => {
+    if (!cur) return
+    const res = await fetch(`/api/evidence/${cur.id}/anchors`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ anchorId: a.id }),
+    })
+    const j = await res.json().catch(() => ({}))
+    if (!res.ok) { toast(j.error || 'تعذّر الحذف', 'error'); return }
+    await load()
+  }
 
   const setTeam = async (teamId: string) => {
     if (!cur) return
@@ -233,21 +281,82 @@ export default function TriagePage() {
 
               {/* المراسي */}
               <div>
-                <p className="text-xs font-bold text-slate-600 mb-1.5">ما يغطّيه</p>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <p className="text-xs font-bold text-slate-600">ما يغطّيه</p>
+                  <button onClick={() => openAnchor()} disabled={busy}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2.5 py-1 rounded-lg hover:bg-violet-100">
+                    <span className="inline-flex"><Plus size={12} /></span>
+                    <span>حدِّد ما يغطّيه</span>
+                  </button>
+                </div>
                 {cur.anchors.length ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {cur.anchors.map(a => (
-                      <span key={a.id} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800">
-                        <span className="font-mono ms-1">{a.code}</span>{a.name.slice(0, 48)}
-                      </span>
-                    ))}
+                    {cur.anchors.map(a => {
+                      /* المخصوص أخضر · الضمنيّ بلونٍ مختلف كما تنصّ 3.3 ·
+                         والوارد بانتظار تأكيد فريقه فلا يُحتسب (3.2) */
+                      const pend = a.confirm_status !== 'confirmed'
+                      const cls  = pend ? 'bg-slate-50 border-slate-200 text-slate-500'
+                                 : a.kind === 'implicit' ? 'bg-sky-50 border-sky-200 text-sky-800'
+                                 : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      return (
+                        <span key={a.id} className={`group text-xs px-2 py-1 rounded-lg border ${cls}`}>
+                          <span className="font-mono ms-1">{a.code}</span>
+                          <span>{a.name.slice(0, 44)}</span>
+                          {a.kind === 'implicit' && <span className="ms-1 text-[10px]">· كامل المعيار</span>}
+                          {pend && <span className="ms-1 text-[10px]">· بانتظار تأكيد فريقه</span>}
+                          <button onClick={() => dropAnchor(a)} title="احذف هذه المرساة"
+                            className="ms-1 opacity-40 hover:opacity-100 align-middle">
+                            <X size={11} />
+                          </button>
+                        </span>
+                      )
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
-                    بلا مرساة — ودليلٌ بلا مرساة دليلٌ تائه. أسنِده من
-                    {' '}<Link href={`/dashboard/evidence`} className="underline font-semibold">الخزانة</Link>{' '}
-                    قبل القبول.
+                    بلا مرساة — ودليلٌ بلا مرساة دليلٌ تائه. اضغط «حدِّد ما يغطّيه» قبل القبول.
                   </p>
+                )}
+
+                {anchoring && (
+                  <div className="mt-2 rounded-xl border border-violet-200 bg-violet-50/60 p-3 space-y-2">
+                    <p className="text-[11px] text-violet-800 leading-relaxed">
+                      <strong>حدِّد ما يغطّيه</strong> — مؤشّراتٍ بعينها، أو المعيار الفرعي كاملاً
+                      (تُسجَّل <strong>تغطيةً ضمنية</strong>).
+                    </p>
+                    <select value={subCode} onChange={e => { setSubCode(e.target.value); setWhole(false) }}
+                      className="w-full min-w-0 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm">
+                      <option value="">— اختر المعيار الفرعي —</option>
+                      {subs.map(x => <option key={x.id} value={x.code}>{x.code} — {x.name_ar.slice(0, 60)}</option>)}
+                    </select>
+
+                    {!!subCode && (
+                      <>
+                        <label className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
+                          <input type="checkbox" checked={whole} className="mt-0.5"
+                            onChange={e => { setWhole(e.target.checked); if (e.target.checked) setPicked([]) }} />
+                          <span>يغطّي المعيار الفرعي <strong>كاملاً</strong> — تغطية ضمنية في كل مؤشراته</span>
+                        </label>
+
+                        {!whole && inds.map(i => (
+                          <label key={i.id} className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
+                            <input type="checkbox" checked={picked.includes(i.id)} className="mt-0.5"
+                              onChange={e => setPicked(p => e.target.checked ? [...p, i.id] : p.filter(x => x !== i.id))} />
+                            <span><span className="font-mono text-slate-500 ms-1">{i.code}</span>{i.name_ar}</span>
+                          </label>
+                        ))}
+                      </>
+                    )}
+
+                    <div className="flex gap-2 pt-0.5">
+                      <button onClick={saveAnchor} disabled={anchorBusy || !subCode || (!whole && !picked.length)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-violet-600 px-3 py-1.5 rounded-lg disabled:opacity-40">
+                        <span className="inline-flex">{anchorBusy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}</span>
+                        <span>أسنِد</span>
+                      </button>
+                      <button onClick={() => setAnchoring(false)} className="text-[11px] text-slate-500 px-2">إلغاء</button>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -269,6 +378,32 @@ export default function TriagePage() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* وسم الدوام — قرار المقيّم عند القبول لا اختيار الرافع (3.5) */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                <p className="text-xs font-bold text-slate-600 mb-1.5">وسم الدوام</p>
+                <div className="flex flex-col gap-1">
+                  {([
+                    { v: false, ar: 'دليل فترة', ds: 'يشهد لعملٍ وقع في وقته — ينتهي بانتهاء دورته' },
+                    { v: true,  ar: 'وثيقة دائمة', ds: 'تشهد بحالٍ قائمة — تعبر الدورات وتسقط يوم تُحدَّث' },
+                  ] as const).map(o => (
+                    <label key={String(o.v)} className="flex items-start gap-2 text-xs cursor-pointer">
+                      <input type="radio" name="perm" checked={permanent === o.v} className="mt-0.5"
+                        onChange={() => setPermanent(o.v)} />
+                      <span className="min-w-0">
+                        <span className="text-slate-700 font-semibold">{o.ar}</span>
+                        <span className="block text-[11px] text-slate-400">{o.ds}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {permanent && (
+                  <p className="mt-1.5 text-[11px] text-sky-800 bg-sky-50 border border-sky-200 rounded-lg p-2 flex items-start gap-1.5">
+                    <span className="inline-flex shrink-0 mt-px"><Lock size={11} /></span>
+                    <span>يُسجَّل اليوم تاريخَ آخر مراجعة — فسياسةٌ قديمة «سارية» شكلاً وميّتة فعلاً.</span>
+                  </p>
+                )}
               </div>
 
               {/* الموانع */}

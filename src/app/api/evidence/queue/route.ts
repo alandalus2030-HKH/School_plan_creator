@@ -96,9 +96,13 @@ export async function GET() {
       uploader: nameOf.get(e.uploaded_by) || '—',
       taskName: e.task_id ? (taskOf.get(e.task_id) || null) : null,
       anchors:  anc,
-      /* حاجزا القبول — تُعرَض للفارز قبل أن يضغط فيُمنع (3.3 · 3.6.1) */
+      /* حاجزا القبول — تُعرَض للفارز قبل أن يضغط فيُمنع (3.3 · 3.6.1).
+         والمرساة الدالّة: مؤكَّدةٌ على معيار فرعي (ضمنيّة) أو مؤشّر
+         (مخصوصة). فمرساةٌ على معيارٍ رئيس «إسنادٌ» شكلاً ولا تقول لأيّ
+         مؤشّر يشهد الدليل — ويطابق هذا حارس 088 في القاعدة. */
       blockers: [
-        anc.length ? null : 'بلا مرساة',
+        anc.some((a: any) => a.confirm_status === 'confirmed' && (a.level === 3 || a.level === 4))
+          ? null : 'بلا مرساة دالّة — حدِّد ما يغطّيه',
         /^\d{4}-\d{4}$/.test(e.academic_year || '') ? null : 'بلا عامٍ منسوب',
       ].filter(Boolean),
       isMine: e.uploaded_by === auth.user.id,
