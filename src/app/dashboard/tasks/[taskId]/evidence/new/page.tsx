@@ -289,6 +289,16 @@ export default function NewEvidencePage() {
         .insert(fileRows.map(r => ({ ...r, evidence_id: evRow.id })))
       if (filesError) throw filesError
 
+      /* ── الختم: بصمةٌ خادميّة لكل ملفّ (الوثيقة 11) ──
+         «نحسبها… في الخادم بعد الاستلام **وهي المعتمدة**، لأن ما يأتي
+         من المتصفّح يُزوَّر». وأدلة المهامّ كانت تُرفع بلا بصمة أصلاً —
+         فتُبصَم هنا بعد إدراج الملفّات. وهو نداءٌ **لا يُعطّل الرفع**:
+         إن أخفق بقي الملفّ بلا بصمة ويلتقطه الفحص الدوريّ. */
+      fetch('/api/evidence/fixity', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ evidenceId: evRow.id }),
+      }).catch(() => {})
+
       router.push(`/dashboard/tasks/${taskId}`)
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء الحفظ')

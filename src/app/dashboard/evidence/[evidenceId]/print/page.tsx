@@ -250,6 +250,17 @@ export default function EvidencePrintPage() {
                 {(displayNum || ev.evidence_number)}{files.length > 1 ? `.${i + 1}` : ''}
               </span>
               <span className="text-sm font-semibold text-slate-700 truncate">{f.name || (isVid ? 'فيديو' : 'مرفق')}</span>
+                {f.content_hash && (
+                  <span title={`SHA-256: ${f.content_hash}${f.last_fixity_at ? ` · آخر فحص ${f.last_fixity_at}` : ''}`}
+                    className={`print:hidden text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                      f.fixity_status === 'mismatch' ? 'bg-red-50 text-red-700 border border-red-200'
+                      : f.fixity_status === 'missing' ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-slate-100 text-slate-500'}`}>
+                    {f.fixity_status === 'mismatch' ? 'تبدّلت بصمته'
+                      : f.fixity_status === 'missing' ? 'الملفّ مفقود'
+                      : `#${String(f.content_hash).slice(0, 10)}`}
+                  </span>
+                )}
             </div>
 
             {isVid && f.file_url ? (

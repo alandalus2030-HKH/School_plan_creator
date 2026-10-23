@@ -165,7 +165,32 @@ export default function EvidenceLockerPage() {
   const [reason,     setReason]     = useState('')
   const [taskAction, setTaskAction] = useState<'' | 'return' | 'keep'>('')
   const [reopening,  setReopening]  = useState(false)
+  /* ── سلامة الأرشيف: البصمة والفحص الدوريّ (الوثيقة 11) ──
+     «أرشيفٌ من ألفي ملفّ يعيش ستّ سنوات يتلف بعضه بلا أن يمسّه أحد».
+     والقيمة أن يُكتشف التلف **قبل أن تُطلب الأدلة، لا يوم الزيارة». */
+  const [fix,     setFix]     = useState<any>(null)
+  const [sweeping, setSweeping] = useState(false)
   const [needsTask,  setNeedsTask]  = useState(false)
+
+  useEffect(() => {
+    fetch('/api/evidence/fixity').then(r => r.ok ? r.json() : null).then(j => j && setFix(j)).catch(() => {})
+  }, [])
+
+  const runSweep = async () => {
+    setSweeping(true)
+    const res = await fetch('/api/evidence/fixity', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope: 'school', limit: 200 }),
+    })
+    const j = await res.json().catch(() => ({}))
+    setSweeping(false)
+    if (!res.ok) { toast(j.error || 'تعذّر الفحص', 'error'); return }
+    toast(j.mismatch || j.missing
+      ? `فُحص ${j.checked} ملفّاً — ${j.mismatch} تبدّل و${j.missing} مفقود`
+      : `فُحص ${j.checked} ملفّاً · خُتم ${j.stamped} · لا تبدّل`,
+      j.mismatch || j.missing ? 'error' : 'success')
+    fetch('/api/evidence/fixity').then(r => r.json()).then(setFix).catch(() => {})
+  }
 
   const doReopen = async () => {
     if (!reopen || !reason.trim()) return
@@ -238,6 +263,28 @@ export default function EvidenceLockerPage() {
           <Stat label="معتمدة" value={stats.accepted} tone="text-emerald-700" />
           <Stat label="مشتركة" value={stats.shared} />
           <Stat label="الحجم" value={fmtSize(stats.totalSize)} />
+        </div>
+      )}
+
+      {/* ── سلامة الأرشيف (11) — شريطٌ لا شاشة، فهو حالٌ لا وظيفة ── */}
+      {fix && fix.total > 0 && (isSuperAdmin || can('triage_evidence')) && (
+        <div className={`rounded-2xl border p-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs
+          ${fix.mismatch || fix.missing ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'}`}>
+          <span className="inline-flex items-center gap-1.5 font-bold text-slate-700">
+            <span className="inline-flex"><ShieldCheck size={14} /></span>
+            <span>سلامة الأرشيف</span>
+          </span>
+          <span className="text-slate-500">مبصوم <strong className="text-slate-700">{fix.stamped}</strong> من {fix.total}</span>
+          {fix.unstamped > 0 && <span className="text-amber-700">بلا بصمة {fix.unstamped}</span>}
+          {fix.mismatch > 0 && <span className="text-red-700 font-bold">تبدّلت بصمته {fix.mismatch}</span>}
+          {fix.missing  > 0 && <span className="text-red-700 font-bold">مفقود {fix.missing}</span>}
+          {fix.lastCheck && <span className="text-slate-400">آخر فحص {fix.lastCheck}</span>}
+          <button onClick={runSweep} disabled={sweeping}
+            title="يُعيد حساب بصمة كل ملفّ ويقارنها بالمخزَّنة — والمخزَّنة لا تُستبدَل"
+            className="ms-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-violet-300 disabled:opacity-50">
+            <span className="inline-flex">{sweeping ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}</span>
+            <span>{sweeping ? 'يُفحص…' : 'افحص الآن'}</span>
+          </button>
         </div>
       )}
 
