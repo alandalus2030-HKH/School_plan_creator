@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
-  Library, Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History, UsersRound,
+  Library, Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History, UsersRound, FileQuestion,
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -16,6 +16,9 @@ const NAV_ITEMS = [
   { href: '/dashboard/group/meetings', Icon: CalendarDays, ar: 'اجتماعات المجموعة', en: 'Meetings', perm: 'group_owner' },
   { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: 'manager'          },
   { href: '/dashboard/my-tasks',  Icon: ClipboardList,   ar: 'مهامي',         en: 'My Tasks',   perm: 'self'             },
+  /* «أدلة مطلوبة» **بجوار مهامي** بنصّ الوثيقة (3.1) — ويظهر لمن طُلب
+     منه شيءٌ فعلاً، فبندٌ دائمٌ فارغ عند كل موظّف ضجيجٌ لا دلالة. */
+  { href: '/dashboard/evidence/requested', Icon: FileQuestion, ar: 'أدلة مطلوبة', en: 'Requested', perm: 'requested' },
   { href: '/dashboard/plans',     Icon: Map,             ar: 'الخطط',         en: 'Plans',      perm: 'view_plans'       },
   { href: '/dashboard/framework', Icon: Library,         ar: 'إطار الاعتماد', en: 'Framework',  perm: null               },
   { href: '/dashboard/tasks',     Icon: CircleCheckBig,  ar: 'كل المهام',     en: 'All Tasks',  perm: 'manage_tasks'     },
@@ -68,6 +71,20 @@ export default function Sidebar({ lang, collapsed: collapsedProp = false, onTogg
     })()
   }, [loading, isGroupOwner, isSuperAdmin, impersonating, impersonatedSchool])
 
+  /* ── كم دليلاً مطلوبٌ منّي؟ (3.1) ── */
+  const [reqCount, setReqCount] = useState(0)
+  useEffect(() => {
+    if (loading || (isGroupOwner && !isSuperAdmin)) { setReqCount(0); return }
+    ;(async () => {
+      try {
+        const res = await fetch('/api/evidence/requests?scope=mine')
+        if (!res.ok) { setReqCount(0); return }
+        const j = await res.json()
+        setReqCount((j.requests || []).filter((r: any) => r.status === 'open').length)
+      } catch { setReqCount(0) }
+    })()
+  }, [loading, isGroupOwner, isSuperAdmin, impersonating, impersonatedSchool, pathname])
+
   const visibleNav = NAV_ITEMS.filter(item => {
     /* مالك المجموعة (غير المشرف): نظرة المجموعة + ملفه الشخصي فقط
        (لا "مهامي" — فهو بلا مدرسة ولا مهام) */
@@ -75,9 +92,11 @@ export default function Sidebar({ lang, collapsed: collapsedProp = false, onTogg
       return item.perm === 'group_owner' || item.href === '/dashboard/profile'
     }
     if (loading)                  return item.perm === null || item.perm === 'self'
+    if (item.perm === 'requested') return reqCount > 0
     if (item.perm === 'group_owner') return false      // يظهر لمالك المجموعة فقط
     if (item.perm === null)       return true
     if (item.perm === 'self')     return true
+    if (item.perm === 'requested') return reqCount > 0
     if (item.perm === 'super')    return isSuperAdmin
     if (item.perm === 'audit')    return isSuperAdmin || can('manage_settings')
     if (item.perm === 'badges')   return can('grant_badges') || can('manage_badges')
@@ -171,6 +190,12 @@ export default function Sidebar({ lang, collapsed: collapsedProp = false, onTogg
               <item.Icon size={18} className="flex-shrink-0" />
               {!collapsed && (
                 <span className="text-sm truncate flex-1">{lang === 'ar' ? item.ar : item.en}</span>
+              )}
+              {/* عدّاد المطلوب — العدد وحده، فالبند لا يظهر إلا وفيه عدد */}
+              {item.perm === 'requested' && !collapsed && (
+                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-white/25 text-white flex-shrink-0">
+                  {reqCount}
+                </span>
               )}
             </Link>
           )

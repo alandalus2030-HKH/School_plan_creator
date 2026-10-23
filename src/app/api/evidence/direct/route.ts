@@ -14,6 +14,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
  *     المتصفّح يُقارَن بها ويُبلَّغ عند الاختلاف، ولا يُخزَّن.
  *   • الدليل يدخل status='pending' فلا يُحتسب في تغطية حتى يُقبل.
  *   • مرساةُ الدخول = المعيار الفرعي، ومنها يُشتقّ الفريق المالك آلياً.
+ *
+ * ── ويخدم هذا المنفذ قناتين لا قناةً واحدة ──
+ * فإن حمل الطلب `request_id` فهو **تلبية طلبٍ موجَّه** (3.1): المرساة
+ * تأتي من الطلب لا من الرافع — «الطلب يحمل مرساته سلفاً، والموظّف يرفع
+ * الملفّ فقط» — و`source` يصير `request`، ويمضي الدليل في الفرز نفسه.
+ * ولم أبنِ له منفذاً ثانياً لأن الرفع والبصمة والتنظيف واحدة، والاختلاف
+ * في **مصدر المرساة** لا في فعل الرفع.
  */
 
 const BUCKET = 'evidence'
@@ -86,9 +93,6 @@ export async function POST(req: NextRequest) {
   if (!ctx?.schoolId) return NextResponse.json({ error: 'لا توجد مدرسة مرتبطة' }, { status: 400 })
   const { admin, schoolId, can } = ctx
 
-  if (!can('manage_evidence'))
-    return NextResponse.json({ error: 'لا تملك صلاحية رفع الأدلة' }, { status: 403 })
-
   let form: FormData
   try { form = await req.formData() }
   catch { return NextResponse.json({ error: 'تعذّرت قراءة الطلب' }, { status: 400 }) }
@@ -101,17 +105,40 @@ export async function POST(req: NextRequest) {
   const documentDate  = str('document_date')
   const evidenceType  = str('evidence_type')
   const reasonCode    = str('reason_code')
+  const requestId     = str('request_id')     // تلبية طلبٍ موجَّه (3.1)
+
+  /* ── تلبية الطلب تُقرأ قبل الحراسة: منها تأتي المرساة والعام ──
+     «الطلب يحمل مرساته سلفاً — والموظّف يرفع الملفّ فقط» (3.1). */
+  let reqRow: any = null
+  if (requestId) {
+    const { data } = await admin.from('evidence_requests')
+      .select('id, school_id, status, assigned_to, requested_by, sub_node_id, indicator_ids, academic_year, what_is_asked, attempts')
+      .eq('id', requestId).eq('school_id', schoolId).is('deleted_at', null).maybeSingle()
+    if (!data)                    return NextResponse.json({ error: 'الطلب غير موجود' }, { status: 404 })
+    if (data.status === 'closed') return NextResponse.json({ error: 'هذا الطلب مغلق — وقد سُدّت فجوته' }, { status: 409 })
+    reqRow = data
+  }
+
+  /* والمكلَّف يُلبّي طلبه ولو لم يملك إدارة الأدلة — «تلبية أدلة مطلوبة»
+     حقٌّ في دور الموظّف نفسه (10). وما عدا ذلك يلزمه الإذن. */
+  const isAssignee = !!reqRow && reqRow.assigned_to === auth.user.id
+  if (!can('manage_evidence') && !isAssignee)
+    return NextResponse.json({ error: 'لا تملك صلاحية رفع الأدلة' }, { status: 403 })
+
+  /* مرساة الطلب تَسبق ما يرسله المتصفّح — فلا يُزاح الدليل عن فجوته */
+  const effSubNode = reqRow ? reqRow.sub_node_id : subNodeId
+  const effYear    = reqRow?.academic_year || academicYear
 
   /* ── الحقول المانعة (3.6.1): المعيار الفرعي والعام ── */
   if (!name)                               return NextResponse.json({ error: 'اسم الدليل مطلوب' }, { status: 400 })
-  if (!subNodeId)                          return NextResponse.json({ error: 'المعيار الفرعي إلزاميّ' }, { status: 400 })
-  if (!/^\d{4}-\d{4}$/.test(academicYear)) return NextResponse.json({ error: 'العام الدراسي بصيغة 2026-2027' }, { status: 400 })
+  if (!effSubNode)                         return NextResponse.json({ error: 'المعيار الفرعي إلزاميّ' }, { status: 400 })
+  if (!/^\d{4}-\d{4}$/.test(effYear))     return NextResponse.json({ error: 'العام الدراسي بصيغة 2026-2027' }, { status: 400 })
 
   /* ── المرساة: معيار فرعي (مستوى 3) من الإطار الفعّال ── */
   const { data: node } = await admin
     .from('framework_nodes')
     .select('id, code, level, frameworks!inner(status)')
-    .eq('id', subNodeId).maybeSingle()
+    .eq('id', effSubNode).maybeSingle()
   if (!node || node.level !== 3 || (node as any).frameworks?.status !== 'active')
     return NextResponse.json({ error: 'المعيار الفرعي غير صالح أو من إصدار غير فعّال' }, { status: 400 })
 
@@ -142,13 +169,14 @@ export async function POST(req: NextRequest) {
     .insert({
       school_id:     schoolId,
       task_id:       null,                    // القناة المباشرة: لا مهمّة
-      source:        'direct',
+      source:        reqRow ? 'request' : 'direct',   // القناة تُسجَّل مرّةً ولا تتبدّل (3.4)
+      request_id:    reqRow?.id || null,
       status:        'pending',               // لا يُحتسب حتى يُقبل
       name,
       description:   description || null,
       evidence_type: evidenceType || null,
       reason_code:   reasonCode   || null,
-      academic_year: academicYear,
+      academic_year: effYear,
       document_date: documentDate || null,
       owner_team_id: team?.id || null,
       uploaded_by:   auth.user.id,
@@ -196,14 +224,26 @@ export async function POST(req: NextRequest) {
       file_size: rows[0].file_size,
     }).eq('id', ev.id)
 
-    /* مرساة الدخول: المعيار الفرعي — ويكمل المقيّم المؤشرات عند القبول (3.3) */
-    const { error: anchorErr } = await admin.from('evidence_anchors').insert({
+    /* مرساة الدخول: المعيار الفرعي — ويكمل المقيّم المؤشرات عند القبول (3.3).
+       وفي قناة الطلب تُولد المراسي كلّها الآن: المعيار الفرعي ومؤشراته
+       المطلوبة، **ومُسنِدها هو من طلب** لا من رفع — فالدقّة عبؤه هو. */
+    const anchors: any[] = [{
       evidence_id:       ev.id,
-      framework_node_id: subNodeId,
-      kind:              'specific',
+      framework_node_id: effSubNode,
+      kind:              reqRow && !(reqRow.indicator_ids || []).length ? 'implicit' : 'specific',
       confirm_status:    'confirmed',
-      assigned_by:       auth.user.id,
-    })
+      assigned_by:       reqRow?.requested_by || auth.user.id,
+    }]
+    for (const indId of (reqRow?.indicator_ids || [])) {
+      anchors.push({
+        evidence_id:       ev.id,
+        framework_node_id: indId,
+        kind:              'specific',
+        confirm_status:    'confirmed',
+        assigned_by:       reqRow.requested_by || auth.user.id,
+      })
+    }
+    const { error: anchorErr } = await admin.from('evidence_anchors').insert(anchors)
     if (anchorErr) throw new Error(anchorErr.message)
   } catch (e: any) {
     /* تنظيف: لا نترك دليلاً نصفه في المخزن ونصفه خارجه */
@@ -211,9 +251,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e.message || 'تعذّر رفع الملفّات' }, { status: 500 })
   }
 
+  /* ── الطلب يصير «قيد التقييم» لا مغلقاً ──
+     «رُفع الملفّ → قيد التقييم: يخرج من قائمة المكلَّف **ولا يُحتسب
+      مسدوداً**»، فالإغلاق بالقبول وحده (3.1). */
+  if (reqRow) {
+    await admin.from('evidence_requests').update({
+      status:      'in_review',
+      evidence_id: ev.id,
+      attempts:    (reqRow.attempts ?? 0) + 1,
+      updated_at:  new Date().toISOString(),
+    }).eq('id', reqRow.id)
+
+    /* ويبلغ الطالبَ أن طلبه لُبّي — فالدليل ينتظر حكمه هو */
+    if (reqRow.requested_by && reqRow.requested_by !== auth.user.id) {
+      const { data: pref } = await admin.from('profiles')
+        .select('notif_enabled, notif_inapp').eq('id', reqRow.requested_by).maybeSingle()
+      if (pref?.notif_enabled !== false && pref?.notif_inapp !== false) {
+        await admin.from('notifications').insert({
+          recipient_id: reqRow.requested_by,
+          sender_id:    auth.user.id,
+          type:         'evidence_request',
+          title:        `لُبّي طلبك: ${name}`,
+          body:         `${reqRow.what_is_asked} — الدليل في طابور الفرز ينتظر الحكم.`,
+          link:         '/dashboard/evidence/triage',
+          is_read: false, send_email: false,
+        })
+      }
+    }
+  }
+
   return NextResponse.json({
     id: ev.id,
     files: rows.length,
+    ...(reqRow ? { requestId: reqRow.id } : {}),
     ...(mismatches.length ? { hashMismatch: mismatches } : {}),
   })
 }

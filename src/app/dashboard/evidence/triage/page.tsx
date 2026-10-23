@@ -27,7 +27,7 @@ type Item = {
   evidence_type: string | null; source: string; reason_code: string | null
   academic_year: string | null; document_date: string | null; created_at: string
   uploaded_by: string | null; owner_team_id: string | null; task_id: string | null; code: string | null
-  uploader: string; taskName: string | null
+  uploader: string; taskName: string | null; asked: string | null
   anchors: Anchor[]; blockers: string[]; isMine: boolean
 }
 type Team = { id: string; name_ar: string; standard_code: string }
@@ -298,6 +298,16 @@ export default function TriagePage() {
                   </span>
                 )}
               </div>
+
+              {/* ما طُلب — «والمرساة المطلوبة لا تُلزم المقيّم» (3.1) */}
+              {cur.asked && (
+                <div className="text-xs bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-sky-900">
+                  <strong>طُلب:</strong> {cur.asked}
+                  <span className="block text-[11px] text-sky-700 mt-0.5">
+                    ولك أن تصحّح المرساة — فيُحفظ الدليل في موضعه الصحيح ويبقى الطلب مفتوحاً.
+                  </span>
+                </div>
+              )}
 
               {/* المراسي */}
               <div>

@@ -9,14 +9,20 @@
      ويُسأل عنه صراحةً في النافذة الانتقالية (1 يوليو ← 30 سبتمبر).
    • البصمة تُحسب هنا لكشف المكرّر قبل الرفع؛ والمعتمدة ما يحسبه الخادم.
    • الدليل يدخل «قيد الفرز» ولا يُحتسب في تغطية حتى يُقبل.
+
+   ── وتخدم هذه الشاشة قناتين (3.1) ──
+   فإن جاءت بـ`?request=<id>` فهي **تلبية طلبٍ موجَّه**: المرساة تُعرَض
+   ولا تُختار، والعام يأتي من الطلب — «الطلب يحمل مرساته سلفاً، والموظّف
+   يرفع الملفّ فقط». وبذلك «ينتقل عبء الدقّة إلى من يملكها، **ويُرفع عن
+   المعلّم تماماً**».
    ════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowRight, FolderOpen, X, Paperclip, FileText, Loader2, TriangleAlert,
-  CopyCheck, CalendarClock, Save, Info,
+  CopyCheck, CalendarClock, Save, Info, FileQuestion,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { fetchFrameworkLevel, type FrameworkNode } from '@/lib/framework'
@@ -30,8 +36,19 @@ const ACCEPT = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx'
 
 /* الأعوام والنافذة الانتقالية من `@/lib/dates` — مصدرٌ واحد (3.8). */
 
+type ReqBrief = {
+  id: string; what_is_asked: string; expected_type: string | null
+  academic_year: string | null; due_date: string | null; whole: boolean
+  sub: { code: string; name_ar: string } | null
+  indicators: { code: string; name_ar: string }[]
+  requester: { name_ar: string } | null
+}
+
 export default function NewDirectEvidencePage() {
   const router   = useRouter()
+  const params   = useSearchParams()
+  const requestId = params.get('request') || ''
+  const [reqBrief, setReqBrief] = useState<ReqBrief | null>(null)
   const supabase = createClient()
   const fileRef  = useRef<HTMLInputElement>(null)
 
@@ -78,6 +95,20 @@ export default function NewDirectEvidencePage() {
       setReasonOptions((reasons || []).map((r: any) => r.value))
     })()
   }, [])
+
+  /* ── الطلب الموجَّه: مرساته تُعرَض ولا تُختار ── */
+  useEffect(() => {
+    if (!requestId) return
+    ;(async () => {
+      const r = await fetch(`/api/evidence/requests?scope=mine&id=${requestId}`)
+      if (!r.ok) { setError('تعذّر تحميل الطلب — أو ليس مفتوحاً لك'); return }
+      const one = ((await r.json()).requests || [])[0]
+      if (!one) { setError('هذا الطلب ليس مفتوحاً لك'); return }
+      setReqBrief(one)
+      if (one.academic_year) setAcademicYear(one.academic_year)
+      if (one.expected_type) setEvidenceType(one.expected_type)
+    })()
+  }, [requestId])
 
   useEffect(() => {
     setSelL2(''); setSelL3(''); setL2([]); setL3([])
@@ -134,7 +165,9 @@ export default function NewDirectEvidencePage() {
 
   const docInWindow  = !!documentDate && inTransitionWindow(new Date(documentDate))
   const isRetroactive = academicYear < currentAcademicYear()
-  const canSave = !!name.trim() && !!subNodeId && !!academicYear && picked.length > 0 && !saving && !hashing
+  /* مرساة الطلب تُعفي من الاختيار — والخادم يفرضها على أيّ حال */
+  const anchored = requestId ? !!reqBrief : !!subNodeId
+  const canSave = !!name.trim() && anchored && !!academicYear && picked.length > 0 && !saving && !hashing
 
   /* ── الحفظ ── */
   const submit = async (e: React.FormEvent) => {
@@ -146,6 +179,7 @@ export default function NewDirectEvidencePage() {
     fd.append('name', name.trim())
     fd.append('description', description.trim())
     fd.append('sub_node_id', subNodeId)
+    if (requestId) fd.append('request_id', requestId)
     fd.append('academic_year', academicYear)
     fd.append('document_date', documentDate)
     fd.append('evidence_type', evidenceType)
@@ -156,7 +190,7 @@ export default function NewDirectEvidencePage() {
       const res  = await fetch('/api/evidence/direct', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'تعذّر الحفظ')
-      router.push('/dashboard/evidence')
+      router.push(requestId ? '/dashboard/evidence/requested' : '/dashboard/evidence')
     } catch (err: any) {
       setError(err.message || 'تعذّر الحفظ')
       setSaving(false)
@@ -175,11 +209,38 @@ export default function NewDirectEvidencePage() {
       </Link>
 
       <header className="mb-6">
-        <h1 className="text-xl font-bold text-slate-800">رفع دليل إلى المخزن</h1>
+        <h1 className="text-xl font-bold text-slate-800">
+          {requestId ? 'تلبية دليلٍ مطلوب' : 'رفع دليل إلى المخزن'}
+        </h1>
         <p className="text-sm text-slate-500 mt-1">
-          دليلٌ غير مرتبط بمهمّة أو خطة. يدخل <strong>قيد الفرز</strong> ولا يُحتسب في التغطية حتى يقبله فريق التركيز.
+          {requestId
+            ? 'المعيار محدَّدٌ في الطلب — فلا يلزمك إلا الملفّ واسمه.'
+            : <>دليلٌ غير مرتبط بمهمّة أو خطة. يدخل <strong>قيد الفرز</strong> ولا يُحتسب في التغطية حتى يقبله فريق التركيز.</>}
         </p>
       </header>
+
+      {/* ما طُلب — يُقرأ ولا يُحرَّر */}
+      {!!reqBrief && (
+        <section className="mb-5 bg-sky-50 border border-sky-200 rounded-2xl p-4">
+          <h2 className="text-sm font-bold text-sky-900 flex items-center gap-1.5">
+            <span className="inline-flex"><FileQuestion size={15} /></span>
+            <span>{reqBrief.what_is_asked}</span>
+          </h2>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-sky-800">
+            <span><span className="font-mono">{reqBrief.sub?.code}</span> {reqBrief.sub?.name_ar}</span>
+            <span>
+              {reqBrief.whole
+                ? 'المعيار الفرعي كاملاً'
+                : `المؤشرات: ${reqBrief.indicators.map(i => i.code).join(' · ')}`}
+            </span>
+            {reqBrief.due_date && <span>المهلة {reqBrief.due_date}</span>}
+            {reqBrief.requester && <span>طلبه: {reqBrief.requester.name_ar}</span>}
+          </div>
+          <p className="mt-2 text-[11px] text-sky-700">
+            المرساة من الطلب — والعام منه إن حدّده. وما ترفعه يدخل طابور الفرز، ولا يُغلق الطلب إلا بقبوله.
+          </p>
+        </section>
+      )}
 
       <form onSubmit={submit} className="space-y-5">
 
@@ -262,7 +323,8 @@ export default function NewDirectEvidencePage() {
           </div>
         </section>
 
-        {/* ── المرساة ── */}
+        {/* ── المرساة — وتُخفى في قناة الطلب: «الموظّف يرفع الملفّ فقط» ── */}
+        {!requestId && (
         <section className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
           <div>
             <h2 className="text-sm font-bold text-slate-700">موضعه من إطار الاعتماد <span className="text-rose-500">*</span></h2>
@@ -297,6 +359,7 @@ export default function NewDirectEvidencePage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ── التصنيف ── */}
         <section className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">

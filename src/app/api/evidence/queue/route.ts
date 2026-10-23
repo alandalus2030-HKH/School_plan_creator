@@ -41,7 +41,7 @@ export async function GET() {
     admin.from('evidence')
       .select('id, name, description, file_url, file_type, file_size, video_url, evidence_type, ' +
               'source, reason_code, academic_year, document_date, created_at, uploaded_by, ' +
-              'owner_team_id, task_id, code, status')
+              'owner_team_id, task_id, code, status, request_id')
       .eq('school_id', schoolId).eq('status', 'pending').is('deleted_at', null)
       .order('created_at', { ascending: true }).limit(300),
     admin.from('focus_teams').select('id, name_ar, standard_code, sort_order')
@@ -87,6 +87,16 @@ export async function GET() {
     : { data: [] as any[] }
   const taskOf = new Map((tasks || []).map((t: any) => [t.id, t.name_ar]))
 
+  /* ── ما طُلب يُعرَض للمقيّم وهو يحكم (3.1) ──
+     «قد يرفع الموظّف ملفّاً سليماً يشهد لمؤشّر غير الذي طُلب. فللمقيّم
+      أن يصحّح المرساة» — ولا يستطيع ذلك إن لم يرَ ما طُلب أصلاً. */
+  const reqIds = list.map((e: any) => e.request_id).filter(Boolean)
+  const { data: reqRows } = reqIds.length
+    ? await admin.from('evidence_requests')
+        .select('id, what_is_asked, sub_node_id, indicator_ids').in('id', [...new Set(reqIds)])
+    : { data: [] as any[] }
+  const reqOf = new Map((reqRows || []).map((r: any) => [r.id, r]))
+
   const myTeamIds = (myMemberships || []).map((m: any) => m.team_id)
 
   const items = list.map((e: any) => {
@@ -95,6 +105,7 @@ export async function GET() {
       ...e,
       uploader: nameOf.get(e.uploaded_by) || '—',
       taskName: e.task_id ? (taskOf.get(e.task_id) || null) : null,
+      asked:    e.request_id ? (reqOf.get(e.request_id)?.what_is_asked || null) : null,
       anchors:  anc,
       /* حاجزا القبول — تُعرَض للفارز قبل أن يضغط فيُمنع (3.3 · 3.6.1).
          والمرساة الدالّة: مؤكَّدةٌ على معيار فرعي (ضمنيّة) أو مؤشّر

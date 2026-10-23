@@ -6,15 +6,16 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import { NOTIF_ICONS, NOTIF_LABELS, timeAgo } from '@/lib/notifications'
 import { Bell, Trash2, ClipboardList, Clock, AlertTriangle,
   RefreshCw, MessageCircle, TrendingUp, Trophy, Map,
-  CalendarDays, FolderOpen } from 'lucide-react'
+  CalendarDays, FolderOpen, FileQuestion } from 'lucide-react'
 
-/** أنواع مسار الاعتماد — الشطر الأزرق. ويلحق بها لاحقاً الطلب الموجَّه والمهامّ الدورية. */
-const EVIDENCE_TYPES = ['evidence_status']
+/** أنواع مسار الاعتماد — الشطر الأزرق. ويلحق بها لاحقاً المهامّ الدورية. */
+const EVIDENCE_TYPES = ['evidence_status', 'evidence_request']
 
 /* خريطة أسماء Lucide → مكوّنات */
 const LUCIDE_MAP: Record<string, React.ElementType> = {
   ClipboardList, Clock, AlertTriangle, RefreshCw,
   MessageCircle, TrendingUp, Trophy, Map, CalendarDays, Bell, FolderOpen,
+  FileQuestion,
 }
 
 type Notif = {

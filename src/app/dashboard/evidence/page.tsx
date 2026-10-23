@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { FolderOpen, Loader2, Paperclip, BadgeCheck, AlertTriangle, Search, ListChecks, ShieldCheck,
-  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw, Inbox, FileStack } from 'lucide-react'
+  Printer, Link2, FileDown, FilterX, Image, FileText, FileSpreadsheet, Video, File, ClipboardList, Plus, Users, RefreshCw, Inbox, FileStack, FileQuestion } from 'lucide-react'
 import NoAccess from '@/components/NoAccess'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { toast } from '@/components/Toast'
@@ -236,6 +236,12 @@ export default function EvidenceLockerPage() {
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-sm font-semibold hover:bg-sky-100 transition">
                 <span className="inline-flex"><Inbox size={16} /></span>
                 <span>إسنادٌ وارد</span>
+              </Link>
+              {/* طلب الدليل الموجَّه — «طلبات الأدلة» من أدوار المنسّق (10) */}
+              <Link href="/dashboard/evidence/requests"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-sky-200 bg-white text-sky-700 text-sm font-semibold hover:bg-sky-50 transition">
+                <span className="inline-flex"><FileQuestion size={16} /></span>
+                <span>طلبات الأدلة</span>
               </Link>
               <Link href="/dashboard/evidence/teams"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:border-violet-300 transition">

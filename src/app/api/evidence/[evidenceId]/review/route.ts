@@ -63,7 +63,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
 
   /* الدليل من مدرستك وغير محذوف */
   const { data: ev } = await admin.from('evidence')
-    .select('id, name, school_id, status, uploaded_by, academic_year, code, deleted_at, owner_team_id')
+    .select('id, name, school_id, status, uploaded_by, academic_year, code, deleted_at, owner_team_id, request_id')
     .eq('id', evidenceId).maybeSingle()
   if (!ev || ev.deleted_at) return NextResponse.json({ error: 'الدليل غير موجود' }, { status: 404 })
   if (ev.school_id !== schoolId) {
@@ -164,6 +164,79 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
       : { status: 'rejected', reason: reasonCode, ...(note ? { note } : {}), ...(override ? { override: 'من خارج الفريق المالك' } : {}) },
   })
 
+  /* ════════════════════════════════════════════════════════════
+     طلبُ الدليل الموجَّه: يُغلق بالقبول — **إن سُدّت فجوته** (3.1)
+     ════════════════════════════════════════════════════════════
+     والنصّ يفرّق بين حالتين «يخلطهما النظام الساذج»:
+
+     «قد يرفع الموظّف ملفّاً سليماً يشهد لمؤشّر غير الذي طُلب. فللمقيّم
+      أن يصحّح المرساة… فيدخل الدليل المخزن بمرساته الصحيحة، **ويبقى
+      الطلب الأصلي مفتوحاً لأن فجوته لم تُسدّ بعد**… ملفّ خاطئ يُرفض،
+      وملفّ صحيح في غير موضعه يُقبل ويُحفظ — ولا يُهدر عملٌ صحيح لأن
+      طالبه أخطأ في التوجيه.»
+
+     فالإغلاق لا يتبع القبول وحده، بل القبول **مع بقاء مرساة الطلب**.
+     ولولا هذا الفحص لأغلقنا فجوةً بدليلٍ قُبل في معيارٍ آخر — وهي
+     «فجوةٌ مستورة»، وهي أسوأ ما تحذّر منه الوثيقة في هذا الباب.
+
+     والرفض لا يُعالَج هنا: مُشغِّل 090 يُعيد الطلب مفتوحاً من القاعدة
+     نفسها، فيلحق كلَّ مسارٍ يرفض لا هذا المنفذ وحده. */
+  let requestOutcome: 'closed' | 'diverted' | null = null
+  if (ev.request_id) {
+    const { data: rq } = await admin.from('evidence_requests')
+      .select('id, status, sub_node_id, indicator_ids, requested_by, what_is_asked')
+      .eq('id', ev.request_id).maybeSingle()
+
+    if (rq && action === 'accept') {
+      const { data: anchorRows } = await admin.from('evidence_anchors')
+        .select('framework_node_id, kind, confirm_status').eq('evidence_id', evidenceId)
+      const live = (anchorRows || []).filter((a: any) => a.confirm_status === 'confirmed')
+      const onSub = live.find((a: any) => a.framework_node_id === rq.sub_node_id)
+      const wanted: string[] = rq.indicator_ids || []
+      /* مرساةٌ ضمنية على المعيار الفرعي «تغطّيه كاملاً» فتسدّ أيّ مؤشّر فيه (3.3) */
+      const satisfied = wanted.length
+        ? (onSub?.kind === 'implicit'
+           || live.some((a: any) => wanted.includes(a.framework_node_id)))
+        : !!onSub
+
+      if (satisfied) {
+        const { error: closeErr } = await admin.from('evidence_requests')
+          .update({ status: 'closed', evidence_id: evidenceId, diverted_note: null })
+          .eq('id', rq.id)
+        if (!closeErr) requestOutcome = 'closed'
+      } else {
+        /* الدليل يُحفظ والطلب يبقى مفتوحاً — ويُقال للطالب لماذا */
+        await admin.from('evidence_requests').update({
+          status: 'open',
+          diverted_note: `قُبل الدليل «${ev.name}» بمرساةٍ غير المطلوبة — فالفجوة ما تزال قائمة.`,
+          updated_at: now,
+        }).eq('id', rq.id)
+        requestOutcome = 'diverted'
+      }
+
+      /* والطالب يُبلَّغ بأيّ النتيجتين — فهو من يعدّ الفجوات */
+      if (rq.requested_by && rq.requested_by !== auth.user.id) {
+        const { data: pref } = await admin.from('profiles')
+          .select('notif_enabled, notif_inapp').eq('id', rq.requested_by).maybeSingle()
+        if (pref?.notif_enabled !== false && pref?.notif_inapp !== false) {
+          await admin.from('notifications').insert({
+            recipient_id: rq.requested_by,
+            sender_id:    auth.user.id,
+            type:         'evidence_request',
+            title: requestOutcome === 'closed'
+              ? `سُدّت فجوة: ${rq.what_is_asked}`
+              : `دليلٌ قُبل في غير موضع طلبك: ${ev.name}`,
+            body: requestOutcome === 'closed'
+              ? `أُغلق الطلب بقبول «${ev.name}» — هويّته ${updated.code || '—'}.`
+              : 'الدليل سليمٌ ودخل المخزن بمرساته الصحيحة، والطلب باقٍ مفتوحاً لأن فجوته لم تُسدّ بعد (3.1).',
+            link: '/dashboard/evidence/requests',
+            is_read: false, send_email: false,
+          })
+        }
+      }
+    }
+  }
+
   /* ── الحكم يصل صاحبه ──
      كان يُسجَّل في سجلّ التدقيق ولا يبلغ الرافع، فيصير الرفض طريقاً
      مسدوداً صامتاً. والمنفذ القديم يُشعر المكلَّف بالمهمّة — ودليل
@@ -186,12 +259,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ eviden
         body: action === 'accept'
           ? `هويّته الثابتة ${updated.code || '—'} — ودخل مخزن الأدلة واحتُسب في التغطية.`
             + (permanence === 'permanent' ? ' ووُسم وثيقةً دائمة.' : '')
-          : `السبب: ${reasonCode}${note ? ` — ${note}` : ''}`,
+          : `السبب: ${reasonCode}${note ? ` — ${note}` : ''}`
+            + (ev.request_id ? ' · وعاد الطلب مفتوحاً في «أدلة مطلوبة».' : ''),
         link: '/dashboard/evidence',
         is_read: false, send_email: false,
       })
     }
   }
 
-  return NextResponse.json({ ok: true, status: updated.status, code: updated.code })
+  return NextResponse.json({
+    ok: true, status: updated.status, code: updated.code,
+    ...(requestOutcome ? { request: requestOutcome } : {}),
+  })
 }
