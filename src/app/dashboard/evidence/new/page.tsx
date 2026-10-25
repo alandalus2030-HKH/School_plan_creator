@@ -22,7 +22,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowRight, FolderOpen, X, Paperclip, FileText, Loader2, TriangleAlert,
-  CopyCheck, CalendarClock, Save, Info, FileQuestion,
+  CopyCheck, CalendarClock, Save, Info, FileQuestion, Repeat, Undo2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { fetchFrameworkLevel, type FrameworkNode } from '@/lib/framework'
@@ -55,11 +55,19 @@ export default function NewDirectEvidencePage() {
   )
 }
 
+type OpenCycle = {
+  cycleId: string; requestId: string; period: string
+  dueDate: string | null; year: string; taskName: string; frequency: string
+}
+
 function NewDirectEvidenceInner() {
   const router   = useRouter()
   const params   = useSearchParams()
   const requestId = params.get('request') || ''
   const [reqBrief, setReqBrief] = useState<ReqBrief | null>(null)
+  /* دوراتٌ مفتوحة على المعيار نفسه — علاج «ازدواج الدليل» (5.2) */
+  const [openCycles, setOpenCycles] = useState<OpenCycle[]>([])
+  const [cycleReq,   setCycleReq]   = useState<OpenCycle | null>(null)
   const supabase = createClient()
   const fileRef  = useRef<HTMLInputElement>(null)
 
@@ -136,6 +144,17 @@ function NewDirectEvidenceInner() {
     [l3, selL3],
   )
 
+  /* ── «أهذا دليل دورة أكتوبر من مهمة كذا؟» (5.2) ──
+     يُسأل بعد اختيار المعيار، فالسؤال قبله بلا معنى. والسؤالُ لا منع:
+     الرفع المباشر حقٌّ قائم (3.1)، وقد يكون الدليل لشيءٍ آخر في
+     المعيار نفسه — فيُجاب بنقرة ولا يُحوَّل الرافع قسراً. */
+  useEffect(() => {
+    setCycleReq(null); setOpenCycles([])
+    if (requestId || !subNodeId) return
+    fetch(`/api/evidence/open-cycles?subNodeId=${encodeURIComponent(subNodeId)}`)
+      .then(r => r.json()).then(j => setOpenCycles(j.cycles || [])).catch(() => setOpenCycles([]))
+  }, [subNodeId, requestId])
+
   /* ── اختيار الملفّات: بصمة فورية ثم فحص التكرار ── */
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -190,7 +209,8 @@ function NewDirectEvidenceInner() {
     fd.append('name', name.trim())
     fd.append('description', description.trim())
     fd.append('sub_node_id', subNodeId)
-    if (requestId) fd.append('request_id', requestId)
+    const effRequest = requestId || cycleReq?.requestId || ''
+    if (effRequest) fd.append('request_id', effRequest)
     fd.append('academic_year', academicYear)
     fd.append('document_date', documentDate)
     fd.append('evidence_type', evidenceType)
@@ -201,7 +221,7 @@ function NewDirectEvidenceInner() {
       const res  = await fetch('/api/evidence/direct', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'تعذّر الحفظ')
-      router.push(requestId ? '/dashboard/evidence/requested' : '/dashboard/evidence')
+      router.push((requestId || cycleReq) ? '/dashboard/evidence/requested' : '/dashboard/evidence')
     } catch (err: any) {
       setError(err.message || 'تعذّر الحفظ')
       setSaving(false)
@@ -370,6 +390,64 @@ function NewDirectEvidenceInner() {
             </div>
           </div>
         </section>
+        )}
+
+        {/* ── «أهذا دليل دورة أكتوبر من مهمة كذا؟» — بنقرة (5.2) ──
+             وبغيره سجلّان لحدثٍ واحد: المدرسة تظنّ أنها وثّقت والطابور
+             يظنّ أنها لم تفعل، فتُوسَم الدورة مهملةً وقد نُفِّذت. */}
+        {!requestId && openCycles.length > 0 && (
+          <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+            <p className="inline-flex items-center gap-1.5 text-sm font-bold text-sky-900 mb-1">
+              <span className="inline-flex"><Repeat size={15} /></span>
+              <span>{cycleReq ? 'سيُسجَّل دليلاً لهذه الدورة' : 'لهذا المعيار دورةٌ مفتوحة تنتظر دليلاً'}</span>
+            </p>
+
+            {!cycleReq ? (
+              <>
+                <p className="text-[11px] text-sky-800/80 mb-2.5 leading-relaxed">
+                  إن كان هذا دليلها فاختَرها — <strong>فيُغلق طلبها ولا يبقى سجلّان لحدثٍ واحد</strong>.
+                  وإن كان لشيءٍ آخر في المعيار نفسه فامضِ، والرفع المباشر حقٌّ قائم.
+                </p>
+                <div className="space-y-1.5">
+                  {openCycles.map(c => (
+                    <div key={c.cycleId}
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-sky-100">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-700 truncate">{c.taskName}</p>
+                        <p className="text-[11px] text-slate-500">
+                          <span>{c.period}</span>
+                          {c.dueDate && <span> · مهلتها {c.dueDate}</span>}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => setCycleReq(c)}
+                        className="px-3 py-1.5 rounded-lg bg-sky-700 text-white text-xs font-bold flex-shrink-0">
+                        نعم، هذا دليلها
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-2.5 rounded-xl bg-white border border-sky-100 flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-slate-700 truncate">{cycleReq.taskName}</p>
+                    <p className="text-[11px] text-slate-500">{cycleReq.period}</p>
+                  </div>
+                  <button type="button" onClick={() => setCycleReq(null)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-xs flex-shrink-0">
+                    <span className="inline-flex"><Undo2 size={12} /></span>
+                    <span>تراجع</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-sky-800/80 mt-2 leading-relaxed">
+                  ويرث الدليل <strong>مراسي المهمّة كلّها</strong>، وعامُه من الدورة
+                  (<span className="font-latin">{cycleReq.year}</span>) لا من اختيارك —
+                  «فالعام المنسوب حكمٌ لا تاريخ» (3.8). وبقبوله تُغلق الدورة موثّقةً.
+                </p>
+              </>
+            )}
+          </section>
         )}
 
         {/* ── التصنيف ── */}

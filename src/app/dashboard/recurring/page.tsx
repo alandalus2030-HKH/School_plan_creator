@@ -29,7 +29,7 @@ import { createClient } from '@/lib/supabase/client'
 import { fetchSubStandards, fetchFrameworkLevel, type AspectLabels, type FrameworkNode } from '@/lib/framework'
 import SubStandardOptions, { ChosenSubStandard } from '@/components/SubStandardOptions'
 import { currentAcademicYear } from '@/lib/dates'
-import { FREQ_AR, FREQ_NEEDS_CALENDAR } from '@/lib/recurring'
+import { FREQ_AR, FREQ_NEEDS_CALENDAR, CYCLE_STATUS } from '@/lib/recurring'
 
 type Anchor = { nodeId: string; code: string; name_ar: string; level: number; kind: string }
 type Cycle  = {
@@ -50,12 +50,6 @@ type Task = {
 
 const POLICY_AR: Record<string, string> = {
   previous: 'العام المنصرم', next: 'العام القادم', by_date: 'بتاريخ الاستحقاق',
-}
-const CYCLE_AR: Record<string, { ar: string; cls: string }> = {
-  open:       { ar: 'مفتوحة',            cls: 'bg-sky-50 text-sky-700 border-sky-200' },
-  documented: { ar: 'وُثّقت',             cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  skipped:    { ar: 'لم تُنفَّذ بمبرّر',  cls: 'bg-slate-50 text-slate-600 border-slate-200' },
-  neglected:  { ar: 'أُهملت',             cls: 'bg-red-50 text-red-700 border-red-200' },
 }
 
 export default function RecurringPage() {
@@ -267,8 +261,8 @@ export default function RecurringPage() {
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {t.cycles.map(c => (
                     <span key={c.id} title={c.justification || `${c.academic_year} · تستحقّ ${c.due_date}`}
-                      className={`text-[10px] px-1.5 py-0.5 rounded-md border ${CYCLE_AR[c.status].cls}`}>
-                      {c.period_label} · {CYCLE_AR[c.status].ar}
+                      className={`text-[10px] px-1.5 py-0.5 rounded-md border ${CYCLE_STATUS[c.status].cls}`}>
+                      {c.period_label} · {CYCLE_STATUS[c.status].ar}
                     </span>
                   ))}
                 </div>

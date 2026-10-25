@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Repeat, Link2, Unlink, Loader2, Settings } from 'lucide-react'
+import { Repeat, Link2, Unlink, Loader2, Settings, ChevronDown } from 'lucide-react'
 import { toast } from '@/components/Toast'
-import { FREQ_AR, tallyText, type CycleTally } from '@/lib/recurring'
+import { FREQ_AR, CYCLE_STATUS, tallyText, type CycleTally } from '@/lib/recurring'
 
 /**
  * ممارساتٌ دورية مرتبطة بعقدة الخطة (الوثيقة 5.1‑2).
@@ -25,9 +25,14 @@ import { FREQ_AR, tallyText, type CycleTally } from '@/lib/recurring'
  * «12 دورة من 12 وُثّقت» (5.2) — والمهمَل يُذكر صريحاً، فهو وحده فجوة.
  */
 
+type Cycle = {
+  id: string; period: string; dueDate: string | null
+  status: string; justification: string | null
+}
+
 type LinkRow = {
   nodeId: string; taskId: string; name: string; frequency: string
-  assignee: string | null; isActive: boolean; tally: CycleTally
+  assignee: string | null; isActive: boolean; tally: CycleTally; cycles: Cycle[]
 }
 
 type Option = { id: string; name_ar: string; frequency: string; is_active: boolean }
@@ -39,6 +44,7 @@ export default function NodeRecurringLink({ nodeId, canManage }:
   const [sel,     setSel]     = useState('')
   const [busy,    setBusy]    = useState(false)
   const [loading, setLoading] = useState(true)
+  const [shown,   setShown]   = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const r = await fetch(`/api/plan-nodes/recurring?nodeId=${encodeURIComponent(nodeId)}`)
@@ -102,8 +108,8 @@ export default function NodeRecurringLink({ nodeId, canManage }:
       {links.length > 0 && (
         <div className="space-y-1.5 mb-2.5">
           {links.map(l => (
-            <div key={l.taskId}
-              className="flex items-center gap-2 p-2 rounded-lg bg-white border border-sky-100">
+            <div key={l.taskId} className="rounded-lg bg-white border border-sky-100">
+              <div className="flex items-center gap-2 p-2">
               <span className="inline-flex text-sky-600"><Repeat size={13} /></span>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-slate-700 truncate">{l.name}</p>
@@ -118,12 +124,42 @@ export default function NodeRecurringLink({ nodeId, canManage }:
                   موقوفة
                 </span>
               )}
+              {!!l.cycles.length && (
+                <button onClick={() => setShown(shown === l.taskId ? null : l.taskId)}
+                  title="الدورات ومآلاتها"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-sky-700 hover:bg-sky-50 flex-shrink-0">
+                  <span className={`inline-flex transition-transform ${shown === l.taskId ? 'rotate-180' : ''}`}>
+                    <ChevronDown size={14} />
+                  </span>
+                </button>
+              )}
               {canManage && (
                 <button onClick={() => unlink(l.taskId)} disabled={busy}
                   title="فكّ الإشارة — ودوراتها تبقى"
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex-shrink-0">
                   <span className="inline-flex"><Unlink size={13} /></span>
                 </button>
+              )}
+              </div>
+
+              {/* الدورات نفسها — «ثلاث حالات لا اثنتان، والمهمَل وحده فجوة» (5.3)،
+                  والمبرّر معروضٌ لا مستور: «جزء من السجل يقرؤه المقيّم» */}
+              {shown === l.taskId && (
+                <div className="border-t border-sky-100 px-2 py-1.5 space-y-1">
+                  {l.cycles.map(c => (
+                    <div key={c.id} className="flex items-start gap-2 text-[11px]">
+                      <span className={`px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
+                        CYCLE_STATUS[c.status]?.cls || 'bg-slate-50 border-slate-200'}`}>
+                        {CYCLE_STATUS[c.status]?.ar || c.status}
+                      </span>
+                      <span className="text-slate-600 flex-1 min-w-0">
+                        <span className="font-semibold">{c.period}</span>
+                        {c.dueDate && <span className="text-slate-400"> · {c.dueDate}</span>}
+                        {c.justification && <span className="block text-slate-500">{c.justification}</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           ))}

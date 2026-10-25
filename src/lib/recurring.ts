@@ -31,3 +31,11 @@ export function tallyText(t: CycleTally): string {
   if (t.neglected) parts.push(`${t.neglected} أُهملت`)
   return parts.join(' · ')
 }
+
+/** حالات الدورة الثلاث (ومعها المفتوحة) — وسمٌ ولونٌ لكل شاشة تعرضها. */
+export const CYCLE_STATUS: Record<string, { ar: string; cls: string }> = {
+  open:       { ar: 'مفتوحة',          cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+  documented: { ar: 'وُثّقت',           cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  skipped:    { ar: 'لم تُنفَّذ بمبرّر', cls: 'bg-slate-50 text-slate-600 border-slate-200' },
+  neglected:  { ar: 'أُهملت',           cls: 'bg-red-50 text-red-700 border-red-200' },
+}

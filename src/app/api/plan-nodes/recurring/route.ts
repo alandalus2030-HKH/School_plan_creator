@@ -85,7 +85,8 @@ export async function GET(req: NextRequest) {
       .select('id, name_ar, frequency, assigned_department, assigned_job_title, is_active, deleted_at')
       .in('id', taskIds),
     admin.from('recurring_task_cycles')
-      .select('recurring_task_id, status').in('recurring_task_id', taskIds),
+      .select('id, recurring_task_id, period_label, due_date, status, justification')
+      .in('recurring_task_id', taskIds).order('due_date', { ascending: false }),
   ])
 
   const taskOf = new Map((tasks || []).map((t: any) => [t.id, t]))
@@ -111,6 +112,15 @@ export async function GET(req: NextRequest) {
       assignee: t.assigned_job_title || t.assigned_department,
       isActive: t.is_active,
       tally: tallyOf(t.id),
+      /* الدورات نفسها لا عدَدُها وحده — «والمبرّر جزء من السجل يقرؤه
+         المقيّم» (5.3)، فمن يقرأ الهدف يقرأ ما جرى في كل دورة */
+      cycles: (cycles || [])
+        .filter((c: any) => c.recurring_task_id === t.id)
+        .slice(0, 12)
+        .map((c: any) => ({
+          id: c.id, period: c.period_label, dueDate: c.due_date,
+          status: c.status, justification: c.justification,
+        })),
     }
   }).filter(Boolean)
 
