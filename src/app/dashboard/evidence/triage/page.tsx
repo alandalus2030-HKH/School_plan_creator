@@ -17,7 +17,7 @@ import Link from 'next/link'
 import { Loader2, ShieldCheck, AlertTriangle, Check, X, SkipForward, SkipBack, Users, Keyboard,
   FileText, ExternalLink, Clock, Inbox, Plus, Lock } from 'lucide-react'
 import { fetchFrameworkLevel, fetchSubStandards, type AspectLabels, type FrameworkNode } from '@/lib/framework'
-import SubStandardOptions from '@/components/SubStandardOptions'
+import SubStandardOptions, { ChosenSubStandard } from '@/components/SubStandardOptions'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 
@@ -364,6 +364,7 @@ export default function TriagePage() {
                       <option value="">— اختر المعيار الفرعي —</option>
                       <SubStandardOptions subs={subs} aspects={aspects} by="code" />
                     </select>
+                    <ChosenSubStandard sub={subs.find(x => x.code === subCode)} />
 
                     {!!subCode && (
                       <>

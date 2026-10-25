@@ -27,7 +27,7 @@ import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createClient } from '@/lib/supabase/client'
 import { fetchSubStandards, fetchFrameworkLevel, type AspectLabels, type FrameworkNode } from '@/lib/framework'
-import SubStandardOptions from '@/components/SubStandardOptions'
+import SubStandardOptions, { ChosenSubStandard } from '@/components/SubStandardOptions'
 
 type Anchor = { nodeId: string; code: string; name_ar: string; level: number; kind: string }
 type Cycle  = {
@@ -341,6 +341,7 @@ function TaskForm({ task, onClose, onDone }:
     onDone()
   }
 
+  const chosenSub = subs.find(s => s.id === subSel) || null
   const ready = !!name.trim() && picked.length > 0 && (mode === 'dept' ? !!dept : !!job)
 
   return (
@@ -444,6 +445,7 @@ function TaskForm({ task, onClose, onDone }:
               <option value="">اختر معياراً فرعياً لترى مؤشراته…</option>
               <SubStandardOptions subs={subs} aspects={aspects} />
             </select>
+            <ChosenSubStandard sub={chosenSub} />
 
             {!!subSel && (
               <>

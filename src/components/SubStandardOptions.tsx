@@ -52,3 +52,21 @@ export default function SubStandardOptions({
     </>
   )
 }
+
+/**
+ * اسم المعيار المختار كاملاً تحت الحقل.
+ *
+ * فالحقل مغلقاً يقصّ بالـCSS بثلاث نقاط — وهو سلوك المتصفّح لا قصٌّ في
+ * النصّ، لكنّ المختار هو ما يُبنى عليه القرار: مراسي مهمّةٍ دورية ترثها
+ * أدلّةُ سنوات (5.1)، أو حكمٌ على دليلٍ في الفرز. **فما يُبنى عليه قرار
+ * يُقرأ كاملاً** لا يُستدلّ عليه برقمٍ وأوّل سطر.
+ */
+export function ChosenSubStandard({ sub }: { sub?: FrameworkNode | null }) {
+  if (!sub) return null
+  return (
+    <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1.5">
+      <span className="font-latin font-semibold text-slate-500">{sub.code}</span>
+      <span> — {sub.name_ar}</span>
+    </p>
+  )
+}

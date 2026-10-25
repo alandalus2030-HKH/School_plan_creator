@@ -20,7 +20,7 @@ import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createClient } from '@/lib/supabase/client'
 import { fetchSubStandards, fetchFrameworkLevel, type AspectLabels, type FrameworkNode } from '@/lib/framework'
-import SubStandardOptions from '@/components/SubStandardOptions'
+import SubStandardOptions, { ChosenSubStandard } from '@/components/SubStandardOptions'
 import { academicYearOptions, currentAcademicYear } from '@/lib/dates'
 
 type Req = {
@@ -294,6 +294,7 @@ function NewRequest({ onClose, onDone }: { onClose: () => void; onDone: () => vo
               <option value="">اختر معياراً فرعياً…</option>
               <SubStandardOptions subs={subs} aspects={aspects} />
             </select>
+            <ChosenSubStandard sub={sub} />
           </label>
 
           {/* «حدِّد ما يغطّيه» لا «اختر مؤشّراً بعينه» (3.3) */}

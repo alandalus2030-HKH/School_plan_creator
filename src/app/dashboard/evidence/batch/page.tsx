@@ -43,6 +43,8 @@ export default function BatchPage() {
   const [sel,     setSel]     = useState<string[]>([])
   const [subs,    setSubs]    = useState<FrameworkNode[]>([])
   const [aspects, setAspects] = useState<AspectLabels>(new Map())
+  /* خليّةٌ في جدول لا تتّسع لسطرٍ تحتها، فالاسم كاملاً في `title` */
+  const subById = useMemo(() => new Map(subs.map(s => [s.id, s])), [subs])
   const [loading, setLoading] = useState(true)
   const [busy,    setBusy]    = useState(false)
   /* ضيقُ المساحة — حكمٌ لا رقم (16): الباقة حدُّ النظام كلّه لا حدُّ مدرسة */
@@ -330,6 +332,10 @@ export default function BatchPage() {
                     <td className="p-2 align-top">
                       <select value={it.sub_node_id || ''} disabled={batch.status !== 'staging'}
                         onChange={e => patch([it.id], { sub_node_id: e.target.value })}
+                        title={(() => {
+                          const s = it.sub_node_id ? subById.get(it.sub_node_id) : null
+                          return s ? `${s.code} — ${s.name_ar}` : ''
+                        })()}
                         className={`px-2 py-1 rounded-lg border bg-white max-w-[230px] ${it.sub_node_id ? 'border-slate-200' : 'border-amber-300'}`}>
                         <option value="">—</option>
                         <SubStandardOptions subs={subs} aspects={aspects} />
