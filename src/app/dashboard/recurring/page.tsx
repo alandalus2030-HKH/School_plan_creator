@@ -37,7 +37,7 @@ type Cycle  = {
 }
 type Task = {
   id: string; name_ar: string; description: string | null
-  frequency: 'weekly' | 'monthly' | 'termly' | 'annual'
+  frequency: 'weekly' | 'monthly' | 'semi_termly' | 'termly' | 'annual'
   assigned_department: string | null; assigned_job_title: string | null
   expected_evidence_type: string | null
   year_policy: 'previous' | 'next' | 'by_date'
@@ -47,7 +47,9 @@ type Task = {
 }
 
 const FREQ_AR: Record<string, string> = {
-  weekly: 'أسبوعية', monthly: 'شهرية', termly: 'فصلية', annual: 'سنوية',
+  /* مرتّبةٌ من الأقصر إلى الأطول — ونصفُ الفصل شهران، فموضعه بينهما */
+  weekly: 'أسبوعية', monthly: 'شهرية', semi_termly: 'نصف فصلية',
+  termly: 'فصلية', annual: 'سنوية',
 }
 const POLICY_AR: Record<string, string> = {
   previous: 'العام المنصرم', next: 'العام القادم', by_date: 'بتاريخ الاستحقاق',

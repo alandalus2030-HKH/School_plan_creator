@@ -35,7 +35,7 @@ async function ctxOf(userId: string) {
   return { admin, me, schoolId, can }
 }
 
-const FREQ = ['weekly', 'monthly', 'termly', 'annual']
+const FREQ = ['weekly', 'monthly', 'semi_termly', 'termly', 'annual']
 const POLICY = ['previous', 'next', 'by_date']
 
 /* ════════════════════ GET ════════════════════ */
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
   const anchorIds: string[] = Array.isArray(b.anchors) ? b.anchors.map(String).slice(0, 40) : []
 
   if (!name)                    return NextResponse.json({ error: 'اسم المهمّة مطلوب' }, { status: 400 })
-  if (!FREQ.includes(frequency)) return NextResponse.json({ error: 'الدورية: أسبوعية · شهرية · فصلية · سنوية' }, { status: 400 })
+  if (!FREQ.includes(frequency)) return NextResponse.json({ error: 'الدورية: أسبوعية · شهرية · نصف فصلية · فصلية · سنوية' }, { status: 400 })
   /* «تُسنَد إلى منصب أو قسم لا شخصاً» (5.2) */
   if (!dept && !job)            return NextResponse.json({ error: 'الإسناد إلى قسمٍ أو منصب — ولا يُسنَد لشخص (5.2)' }, { status: 400 })
   if (!POLICY.includes(policy)) return NextResponse.json({ error: 'سياسة العام: المنصرم · القادم · بالتاريخ' }, { status: 400 })
