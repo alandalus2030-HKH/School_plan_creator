@@ -13,21 +13,31 @@ import { aspectCodeOf, type AspectLabels, type FrameworkNode } from '@/lib/frame
  * `fetchSubStandards` — فالتجميع هنا **تتابعيّ** لا بخريطة، ليحفظ
  * ترتيب الجوانب كما هو في الإطار.
  *
- * **ولا يُقصّ الاسم:** قصصتُه أوّلاً عند خمسين حرفاً فظهر نصفُ الجملة
- * («إعداد وتطبيق خطط شاملة تسهم في تحقيق رؤية ورسالة و…») — ومتوسّط
- * أسماء المعايير الفرعية **تسعةٌ وستّون حرفاً** وأطولها مئةٌ وسبعة
- * عشر، فأربعةٌ وأربعون من ستّةٍ وسبعين تتجاوز الستّين. والقصُّ هنا
- * ليس اختصاراً بل **حجبٌ لما يُختار به**. فالقائمة تتّسع لأطولها،
- * وما ضاق عنه عرضُ الشاشة يُقرأ من `title` عند التحويم.
+ * **والاسم يُقصّ عرضاً لا حجباً:** متوسّط أسماء المعايير الفرعية
+ * **تسعةٌ وستّون حرفاً** وأطولها مئةٌ وسبعة عشر. وقائمة `<select>`
+ * الأصلية تتّسع في المتصفّح لأطول خيارٍ فيها — فتركُها بلا حدّ يجعل
+ * القائمة أعرض من النموذج نفسه ويكسر اتّساقه. فيُقصّ المعروض عند
+ * حدٍّ **عند آخر كلمة تامّة** بعلامة «…» صريحة، **وتمامُه مضمونٌ
+ * بطريقين**: `title` عند التحويم، و`ChosenSubStandard` تحت الحقل
+ * بعد الاختيار. فالقصُّ هنا عَرْضٌ ضيّق لا معلومةٌ ضائعة.
  *
  * `by`: قيمة الخيار — معرّف البند (الافتراض) أو كوده، فالشاشات تختلف.
+ * `trim`: حدُّ المعروض — خمسون حرفاً تسع الجملة الوسطى.
  */
+function clip(s: string, n: number): string {
+  if (s.length <= n) return s
+  const cut = s.slice(0, n)
+  const sp  = cut.lastIndexOf(' ')
+  return (sp > n * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s،.]+$/, '') + '…'
+}
+
 export default function SubStandardOptions({
-  subs, aspects, by = 'id',
+  subs, aspects, by = 'id', trim = 50,
 }: {
   subs: FrameworkNode[]
   aspects: AspectLabels
   by?: 'id' | 'code'
+  trim?: number
 }) {
   const groups: { code: string; items: FrameworkNode[] }[] = []
   for (const s of subs) {
@@ -44,7 +54,7 @@ export default function SubStandardOptions({
           {g.items.map(s => (
             <option key={s.id} value={by === 'code' ? s.code : s.id}
               title={`${s.code} — ${s.name_ar}`}>
-              {s.code} — {s.name_ar}
+              {s.code} — {clip(s.name_ar, trim)}
             </option>
           ))}
         </optgroup>
