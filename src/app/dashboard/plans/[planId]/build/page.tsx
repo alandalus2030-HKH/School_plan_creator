@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { fetchFrameworkLevel, FRAMEWORK_LEVEL_NAMES, FRAMEWORK_MAX_LEVEL, type FrameworkNode } from '@/lib/framework'
-import { frameworkLevelOf } from '@/lib/planLevels'
+import { frameworkLevelFor } from '@/lib/planLevels'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Flag, Plus, ListTree, Trash2, Sparkles, X, AlertTriangle, RefreshCw, Pin, Loader2, FileCheck, Pencil, Save } from 'lucide-react'
@@ -395,7 +395,7 @@ export default function PlanBuildPage() {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, level_count, level_names, approved_at, frozen_at').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, level_count, level_names, framework_levels, anchor_policy, anchor_level, approved_at, frozen_at').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, plan_id, parent_id, level_num, name_ar, order_num, standard_code, framework_node_id').eq('plan_id', planId).order('order_num'),
     ])
     setPlan(planData)
@@ -553,6 +553,14 @@ export default function PlanBuildPage() {
 
   const levelCount: number   = plan.level_count || 3
   const levelNames: string[] = plan.level_names || []
+  /* ── سياسة الإسناد من القالب (4.1) ──
+     «إجباريّ — القالب نفسه مبنيّ على الإطار» في خطة التحسين. وهو
+     **عَرْضٌ لا منع**: الخطة تُبنى ثم تُسنَد، فمنعُ إنشاء عقدةٍ بلا
+     إسناد يوقف البناء كلّه. والفجوة الظاهرة أنفع من المستورة. */
+  const anchorLevel: number | null = plan.anchor_level ?? null
+  const unanchored = (plan.anchor_policy === 'required' && anchorLevel)
+    ? nodes.filter(n => n.level_num === anchorLevel && !n.framework_node_id)
+    : []
   const lname = (L: number) => levelNames[L] || `المستوى ${L + 1}`
 
   /* المستويات المعروضة: 0، ثم كل مستوى أبوه مختار، حتى آخر مستوى */
@@ -615,7 +623,7 @@ export default function PlanBuildPage() {
           <LevelRow
             key={L}
             levelNum={L + 1}
-            frameworkLevel={frameworkLevelOf(plan?.level_names, L + 1)}
+            frameworkLevel={frameworkLevelFor(plan, L + 1)}
             levelName={lname(L)}
             color={LEVEL_COLORS[L] || '#64748b'}
             existing={itemsAt(L)}
@@ -628,6 +636,17 @@ export default function PlanBuildPage() {
           />
         ))}
       </div>
+
+      {unanchored.length > 0 && (
+        <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-1.5 mb-3">
+          <span className="inline-flex mt-0.5"><AlertTriangle size={12} /></span>
+          <span>
+            قالبُ هذه الخطة <strong>إسنادُه إجباريّ</strong> عند «{levelNames[anchorLevel! - 1] || `المستوى ${anchorLevel}`}»،
+            و<strong>{unanchored.length}</strong> منها بلا بندٍ من الإطار — فأدلّتُها لن تدخل التغطية.
+            أنشئها من قائمة الإطار لا بنصٍّ حرّ (4.1 · 4.2).
+          </span>
+        </p>
+      )}
 
       {/* لوحة «أنت في» + المهام في المستوى الأخير */}
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">

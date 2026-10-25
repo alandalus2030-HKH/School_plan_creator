@@ -10,7 +10,7 @@ import { calcNodeRating } from '@/lib/rating'
 import { FolderOpen, ChartNoAxesColumn, Sparkles, Plus, X, AlertTriangle, Check, Pencil, Loader2,
   Save, RefreshCw, LineChart, Trash2, Settings, Lock, BookOpen, Archive, Pin, CircleCheckBig, Star } from 'lucide-react'
 import StandardPicker from '@/components/StandardPicker'
-import { frameworkLevelOf } from '@/lib/planLevels'
+import { frameworkLevelFor } from '@/lib/planLevels'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { toast } from '@/components/Toast'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
@@ -720,8 +720,8 @@ function buildTree(nodes: PlanNode[], tasks: Task[], parentId: string|null, leve
 }
 
 /* ── مكوّن العقدة القابلة للتوسع ── */
-function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, kpiLevelConfigs, codes, taskCodes, officialCodes, planApproved=false, canManage=false, canDelete=false, depth=0 }: {
-  node: any; levelNames: string[]; levelCount: number
+function NodeItem({ node, levelNames, frameworkLevels, levelCount, planId, planName, onRefresh, kpiLevelConfigs, codes, taskCodes, officialCodes, planApproved=false, canManage=false, canDelete=false, depth=0 }: {
+  node: any; levelNames: string[]; frameworkLevels: number[]; levelCount: number
   planId: string; planName: string; onRefresh: ()=>void
   kpiLevelConfigs: KpiLevelConf[]
   codes: Record<string,string>
@@ -887,7 +887,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
 
         {/* عقد أبناء */}
         {node.children.map((child: any) => (
-          <NodeItem key={child.id} node={child} levelNames={levelNames} levelCount={levelCount}
+          <NodeItem key={child.id} node={child} levelNames={levelNames} frameworkLevels={frameworkLevels} levelCount={levelCount}
             planId={planId} planName={planName} onRefresh={onRefresh} kpiLevelConfigs={kpiLevelConfigs}
             codes={codes} taskCodes={taskCodes} officialCodes={officialCodes} planApproved={planApproved}
             canManage={canManage} canDelete={canDelete} depth={depth + 1} />
@@ -958,7 +958,7 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
         ) : (
           <StandardPicker
             levelNum={node.level_num + 1}
-            frameworkLevel={frameworkLevelOf(levelNames, node.level_num + 1)}
+            frameworkLevel={frameworkLevelFor({ level_names: levelNames, framework_levels: frameworkLevels }, node.level_num + 1)}
             parentStandardCode={node.standard_code || null}
             excludeCodes={node.children.map((c: any) => c.standard_code).filter(Boolean)}
             placeholder={`اسم ${nextLevelName}...`}
@@ -1033,7 +1033,7 @@ export default function NodePage() {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: allNodes }, { data: allTasks }, official] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, level_count, level_names, kpi_levels, approved_at, frozen_at').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, level_count, level_names, framework_levels, kpi_levels, approved_at, frozen_at').eq('id', planId).single(),
       supabase.from('plan_nodes').select('*').eq('plan_id', planId).order('order_num'),
       supabase.from('tasks').select('id, name_ar, status, priority, end_date, task_type, node_id, rating, order_num, created_at')
         .in('node_id', (await supabase.from('plan_nodes').select('id').eq('plan_id', planId)).data?.map(n=>n.id) || []),
@@ -1071,6 +1071,7 @@ export default function NodePage() {
   if (!plan || !rootNode) return null
 
   const levelNames: string[] = plan.level_names || []
+  const frameworkLevels: number[] = plan.framework_levels || []
 
   return (
     <div className="space-y-4">
@@ -1124,6 +1125,7 @@ export default function NodePage() {
               key={node.id}
               node={node}
               levelNames={levelNames}
+              frameworkLevels={frameworkLevels}
               levelCount={plan.level_count}
               planId={planId}
               planName={plan.name_ar}

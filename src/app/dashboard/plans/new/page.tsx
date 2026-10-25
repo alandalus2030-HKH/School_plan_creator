@@ -87,6 +87,9 @@ export default function NewPlanPage() {
      ويُحسم هذا في م2‑2 «قوالب الخطط»: لكل قالب عمقه ومسمّياته. */
   const [levelCount, setLevelCount] = useState(4)
   const [levelNames, setLevelNames] = useState(LEVEL_PRESETS[4])
+  /* قوالب الخطط (4.1) — مصدر المسمّيات وتقابلِها مع الإطار وسياسةِ الإسناد */
+  const [templates, setTemplates] = useState<any[]>([])
+  const [templateId, setTemplateId] = useState('')
   const [kpiLevels,  setKpiLevels]  = useState<KpiLevelConfig[]>([])
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState('')
@@ -109,7 +112,21 @@ export default function NewPlanPage() {
       setPlanTypes((opts || []).filter((o: any) => o.category === 'plan_type').map((o: any) => o.value))
       setOwners(profs || [])
     })()
+    fetch('/api/plan-templates').then(r => r.json())
+      .then(j => setTemplates((j.templates || []).filter((t: any) => t.is_active)))
+      .catch(() => setTemplates([]))
   }, [])
+
+  /* ── اختيار قالب: مسمّياته وعمقه تُنسَخ، وتبقى قابلةً للتحرير ──
+     «المرونة مطلب» (4.1) — فالقالب يبدأ بالمدرسة ولا يحبسها. */
+  const pickTemplate = (id: string) => {
+    setTemplateId(id)
+    const t = templates.find((x: any) => x.id === id)
+    if (!t) return
+    setLevelCount(t.level_names.length)
+    setLevelNames([...t.level_names])
+    setKpiLevels([])
+  }
 
   /* ── تغيير عدد المستويات ── */
   const handleLevelCount = (n: number) => {
@@ -166,6 +183,7 @@ export default function NewPlanPage() {
           end_date:      endDate   || null,
           level_count:   levelCount,
           level_names:   levelNames,
+          template_id:   templateId || null,
           kpi_levels:    kpiLevelsToSave,
           department:    department   || null,
           plan_category: planCategory || null,
@@ -317,6 +335,27 @@ export default function NewPlanPage() {
         {/* ══ الخطوة 2: هيكل المستويات ══ */}
         {step === 2 && (
           <div className="space-y-6">
+
+            {templates.length > 0 && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  القالب
+                </label>
+                <select value={templateId} onChange={e => pickTemplate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm">
+                  <option value="">بلا قالب — أُسمّي المستويات بنفسي</option>
+                  {templates.map((t: any) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name_ar} — {t.level_names.join(' › ')}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                  يملأ المستويات وتقابلَها مع الإطار وسياسةَ الإسناد — <strong>وتبقى قابلةً للتحرير</strong>.
+                  وتُنسَخ إلى الخطة، فتعديلُ القالب لاحقاً لا يُبدّلها.
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-3">

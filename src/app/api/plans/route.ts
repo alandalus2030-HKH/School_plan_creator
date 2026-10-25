@@ -34,14 +34,29 @@ export async function POST(req: NextRequest) {
   const name_ar = body.name_ar?.toString().trim()
   if (!name_ar) return NextResponse.json({ error: 'اسم الخطة مطلوب' }, { status: 400 })
 
+  /* ── القالب يُنسَخ عند الميلاد ولا يُقرأ بعده (4.1) ──
+     فتعديلُ قالبٍ في الإعدادات لا يُبدّل هيكل خطّةٍ قيد البناء. */
+  let tpl: any = null
+  if (body.template_id) {
+    const { data: t } = await ctx.admin.from('plan_templates')
+      .select('id, level_names, framework_levels, anchor_policy, anchor_level')
+      .eq('id', body.template_id).eq('school_id', ctx.schoolId).is('deleted_at', null).maybeSingle()
+    tpl = t
+    if (!tpl) return NextResponse.json({ error: 'القالب غير موجود' }, { status: 404 })
+  }
+
   const { data, error } = await ctx.admin.from('plans').insert({
     school_id:     ctx.schoolId,
     name_ar,
     academic_year: body.academic_year || null,
     start_date:    body.start_date || null,
     end_date:      body.end_date || null,
-    level_count:   body.level_count ?? 3,
-    level_names:   Array.isArray(body.level_names) ? body.level_names : [],
+    level_count:   body.level_count ?? tpl?.level_names?.length ?? 3,
+    level_names:   Array.isArray(body.level_names) ? body.level_names : (tpl?.level_names || []),
+    template_id:      tpl?.id || null,
+    framework_levels: tpl?.framework_levels || [],
+    anchor_policy:    tpl?.anchor_policy || 'optional',
+    anchor_level:     tpl?.anchor_level ?? null,
     kpi_levels:    Array.isArray(body.kpi_levels) ? body.kpi_levels : [],
     department:    body.department?.toString().trim()    || null,
     plan_category: body.plan_category?.toString().trim() || null,

@@ -17,7 +17,8 @@ import DeptSupervisorsManager from '@/components/DeptSupervisorsManager'
 import DeptMembersManager from '@/components/DeptMembersManager'
 import CalendarManager from '@/components/CalendarManager'
 import AcademicTermsManager from '@/components/AcademicTermsManager'
-import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays, ChevronDown, Search, ChevronRight } from 'lucide-react'
+import PlanTemplatesManager from '@/components/PlanTemplatesManager'
+import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays, LayoutTemplate, ChevronDown, Search, ChevronRight } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -235,6 +236,7 @@ export default function SettingsPage() {
   const isSupervisors = activeCat === '__supervisors__'
   const isDeptMembers = activeCat === '__dept_members__'
   const isCalendar = activeCat === '__calendar__'
+  const isTemplates = activeCat === '__templates__'
 
   const sendNotif = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -305,6 +307,7 @@ export default function SettingsPage() {
     { key: '__school__', label: 'بيانات المدرسة', Icon: Building2 },
     ...ORG_ITEMS,
     { key: '__calendar__', label: 'التقويم المدرسي', Icon: CalendarDays },
+    { key: '__templates__', label: 'قوالب الخطط', Icon: LayoutTemplate },
     ...CATEGORIES.map(c => ({ key: c.key, label: c.label, Icon: c.Icon })),
     { key: '__roles__', label: 'الأدوار والصلاحيات', Icon: Crown },
     { key: '__notifications__', label: 'إرسال إشعار', Icon: Bell },
@@ -354,6 +357,7 @@ export default function SettingsPage() {
 
               {/* التقويم */}
               {navItemBtn('__calendar__', 'التقويم المدرسي', CalendarDays)}
+              {navItemBtn('__templates__', 'قوالب الخطط', LayoutTemplate)}
 
               {/* القوائم والتصنيفات (مجموعة) */}
               {groupHeader('lists', 'القوائم والتصنيفات', ClipboardList, CATEGORIES.length)}
@@ -398,6 +402,9 @@ export default function SettingsPage() {
               <AcademicTermsManager />
               <CalendarManager />
             </>
+          ) : isTemplates ? (
+            /* ════ قوالب الخطط ════ */
+            <PlanTemplatesManager />
           ) : isNotifs ? (
             /* ════ قسم إرسال الإشعارات ════ */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

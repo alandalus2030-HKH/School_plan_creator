@@ -13,7 +13,7 @@ import { ClipboardList, Target, TrendingUp, Package, BarChart3, Star,
 import { generateQnsaReport } from '@/lib/qnsaReport'
 import { toast } from '@/components/Toast'
 import StandardPicker from '@/components/StandardPicker'
-import { frameworkLevelOf, PLAN_LEVEL_OPTIONS, MAX_PLAN_LEVELS } from '@/lib/planLevels'
+import { frameworkLevelFor, PLAN_LEVEL_OPTIONS, MAX_PLAN_LEVELS } from '@/lib/planLevels'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
 import { usePermissions } from '@/lib/PermissionsContext'
@@ -123,7 +123,7 @@ export default function PlanOverviewPage() {
 
   const load = useCallback(async () => {
     const [{ data: planData }, { data: nodesData }] = await Promise.all([
-      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, kpi_levels, approved_at, approved_by, frozen_at, department, plan_category, owner_id').eq('id', planId).single(),
+      supabase.from('plans').select('id, name_ar, academic_year, level_count, level_names, framework_levels, anchor_policy, anchor_level, kpi_levels, approved_at, approved_by, frozen_at, department, plan_category, owner_id').eq('id', planId).single(),
       supabase.from('plan_nodes').select('id, parent_id, level_num, name_ar, order_num, standard_code').eq('plan_id', planId).order('order_num'),
     ])
     setOfficialCodes(await fetchOfficialCodes())
@@ -859,7 +859,7 @@ export default function PlanOverviewPage() {
           <div className="p-2 bg-violet-50 rounded-xl border border-violet-200">
             <StandardPicker
               levelNum={1}
-              frameworkLevel={frameworkLevelOf(plan?.level_names, 1)}
+              frameworkLevel={frameworkLevelFor(plan, 1)}
               parentStandardCode={null}
               excludeCodes={topNodes.map((n: any) => n.standard_code).filter(Boolean)}
               placeholder={`اسم ${level1Name}...`}
