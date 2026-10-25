@@ -362,7 +362,7 @@ export default function TriagePage() {
                     <select value={subCode} onChange={e => { setSubCode(e.target.value); setWhole(false) }}
                       className="w-full min-w-0 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm">
                       <option value="">— اختر المعيار الفرعي —</option>
-                      <SubStandardOptions subs={subs} aspects={aspects} by="code" trim={60} />
+                      <SubStandardOptions subs={subs} aspects={aspects} by="code" />
                     </select>
 
                     {!!subCode && (

@@ -261,7 +261,7 @@ export default function BatchPage() {
               <select defaultValue="" onChange={e => e.target.value && patch(sel, { sub_node_id: e.target.value })}
                 className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white max-w-[240px]">
                 <option value="">المعيار الفرعي لكلّها…</option>
-                <SubStandardOptions subs={subs} aspects={aspects} trim={46} />
+                <SubStandardOptions subs={subs} aspects={aspects} />
               </select>
               <button onClick={mergeSelected} disabled={sel.length < 2}
                 title="التقرير وملاحقه · والمستند المصوَّر صفحةً صفحة"
@@ -332,7 +332,7 @@ export default function BatchPage() {
                         onChange={e => patch([it.id], { sub_node_id: e.target.value })}
                         className={`px-2 py-1 rounded-lg border bg-white max-w-[230px] ${it.sub_node_id ? 'border-slate-200' : 'border-amber-300'}`}>
                         <option value="">—</option>
-                        <SubStandardOptions subs={subs} aspects={aspects} trim={40} />
+                        <SubStandardOptions subs={subs} aspects={aspects} />
                       </select>
                     </td>
                   </tr>

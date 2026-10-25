@@ -442,7 +442,7 @@ function TaskForm({ task, onClose, onDone }:
             <select value={subSel} onChange={e => setSubSel(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs mb-2">
               <option value="">اختر معياراً فرعياً لترى مؤشراته…</option>
-              <SubStandardOptions subs={subs} aspects={aspects} trim={50} />
+              <SubStandardOptions subs={subs} aspects={aspects} />
             </select>
 
             {!!subSel && (
