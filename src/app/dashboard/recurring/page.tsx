@@ -28,6 +28,7 @@ import { usePermissions } from '@/lib/PermissionsContext'
 import { createClient } from '@/lib/supabase/client'
 import { fetchSubStandards, fetchFrameworkLevel, type AspectLabels, type FrameworkNode } from '@/lib/framework'
 import SubStandardOptions, { ChosenSubStandard } from '@/components/SubStandardOptions'
+import { currentAcademicYear } from '@/lib/dates'
 
 type Anchor = { nodeId: string; code: string; name_ar: string; level: number; kind: string }
 type Cycle  = {
@@ -68,6 +69,8 @@ export default function RecurringPage() {
   const [loading, setLoading] = useState(true)
   const [err,     setErr]     = useState('')
   const [editing, setEditing] = useState<Task | 'new' | null>(null)
+  /* فصول العام: بلا تعريفٍ لها لا يفتح المحرّك دورةً فصلية ولا سنوية */
+  const [terms, setTerms] = useState<number | null>(null)
 
   const allowed = isSuperAdmin || can('view_plans') || can('view_evidence') || can('triage_evidence') || can('manage_settings')
 
@@ -80,6 +83,12 @@ export default function RecurringPage() {
   }, [])
 
   useEffect(() => { if (allowed) load() }, [allowed, load])
+
+  useEffect(() => {
+    if (!allowed) return
+    fetch(`/api/academic-terms?year=${encodeURIComponent(currentAcademicYear())}`)
+      .then(r => r.json()).then(j => setTerms((j.terms || []).length)).catch(() => setTerms(0))
+  }, [allowed])
 
   const toggle = async (t: Task) => {
     const r = await fetch('/api/recurring-tasks', {
@@ -103,6 +112,8 @@ export default function RecurringPage() {
   if (!allowed) return <NoAccess message="المهامّ الدورية تتطلّب صلاحية الخطط أو الأدلة." />
 
   const active = items.filter(t => t.is_active)
+  /* الأسبوعية والشهرية تستغنيان عن التقويم — وما عداهما لا */
+  const needsCalendar = active.some(t => ['termly', 'semi_termly', 'annual'].includes(t.frequency))
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto">
@@ -130,6 +141,21 @@ export default function RecurringPage() {
           )}
         </div>
       </div>
+
+      {/* تقويمٌ ناقص يُقال صريحاً — فالمحرّك لا يخترع تاريخاً، والدورة
+          التي لا تُفتح أخفى من دورةٍ تُفتح في غير وقتها */}
+      {terms === 0 && needsCalendar && (
+        <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-1.5">
+          <span className="inline-flex mt-0.5"><AlertTriangle size={12} /></span>
+          <span>
+            <strong>فصول {currentAcademicYear()} غير معرَّفة</strong> — ولن تُفتح دورةٌ
+            فصلية ولا نصف فصلية ولا سنوية حتى تُعرَّف، فالنظام لا يفترض تاريخاً.
+            {' '}<Link href="/dashboard/settings" className="underline font-semibold">
+              عرّفها في الإعدادات ← التقويم المدرسي
+            </Link>.
+          </span>
+        </p>
+      )}
 
       {/* «ابدأ بستّ لا بستّين» (5.4) — نصيحةٌ تُقال حيث تُفعل */}
       {manage && active.length >= 6 && (

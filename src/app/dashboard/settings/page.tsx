@@ -16,6 +16,7 @@ import LocationsManager from '@/components/LocationsManager'
 import DeptSupervisorsManager from '@/components/DeptSupervisorsManager'
 import DeptMembersManager from '@/components/DeptMembersManager'
 import CalendarManager from '@/components/CalendarManager'
+import AcademicTermsManager from '@/components/AcademicTermsManager'
 import { MapPin, UserCog, BookOpen as BookOpenIcon, CalendarDays, ChevronDown, Search, ChevronRight } from 'lucide-react'
 import { usePermissions } from '@/lib/PermissionsContext'
 import NoAccess from '@/components/NoAccess'
@@ -391,8 +392,12 @@ export default function SettingsPage() {
             /* ════ أعضاء الأقسام ════ */
             <DeptMembersManager />
           ) : isCalendar ? (
-            /* ════ التقويم المدرسي ════ */
-            <CalendarManager />
+            /* ════ التقويم المدرسي ════
+               الفصول أوّلاً: منها تُحسب المواعيد، والأحداث تقع داخلها. */
+            <>
+              <AcademicTermsManager />
+              <CalendarManager />
+            </>
           ) : isNotifs ? (
             /* ════ قسم إرسال الإشعارات ════ */
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
