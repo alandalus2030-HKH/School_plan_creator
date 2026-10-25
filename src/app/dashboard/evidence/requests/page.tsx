@@ -19,7 +19,8 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createClient } from '@/lib/supabase/client'
-import { fetchFrameworkAllAtLevel, fetchFrameworkLevel, type FrameworkNode } from '@/lib/framework'
+import { fetchSubStandards, fetchFrameworkLevel, type AspectLabels, type FrameworkNode } from '@/lib/framework'
+import SubStandardOptions from '@/components/SubStandardOptions'
 import { academicYearOptions, currentAcademicYear } from '@/lib/dates'
 
 type Req = {
@@ -212,6 +213,7 @@ export default function RequestsPage() {
 function NewRequest({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [staff, setStaff] = useState<{ id: string; name_ar: string }[]>([])
   const [subs,  setSubs]  = useState<FrameworkNode[]>([])
+  const [aspects, setAspects] = useState<AspectLabels>(new Map())
   const [inds,  setInds]  = useState<FrameworkNode[]>([])
   const [types, setTypes] = useState<string[]>([])
 
@@ -230,13 +232,13 @@ function NewRequest({ onClose, onDone }: { onClose: () => void; onDone: () => vo
   useEffect(() => {
     (async () => {
       const sb = createClient()
-      const [{ data: people }, subRows, { data: opts }] = await Promise.all([
+      const [{ data: people }, fw, { data: opts }] = await Promise.all([
         sb.from('profiles').select('id, name_ar').eq('is_active', true).order('name_ar'),
-        fetchFrameworkAllAtLevel(3),
+        fetchSubStandards(),
         sb.from('dropdown_options').select('value')
           .eq('category', 'evidence_type').eq('is_active', true).order('sort_order'),
       ])
-      setStaff(people || []); setSubs(subRows)
+      setStaff(people || []); setSubs(fw.subs); setAspects(fw.aspects)
       setTypes((opts || []).map((o: any) => o.value))
     })()
   }, [])
@@ -290,7 +292,7 @@ function NewRequest({ onClose, onDone }: { onClose: () => void; onDone: () => vo
             <select value={subId} onChange={e => setSubId(e.target.value)}
               className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200">
               <option value="">اختر معياراً فرعياً…</option>
-              {subs.map(s => <option key={s.id} value={s.id}>{s.code} — {s.name_ar}</option>)}
+              <SubStandardOptions subs={subs} aspects={aspects} />
             </select>
           </label>
 

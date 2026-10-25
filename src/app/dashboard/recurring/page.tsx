@@ -26,7 +26,8 @@ import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
 import { createClient } from '@/lib/supabase/client'
-import { fetchFrameworkAllAtLevel, fetchFrameworkLevel, type FrameworkNode } from '@/lib/framework'
+import { fetchSubStandards, fetchFrameworkLevel, type AspectLabels, type FrameworkNode } from '@/lib/framework'
+import SubStandardOptions from '@/components/SubStandardOptions'
 
 type Anchor = { nodeId: string; code: string; name_ar: string; level: number; kind: string }
 type Cycle  = {
@@ -274,6 +275,7 @@ export default function RecurringPage() {
 function TaskForm({ task, onClose, onDone }:
   { task: Task | null; onClose: () => void; onDone: () => void }) {
   const [subs,  setSubs]  = useState<FrameworkNode[]>([])
+  const [aspects, setAspects] = useState<AspectLabels>(new Map())
   const [inds,  setInds]  = useState<FrameworkNode[]>([])
   const [subSel, setSubSel] = useState('')
   const [depts, setDepts] = useState<string[]>([])
@@ -295,13 +297,13 @@ function TaskForm({ task, onClose, onDone }:
   useEffect(() => {
     ;(async () => {
       const sb = createClient()
-      const [subRows, { data: opts }] = await Promise.all([
-        fetchFrameworkAllAtLevel(3),
+      const [fw, { data: opts }] = await Promise.all([
+        fetchSubStandards(),
         sb.from('dropdown_options').select('category, value')
           .in('category', ['department', 'job_title', 'evidence_type'])
           .eq('is_active', true).order('sort_order'),
       ])
-      setSubs(subRows)
+      setSubs(fw.subs); setAspects(fw.aspects)
       setDepts((opts || []).filter((o: any) => o.category === 'department').map((o: any) => o.value))
       setJobs((opts || []).filter((o: any) => o.category === 'job_title').map((o: any) => o.value))
       setTypes((opts || []).filter((o: any) => o.category === 'evidence_type').map((o: any) => o.value))
@@ -440,9 +442,7 @@ function TaskForm({ task, onClose, onDone }:
             <select value={subSel} onChange={e => setSubSel(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs mb-2">
               <option value="">اختر معياراً فرعياً لترى مؤشراته…</option>
-              {subs.map(s => (
-                <option key={s.id} value={s.id}>{s.code} — {s.name_ar.slice(0, 50)}</option>
-              ))}
+              <SubStandardOptions subs={subs} aspects={aspects} trim={50} />
             </select>
 
             {!!subSel && (

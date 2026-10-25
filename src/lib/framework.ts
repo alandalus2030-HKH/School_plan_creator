@@ -23,6 +23,33 @@ export const FRAMEWORK_LEVEL_NAMES: Record<number, string> = {
 export const FRAMEWORK_MAX_LEVEL = 4
 
 /**
+ * ترتيب أكواد الإطار عدديّاً بمقاطعها — **مصدرٌ واحد** لكل قائمة.
+ *
+ * و`sort_order` لا يصلح وحده: هو رتبةٌ **داخل الأب** لا في الإطار كلّه
+ * (1.1.1 و1.2.1 و1.3.1 كلّها = 1). فالترتيب به عبر مستوىً كامل يجمع
+ * كلّ «الأوائل» معاً ثمّ كلّ «الثواني» — وهو ما ظهر في قائمة المراسي:
+ * 1.2.4 · 1.3.4 · 2.1.4 … بدل 1.1.1 · 1.1.2 · 1.1.3. وأدهى منه أنّ
+ * ترتيب الصفوف عند تساوي المفتاح **غير معرَّف**، فتختلف القائمة بين
+ * تحميلٍ وتحميل بلا سبب ظاهر.
+ *
+ * والمقارنة عدديّة لا نصّية: '1.10' بعد '1.9' لا قبلها.
+ */
+export function compareFrameworkCodes(a: string, b: string): number {
+  const A = a.split('.').map(n => parseInt(n, 10))
+  const B = b.split('.').map(n => parseInt(n, 10))
+  for (let i = 0; i < Math.max(A.length, B.length); i++) {
+    const d = (A[i] ?? -1) - (B[i] ?? -1)
+    if (d) return d
+  }
+  return 0
+}
+
+/** كود الجانب من كود المعيار الفرعي: '1.2.3' → '1.2'. */
+export function aspectCodeOf(code: string): string {
+  return code.split('.').slice(0, 2).join('.')
+}
+
+/**
  * أبناء بندٍ في الإطار النشط: مستوىً واحد تحت `parentCode`.
  * المستوى الأول بلا أب (parentCode = null).
  *
@@ -51,7 +78,9 @@ export async function fetchFrameworkLevel(
 
   const { data, error } = await q
   if (error || !data) return []
-  return data.map(({ id, code, name_ar, level }: any) => ({ id, code, name_ar, level }))
+  return data
+    .map(({ id, code, name_ar, level }: any) => ({ id, code, name_ar, level }))
+    .sort((a, b) => compareFrameworkCodes(a.code, b.code))
 }
 
 /** بيانات بندٍ واحد بكوده — للعرض التفصيلي (البيانات التوضيحية وأسئلة التأمل). */
@@ -117,15 +146,7 @@ export async function fetchAllNodes(frameworkId: string): Promise<TreeNode[]> {
     .eq('framework_id', frameworkId)
     .eq('is_active', true)
   const rows = (data || []) as TreeNode[]
-  const key = (c: string) => c.split('.').map(n => parseInt(n, 10))
-  return rows.sort((a, b) => {
-    const A = key(a.code), B = key(b.code)
-    for (let i = 0; i < Math.max(A.length, B.length); i++) {
-      const d = (A[i] ?? -1) - (B[i] ?? -1)
-      if (d) return d
-    }
-    return 0
-  })
+  return rows.sort((a, b) => compareFrameworkCodes(a.code, b.code))
 }
 
 /** سلم التقدير لمعيار فرعي — صفوف، كل صفّ بمستوياته الخمسة. */
@@ -184,7 +205,27 @@ export async function fetchFrameworkAllAtLevel(levelNum: number): Promise<Framew
     .eq('frameworks.status', 'active')
     .eq('level', levelNum)
     .eq('is_active', true)
-    .order('sort_order')
   if (error || !data) return []
-  return data.map(({ id, code, name_ar, level }: any) => ({ id, code, name_ar, level }))
+  /* الترتيب بالكود لا بـ`sort_order` — فهو رتبةٌ داخل الأب، وقائمةٌ
+     مسطّحة تعبر الآباء كلّهم (انظر compareFrameworkCodes). */
+  return data
+    .map(({ id, code, name_ar, level }: any) => ({ id, code, name_ar, level }))
+    .sort((a, b) => compareFrameworkCodes(a.code, b.code))
+}
+
+/** أسماء الجوانب بأكوادها: '1.2' → 'التخطيط والسياسات'. */
+export type AspectLabels = Map<string, string>
+
+/**
+ * المعايير الفرعية كلّها ومعها أسماء جوانبها — رحلتان تكفيان القائمةَ
+ * كلّها. والجوانب تُجلب لتُجمَّع بها القائمة في `<optgroup>`: ستّةٌ
+ * وسبعون سطراً مسطّحاً تُقرأ بالعين سطراً سطراً، ومجموعةً تحت جانبها
+ * تُقرأ كما يُقرأ الإطار نفسه.
+ */
+export async function fetchSubStandards(): Promise<{ subs: FrameworkNode[]; aspects: AspectLabels }> {
+  const [subs, asp] = await Promise.all([
+    fetchFrameworkAllAtLevel(3),
+    fetchFrameworkAllAtLevel(2),
+  ])
+  return { subs, aspects: new Map(asp.map(a => [a.code, a.name_ar])) }
 }

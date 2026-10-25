@@ -18,7 +18,8 @@ import { Loader2, Upload, Inbox, Send, Trash2, Check, AlertTriangle, Merge, X, F
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
-import { fetchFrameworkAllAtLevel, type FrameworkNode } from '@/lib/framework'
+import { fetchSubStandards, type AspectLabels, type FrameworkNode } from '@/lib/framework'
+import SubStandardOptions from '@/components/SubStandardOptions'
 import { academicYearOptions } from '@/lib/dates'
 
 type Item = {
@@ -41,6 +42,7 @@ export default function BatchPage() {
   const [items,   setItems]   = useState<Item[]>([])
   const [sel,     setSel]     = useState<string[]>([])
   const [subs,    setSubs]    = useState<FrameworkNode[]>([])
+  const [aspects, setAspects] = useState<AspectLabels>(new Map())
   const [loading, setLoading] = useState(true)
   const [busy,    setBusy]    = useState(false)
   /* ضيقُ المساحة — حكمٌ لا رقم (16): الباقة حدُّ النظام كلّه لا حدُّ مدرسة */
@@ -60,7 +62,10 @@ export default function BatchPage() {
     if (!r.ok) { toast('تعذّر فتح الدفعة', 'error'); return }
     const j = await r.json()
     setBatch(j.batch); setItems(j.items || []); setSel([])
-    if (!subs.length) setSubs(await fetchFrameworkAllAtLevel(3))
+    if (!subs.length) {
+      const fw = await fetchSubStandards()
+      setSubs(fw.subs); setAspects(fw.aspects)
+    }
   }, [subs.length])
 
   useEffect(() => { if (allowed) loadList() }, [allowed, loadList])
@@ -256,7 +261,7 @@ export default function BatchPage() {
               <select defaultValue="" onChange={e => e.target.value && patch(sel, { sub_node_id: e.target.value })}
                 className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white max-w-[240px]">
                 <option value="">المعيار الفرعي لكلّها…</option>
-                {subs.map(s => <option key={s.id} value={s.id}>{s.code} — {s.name_ar.slice(0, 46)}</option>)}
+                <SubStandardOptions subs={subs} aspects={aspects} trim={46} />
               </select>
               <button onClick={mergeSelected} disabled={sel.length < 2}
                 title="التقرير وملاحقه · والمستند المصوَّر صفحةً صفحة"
@@ -327,7 +332,7 @@ export default function BatchPage() {
                         onChange={e => patch([it.id], { sub_node_id: e.target.value })}
                         className={`px-2 py-1 rounded-lg border bg-white max-w-[230px] ${it.sub_node_id ? 'border-slate-200' : 'border-amber-300'}`}>
                         <option value="">—</option>
-                        {subs.map(s => <option key={s.id} value={s.id}>{s.code} — {s.name_ar.slice(0, 40)}</option>)}
+                        <SubStandardOptions subs={subs} aspects={aspects} trim={40} />
                       </select>
                     </td>
                   </tr>

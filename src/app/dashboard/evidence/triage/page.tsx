@@ -16,7 +16,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { Loader2, ShieldCheck, AlertTriangle, Check, X, SkipForward, SkipBack, Users, Keyboard,
   FileText, ExternalLink, Clock, Inbox, Plus, Lock } from 'lucide-react'
-import { fetchFrameworkLevel, fetchFrameworkAllAtLevel, type FrameworkNode } from '@/lib/framework'
+import { fetchFrameworkLevel, fetchSubStandards, type AspectLabels, type FrameworkNode } from '@/lib/framework'
+import SubStandardOptions from '@/components/SubStandardOptions'
 import NoAccess from '@/components/NoAccess'
 import { toast } from '@/components/Toast'
 
@@ -53,6 +54,7 @@ export default function TriagePage() {
   const [anchoring,  setAnchoring]  = useState(false)
   const [subCode,    setSubCode]    = useState('')
   const [subs,       setSubs]       = useState<FrameworkNode[]>([])
+  const [aspects,    setAspects]    = useState<AspectLabels>(new Map())
   const [inds,       setInds]       = useState<FrameworkNode[]>([])
   const [picked,     setPicked]     = useState<string[]>([])
   const [whole,      setWhole]      = useState(false)
@@ -130,7 +132,10 @@ export default function TriagePage() {
   /* المعايير الفرعية تُجلب مرّةً عند أوّل فتح — 76 بنداً تكفيها رحلة */
   const openAnchor = async () => {
     setAnchoring(true); setPicked([]); setWhole(false)
-    if (!subs.length) setSubs(await fetchFrameworkAllAtLevel(3))
+    if (!subs.length) {
+      const fw = await fetchSubStandards()
+      setSubs(fw.subs); setAspects(fw.aspects)
+    }
   }
   useEffect(() => {
     if (!subCode) { setInds([]); return }
@@ -357,7 +362,7 @@ export default function TriagePage() {
                     <select value={subCode} onChange={e => { setSubCode(e.target.value); setWhole(false) }}
                       className="w-full min-w-0 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm">
                       <option value="">— اختر المعيار الفرعي —</option>
-                      {subs.map(x => <option key={x.id} value={x.code}>{x.code} — {x.name_ar.slice(0, 60)}</option>)}
+                      <SubStandardOptions subs={subs} aspects={aspects} by="code" trim={60} />
                     </select>
 
                     {!!subCode && (
