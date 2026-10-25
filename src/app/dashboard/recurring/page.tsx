@@ -29,6 +29,7 @@ import { createClient } from '@/lib/supabase/client'
 import { fetchSubStandards, fetchFrameworkLevel, type AspectLabels, type FrameworkNode } from '@/lib/framework'
 import SubStandardOptions, { ChosenSubStandard } from '@/components/SubStandardOptions'
 import { currentAcademicYear } from '@/lib/dates'
+import { FREQ_AR, FREQ_NEEDS_CALENDAR } from '@/lib/recurring'
 
 type Anchor = { nodeId: string; code: string; name_ar: string; level: number; kind: string }
 type Cycle  = {
@@ -47,11 +48,6 @@ type Task = {
   tally: { documented: number; skipped: number; neglected: number; open: number; total: number }
 }
 
-const FREQ_AR: Record<string, string> = {
-  /* مرتّبةٌ من الأقصر إلى الأطول — ونصفُ الفصل شهران، فموضعه بينهما */
-  weekly: 'أسبوعية', monthly: 'شهرية', semi_termly: 'نصف فصلية',
-  termly: 'فصلية', annual: 'سنوية',
-}
 const POLICY_AR: Record<string, string> = {
   previous: 'العام المنصرم', next: 'العام القادم', by_date: 'بتاريخ الاستحقاق',
 }
@@ -113,7 +109,7 @@ export default function RecurringPage() {
 
   const active = items.filter(t => t.is_active)
   /* الأسبوعية والشهرية تستغنيان عن التقويم — وما عداهما لا */
-  const needsCalendar = active.some(t => ['termly', 'semi_termly', 'annual'].includes(t.frequency))
+  const needsCalendar = active.some(t => FREQ_NEEDS_CALENDAR.includes(t.frequency))
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto">

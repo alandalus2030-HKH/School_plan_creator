@@ -15,6 +15,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import { toast } from '@/components/Toast'
 import { computeNodeCodes, computeTaskCodes } from '@/lib/planCodes'
 import { usePermissions } from '@/lib/PermissionsContext'
+import NodeRecurringLink from '@/components/NodeRecurringLink'
 
 /* كلاسات التقييم كنصوص ثابتة لضمان إدراجها في CSS */
 function ratingBadgeClass(avg: number): { label: string; icon: React.ReactNode; cls: string } {
@@ -925,6 +926,13 @@ function NodeItem({ node, levelNames, levelCount, planId, planName, onRefresh, k
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ممارساتٌ دورية مرتبطة — تُعرض هنا ولا تُحتسب في الإنجاز (5.2) */}
+        {isLeaf && (
+          <div className="mr-2">
+            <NodeRecurringLink nodeId={node.id} canManage={canManage && !planApproved} />
           </div>
         )}
 

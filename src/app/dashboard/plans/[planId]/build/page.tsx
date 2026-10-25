@@ -21,6 +21,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import PlanHeaderBar from '@/components/PlanHeaderBar'
 import { toast } from '@/components/Toast'
 import { usePermissions } from '@/lib/PermissionsContext'
+import NodeRecurringLink from '@/components/NodeRecurringLink'
 import NoAccess from '@/components/NoAccess'
 
 /* ═══ لوحة اقتراح أهداف/مهام بالذكاء الاصطناعي (Groq) ═══ */
@@ -725,6 +726,9 @@ export default function PlanBuildPage() {
                     أو افتح النموذج الكامل
                   </Link>
                 </p>
+
+                {/* ممارساتٌ دورية قائمة تُشار إليها ولا تُنشأ هنا (5.1‑2) */}
+                <NodeRecurringLink nodeId={leafSelected.id} canManage={isSuperAdmin || can('manage_plans')} />
 
                 {/* اقتراح مهام بالذكاء الاصطناعي */}
                 <AiSuggest
