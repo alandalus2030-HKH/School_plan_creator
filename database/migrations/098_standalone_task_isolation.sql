@@ -197,12 +197,19 @@ COMMIT;
 -- ════════════════════════════════════════════════════════════════
 -- التحقّق — انسخه وحده بعد التشغيل
 -- ════════════════════════════════════════════════════════════════
--- SELECT 'لا استثناءَ مفتوحاً باقياً' AS الفحص,
+-- ⚠️ ولا يُفحَص ببحثٍ عن نصّ `node_id IS NULL` — فهو باقٍ في سياستَي
+--    الإدراج والتعديل **حارساً لا مخرجاً**: المدرسة شرطٌ مستقلّ قبله،
+--    وهو يقول «لا خطّةَ فلا شيءَ أفحصه في الخطة». وحذفُه يمنع إنشاء
+--    كلّ مهمّة مستقلّة — وهو ما جئنا نُصلحه. فالفحص على **الشرط
+--    الحاكم** لا على نصٍّ عابر:
+-- SELECT 'سياساتٌ غير مقيَّدة بمدرسة' AS الفحص,
 --        (SELECT count(*)::text FROM pg_policies
 --          WHERE schemaname = 'public'
---            AND (COALESCE(qual,'') ILIKE '%node_id IS NULL%'
---              OR COALESCE(with_check,'') ILIKE '%node_id IS NULL%')
---            AND tablename IN ('tasks','subtasks','task_comments')) AS الفعلي,
+--            AND tablename IN ('tasks','subtasks','task_comments','evidence')
+--            AND (COALESCE(qual,'')||' '||COALESCE(with_check,''))
+--                NOT LIKE '%(school_id = my_school_id())%'
+--            AND (COALESCE(qual,'')||' '||COALESCE(with_check,''))
+--                NOT LIKE '%(t.school_id = my_school_id())%') AS الفعلي,
 --        '0' AS المتوقع
 -- UNION ALL SELECT 'وسياساتُ المهامّ على authenticated',
 --        (SELECT count(*)::text FROM pg_policies
