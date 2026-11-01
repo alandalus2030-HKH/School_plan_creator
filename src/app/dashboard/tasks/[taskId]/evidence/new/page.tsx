@@ -215,89 +215,31 @@ export default function NewEvidencePage() {
     setError('')
 
     try {
-      /* الرقم التسلسلي */
-      const { count } = await supabase
-        .from('evidence')
-        .select('id', { count: 'exact', head: true })
-        .eq('task_id', taskId)
+      /* ── الرفع والإدراج والبصمة في طلبٍ واحد (المنفذ الخادميّ) ──
+         كان هذا كلُّه يجري من المتصفّح: يُرفع الملفّ ثمّ يُدرج الصفّ.
+         فإن رُفض الإدراج بقي الملفّ في التخزين **بلا شيءٍ يعرفه**،
+         و`uploaded_by` لم يكن يُرسَل أصلاً فانكسر معه منعُ التقييم
+         الذاتي. والخادم يفعلها دفعةً واحدة ويُنظّف عند الإخفاق. */
+      const fd = new FormData()
+      fd.append('task_id', taskId)
+      fd.append('name', name.trim())
+      fd.append('description', description.trim())
+      fd.append('evidence_type', evidenceType || '')
 
-      const seq = (count || 0) + 1
-
-      let taskNum: string | null = null
-      if (taskNodeId) taskNum = await computeTaskNumber(supabase, taskNodeId, taskOrderNum)
-      const evNum = taskNum ? `${taskNum}.${seq}` : `دليل-${seq}`
-
-      /* رفع كل الملفات + بناء صفوف evidence_files */
-      const fileRows: {
-        name: string; file_url: string; file_type: string | null
-        file_size: number; video_url: string | null; order_num: number
-      }[] = []
-
-      for (let i = 0; i < attachments.length; i++) {
-        const att = attachments[i]
+      const vids: any[] = []
+      attachments.forEach((att, i) => {
         if (att.kind === 'video') {
-          fileRows.push({
-            name:      att.title,
-            file_url:  `https://img.youtube.com/vi/${att.videoId}/maxresdefault.jpg`,
-            file_type: 'video/youtube',
-            file_size: 0,
-            video_url: att.videoUrl || null,
-            order_num: i + 1,
-          })
+          vids.push({ title: att.title, videoId: att.videoId, videoUrl: att.videoUrl, order: i + 1 })
         } else if (att.file) {
-          const ext      = att.file.name.split('.').pop()
-          const filePath = `evidence/${taskId}/${Date.now()}-${i}.${ext}`
-          const { error: upErr } = await supabase.storage
-            .from('evidence').upload(filePath, att.file, { upsert: false })
-          if (upErr) throw upErr
-          const { data: urlData } = supabase.storage.from('evidence').getPublicUrl(filePath)
-          fileRows.push({
-            name:      att.title,
-            file_url:  urlData.publicUrl,
-            file_type: att.file.type,
-            file_size: att.file.size,
-            video_url: null,
-            order_num: i + 1,
-          })
+          fd.append('files', att.file)
+          fd.append('orders', String(i + 1))
         }
-      }
+      })
+      fd.append('videos', JSON.stringify(vids))
 
-      /* الملف الأساسي (الأول) — يُخزَّن في صف الدليل للتوافق مع العروض القديمة */
-      const primary = fileRows[0]
-
-      const { data: evRow, error: insertError } = await supabase
-        .from('evidence')
-        .insert({
-          task_id:         taskId,
-          name:            name.trim(),
-          description:     description.trim() || null,
-          file_url:        primary.file_url,
-          file_type:       primary.file_type,
-          file_size:       primary.file_size,
-          video_url:       primary.video_url,
-          evidence_number: evNum,
-          evidence_type:   evidenceType || null,
-        })
-        .select('id')
-        .single()
-
-      if (insertError) throw insertError
-
-      /* إدراج كل المرفقات في evidence_files */
-      const { error: filesError } = await supabase
-        .from('evidence_files')
-        .insert(fileRows.map(r => ({ ...r, evidence_id: evRow.id })))
-      if (filesError) throw filesError
-
-      /* ── الختم: بصمةٌ خادميّة لكل ملفّ (الوثيقة 11) ──
-         «نحسبها… في الخادم بعد الاستلام **وهي المعتمدة**، لأن ما يأتي
-         من المتصفّح يُزوَّر». وأدلة المهامّ كانت تُرفع بلا بصمة أصلاً —
-         فتُبصَم هنا بعد إدراج الملفّات. وهو نداءٌ **لا يُعطّل الرفع**:
-         إن أخفق بقي الملفّ بلا بصمة ويلتقطه الفحص الدوريّ. */
-      fetch('/api/evidence/fixity', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ evidenceId: evRow.id }),
-      }).catch(() => {})
+      const res  = await fetch('/api/evidence/task', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'تعذّر حفظ الدليل')
 
       router.push(`/dashboard/tasks/${taskId}`)
     } catch (err: any) {

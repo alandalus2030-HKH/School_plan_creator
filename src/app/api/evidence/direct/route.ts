@@ -188,6 +188,8 @@ export async function POST(req: NextRequest) {
   /* ── الرفع + البصمة (الخادم هو المعتمد) ── */
   const rows: any[] = []
   const mismatches: string[] = []
+  /* ما رُفع فعلاً — ليُحذف عند الإخفاق، فلا ملفَّ يتيم في التخزين */
+  const uploaded: string[] = []
   try {
     for (let i = 0; i < files.length; i++) {
       const f      = files[i]
@@ -200,6 +202,7 @@ export async function POST(req: NextRequest) {
       const { error: upErr } = await admin.storage
         .from(BUCKET).upload(path, buf, { upsert: false, contentType: f.type })
       if (upErr) throw new Error(upErr.message)
+      uploaded.push(path)
 
       const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path)
       rows.push({
@@ -246,8 +249,11 @@ export async function POST(req: NextRequest) {
     const { error: anchorErr } = await admin.from('evidence_anchors').insert(anchors)
     if (anchorErr) throw new Error(anchorErr.message)
   } catch (e: any) {
-    /* تنظيف: لا نترك دليلاً نصفه في المخزن ونصفه خارجه */
+    /* تنظيف: لا نترك دليلاً نصفه في المخزن ونصفه خارجه.
+       وكان الصفُّ وحده يُحذف، فيبقى ما رُفع قبل الإخفاق **ملفّاً
+       يتيماً** لا صفَّ يعرفه — وهي علّة المسار القديم نفسها. */
     await admin.from('evidence').delete().eq('id', ev.id)
+    if (uploaded.length) await admin.storage.from(BUCKET).remove(uploaded)
     return NextResponse.json({ error: e.message || 'تعذّر رفع الملفّات' }, { status: 500 })
   }
 

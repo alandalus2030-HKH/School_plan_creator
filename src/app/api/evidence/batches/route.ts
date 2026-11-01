@@ -199,6 +199,9 @@ export async function POST(req: NextRequest) {
 
   const rows: any[] = []
   let dups = 0
+  /* ما رُفع فعلاً — ليُحذف عند الإخفاق، فلا ملفَّ يتيم في التخزين */
+  const uploaded: string[] = []
+
   for (const f of files) {
     const buf  = Buffer.from(await f.arrayBuffer())
     const hash = createHash('sha256').update(buf).digest('hex')
@@ -213,7 +216,11 @@ export async function POST(req: NextRequest) {
     const path = `batch/${schoolId}/${batch.id}/${order}-${Date.now()}.${ext}`
     const { error: upErr } = await admin.storage.from(BUCKET)
       .upload(path, buf, { upsert: false, contentType: f.type })
-    if (upErr) return NextResponse.json({ error: `تعذّر رفع «${f.name}»: ${upErr.message}` }, { status: 500 })
+    if (upErr) {
+      if (uploaded.length) await admin.storage.from(BUCKET).remove(uploaded)
+      return NextResponse.json({ error: `تعذّر رفع «${f.name}»: ${upErr.message}` }, { status: 500 })
+    }
+    uploaded.push(path)
     const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path)
 
     const dup = !!(sameSchool || twinInBatch)
@@ -230,7 +237,11 @@ export async function POST(req: NextRequest) {
   }
 
   const { error: insErr } = await admin.from('evidence_batch_items').insert(rows)
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+  if (insErr) {
+    /* مئتا ملفّ رُفعت ثمّ أخفق صفُّها — فتُحذف، ولا تبقى يتيمةً في التخزين */
+    if (uploaded.length) await admin.storage.from(BUCKET).remove(uploaded)
+    return NextResponse.json({ error: insErr.message }, { status: 500 })
+  }
 
   await recordAudit({
     req, userId: auth.user.id, schoolId,
