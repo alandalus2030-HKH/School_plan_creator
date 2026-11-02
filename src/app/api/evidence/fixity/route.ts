@@ -20,6 +20,16 @@ import { recordAudit } from '@/lib/audit'
  * فالبصمة هنا تُحسب من **بايتات الملفّ المنزَّلة من التخزين**، لا ممّا
  * يقوله العميل ولا ممّا يقوله مزوّد التخزين.
  *
+ * ── والفيديو خارجَ هذا كلّه (100) ──
+ * صفُّ الفيديو يحمل في `file_url` **صورةَ غلافٍ من يوتيوب** لا مساراً في
+ * التخزين، فكان `parseStorageUrl` يعجز عنها فتُوسَم `missing` — أي
+ * «الملفّ مفقود». وهو إنذارٌ كاذبٌ **لا يبيضُّ أبداً**: يُحمِّر شريط
+ * سلامة الأرشيف، ويُعدّ في «بلا بصمة»، ويتجدّد مع كلّ فحص.
+ * وقيمةُ البصمة أن «يُكتشف التلف قبل أن تُطلب الأدلة» (11) — وإنذارٌ
+ * أحمرُ دائمٌ كاذب يقتل الإنذار الصادق حين يأتي.
+ * فالشرط الحاكم `video_url IS NOT NULL`: ما كان رابطاً لا يُنزَّل ولا
+ * يُعَدّ، وحالُه يبقى `NULL` — فالفراغُ هنا حقٌّ لا نقص.
+ *
  * ── ولماذا دالّةٌ واحدة للختم والفحص ──
  * العملية واحدة: نزِّل، احسب، قارن. والفرق في المرجع: الختم يكتب
  * البصمة أوّل مرّة، والفحص يقارنها بالمخزَّنة ويُبلّغ عن الاختلاف —
@@ -79,7 +89,7 @@ async function schoolFiles(admin: any, schoolId: string, evidenceId?: string) {
   const ids = (evs || []).map((e: any) => e.id)
   if (!ids.length) return { evs: [], files: [] }
   const { data: files } = await admin.from('evidence_files')
-    .select('id, evidence_id, name, file_url, content_hash, last_fixity_at, fixity_status')
+    .select('id, evidence_id, name, file_url, video_url, content_hash, last_fixity_at, fixity_status')
     .in('evidence_id', ids)
   return { evs: evs || [], files: files || [] }
 }
@@ -94,7 +104,9 @@ export async function GET() {
     return NextResponse.json({ error: 'لا تملك صلاحية الأدلة' }, { status: 403 })
   }
 
-  const { files } = await schoolFiles(admin, schoolId)
+  const { files: all } = await schoolFiles(admin, schoolId)
+  /* «مبصوم ن من ن» نسبةُ **ملفّات**، والفيديو ليس منها (100) */
+  const files = all.filter((f: any) => !f.video_url)
   const stamped = files.filter((f: any) => !!f.content_hash)
   return NextResponse.json({
     total: files.length,
@@ -102,6 +114,7 @@ export async function GET() {
     unstamped: files.length - stamped.length,
     mismatch: files.filter((f: any) => f.fixity_status === 'mismatch').length,
     missing:  files.filter((f: any) => f.fixity_status === 'missing').length,
+    links:    all.length - files.length,
     lastCheck: stamped.map((f: any) => f.last_fixity_at).filter(Boolean).sort().pop() || null,
   })
 }
@@ -124,7 +137,9 @@ export async function POST(req: NextRequest) {
   }
   if (!sweep && !evidenceId) return NextResponse.json({ error: 'الدليل مطلوب' }, { status: 400 })
 
-  const { files } = await schoolFiles(admin, schoolId, evidenceId)
+  const { files: all } = await schoolFiles(admin, schoolId, evidenceId)
+  /* الفيديو يُستبعَد **قبل** الاختيار، فلا يدخل ختماً ولا فحصاً (100) */
+  const files = all.filter((f: any) => !f.video_url)
   /* الختم: ما لم يُبصَم بعد · الفحص: الأقدم فحصاً أوّلاً */
   const targets = (sweep
     ? [...files].sort((a: any, b: any) =>
@@ -173,5 +188,5 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ done: true, ...report })
+  return NextResponse.json({ done: true, ...report, links: all.length - files.length })
 }
