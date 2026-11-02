@@ -7,11 +7,22 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, ClipboardList, Map, CircleCheckBig,
   Users, ChartNoAxesColumn, CalendarDays, UserRound, Settings,
-  Library, Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History, UsersRound, FileQuestion, Repeat,
+  Library, Contact, ChevronRight, ChevronLeft, Building2, Layers, LayoutGrid, FolderOpen, Award, HelpCircle, ShieldAlert, History, UsersRound, FileQuestion, Repeat, FlaskConical,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import Logo from './Logo'
 
-const NAV_ITEMS = [
+type NavItem = {
+  href: string
+  Icon:  LucideIcon
+  ar:    string
+  en:    string
+  perm:  string | null
+  /** بندٌ مؤقّتٌ للاختبار — يحمل بشارة «مؤقّت» ويُحذف قبل الإطلاق */
+  temp?: boolean
+}
+
+const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/group',          Icon: Layers,       ar: 'نظرة المجموعة',   en: 'Group',      perm: 'group_owner' },
   { href: '/dashboard/group/meetings', Icon: CalendarDays, ar: 'اجتماعات المجموعة', en: 'Meetings', perm: 'group_owner' },
   { href: '/dashboard',           Icon: LayoutDashboard, ar: 'لوحة التحكم',  en: 'Dashboard',  perm: 'manager'          },
@@ -41,6 +52,14 @@ const NAV_ITEMS = [
   { href: '/dashboard/settings',  Icon: Settings,        ar: 'الإعدادات',     en: 'Settings',   perm: 'manage_settings'  },
   { href: '/dashboard/help',      Icon: HelpCircle,      ar: 'المساعدة',      en: 'Help',       perm: null               },
   { href: '/dashboard/profile',   Icon: Contact,         ar: 'ملفي الشخصي',  en: 'My Profile', perm: 'self'             },
+  /* ⚠️ **مؤقّتٌ — يُحذف قبل الإطلاق** ⚠️
+     تبويبُ خطة التجربة، يظهر لكل مستخدمٍ (`perm: null` + `temp`) ليُجري
+     المجرّبون جولاتهم دون طلب رابطٍ من أحد. والصفحةُ نفسها بلا حارسٍ
+     أصلاً، فالتبويب لا يفتح ما كان مغلقاً — إنما يدلّ على مفتوح.
+     وموضع حذفه مسجَّلٌ في TEST_PLAN.md §18:
+       · هذا البند · وبشارةُ «مؤقّت» أدناه · وأيقونةُ FlaskConical
+       · وصفحةُ src/app/dashboard/test-plan/page.tsx إن استُغني عنها */
+  { href: '/dashboard/test-plan', Icon: FlaskConical,    ar: 'خطة التجربة',   en: 'Test Plan',  perm: null, temp: true },
 ]
 
 interface SidebarProps {
@@ -93,6 +112,7 @@ export default function Sidebar({ lang, collapsed: collapsedProp = false, onTogg
        (لا "مهامي" — فهو بلا مدرسة ولا مهام) */
     if (isGroupOwner && !isSuperAdmin) {
       return item.perm === 'group_owner' || item.href === '/dashboard/profile'
+        || item.temp === true   /* مؤقّت — يُحذف مع البند */
     }
     if (loading)                  return item.perm === null || item.perm === 'self'
     if (item.perm === 'requested') return reqCount > 0
@@ -198,6 +218,12 @@ export default function Sidebar({ lang, collapsed: collapsedProp = false, onTogg
               {item.perm === 'requested' && !collapsed && (
                 <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-white/25 text-white flex-shrink-0">
                   {reqCount}
+                </span>
+              )}
+              {/* ⚠️ مؤقّت — يُحذف مع بند «خطة التجربة» قبل الإطلاق */}
+              {item.temp && !collapsed && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-300 text-stone-900 flex-shrink-0">
+                  مؤقّت
                 </span>
               )}
             </Link>
