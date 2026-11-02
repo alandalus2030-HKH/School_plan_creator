@@ -147,8 +147,10 @@ export async function POST(req: NextRequest) {
     : files.filter((f: any) => !f.content_hash)
   ).slice(0, limit)
 
+  /* `last_fixity_at` عمودٌ زمنيّ (TIMESTAMPTZ)، فيُكتب طابعاً كاملاً.
+     وكان يُكتب نصَّ تاريخٍ (`YYYY-MM-DD`) فيُقحَم منتصفَ ليلٍ عالميّ،
+     فيظهر في الشريط خاماً: «2026-11-01T00:00:00+00:00». */
   const now = new Date().toISOString()
-  const today = now.slice(0, 10)
   const report = { checked: 0, stamped: 0, ok: 0, mismatch: 0, missing: 0,
                    changed: [] as { file: string; evidence: string }[] }
 
@@ -158,25 +160,25 @@ export async function POST(req: NextRequest) {
     if (missing || !hash) {
       report.missing++
       await admin.from('evidence_files')
-        .update({ fixity_status: 'missing', last_fixity_at: today }).eq('id', f.id)
+        .update({ fixity_status: 'missing', last_fixity_at: now }).eq('id', f.id)
       continue
     }
     if (!f.content_hash) {
       report.stamped++
       await admin.from('evidence_files')
-        .update({ content_hash: hash, fixity_status: 'ok', last_fixity_at: today }).eq('id', f.id)
+        .update({ content_hash: hash, fixity_status: 'ok', last_fixity_at: now }).eq('id', f.id)
       continue
     }
     if (f.content_hash === hash) {
       report.ok++
-      await admin.from('evidence_files').update({ fixity_status: 'ok', last_fixity_at: today }).eq('id', f.id)
+      await admin.from('evidence_files').update({ fixity_status: 'ok', last_fixity_at: now }).eq('id', f.id)
     } else {
       /* **البصمة المخزَّنة لا تُستبدَل**: هي المرجع، والاختلاف واقعةٌ تُبلَّغ
          لا تُسوّى صامتةً — وإلّا ضاع ما بُنيت البصمة لكشفه (11). */
       report.mismatch++
       report.changed.push({ file: f.name, evidence: f.evidence_id })
       await admin.from('evidence_files')
-        .update({ fixity_status: 'mismatch', last_fixity_at: today }).eq('id', f.id)
+        .update({ fixity_status: 'mismatch', last_fixity_at: now }).eq('id', f.id)
     }
   }
 

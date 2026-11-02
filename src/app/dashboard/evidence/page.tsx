@@ -301,7 +301,7 @@ export default function EvidenceLockerPage() {
           {fix.unstamped > 0 && <span className="text-amber-700">بلا بصمة {fix.unstamped}</span>}
           {fix.mismatch > 0 && <span className="text-red-700 font-bold">تبدّلت بصمته {fix.mismatch}</span>}
           {fix.missing  > 0 && <span className="text-red-700 font-bold">مفقود {fix.missing}</span>}
-          {fix.lastCheck && <span className="text-slate-400">آخر فحص {fix.lastCheck}</span>}
+          {fix.lastCheck && <span className="text-slate-400">آخر فحص {new Date(fix.lastCheck).toLocaleDateString('ar-QA', { dateStyle: 'short' })}</span>}
           <button onClick={runSweep} disabled={sweeping}
             title="يُعيد حساب بصمة كل ملفّ ويقارنها بالمخزَّنة — والمخزَّنة لا تُستبدَل"
             className="ms-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-violet-300 disabled:opacity-50">

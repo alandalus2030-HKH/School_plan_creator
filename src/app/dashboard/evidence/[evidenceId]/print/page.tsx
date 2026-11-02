@@ -251,7 +251,7 @@ export default function EvidencePrintPage() {
               </span>
               <span className="text-sm font-semibold text-slate-700 truncate">{f.name || (isVid ? 'فيديو' : 'مرفق')}</span>
                 {f.content_hash && (
-                  <span title={`SHA-256: ${f.content_hash}${f.last_fixity_at ? ` · آخر فحص ${f.last_fixity_at}` : ''}`}
+                  <span title={`SHA-256: ${f.content_hash}${f.last_fixity_at ? ` · آخر فحص ${new Date(f.last_fixity_at).toLocaleDateString('ar-QA', { dateStyle: 'short' })}` : ''}`}
                     className={`print:hidden text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
                       f.fixity_status === 'mismatch' ? 'bg-red-50 text-red-700 border border-red-200'
                       : f.fixity_status === 'missing' ? 'bg-amber-50 text-amber-700 border border-amber-200'
